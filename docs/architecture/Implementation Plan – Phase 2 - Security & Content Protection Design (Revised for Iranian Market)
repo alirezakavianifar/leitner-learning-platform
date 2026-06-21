@@ -1,0 +1,87 @@
+# Implementation Plan – Phase 2: Security & Content Protection Design (Revised for Iranian Market)
+
+This plan outlines the design of security, content protection, and anti-piracy features for the Leitner Learning Platform, tailored specifically to accommodate the technical restrictions, sanctions, and infrastructure patterns of the Iranian market. We will draft the **Security Design Document** as the core deliverable.
+
+## Iranian Market Constraints & Technical Solutions
+
+Due to international sanctions, network filtering, and localized banking systems, standard Western services (like AWS S3, Twilio, Google Play IAP, Google reCAPTCHA) cannot be used directly. The system design will adopt the following domestic and sanction-resilient alternatives:
+
+1. **Cloud Backups & Content CDN:**
+   - *Constraint:* AWS S3, Google Cloud Storage, and Azure are blocked or risk account termination.
+   - *Solution:* Use domestic, S3-compatible Object Storage (e.g., **ArvanCloud Object Storage** or **ParsPack Object Storage**). The backup system and download manager will use standard S3 SDKs configured with a custom `Endpoint` URL pointing to these domestic providers.
+2. **Payment Processing:**
+   - *Constraint:* Stripe and PayPal do not support Iranian bank cards (Shetab network).
+   - *Solution:* Implement a unified payment provider interface supporting:
+     - **Cafe Bazaar In-App Purchase (IAP)** and **Myket IAP** for Android client builds.
+     - **ZarinPal API v4** (IPG aggregator) or direct Shaparak bank gateways (Saman/Mellat) for direct purchases and web-based transactions.
+3. **SMS Verification (OTP):**
+   - *Constraint:* Twilio, Firebase Phone Auth, and Nexmo do not deliver SMS reliably to Iranian carriers (+98) or block them entirely.
+   - *Solution:* Use domestic SMS gateways such as **Kavenegar**, **Faraz SMS**, or **SMS.ir**. The auth system will feature configurable API client adapters for these services.
+4. **CAPTCHA & Anti-Bot Protection:**
+   - *Constraint:* Google reCAPTCHA is filtered or highly unstable in Iran, leading to authentication failures.
+   - *Solution:* Design a self-hosted, mathematical/visual CAPTCHA service integrated directly into the backend API, or support domestic captcha alternatives.
+5. **Secure Local Storage Fallback:**
+   - *Constraint:* Many budget Android devices in Iran run custom ROMs or older OS versions with broken hardware-backed Keystores.
+   - *Solution:* The mobile app storage service will use a fallback scheme: if hardware-backed encryption is unavailable, it will fall back to software-based AES-256-CBC encryption using a key derived from user credentials and secure preferences, rather than failing.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Key Decisions & Requirements:**
+> 1. **SMS Gateway:** We will proceed with Kavenegar as the default primary SMS provider, with interface contracts allowing easy swap-out to Faraz SMS or SMS.ir.
+> 2. **Object Storage Provider:** We will write the configuration template to support ArvanCloud or ParsPack S3-compatible object storage via custom S3 endpoints.
+> 3. **Dynamic Watermarking Format:** To prevent piracy on domestic platforms (like Telegram or Rubika), cards will render the student's obfuscated phone number (e.g., `0912***3456`) and registration ID diagonally with 0.08 opacity.
+
+## Open Questions
+
+> [!NOTE]
+> *Are there any other specific domestic services you currently have accounts for (e.g., Faraz SMS instead of Kavenegar, or ParsPack instead of ArvanCloud) that we should set as the default configurations?*
+> *(If not specified, we will use Kavenegar for SMS and ArvanCloud for S3-compatible storage as defaults).*
+
+---
+
+## Proposed Changes
+
+### Documentation & Security Design
+
+---
+
+#### [NEW] [security_design.md](file:///e:/projects/leitner-learning-platform/docs/security/security_design.md)
+Create a comprehensive Security Design Document detailing:
+- **Course & Local Encryption Strategy:**
+  - AES-256 block encryption via SQLCipher for the client database.
+  - Client-side key derivation combined with system Keystore/Keychain integration and custom software-encryption fallback for budget devices.
+  - Course ZIP archive extraction and decryption mechanisms.
+- **API Security:**
+  - JWT token flow (RS256/HS256) with short-lived access tokens (15m) and long-lived refresh tokens (30d).
+  - RBAC (Role-Based Access Control) structure (Admin vs Student permissions).
+  - Rate limiting architecture using Redis-backed rate limiting middleware.
+- **Iran-Specific Infrastructure Integration:**
+  - SMS Gateway implementation contracts (Kavenegar default).
+  - CAPTCHA flow design (self-hosted / domestic fallback).
+  - Payment integration contracts (ZarinPal v4 & Cafe Bazaar/Myket IAP).
+- **Anti-Piracy:**
+  - Dynamic overlay watermarking algorithm (obfuscated student phone + student ID on UI).
+  - Signed temporary download URLs with short time-to-live (10 minutes) verified by backend purchase checks using domestic S3/CDN endpoints.
+- **Off-Server Backup & Replication:**
+  - Architecture for immediate replication of user registration and purchase data using domestic S3-compatible targets.
+  - SQL dump automation and retention schedule (daily/weekly/monthly).
+- **Secrets Management:**
+  - Environment configuration standards and templates.
+
+#### [NEW] [.env.example](file:///e:/projects/leitner-learning-platform/.env.example)
+Create a template environment configuration file containing placeholders for database connections, JWT secrets, ZarinPal merchant details, Kavenegar API credentials, and ArvanCloud/ParsPack S3 Endpoint configurations.
+
+#### [MODIFY] [plan.md](file:///e:/projects/leitner-learning-platform/plan.md)
+Update the Project Progress Dashboard in `plan.md` to show Phase 2 status as completed once deliverables are verified.
+
+---
+
+## Verification Plan
+
+### Manual Verification
+- Verify that the [security_design.md](file:///e:/projects/leitner-learning-platform/docs/security/security_design.md) is comprehensive and addresses all requirements specified under Phase 2 of [plan.md](file:///e:/projects/leitner-learning-platform/plan.md), including all Iranian market adaptations.
+- Verify that the [.env.example](file:///e:/projects/leitner-learning-platform/.env.example) contains all the variables required by the security design, backup system, domestic SMS gateway, and local payment provider.
+- Confirm the documentation is properly referenced and links function correctly.

@@ -1,0 +1,119 @@
+# Implementation Plan - Phase 9: Offline Download & Storage System
+
+This plan details the implementation of the secure offline-first course download and storage infrastructure for the Leitner Learning Platform mobile application.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Database Encryption Key Derivation**
+> In accordance with the security design, we will derive the local SQLite decryption key using **PBKDF2-HMAC-SHA256** with 10,000 iterations from a client-side device-unique identifier and a user salt. 
+> Since the backend database currently does not store or return an independent user-specific cryptographic salt, we will generate a cryptographically secure 32-byte user salt locally upon the user's first successful authentication/profile completion. This salt will be persisted in `FlutterSecureStorage` (iOS Keychain / Android Keystore) and used to derive the database encryption key. This keeps the encryption key fully secure and isolated locally.
+
+> [!WARNING]
+> **Dynamic RAM Decryption of Media**
+> Pre-encrypted course media assets (images, audio) inside the downloaded ZIP file must be decrypted in-memory (RAM) during card study to prevent unencrypted premium content from being written to device disk. We will incorporate the `encrypt` Dart package to handle AES-256-CBC decryption of files in-memory before visual/audio playback.
+
+---
+
+## Open Questions
+
+No outstanding open questions. The specifications for offline behaviors, colors, and merging algorithms are fully defined in [offline_and_sync.md](file:///e:/projects/leitner-learning-platform/docs/architecture/offline_and_sync.md) and [course_db_specification.md](file:///e:/projects/leitner-learning-platform/docs/course/course_db_specification.md).
+
+---
+
+## Proposed Changes
+
+### [Mobile App Base & Setup]
+
+#### [MODIFY] [pubspec.yaml](file:///e:/projects/leitner-learning-platform/mobile-app/pubspec.yaml)
+- Add dependencies for SQLite storage, ZIP extraction, AES decryption, and path manipulation:
+  - `sqflite: ^2.3.0`
+  - `archive: ^3.3.7`
+  - `encrypt: ^5.0.3`
+  - `path: ^1.9.0`
+
+#### [NEW] [pbkdf2.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/core/security/pbkdf2.dart)
+- Pure Dart implementation of **PBKDF2-HMAC-SHA256** to derive AES-256 encryption keys using the `crypto` package.
+
+#### [NEW] [database_helper.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/core/database/database_helper.dart)
+- Manages `app_local.db` database creation and schema initialization (tables: `client_progress`, `user_created_cards`, `favorites`, `settings`).
+- Implements encryption key derivation using `pbkdf2` based on a stored secure salt and a generated unique client ID from `FlutterSecureStorage`.
+- Opens and closes SQLite databases for courses securely.
+
+#### [MODIFY] [injection_container.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/injection_container.dart)
+- Register `DatabaseHelper` as a singleton.
+- Register `CoursesRemoteDataSource`, `CoursesLocalDataSource`, `CoursesRepository`, use cases, and `CoursesBloc`.
+
+---
+
+### [Courses Feature Module]
+
+#### [NEW] [course.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/domain/entities/course.dart)
+- Core domain model representing a course, including fields for catalog metrics, download status, locally cached version, price, and download/ZIP URLs.
+
+#### [NEW] [course_model.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/data/models/course_model.dart)
+- Data model subclassing `Course` with JSON serializers (snake_case) and SQLite schema mappings.
+
+#### [NEW] [courses_repository.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/domain/repositories/courses_repository.dart)
+- Interface specifying get courses, download course, and get cached courses operations.
+
+#### [NEW] [courses_remote_data_source.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/data/datasources/courses_remote_data_source.dart)
+- Performs network calls to `/api/v1/courses` and fetches single-use download tokens.
+
+#### [NEW] [courses_local_data_source.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/data/datasources/courses_local_data_source.dart)
+- Manages SQL query execution for saving courses catalog cache.
+- Implements the progress merging algorithm during course package updates:
+  - Add new cards to `client_progress` in `app_local.db` with default Box 1 state.
+  - Remove stale cards deleted from updated courses.
+  - Retain progress for unmodified card numbers.
+- Manages extraction of ZIP packages, media directories, and physical `.db` files.
+
+#### [NEW] [courses_repository_impl.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/data/repositories/courses_repository_impl.dart)
+- Coordinates remote and local data flows.
+- Handles authenticated downloading, checksum validation, and ZIP archive decryption.
+
+#### [NEW] [get_courses.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/domain/usecases/get_courses.dart)
+- Use case for fetching the catalog (tries remote api, falls back to local SQLite cache if offline).
+
+#### [NEW] [download_course.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/domain/usecases/download_course.dart)
+- Use case to execute authenticated downloading and extraction of a course.
+
+#### [NEW] [courses_bloc.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/presentation/bloc/courses_bloc.dart)
+- State machine handling:
+  - `LoadCoursesEvent`
+  - `DownloadCourseEvent`
+- States: `CoursesInitial`, `CoursesLoading`, `CoursesLoaded`, `CoursesError`, `CourseDownloading`.
+
+---
+
+### [UI Presentation Layer]
+
+#### [NEW] [courses_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/presentation/screens/courses_screen.dart)
+- Premium dark mode catalog UI following structural definitions:
+  - Order: Downloaded/purchased courses appear at the top.
+  - Border indicators: Green border for downloaded, yellow border for not purchased/not downloaded.
+  - Displays: Course title, difficulty, category, card count, paid/free status.
+  - Offline mode indicator: Top banner warning *"Internet connection unavailable; course catalog update not performed."*
+
+#### [MODIFY] [home_hub_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/auth/presentation/screens/home_hub_screen.dart)
+- Replace the static courses catalog placeholder tab with `CoursesScreen` inside the `IndexedStack` widget.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Run backend unit tests to verify API servers continue working correctly:
+  - `dotnet test`
+- Create Flutter unit tests inside `mobile-app/test` directory to validate:
+  - PBKDF2 key derivation correctness.
+  - SQLite database progress preservation and merge logic.
+
+### Manual Verification
+- Launch the application and complete verification:
+  - Log in via OTP (use bypass OTP `12345`).
+  - View the Courses tab (online): should show available courses (e.g. any pre-seeded database entries).
+  - Purchase and download a course. Confirm the ZIP downloads, decrypts, and creates local directory entries.
+  - Verify that downloaded courses rise to the top of the catalog list and are decorated with a green border.
+  - Toggle Airplane mode / cut internet connection.
+  - Reload Courses tab: should render previously cached list and display the offline warning banner.

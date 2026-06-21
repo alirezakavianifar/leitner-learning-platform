@@ -1,0 +1,104 @@
+# Implementation Plan - Phase 7: Course Management System
+
+This plan details the design and implementation of the Course Management System, fulfilling all requirements for Phase 7 on both the backend API server and the admin panel frontend.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **SQLite SQLite-net Core Reference:** To parse the SQLite database packages uploaded inside the ZIP files on the backend server, we will introduce the `Microsoft.Data.Sqlite` dependency to the `LeitnerPlatform.API` project. This library is lightweight and does not require system-level installations, making it fully cross-platform.
+> **Static Directory Mapping:** The uploaded ZIP course packages will be stored locally in `wwwroot/courses/` on the API server. We will enable `app.UseStaticFiles()` in ASP.NET Core so that clients can securely download packages over standard HTTPS.
+
+## Open Questions
+
+- *None at this time. The requirements are clear, and the design aligns directly with the previously defined specs and patterns.*
+
+## Proposed Changes
+
+### [Backend Database Schema]
+
+#### [NEW] [V3__Course_Extensions_And_Tables.sql](file:///e:/projects/leitner-learning-platform/deployment/db/migrations/V3__Course_Extensions_And_Tables.sql)
+Create a new migration script to add metadata columns to the PostgreSQL `courses` table:
+- `version` (INTEGER NOT NULL DEFAULT 1)
+- `checksum_sha256` (VARCHAR(64))
+- `download_url` (VARCHAR(512))
+- `card_count` (INTEGER NOT NULL DEFAULT 0)
+
+---
+
+### [Backend Domain & Core Models]
+
+#### [MODIFY] [Course.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/Course.cs)
+Extend the core `Course` entity with the new schema fields:
+- `public int Version { get; set; }`
+- `public string? ChecksumSha256 { get; set; }`
+- `public string? DownloadUrl { get; set; }`
+- `public int CardCount { get; set; }`
+
+#### [MODIFY] [LeitnerDbContext.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/LeitnerDbContext.cs)
+Update the fluent API mapping configuration for `Course` to map these properties to their database columns:
+- `version`
+- `checksum_sha256`
+- `download_url`
+- `card_count`
+
+---
+
+### [Backend API Endpoints]
+
+#### [NEW] [CourseController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/CourseController.cs)
+Implement user-facing course catalog APIs:
+- `GET /api/v1/courses`: Returns list of all published courses. Checks if the authenticated user has purchased each course (or if it's free/price = 0) and sets `is_purchased` and `download_url` accordingly.
+- `POST /api/v1/courses/{id}/download-token`: Authenticates purchase status. Returns a tokenized download URL, checksum, and status. Returns `403 Forbidden` if the course has a price > 0 and is not purchased by the user.
+
+#### [MODIFY] [AdminController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/AdminController.cs)
+Add administrative APIs for Course Management:
+- `GET /api/v1/admin/courses`: Paginated and searchable list of all courses (published and unpublished).
+- `POST /api/v1/admin/courses/upload`: Accepts a multipart ZIP archive.
+  1. Saves the archive in `wwwroot/courses/{course_id}.zip`.
+  2. Extracts `manifest.json` and parses properties.
+  3. Extracts `course.db` SQLite DB to a temp folder.
+  4. Reads the cards table using `Microsoft.Data.Sqlite` and parses card details.
+  5. Inserts or Updates the `courses` record and resets/populates the PostgreSQL `cards` table with card items.
+  6. Emits audit log events (`CREATE_COURSE` or `UPDATE_COURSE`).
+- `PUT /api/v1/admin/courses/{id}`: Edit course metadata (title, category, difficulty, price, description, is_published). Logs change history in audit logs.
+- `DELETE /api/v1/admin/courses/{id}`: Deletes the course, its cards in PostgreSQL, and removes the saved physical ZIP file. Emits audit logs.
+
+#### [MODIFY] [Program.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Program.cs)
+Enable static files server middleware by adding `app.UseStaticFiles()` to serve compiled packages.
+
+#### [MODIFY] [LeitnerPlatform.API.csproj](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj)
+Add `Microsoft.Data.Sqlite` package reference.
+
+---
+
+### [Admin Panel Frontend]
+
+#### [MODIFY] [api.ts](file:///e:/projects/leitner-learning-platform/admin-panel/src/services/api.ts)
+Register API call utilities for courses:
+- `api.admin.getCourses()`
+- `api.admin.uploadCourse()`
+- `api.admin.updateCourse()`
+- `api.admin.deleteCourse()`
+
+#### [NEW] [index.tsx](file:///e:/projects/leitner-learning-platform/admin-panel/src/modules/courses/index.tsx)
+Create a pluggable Course Management module:
+- Course catalog grid/table detailing title, category, difficulty, price, card count, version, and published state.
+- Interactive upload interface: supports selecting a ZIP package to upload, showing upload status/errors.
+- Inline form/modal to edit course metadata: title, description, category, difficulty, price, published toggle.
+- Clear safety confirmation dialogs for course deletion.
+
+#### [MODIFY] [index.ts](file:///e:/projects/leitner-learning-platform/admin-panel/src/modules/index.ts)
+Register `CoursesModule` in the active pluggable modules array.
+
+## Verification Plan
+
+### Automated Tests
+- Run `dotnet test` to execute unit tests.
+- Add unit/integration tests verifying course upload extraction, manifest validation, card importing, and download access controls.
+
+### Manual Verification
+1. Upload a compiled ZIP course package (e.g. `course_package.zip` compiled from the authoring kit).
+2. Verify that the course is successfully parsed, metadata is populated in PostgreSQL, and cards are imported into PostgreSQL.
+3. Edit the metadata and toggle the published status.
+4. Verify that the changes are correctly reflected in the user catalog endpoint and that proper audit logs are recorded.
+5. Manually verify course catalog downloads as a direct user.

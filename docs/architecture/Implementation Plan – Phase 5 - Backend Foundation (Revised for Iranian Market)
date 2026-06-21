@@ -1,0 +1,154 @@
+# Implementation Plan – Phase 5: Backend Foundation (Revised for Iranian Market)
+
+This plan outlines the design and implementation details for Phase 5 of the Leitner Learning Platform. We will build the server-side infrastructure using **.NET 8 LTS (ASP.NET Core)**, establishing database schemas, OTP/JWT authentication, user profile management, event bus system, and off-server backup replication, fully customized for domestic Iranian cloud services.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Domestic Service Integrations:**
+> - **SMS Gateway:** We will integrate **Kavenegar** as the primary SMS provider (supporting tokenized verification message templates) and provide adapters for **Faraz SMS** and **SMS.ir** as fallbacks.
+> - **Object Storage Backup:** We will configure the S3 storage client (using standard AWSSDK.S3) with custom endpoints pointing to domestic S3-compatible providers (specifically **ArvanCloud** or **ParsPack**).
+> - **Self-Hosted CAPTCHA Integration:** To mitigate bot spam without relying on unstable Google reCAPTCHA, we will build a self-hosted visual/math CAPTCHA generator endpoint as part of the security foundation.
+
+> [!IMPORTANT]
+> **Database Schema Source of Truth:**
+> We have a predefined SQL schema at [V1__Initial_Schema.sql](file:///e:/projects/leitner-learning-platform/deployment/db/migrations/V1__Initial_Schema.sql). To ensure strict alignment and avoid duplicating SQL migrations as EF Core migrations, we will use **DbUp** inside the C# backend to execute these raw SQL files on startup. EF Core will then map to the resulting tables.
+
+> [!IMPORTANT]
+> **Replication Fallback:**
+> The off-server backup replication is triggered immediately upon user registration or purchase changes via an Event Bus. If domestic S3 credentials are not configured, it will log a warning and save JSON backups locally under a `/backups/` directory within the workspace to avoid runtime crashes during local development.
+
+---
+
+## Open Questions
+
+- *No open questions at this stage. The domestic providers mapped in Phase 2 are carried forward into the implementation.*
+
+---
+
+## Proposed Changes
+
+### Backend Solutions & Core Architecture
+
+We will organize the backend codebase into 5 projects under a new solution `backend/LeitnerPlatform.sln`:
+- **`LeitnerPlatform.Core`** (Domain layer: Entities, Interfaces, Events, Exceptions)
+- **`LeitnerPlatform.Data`** (Data layer: DbContext, Repository implementations, DbUp migrations, S3-compatible Backup Service)
+- **`LeitnerPlatform.API`** (Presentation/API layer: Versioned Controllers, JWT setup, Rate Limiting, Self-Hosted CAPTCHA, Event Bus Runner)
+- **`LeitnerPlatform.BackgroundWorker`** (Background runner hosting system jobs and listeners)
+- **`LeitnerPlatform.Tests`** (xUnit unit & integration testing suite)
+
+---
+
+### [NEW] [LeitnerPlatform.Core](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/)
+This project contains the business logic, entities, repository abstractions, event bus interfaces, and domain events.
+
+#### [NEW] [LeitnerPlatform.Core.csproj](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/LeitnerPlatform.Core.csproj)
+Standard .NET 8 class library.
+
+#### [NEW] Entities
+- [User.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/User.cs): Maps to `users` table. Represents the user profile.
+- [Course.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/Course.cs): Maps to `courses` table.
+- [Card.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/Card.cs): Maps to `cards` table.
+- [LeitnerProgress.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/LeitnerProgress.cs): Maps to `leitner_progress` table.
+- [Purchase.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/Purchase.cs): Maps to `purchases` table.
+- [FlashcardReport.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/FlashcardReport.cs): Maps to `flashcard_reports` table.
+- [Banner.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/Banner.cs): Maps to `banners` table.
+- [Announcement.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/Announcement.cs): Maps to `announcements` table.
+- [AuditLog.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/AuditLog.cs): Maps to `audit_logs` table.
+
+#### [NEW] Interfaces
+- `IUserRepository`: Data access for User profile.
+- `IEventBus`: Abstract Event Bus to publish domain events.
+- `IBackupService`: Abstraction to replicate user/purchase data to ArvanCloud/ParsPack S3.
+- `ISmsService`: Abstraction to dispatch OTP verification codes via Kavenegar/Faraz SMS/SMS.ir.
+- `ICaptchaService`: Abstraction to generate math/visual CAPTCHA and store challenge hash in Redis.
+
+#### [NEW] Events
+- `UserRegisteredEvent`: Fired when a user is created via OTP verify.
+- `PurchaseCompletedEvent`: Fired when a purchase is verified and completed.
+
+---
+
+### [NEW] [LeitnerPlatform.Data](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/)
+This project implements the repository interfaces, EF Core DB context, migrations execution, and infrastructure services.
+
+#### [NEW] [LeitnerPlatform.Data.csproj](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/LeitnerPlatform.Data.csproj)
+References EF Core, PostgreSQL Npgsql, DbUp, AWSSDK.S3, and StackExchange.Redis.
+
+#### [NEW] [LeitnerDbContext.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/LeitnerDbContext.cs)
+EF Core database context mapping domain entities to PostgreSQL tables.
+
+#### [NEW] [DatabaseMigrator.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/DatabaseMigrator.cs)
+Performs startup database initialization and migration execution using DbUp. It reads SQL scripts from `deployment/db/migrations/` and applies them to PostgreSQL.
+
+#### [NEW] Services
+- [SmsService.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/Services/SmsService.cs): Implements OTP dispatching via domestic SMS gateways (default Kavenegar client API, fallback to log message if no credentials).
+- [S3BackupService.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/Services/S3BackupService.cs): Implements off-server backup replication using standard S3 API with custom Endpoint pointing to domestic Object Storage (ArvanCloud/ParsPack).
+- [CaptchaService.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/Services/CaptchaService.cs): Implements mathematical visual captcha generator, writing challenge to memory/Redis.
+
+---
+
+### [NEW] [LeitnerPlatform.API](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/)
+The presentation layer hosting the ASP.NET Core Web API with versioned endpoints, rate limiting, and event handling.
+
+#### [NEW] [LeitnerPlatform.API.csproj](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj)
+References core/data libraries, JWT bearer packages, and tools.
+
+#### [NEW] Program.cs
+- Register services (Repositories, DbContext, EventBus, BackupService, SmsService, CaptchaService).
+- Configure DB migration check on startup using DbUp.
+- Configure JWT Authentication and CORS.
+- Configure native Rate Limiting on OTP request endpoint.
+- Boot Channel-based Event Bus listener.
+
+#### [NEW] Controllers
+- [AuthController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/AuthController.cs):
+  - `GET /api/v1/auth/captcha`: returns a math captcha image challenge.
+  - `POST /api/v1/auth/otp/request`: verifies captcha challenge before triggering SMS dispatch.
+  - `POST /api/v1/auth/otp/verify`: verifies code and issues JWT token.
+- [UserController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/UserController.cs):
+  - `GET /api/v1/user/profile` (Authenticated)
+  - `PUT /api/v1/user/profile` (Authenticated, mobile number read-only validation)
+
+---
+
+### [NEW] [LeitnerPlatform.BackgroundWorker](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.BackgroundWorker/)
+Background job processor for cleaning expired data and syncing secondary tasks.
+
+#### [NEW] [LeitnerPlatform.BackgroundWorker.csproj](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj)
+Standard worker daemon.
+
+---
+
+### [NEW] [LeitnerPlatform.Tests](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Tests/)
+Contains unit tests and WebApplicationFactory integration tests to assert authentication, rate limiting, S3 backup trigger, and profile endpoints.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+We will execute:
+```powershell
+dotnet test backend/LeitnerPlatform.Tests/LeitnerPlatform.Tests.csproj --configuration Release
+```
+This tests:
+1. **CAPTCHA Validation:** CAPTCHA generation and math answer verification.
+2. **OTP Request:** Rate limits validation, correct status returns.
+3. **OTP Verification:** Test validation via code `12345` and dynamic random codes. JWT generation.
+4. **Profile endpoint:** GET fetches profiles correctly, PUT updates details, attempts to modify mobile number are ignored/discarded.
+5. **Replication trigger:** Asserts that registering a user successfully triggers the Backup event dispatch.
+
+### Manual Verification
+1. Start PostgreSQL 16 and Redis via docker compose:
+   ```bash
+   docker compose -f deployment/docker-compose.yml up -d db redis
+   ```
+2. Start the API in Development mode:
+   ```bash
+   cd backend/LeitnerPlatform.API
+   dotnet run
+   ```
+3. Use Postman or curl to test CAPTCHA, OTP request, verification, profile retrieval, and verify that a file is successfully created in the local backups directory or domestic S3 bucket.

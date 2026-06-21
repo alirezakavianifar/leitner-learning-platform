@@ -1,0 +1,105 @@
+# Implementation Plan - Phase 11: Flashcard Learning Module
+
+This plan details the design and implementation of Phase 11 of the Leitner Learning Platform, establishing the flashcard learning interface, progress reset triggers, favorites storage, user-submitted flashcard typo reports, and the first-run guided tutorials.
+
+## User Review Required
+
+> [!IMPORTANT]
+> The PDF requirements specify that standard study navigation (using next/prev arrows) must restrict access to Box 2–5 cards that are not yet due today.
+> * Standard study loops will ONLY show Box 1 cards + Box 2–5 due cards.
+> * Tapping a card number directly triggers a Jump dialog, which allows jumping to *any* card. However, if the target card is in Box 2-5, a warning dialog will prompt the user to confirm that viewing the card directly will reset its Leitner progress to Box 1.
+
+> [!NOTE]
+> For audio playing functionality on mobile devices, we will introduce the `audioplayers` package dependency in `pubspec.yaml`.
+
+---
+
+## Proposed Changes
+
+### Backend Component
+
+#### [MODIFY] [CourseController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/CourseController.cs)
+- Add a new user-authenticated endpoint `POST /api/v1/courses/reports`.
+- This endpoint will validate the course exists, create a new `FlashcardReport` record with status `PENDING`, and save it to PostgreSQL.
+- Add support classes `SubmitReportInput`.
+
+#### [MODIFY] [CourseTests.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Tests/CourseTests.cs)
+- Add a unit test `CourseController_SubmitReport_ShouldStoreReport` to verify the new endpoint.
+
+---
+
+### Mobile Client Component (Flutter)
+
+#### [MODIFY] [pubspec.yaml](file:///e:/projects/leitner-learning-platform/mobile-app/pubspec.yaml)
+- Add `audioplayers: ^6.0.0` under dependencies to enable playback of local audio files stored in the course directories.
+
+#### [MODIFY] [injection_container.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/injection_container.dart)
+- Register `FlashcardBloc` as a factory.
+
+#### [MODIFY] [flashcard_repository.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/domain/repositories/flashcard_repository.dart)
+Add favorites-related methods to the abstract class:
+- `Future<void> toggleFavorite(String courseId, int cardNumber);`
+- `Future<bool> isFavorite(String courseId, int cardNumber);`
+- `Future<List<Flashcard>> getFavoriteCards(String courseId);`
+- `Future<void> submitReport(String courseId, int cardNumber, String reportText);`
+
+#### [MODIFY] [flashcard_repository_impl.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/data/repositories/flashcard_repository_impl.dart)
+Implement the new methods:
+- `toggleFavorite`: Queries the local SQLite `favorites` table. Inserts if missing, deletes if already exists.
+- `isFavorite`: Checks if `(course_id, card_number)` exists in `favorites`.
+- `getFavoriteCards`: Resolves favorite records, loads corresponding cards from the course database.
+- `submitReport`: Calls `POST /api/v1/courses/reports` using `DioClient` to upload the report to the server.
+
+#### [NEW] [bloc/flashcard_event.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/presentation/bloc/flashcard_event.dart)
+Defines all events for the flashcard study flow:
+- `LoadFlashcardQueue(String courseId)`
+- `FlipFlashcard()`
+- `SubmitReview(bool isCorrect)`
+- `ToggleFavorite()`
+- `JumpToCardNumber(int cardNumber)`
+- `SubmitReport(String text)`
+- `NextCard()`
+- `PrevCard()`
+
+#### [NEW] [bloc/flashcard_state.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/presentation/bloc/flashcard_state.dart)
+Defines the states for flashcard execution, carrying the loaded queue, current card index, flipped state, loading states, and completion state.
+
+#### [NEW] [bloc/flashcard_bloc.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/presentation/bloc/flashcard_bloc.dart)
+Orchestrates loading the queue, submitting reviews, toggling favorites, executing progress resets when direct jump confirmations occur, and handling report submissions.
+
+#### [NEW] [screens/flashcard_study_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/presentation/screens/flashcard_study_screen.dart)
+Implement the core learning page:
+- **Header:** Course title, colored box indicator.
+- **Center Rotating Card:** Custom card with 3D/flip animation (using `AnimatedBuilder` or custom transition). Supports conditional rendering of questions, answers, images (loaded via local path), and audio playback button. If the card contains no image/audio/options, they are fully collapsed to avoid blank spaces.
+- **Footer:** Navigation buttons (next/prev), favorites icon button, direct card number trigger (displays a jump dialog with safety warning if the target is in Box 2-5), report button (displays text input dialog).
+- **Back Face Buttons:** Displays "Know It" and "Don't Know" action triggers.
+
+#### [NEW] [screens/favorites_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/presentation/screens/favorites_screen.dart)
+- Displays all favorited cards of a course in a list.
+- Tapping a card prompts a warning modal: "Viewing this card directly will reset its Leitner progress to Box 1. Do you want to proceed?"
+- If confirmed, executes the progress reset and opens the card in the study view.
+
+#### [NEW] [widgets/onboarding_tour.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/presentation/widgets/onboarding_tour.dart)
+- Implement a first-run wizard/tutorial dialog that teaches users:
+  1. The Leitner Box interval logic (Box 1: immediate, Box 2: 3 days, Box 3: 7 days, Box 4: 16 days, Box 5: 31 days).
+  2. The Box Colors (Orange, Yellow, Green, Blue, Purple, Gold).
+  3. A step-by-step walkthrough covering the 12 specific screens/features in the PDF sequence.
+- Save `first_run_completed` in `SharedPreferences` to ensure this only displays automatically once. Include a "Run Tutorial" button in Settings to launch it manually at any time.
+
+#### [MODIFY] [home_hub_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/auth/presentation/screens/home_hub_screen.dart)
+- Replace the placeholder Review tab with the actual study dashboard/list of downloaded courses showing today's review counts. Tapping a course launches the `FlashcardStudyScreen`.
+- Connect first-run detection to display the onboarding tour when the app first opens.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Run backend tests: `dotnet test backend/LeitnerPlatform.Tests/LeitnerPlatform.Tests.csproj`
+- Run Flutter analyzer: `flutter analyze` (inside `mobile-app` directory)
+- Execute unit tests on repositories and bloc.
+
+### Manual Verification
+- Deploy backend and use Postman/cURL to verify report submission works and requires authorization.
+- Verify the mobile client UI layout, the flip animation, and local asset rendering.
+- Verify that box progression timings, resets, and confirmation dialogs work correctly.

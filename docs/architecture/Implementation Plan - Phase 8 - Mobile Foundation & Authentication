@@ -1,0 +1,138 @@
+# Implementation Plan - Phase 8: Mobile Foundation & Authentication
+
+This phase establishes the mobile application shell using Flutter. It implements the Feature-Based Clean Architecture, Dependency Injection (using GetIt), Repository Patterns, a Client-side Event Bus, persistent dark-mode-first glassmorphism styling, and the complete login and profile setup flow.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Flutter SDK Installation Location**
+> We will download the stable Flutter SDK (`3.44.2-stable`) and install it under `C:\src\flutter`. If you prefer a different location, please let us know.
+>
+> **Development OTP Bypass**
+> For testing and validation of the OTP verification screen, we will configure the app to accept the standard development bypass code `12345` as supported by the backend.
+
+---
+
+## Open Questions
+
+> [!NOTE]
+> **1. Initial API Base URL**
+> What is the default development endpoint URL for the backend API? We propose `http://localhost:8080` (or `http://10.0.2.2:8080` for Android Emulator loopback).
+>
+> **2. Terms & Rules Acceptance persistence**
+> Does the backend API store the accepted status of Terms & Rules, or is this managed locally on the client (e.g. in secure storage/shared preferences) to decide if we should redirect the user to the Rules Acceptance Screen? Based on our inspection of `UserController.cs`, the user profile does not store a `terms_accepted` flag, so we plan to store this flag locally on the device.
+
+---
+
+## Proposed Changes
+
+### Environment Configuration & Tooling
+
+#### [NEW] Flutter SDK Setup
+- **Action**: Download the Flutter stable Windows ZIP archive:
+  `https://storage.googleapis.com/flutter_infra_release/releases/stable/windows/flutter_windows_3.44.2-stable.zip`
+- **Action**: Create directory `C:\src` and extract the archive to `C:\src\flutter`.
+- **Action**: Verify the installation by running `C:\src\flutter\bin\flutter.bat doctor`.
+
+---
+
+### Mobile Application Component (`mobile-app`)
+
+#### [NEW] [pubspec.yaml](file:///e:/projects/leitner-learning-platform/mobile-app/pubspec.yaml)
+Initialize the project using `flutter create` and configure dependencies:
+- **State Management**: `flutter_bloc` and `equatable`
+- **Service Locator (DI)**: `get_it`
+- **Networking**: `dio` (with request logging and bearer token interceptors)
+- **Persistence & Secure Storage**: `shared_preferences` and `flutter_secure_storage`
+- **SVG Parsing (CAPTCHA)**: `flutter_svg`
+- **Fonts**: `google_fonts` (for Outfit and Inter typefaces)
+- **Utilities**: `path_provider`, `crypto`, `intl`
+
+#### [NEW] Directory Layout
+Create the Feature-Based Clean Architecture directories:
+```text
+mobile-app/lib/
+├── main.dart             # App Entry Point (registers DI & launches App widget)
+├── app/                  # Application configuration
+│   ├── app.dart          # Main MaterialApp setting router and themes
+│   ├── router.dart       # Declares login, terms, profile, and hub screens
+│   └── theme.dart        # Configures Outfit & Inter, HSL color tokens
+├── core/                 # Shared features
+│   ├── error/            # Failures & exceptions
+│   ├── event_bus/        # central stream-based event bus
+│   ├── network/          # Dio client setup & JWT Interceptor
+│   └── usecase/          # Base UseCase interface
+└── features/             # Feature domains
+    ├── auth/             # Authentication & registration flow
+    │   ├── data/         # Models, Remote (Dio) and Local (SecureStorage) datasources
+    │   ├── domain/       # Entities, Repositories, and UseCases
+    │   └── presentation/ # BLoC/Cubit, screens, and custom widgets
+    ├── courses/          # Placeholder structures for Phase 9
+    ├── flashcards/       # Placeholder structures for Phase 10
+    └── settings/         # Placeholder structures for Logout confirmation
+```
+
+#### [NEW] Core Infrastructure Implementation
+
+- **Client Event Bus (`lib/core/event_bus/event_bus.dart`)**:
+  A simple stream-based hub allowing feature-decoupled event publishing (e.g. `UserRegistered`, `LeitnerProgressReset`).
+- **Dependency Injection (`lib/injection_container.dart`)**:
+  Initializes `GetIt.instance` registering `Dio`, `FlutterSecureStorage`, `SharedPreferences`, `AuthRemoteDataSource`, `AuthLocalDataSource`, `AuthRepository`, use cases, and `AuthBloc`.
+- **Theme System (`lib/app/theme.dart`)**:
+  Applies dark mode using HSL design tokens from `ui_design.md`:
+  - Background: `#121620`
+  - Primary: `#8F53FF`
+  - Secondary (Highlight/Teal): `#09E5C3`
+  - Card Surfaces: `hsla(223, 20%, 15%, 0.7)`
+
+#### [NEW] Authentication Flow Implementation (`lib/features/auth/`)
+
+- **Data Layer**:
+  - `UserModel` and `AuthTokenModel` handling JSON parsing.
+  - `AuthRemoteDataSource` calls `/api/v1/auth/captcha`, `/api/v1/auth/otp/request`, `/api/v1/auth/otp/verify`, `/api/v1/user/profile`, and `PUT /api/v1/user/profile`.
+  - `AuthLocalDataSource` reads/writes the JWT access token, refresh token, and terms acceptance state.
+- **Domain Layer**:
+  - `User` entity.
+  - Use Cases: `GetCaptcha`, `RequestOtp`, `VerifyOtp`, `GetProfile`, `UpdateProfile`, `AcceptTerms`.
+- **Presentation Layer (`lib/features/auth/presentation/`)**:
+  - `AuthBloc` managing authentication state transitions.
+  - Screens:
+    1. **Login & OTP Request Screen**:
+       - Form field for Iranian mobile numbers.
+       - SVG CAPTCHA renderer widget loading base64 data from backend with a refresh button.
+       - Submits phone number + CAPTCHA answer, transitions to Verification Screen.
+    2. **Verification Screen**:
+       - 5-digit verification code input.
+       - 120-second countdown timer. Re-enables the send/resend button upon completion.
+       - Successful verification saves credentials and routes to Terms Acceptance.
+    3. **Mandatory Rules & Terms Screen**:
+       - Renders the rules from `rcd.md`.
+       - Must check "I accept the Terms and Rules" to proceed to profile completion.
+    4. **Profile Completion Screen**:
+       - Input fields: Username (pre-filled with a placeholder but editable), Interests (text area), Educational Field (dropdown or text), Educational Level (dropdown or text).
+       - Mobile number field displayed but strictly read-only (non-editable).
+       - Updates profile and routes to Home Hub.
+    5. **Main Hub Shell**:
+       - Houses the persistent Bottom Navigation Bar with 3 tabs: Home, Review, Courses.
+       - Implements glassmorphism styled backgrounds.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Implement unit tests for `AuthBloc` ensuring correct transition states for API successes and failures.
+- Implement unit tests for `AuthRemoteDataSource` mocking HTTP requests and validations.
+- Run tests:
+  ```bash
+  cd mobile-app
+  flutter test
+  ```
+
+### Manual Verification
+1. Boot the backend server Docker containers.
+2. Launch the Flutter mobile application in a simulator/emulator.
+3. Test OTP request with invalid CAPTCHA, then valid CAPTCHA.
+4. Verify with default testing code `12345`.
+5. Complete Rules acceptance and setup profile. Check that mobile number is read-only.
+6. Verify access to the Main Hub navigation.

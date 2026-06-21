@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="LeitnerPlatform.API/LeitnerPlatform.API.csproj" />
+  <Project Path="LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj" />
+  <Project Path="LeitnerPlatform.Core/LeitnerPlatform.Core.csproj" />
+  <Project Path="LeitnerPlatform.Data/LeitnerPlatform.Data.csproj" />
+  <Project Path="LeitnerPlatform.Tests/LeitnerPlatform.Tests.csproj" />
+</Solution>

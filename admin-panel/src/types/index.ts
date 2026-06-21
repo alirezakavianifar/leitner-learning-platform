@@ -1,0 +1,83 @@
+import React from 'react';
+
+export interface AdminModule {
+  id: string;
+  name: string;
+  icon: (props: React.SVGProps<SVGSVGElement>) => React.ReactNode;
+  component: React.ComponentType;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  mobile_number: string;
+  interests?: string;
+  educational_field?: string;
+  educational_level?: string;
+  is_admin: boolean;
+  created_at: string;
+}
+
+export interface Course {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  difficulty?: string;
+  price: number;
+  is_published: boolean;
+  version: number;
+  card_count: number;
+  created_at: string;
+}
+
+export interface Purchase {
+  purchase_id: string;
+  user_id: string;
+  username: string;
+  mobile_number: string;
+  course_id: string;
+  course_title: string;
+  payment_provider: string;
+  transaction_id: string;
+  status: string;
+  purchased_at: string;
+}
+
+export interface FlashcardReport {
+  report_id: string;
+  user_id: string;
+  username: string;
+  mobile_number: string;
+  course_id: string;
+  course_title: string;
+  card_number: number;
+  report_text: string;
+  submitted_at: string;
+  status: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  published_at: string;
+}
+
+export interface Banner {
+  id: string;
+  image_url: string;
+  link_url?: string;
+  display_order: number;
+  is_active: boolean;
+}
+
+export interface AuditLog {
+  id: string;
+  actor_username: string;
+  action_type: string;
+  target_entity: string;
+  before_value?: string;
+  after_value?: string;
+  timestamp: string;
+}

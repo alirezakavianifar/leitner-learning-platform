@@ -1,0 +1,101 @@
+name: Leitner Platform Build & Test Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # 1. Validate Backend APIs (.NET 8 LTS)
+  backend-validation:
+    name: Backend API Validation
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj
+
+      - name: Build Code
+        run: dotnet build backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj --configuration Release --no-restore
+
+      - name: Run Unit & Integration Tests
+        run: dotnet test backend/LeitnerPlatform.Tests/LeitnerPlatform.Tests.csproj --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+
+  # 2. Validate Admin Panel (React + TS)
+  admin-validation:
+    name: Admin Panel Validation
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: admin-panel/package-lock.json
+
+      - name: Install Modules
+        run: |
+          cd admin-panel
+          npm ci
+
+      - name: Lint Rules Check
+        run: |
+          cd admin-panel
+          npm run lint
+
+      - name: Compile and Build Application
+        run: |
+          cd admin-panel
+          npm run build
+
+  # 3. Validate Mobile Client (Flutter & Dart)
+  mobile-validation:
+    name: Flutter Mobile Validation
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Get Dependencies
+        run: |
+          cd mobile-app
+          flutter pub get
+
+      - name: Code Formatting Check
+        run: |
+          cd mobile-app
+          dart format --set-exit-if-changed lib
+
+      - name: Linter Audit
+        run: |
+          cd mobile-app
+          flutter analyze
+
+      - name: Run Core Widget & Unit Tests
+        run: |
+          cd mobile-app
+          flutter test --coverage

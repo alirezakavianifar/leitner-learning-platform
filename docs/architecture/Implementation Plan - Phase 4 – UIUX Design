@@ -1,0 +1,131 @@
+# Implementation Plan - Phase 4 – UI/UX Design
+
+Implement Phase 4 (UI/UX Design) of the Leitner Learning Platform by establishing a comprehensive UI Design Document and building an interactive, high-fidelity web prototype. The prototype will simulate the entire user flow, allowing the client to experience the look, feel, and navigation of the system.
+
+To provide maximum value, the interactive prototype will feature a **"Wireframe Mode" vs. "High-Fidelity Mode" toggle**. This allows the reviewer to inspect either the raw wireframe structure or the final, styled, premium user interface with rich aesthetics, gradients, and micro-animations.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> The interactive web prototype is written in Vanilla HTML, CSS, and JavaScript. This makes it self-contained, requiring no external compilation tools (like NPM or Vite) to run, ensuring it can be opened instantly in any browser.
+
+---
+
+## Open Questions
+
+> [!NOTE]
+> 1. **Default Typography:** We will use **Outfit** and **Inter** from Google Fonts for a modern, sleek mobile aesthetic. Let us know if you prefer a different typeface.
+> 2. **Default Styling Theme:** We will design a premium, dark-mode-first aesthetic with rich neon accent elements and smooth glassmorphism backdrops (`backdrop-filter`).
+> 3. **Course Border Rules:**
+>    - Purchased & Downloaded -> Top of list, **Green Border**
+>    - Purchased & Not Downloaded -> Top of list, **Yellow Border** (Wait, let us confirm if purchased-but-not-downloaded gets the yellow border, or if yellow applies strictly to *unpurchased / not downloaded* courses. According to `plan.md`, *"Downloaded courses get a green border; not purchased/not downloaded courses get a yellow border."* We will follow this exactly.)
+
+---
+
+## Proposed Changes
+
+### UI Documentation & Specifications
+
+#### [NEW] [ui_design.md](file:///e:/projects/leitner-learning-platform/docs/ui/ui_design.md)
+* Define the application color palette:
+  - Main themes (Dark mode, glassmorphism, surface, and border colors)
+  - Leitner Box colors (Box 1: Orange, Box 2: Yellow, Box 3: Green, Box 4: Blue, Box 5: Purple, Finished: Gold)
+  - Course borders (Green for downloaded, Yellow for not purchased/not downloaded)
+* Map out the UI Component Library (buttons, cards, navbars, input fields, modals).
+* Document the complete User Flow Map illustrating screen transitions from OTP verification to course list, onboarding, review loop, statistics, and logout.
+
+---
+
+### Clickable Interactive Prototype
+
+#### [NEW] [index.html](file:///e:/projects/leitner-learning-platform/docs/ui/prototype/index.html)
+* Create the main layout container simulating a modern mobile viewport (iOS/Android frame).
+* Include a floating master control panel with:
+  - **Toggle Mode:** Switch between "Wireframe" and "High-Fidelity UI".
+  - **Toggle Network Status:** Switch between "Online" and "Offline" to simulate offline-first behavior.
+  - **Reset Progress:** Reset simulated local state (onboarding status, favorites, today's cards reviewed) to start fresh.
+* Build container panels for all required application screens:
+  1. **OTP Login Screen:** Verification digits input, simulate sending OTP, verification countdown.
+  2. **Mandatory Terms Screen:** Custom terms acceptance check before profile setup.
+  3. **Profile Setup Screen:** Form editing Username, Interests, Educational Field, Educational Level. Displays Mobile Number as a read-only field.
+  4. **Guided Onboarding Sequence:** Interactive tutorial overlays pointing out elements in the exact sequence: *Courses -> Search -> Flashcard -> Know -> Don't Know -> Create Card -> Finished Cards -> Favorites -> My Courses -> Reports -> Today's Cards -> Statistics*.
+  5. **Home Dashboard Screen:** Shows Carousel Banners (auto-rotating every 4 seconds, limit of 5), statistics overview, quick-access boxes, badge indicators for *Today's Cards* (pending count) and *Finished Cards* (completed count).
+  6. **Courses Catalog Screen:** Display purchased/downloaded courses at the top with a green border, and unpurchased/not-downloaded courses with a yellow border. Toggle to offline view to see cached downloaded courses and "Connection offline" notification.
+  7. **My Courses Screen:** Displays only purchased and downloaded courses with green borders.
+  8. **Flashcard Review Screen:**
+     - Fixed header displaying course title and Leitner Box stage badge.
+     - Center card featuring a 3D flip animation (Question -> Answer). Includes conditional rendering of media (images/audio hide if empty).
+     - Fixed footer with navigation arrows, favorites bookmark toggle, and card status.
+     - Jump-to-card number clickable trigger displaying a jump-to dialog (with warning resets for Boxes 2–5).
+     - "Know" / "Don't Know" response actions updating card box indices.
+  9. **Favorites Screen:** Bookmarked cards list. Clicking card triggers a warning reset confirmation.
+  10. **Create Card Screen:** Form for creating custom flashcards (locally stored on the device).
+  11. **Statistics Screen:** Progress bars mapped to exact colors (Orange, Yellow, Green, Blue, Purple, Gold).
+  12. **Notifications Screen:** Alert announcements sorted latest first.
+  13. **Settings Screen:** App options, featuring a Logout button that triggers a confirmation modal before clearing state.
+  14. **Support Screen:** User inquiry form.
+* Structure persistent bottom navigation bar (Home, Review, Courses) visible across main screens.
+
+#### [NEW] [styles.css](file:///e:/projects/leitner-learning-platform/docs/ui/prototype/styles.css)
+* Design styling system supporting:
+  - Wireframe theme (clean lines, gray borders, monospaced typography, structural placeholders).
+  - High-Fidelity theme (Outfit/Inter fonts, neon glow, linear gradient cards, glassmorphic backdrops, smooth scale/fade animations, card flip transitions).
+* Implement mobile frame shell, floating control console, and layout helpers.
+
+#### [NEW] [app.js](file:///e:/projects/leitner-learning-platform/docs/ui/prototype/app.js)
+* Handle routing and page visibility transitions.
+* Implement state management for:
+  - User registration progress (Auth status, profile details).
+  - Leitner Box progress state (moving card ID progress on Know/Don't Know reviews).
+  - Interactive onboarding wizard highlight steps.
+  - Active carousel banner interval rotation (4s timer).
+  - Network state simulation (Offline status filters course list and disables catalog updates).
+  - Flashcard jump-to dialog and resets.
+  - Settings logout confirmations.
+
+#### [NEW] [data.js](file:///e:/projects/leitner-learning-platform/docs/ui/prototype/data.js)
+* Define static mock datasets:
+  - Interactive course lists (paid, free, downloaded, and not downloaded).
+  - Sample course flashcard decks (with rich details and card text).
+  - Auto-rotating banner data (5 banners).
+  - Mock notifications, statistics initial scores.
+
+#### [NEW] [README.md](file:///e:/projects/leitner-learning-platform/docs/ui/prototype/README.md)
+* Short setup guidelines showing how to open and test the interactive prototype in any local web browser.
+
+---
+
+### Project Master Plan Status
+
+#### [MODIFY] [plan.md](file:///e:/projects/leitner-learning-platform/plan.md)
+* Update Phase 4 status to Completed (`[x] ✔ UI Approved` and green circle status).
+* Update overall progress tracker details.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+* No backend unit tests are required for Phase 4.
+* We will perform standard JS console error validations on the prototype files to verify zero runtime execution errors.
+
+### Manual Verification
+1. Open [index.html](file:///e:/projects/leitner-learning-platform/docs/ui/prototype/index.html) in the local web browser.
+2. Verify visual appearance in **Wireframe Mode** vs. **High-Fidelity Mode**.
+3. Go through the full user journey:
+   - Authenticate with OTP (digits entry).
+   - Verify Terms and Rules Screen checks.
+   - Complete Profile form, checking read-only mobile field.
+   - Complete the Guided Onboarding walkthrough step-by-step.
+   - Check Banner rotation (every 4 seconds) on the dashboard.
+   - Test Course list sort orders and color-coded borders.
+   - Toggle Offline Mode, check offline banner and filtered list.
+   - Go to Flashcard reviews, click card to flip (3D transition).
+   - Test "Know" and "Don't Know" review logic updating Box progress.
+   - Click card number to trigger Jump-To dialog, confirming Box 2-5 warning alert.
+   - Add a custom card under "Create Card".
+   - Review Statistics charts and colors.
+   - Click Logout in Settings, check verification dialog.
+4. Record a web interaction video using the browser subagent, verifying all components function correctly without errors, and save it in the artifacts folder.

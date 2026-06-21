@@ -1,0 +1,126 @@
+# Phase 10 - Leitner Engine & Special Rules
+
+This phase implements the complete spaced repetition logic, progression intervals, and safety/reset rules of the Leitner system. Since this is an offline-first application, the learning logic is executed on the mobile device (SQLite) and synchronized to the server when online.
+
+---
+
+## User Review Required
+
+> [!NOTE]
+> **Progression Timings:**
+> - Box 1: Immediate/Always available.
+> - Box 2: Due 3 days after entering Box 2.
+> - Box 3: Due 7 days after entering Box 3.
+> - Box 4: Due 16 days after entering Box 4.
+> - Box 5: Due 31 days after entering Box 5.
+> - Finished Cards: Mastered pool (moves here from Box 5 upon correct answer).
+>
+> **Due-Date Overdue Reset (Rule A):**
+> A card due on a given day that is NOT reviewed by the end of that day (local time) will be reset to Box 1.
+
+---
+
+## Open Questions
+
+> [!NOTE]
+> None. The requirements are fully detailed.
+
+---
+
+## Proposed Changes
+
+### Component 1: Domain Events & Sync (Backend)
+
+We will define the backend event models and implement the synchronization endpoint `/api/v1/statistics/sync` to resolve client sync progress, update states, and dispatch the corresponding domain events on the server's `IEventBus`.
+
+#### [NEW] [CardReviewedEvent.cs](file:///E:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Events/CardReviewedEvent.cs)
+Define the server-side event emitted when a card is reviewed.
+- Fields: `UserId`, `CourseId`, `CardNumber`, `Box`, `ReviewedAt`
+
+#### [NEW] [CardFinishedEvent.cs](file:///E:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Events/CardFinishedEvent.cs)
+Define the event emitted when a card moves to the Finished Cards pool.
+- Fields: `UserId`, `CourseId`, `CardNumber`, `FinishedAt`
+
+#### [NEW] [DueDateOverdueResetEvent.cs](file:///E:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Events/DueDateOverdueResetEvent.cs)
+Define the event emitted when a card is reset due to missing its due date.
+- Fields: `UserId`, `CourseId`, `CardNumber`, `ResetAt`
+
+#### [NEW] [LeitnerProgressResetEvent.cs](file:///E:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Events/LeitnerProgressResetEvent.cs)
+Define the event emitted when a card's progress is reset manually (Favorites or direct card search).
+- Fields: `UserId`, `CourseId`, `CardNumber`, `ResetAt`, `Reason`
+
+#### [NEW] [StatisticsController.cs](file:///E:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/StatisticsController.cs)
+Implement the controller containing `POST /api/v1/statistics/sync`:
+- Verifies course purchase access before saving progress.
+- Compares client's `last_reviewed_at` to resolve sync conflicts (the most recent review always wins).
+- Emits server-side events on the event bus based on client progression/reset trigger.
+
+#### [NEW] [StatisticsTests.cs](file:///E:/projects/leitner-learning-platform/backend/LeitnerPlatform.Tests/StatisticsTests.cs)
+Create unit/integration tests on the server to verify:
+- Successful sync payload processing.
+- Conflict resolution (newer timestamps win).
+- Event bus dispatching for all 4 domain events.
+- Purchase check blocks sync for unpurchased premium courses.
+
+---
+
+### Component 2: Leitner Engine & Client Storage (Mobile Client)
+
+We will implement the Leitner Engine on the Flutter client, including entity models, local database queries, progression calculations, due-date check timers, and client-side event bus triggers.
+
+#### [NEW] [domain_events.dart](file:///E:/projects/leitner-learning-platform/mobile-app/lib/core/event_bus/domain_events.dart)
+Define client domain events: `CardReviewed`, `CardFinished`, `DueDateOverdueReset`, and `LeitnerProgressReset`.
+
+#### [NEW] [card_progress.dart](file:///E:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/domain/entities/card_progress.dart)
+Represent a card's current box, last review date, next review due date, and sync status.
+
+#### [NEW] [flashcard.dart](file:///E:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/domain/entities/flashcard.dart)
+Represent a card's question, answer, media URLs, and progress.
+
+#### [NEW] [card_progress_model.dart](file:///E:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/data/models/card_progress_model.dart)
+SQLite database serialization/deserialization mapping for progress entries.
+
+#### [NEW] [flashcard_repository.dart](file:///E:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/domain/repositories/flashcard_repository.dart)
+Interface for Leitner Engine database operations:
+- `getReviewQueue(String courseId)`: Retrieves Box 1 cards + active due cards from Boxes 2–5.
+- `submitReview(String courseId, int cardNumber, bool isCorrect)`: Saves review status, calculates next box/due date, and fires event.
+- `resetCardProgress(String courseId, int cardNumber, String reason)`: Returns card to Box 1, resets due date, and fires event.
+- `checkForOverdueResets(String courseId)`: Scans for cards whose due dates passed on previous calendar days, resetting them to Box 1 and firing `DueDateOverdueReset` events.
+- `syncProgress()`: Pushes unsynced changes to backend and updates local database `is_synced` status.
+- `getCourseStatistics(String courseId)`: Collects count of cards per box.
+
+#### [NEW] [flashcard_repository_impl.dart](file:///E:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/data/repositories/flashcard_repository_impl.dart)
+Implement database query execution, spaced repetition progression timing (3, 7, 16, 31 days), and HTTP sync logic.
+
+#### [MODIFY] [injection_container.dart](file:///E:/projects/leitner-learning-platform/mobile-app/lib/injection_container.dart)
+Register the new `FlashcardRepository` in the service locator.
+
+#### [NEW] [leitner_engine_test.dart](file:///E:/projects/leitner-learning-platform/mobile-app/test/leitner_engine_test.dart)
+Write extensive unit and scenario tests verifying:
+- Progression timings (Box 1 -> 2 -> 3 -> 4 -> 5 -> Finished) on correct answer.
+- Reset to Box 1 on incorrect answer.
+- Overdue logic (Rule A) based on calendar days.
+- Out-of-order viewing reset (Rule B & Rule C).
+- Review queue isolation.
+- Sync push updates local `is_synced` flag.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+#### Backend
+Run the backend tests including the new `StatisticsTests.cs`:
+```powershell
+dotnet test
+```
+
+#### Mobile Client
+Run the Flutter tests including the new `leitner_engine_test.dart`:
+```powershell
+flutter test
+```
+
+### Manual Verification
+- None required for Phase 10 since this is purely a logic/engine phase. Visual interfaces and onboarding sequences will be built in Phase 11.

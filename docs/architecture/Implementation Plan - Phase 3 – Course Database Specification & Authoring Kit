@@ -1,0 +1,83 @@
+# Phase 3 – Course Database Specification & Authoring Kit
+
+This phase defines the database standards for offline-first course packages, the packaging folder structure, asset encryption guidelines, local schema migration strategies, and provides a Course Authoring Kit tool along with a complete sample course.
+
+## User Review Required
+
+> [!IMPORTANT]
+> The course packages (`<course_id>.db`) are designed as read-only SQLite databases downloaded by the mobile application. All user progress (box levels, review dates, favorites) is stored separately in the app's central `app_local.db` database using a composite key: `(course_id, card_number)`. This ensures content updates can be downloaded and replaced seamlessly without affecting the user's progress.
+
+> [!NOTE]
+> Media files (images and audio) inside the package will be encrypted using **AES-256-CBC** on the content server / authoring tool. The mobile client will decrypt them dynamically in RAM. The decryption keys will be distributed by the backend during authentication.
+
+## Open Questions
+
+None at this time. The architecture integrates with the already approved database design and security document from Phase 1 and Phase 2.
+
+---
+
+## Proposed Changes
+
+### Component 1: Design & Documentation Specifications
+
+We will create a comprehensive course database specification document outlining the SQLite schema, media guidelines, packaging structure, and details on progress merging.
+
+#### [NEW] [course_db_specification.md](file:///e:/projects/leitner-learning-platform/docs/course/course_db_specification.md)
+* Define tables (`course`, `cards`, `metadata`) for the read-only course SQLite databases.
+* Document media size and format standards (e.g., WebP/JPEG resolutions, mono MP3 bitrates) to keep application download sizes and memory footprints minimal.
+* Formally document the import rules and schema migration/update strategy to preserve user progress when course updates are installed.
+
+---
+
+### Component 2: Course Authoring Kit
+
+We will build the Course Authoring Kit, which provides content creators with instructions, schemas, templates, and compiler scripts to package courses easily.
+
+#### [NEW] [course_schema.sql](file:///e:/projects/leitner-learning-platform/course-authoring-kit/schema/course_schema.sql)
+* DDL script representing the official course database structure.
+
+#### [NEW] [compile_course.py](file:///e:/projects/leitner-learning-platform/course-authoring-kit/tools/compile_course.py)
+* A cross-platform Python script that automates the compiling process:
+  1. Reads a source course manifest (`manifest.json`) and cards data (`cards.json`).
+  2. Populates a fresh SQLite `course.db` database conforming to the schema.
+  3. Encrypts referenced image and audio assets using AES-256-CBC.
+  4. Packaging of the outputs into a standard zip package `<course_id>.zip`.
+
+#### [NEW] [README.md](file:///e:/projects/leitner-learning-platform/course-authoring-kit/README.md)
+* Detailed usage guide for content authors on how to format input files, run the compiler tool, and upload packages.
+
+---
+
+### Component 3: Sample Course Data
+
+We will create a complete working sample course source and compile it to demonstrate correct execution of the kit.
+
+#### [NEW] [sample_course_source](file:///e:/projects/leitner-learning-platform/course-authoring-kit/sample_course_source/)
+* Contains sample raw assets: `manifest.json`, `cards.json`, unencrypted sample image, and unencrypted sample audio.
+
+#### [NEW] [sample_course_package](file:///e:/projects/leitner-learning-platform/course-authoring-kit/sample_course_package/)
+* The compiled directory containing `course.db` (SQLite), encrypted assets under `images/` and `audio/`, and the final `manifest.json`.
+
+---
+
+### Component 4: Project Progress Dashboard
+
+#### [MODIFY] [plan.md](file:///e:/projects/leitner-learning-platform/plan.md)
+* Mark Phase 3 as Completed and update the progress indicator.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+* We will verify the compiled sample database integrity using a test python script that reads the database, validates columns, indexes, and decrypts the encrypted media assets using the same key used for compilation.
+
+### Manual Verification
+* Inspect the output structure of the compiled sample course to ensure it precisely matches the standard layout:
+  ```text
+  course_package/
+  ├── course.db
+  ├── images/
+  ├── audio/
+  └── manifest.json
+  ```

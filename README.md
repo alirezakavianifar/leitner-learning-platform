@@ -1,0 +1,225 @@
+# Leitner Learning Platform
+
+Welcome to the Leitner Learning Platform repository. This repository contains the project documentation, specification, and implementation plans for the Leitner Learning Platform, designed as a highly secure, offline-first mobile application (iOS & Android) with a robust backend API and administrative panel.
+
+## Repository Contents
+
+*   **[plan.md](file:///e:/projects/leitner-learning-platform/plan.md)**: The complete, revised implementation plan detailing all 20 phases of development (Phases 0 through 19) and post-delivery policies.
+*   **[rcd.md](file:///e:/projects/leitner-learning-platform/rcd.md)**: The Requirements Clarification Document (RCD) generated and locked in Phase 0.
+*   **[document.PDF](file:///e:/projects/leitner-learning-platform/document.PDF)**: The original project requirement specifications and business rules provided by the client.
+*   **[docs/ui/ui_design.md](file:///e:/projects/leitner-learning-platform/docs/ui/ui_design.md)**: The UI/UX design specifications including typography, HSL color variables, component library details, and user flow diagram mappings.
+*   **[docs/ui/prototype/index.html](file:///e:/projects/leitner-learning-platform/docs/ui/prototype/index.html)**: Clickable interactive HTML/JS viewport prototype simulating all user screens (OTP verify, rules acceptance, profile completion, onboarding sequence, rotative banners, offline catalog logic, 3D card flipping reviews, jump-to alerts, favorites and statistics).
+*   **[AGENTS.md](file:///e:/projects/leitner-learning-platform/AGENTS.md)**: Instructions and constraints for autonomous AI coding agents working on this repository.
+
+---
+
+## Project Overview
+
+The Leitner Learning Platform is designed around the classic Leitner flashcard system, modified with specific client business rules to optimize retention. The platform utilizes an **offline-first** architecture, allowing students to download entire courses packaged in a specialized encrypted SQLite format with separated media directories, enabling seamless studying without an active internet connection.
+
+### Tech Stack & Architecture
+*   **Mobile App:** Flutter (Android & iOS) using **Feature-Based Clean Architecture** (independent modules like `auth/`, `courses/`, `flashcards/`, `settings/`) enforcing **Repository Patterns** (UI -> Use Case -> Repository -> Data Source), explicit Dependency Injection (DI), and a client-side event bus.
+*   **Backend:** Domain-separated RESTful API (Auth, User, Course, Purchase, Notification, Analytics, Configuration) with versioned endpoints (starting at `/api/v1/`), tokenized authentication, content protection, off-server backup replication, and an internal event emitter system.
+*   **Admin Panel:** Pluggable, responsive web-based administrative console where core screens are treated as separate modules to allow seamless future extensions, featuring a comprehensive **Audit Logging** trail for administrative actions.
+*   **Database Management:** Server databases and client SQLite databases configured with versioned database migration frameworks.
+*   **Content Storage & Protection:** Encrypted local SQLite databases with separated media folders (images, audio), featuring SQLite database schema migration strategies.
+*   **Remote Configuration:** Dynamic endpoint config, remote feature flags (remotely enable/disable features), dynamic banner configs, and global maintenance mode controls.
+*   **Deployment & Compatibility:** Windows Server 2025 (development) and Linux (production target) compatible. The backend services, databases, background workers, and admin panels are containerized using **Docker** and orchestrated with **Docker Compose** to guarantee OS-independent behavior. **Mandatory Acceptance:** Successful deployment using the supplied Docker Compose package on a clean Ubuntu 24.04 server is required.
+*   **Development Prerequisites & Tech Stack Locking:** Developed using .NET 8 LTS, Flutter 3.x LTS, React (TypeScript, Node.js v22 LTS), PostgreSQL 16, and Redis. The stack and versions are strictly locked to LTS (Long-Term Support) releases in Phase 1 and cannot be modified without written client approval. Windows development machines require a minimum of 8 Cores, 32 GB RAM, and 500 GB+ SSD.
+*   **Secrets & Security Policies:**
+    *   **Secrets Management:** No hardcoded secrets, keys, or passwords in source code; zero credentials committed to Git; all production configurations supplied through environment variables or secret vaults.
+    *   **Dependency Security Policy:** Continuous vulnerability scanning in CI/CD pipelines, patch update strategies, and license compliance audits.
+*   **CI/CD & Code Quality Standards:** Git version control with main branch protection rules. Automated build pipelines, test suites, and Docker builds configured in CI/CD (GitHub Actions / GitLab CI). Minimum code coverage requirements: 80% for backend business logic and 70% for core mobile features, validated alongside E2E user-journey tests.
+*   **Integrations:** Unified payment gateway abstractions (`PaymentProvider` interface) to easily manage store-specific payments (Google Play, Cafe Bazaar, Myket, Direct Gateway).
+*   **Handover & Deliverables:** Comprehensive handover including full source code, deployment templates, training sessions, and updated **Architecture Documentation** (System Architecture Diagram, Module Dependency Diagram, Event Bus Documentation, Repository Structure Documentation, Database Migration Guide, and Feature Flag Documentation).
+
+
+---
+
+## Key Features & Custom Rules
+
+### 1. Custom Leitner Progression & Resets
+*   **Box Stages & Timings:**
+    *   *Box 1:* Timing behavior to be confirmed with the client during Phase 0 (PDF does not define a standard interval).
+    *   *Box 2:* Reviewed 3 days after entering.
+    *   *Box 3:* Reviewed 7 days after entering.
+    *   *Box 4:* Reviewed 16 days after entering.
+    *   *Box 5:* Reviewed 31 days after entering.
+    *   *Finished Cards:* Cards successfully reviewed in Box 5 move to the Finished pool.
+*   **Incorrect Reset:** Answering incorrectly during review resets the card's progress back to Box 1 immediately.
+*   **Overdue Reset (Rule A):** If a card is due on a given day and the user does NOT review it on that day, the card's progress resets, and it returns to Box 1.
+*   **Favorites Reset (Rule B):** Viewing a card from the "Favorites" screen resets its Leitner stage to Box 1 after user confirmation.
+*   **Direct View & Navigation Reset (Rule C):** Users can enter a card number to jump directly to it. If the card is in active Leitner boxes (2–5), a warning confirmation is displayed, and upon confirmation, its Leitner progress is reset to Box 1.
+*   **Finished Cards Action:** When viewing Finished Cards, pressing "Know It" does nothing; pressing "Don't Know" resets the card's progress, sending it back to Box 1.
+*   **Only Due Cards Restriction:** Standard study navigation prevents browsing Box 2–5 cards before their due dates. Only Box 1 or due cards are shown in the study queue.
+
+### 2. UI Layout & Navigation
+*   **Global Bottom Navigation:** A persistent bottom navigation bar (Home, Review, Courses) visible on all main screens.
+*   **Course List Visual Rules:**
+    *   Downloaded/purchased courses are displayed at the top of the list.
+    *   Downloaded courses display with a green border; not purchased/not downloaded courses display with a yellow border.
+    *   Course card displays title, card count, paid/free status, and the colored border.
+    *   *Offline Behavior:* Displays cached course list and offline message stating internet is unavailable.
+*   **My Courses Screen:** A dedicated screen displaying only purchased and downloaded courses, styled with a green border.
+*   **Flashcard Layout:** Fixed header (displays course title and colored Leitner stage indicator), rotating center card (with flip animation, support for images and audio), and fixed footer (with left/right navigation arrows, favorites toggle, and card status).
+    *   *Conditional Media Rendering:* If a card has no image, audio, or options, those sections must be hidden completely and not render or reserve empty layout space.
+*   **Profile Management:** User can edit profile fields (username, interests, educational field, educational level) except for the mobile number field, which must be strictly read-only.
+*   **Logout Confirmation:** A modal confirmation dialog is displayed before executing a logout to prevent accidental progress loss.
+*   **Badge Count Indicators:**
+    *   The *Today's Cards* button/icon displays a badge count showing today's pending review count.
+    *   The *Finished Cards* button/icon displays a badge count of completed/learned cards.
+*   **Onboarding Flow Sequence:** The first-run onboarding sequence follows the exact tutorial flow from the PDF: Courses -> Search -> Flashcard -> Know -> Don't Know -> Create Card -> Finished Cards -> Favorites -> My Courses -> Reports -> Today's Cards -> Statistics.
+
+### 3. User-Created Cards Storage
+*   **User-Created Cards:** Stored strictly locally on the device (device-only for privacy) and support backup/restore after app reinstallation. No server synchronization is performed.
+
+### 4. Admin Management Capabilities
+*   Manually activate or deactivate course access for users.
+*   Modify user purchase entries.
+*   Upload and manage course metadata and SQLite packages.
+*   Publish, schedule, or hide banners and announcements.
+*   *Flashcard Reports Interface:* Admin review interface to browse and filter submitted flashcard reports by card, course, or user, and flag content issues.
+
+### 5. Security & Content Protection
+*   Watermarked content displays to discourage piracy.
+*   SQLite course databases and media files are encrypted at rest.
+*   Secure, tokenized single-use download links.
+*   Immediate, automatic off-server backups (replication of user registrations and purchases to secure S3/FTP/external storage upon every change).
+
+### 6. Search, Statistics & Banners Workflows
+*   **Targeted Search Workflow:**
+    1. User searches courses.
+    2. User selects one or more courses from the results.
+    3. User searches cards inside those selected courses.
+    4. Search results display the card numbers and matching card list.
+    5. User taps a search result to open that matching card directly.
+*   **Color-Coded Statistics:** Visual statistics status bars are strictly mapped to the following colors:
+    *   *Orange:* Box 1 cards
+    *   *Yellow:* Box 2 cards
+    *   *Green:* Box 3 cards
+    *   *Blue:* Box 4 cards
+    *   *Purple:* Box 5 cards
+    *   *Gold:* Finished Cards
+*   **Banner Rotation & Management:** Displays a carousel of up to 5 banners on the main dashboard, rotating automatically every 4 seconds. Banners refresh from the server once every 24 hours.
+*   **Notification Ordering:** Inside the notification center, the latest notifications must appear at the top of the list.
+*   **Flashcard Report System:** Users submit feedback storing User ID, Course ID/title, Card number, Report text, and Timestamp.
+
+---
+
+## Setup & Deployment Instructions
+
+### 1. Docker-Based Multi-Container Deployment (Production)
+
+The entire backend infrastructure (Database, Cache, API, Background Worker, and Web Admin Panel) is containerized and orchestrated via Docker Compose.
+
+#### Prerequisites
+*   Docker Engine v26+ and Docker Compose v2+ installed on host (Ubuntu 24.04 LTS recommended).
+*   Create an `.env` file in the root directory (referencing `deployment/docker-compose.yml`) containing:
+    ```bash
+    DB_PASSWORD=your_postgres_secure_password
+    REDIS_PASSWORD=your_redis_secure_password
+    JWT_SECRET_KEY=your_jwt_signing_secret_key_lts_2026
+    BACKUP_S3_KEY=your_aws_s3_key
+    BACKUP_S3_SECRET=your_aws_s3_secret
+    SMS_GATEWAY_API_KEY=your_sms_gateway_api_key
+    ```
+
+#### Running the Stack
+Navigate to the repository root directory and run:
+```bash
+docker compose -f deployment/docker-compose.yml --env-file .env up -d --build
+```
+This commands builds the backend and admin panel containers and boots the following:
+*   **PostgreSQL 16 DB** listening on port `5432` (persistent data mapped to host volume `pgdata`).
+*   **Redis 7 Cache & Event Bus** listening on port `6379`.
+*   **Backend API (.NET 8)** listening on host port `8080`.
+*   **Web Admin Panel** served on host port `3000`.
+*   **Background Worker (Hangfire)** processing background synchronization and database cleanup jobs in the background.
+
+---
+
+### 2. Manual Development Environment Setup
+
+#### A. Backend API (.NET 8 LTS)
+1.  **Dependencies:** Install .NET 8 LTS SDK, PostgreSQL 16, and Redis on your development machine (Windows Server 2025 or Linux).
+2.  **Configuration:** Update the database connection string in `backend/LeitnerPlatform.API/appsettings.Development.json`.
+3.  **Run Migrations:** Initialize the database schema:
+    ```bash
+    cd backend/LeitnerPlatform.API
+    dotnet ef database update
+    ```
+4.  **Run Service:**
+    ```bash
+    dotnet run
+    ```
+
+#### B. Pluggable React Admin Panel
+1.  **Dependencies:** Ensure Node.js (v22 LTS) is installed.
+2.  **Install Packages:**
+    ```bash
+    cd admin-panel
+    npm install
+    ```
+3.  **Configure Environment:** Create a `.env` file in `admin-panel/` setting `VITE_API_BASE_URL=http://localhost:5000/api/v1` (adjust port matching your active API port).
+4.  **Admin Credentials & Development Bypass:**
+    - To log in as the default seeded administrator:
+      * **Mobile Number:** `+989120000000`
+      * **CAPTCHA Challenge:** Answer the simple math problem displayed on screen.
+      * **OTP Verification Code:** Enter `12345` (the built-in development OTP bypass code).
+5.  **Run Server:**
+    ```bash
+    npm run dev
+    ```
+6.  **Production Build:** Compile static assets to `/dist` using `npm run build`.
+
+#### C. Flutter Mobile Client
+1.  **Dependencies:** Install Flutter SDK (3.22.x LTS) and Java JDK 21. Configure Android SDK / Xcode for target simulators.
+2.  **Get Packages:**
+    ```bash
+    cd mobile-app
+    flutter pub get
+    ```
+3.  **Run App:**
+    ```bash
+    flutter run
+    ```
+4.  **Build Configurations:**
+    *   **Premium Version:** Build including payment gateway abstractions:
+        ```bash
+        flutter build apk --flavor premium -t lib/main_premium.dart
+        ```
+    *   **Store Version:** Build excluding in-app payment hooks for app stores (Google Play, Cafe Bazaar, Myket):
+        ```bash
+        flutter build apk --flavor store -t lib/main_store.dart
+        ```
+
+---
+
+### 3. Course Authoring Kit (Content Creation)
+
+The Course Authoring Kit allows content authors to compile raw card text and media assets into SQLite package database files with encrypted image and audio assets.
+
+#### A. Prerequisites
+Ensure Python 3.8+ and the `cryptography` package are installed on the authoring environment:
+```bash
+pip install cryptography
+```
+
+#### B. Compilation Command
+To compile a raw course folder (such as the included sample source) into a zipped package:
+```bash
+python course-authoring-kit/tools/compile_course.py \
+  --source course-authoring-kit/sample_course_source \
+  --output course-authoring-kit/sample_course_package \
+  --schema course-authoring-kit/schema/course_schema.sql \
+  --key "default_dev_course_secret_key_32_bytes_long" \
+  --zip course-authoring-kit/sample_course_package/course_package.zip
+```
+
+#### C. Validation Command
+To verify that the compiled database structure and encrypted media assets are intact:
+```bash
+python course-authoring-kit/tools/verify_course.py
+```
+
+

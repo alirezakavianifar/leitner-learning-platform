@@ -1,0 +1,33 @@
+# Stage 1: Build and Publish the application using SDK image
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+WORKDIR /src
+
+# Copy solution and project files first to cache dependencies resolution
+COPY ["backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj", "backend/LeitnerPlatform.API/"]
+COPY ["backend/LeitnerPlatform.Core/LeitnerPlatform.Core.csproj", "backend/LeitnerPlatform.Core/"]
+COPY ["backend/LeitnerPlatform.Data/LeitnerPlatform.Data.csproj", "backend/LeitnerPlatform.Data/"]
+COPY ["backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj", "backend/LeitnerPlatform.BackgroundWorker/"]
+
+RUN dotnet restore "backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj"
+
+# Copy remaining source code and publish
+COPY . .
+WORKDIR "/src/backend/LeitnerPlatform.API"
+RUN dotnet publish "LeitnerPlatform.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Stage 2: Runtime image configuration
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+# Install SQLCipher dependencies if local client database encryption parsing is handled on the backend
+RUN apk add --no-cache icu-libs sqlite-libs
+
+# Copy published application
+COPY --from=build /app/publish .
+
+# Run as non-privileged app user for security hardening
+USER $APP_UID
+
+ENTRYPOINT ["dotnet", "LeitnerPlatform.API.dll"]

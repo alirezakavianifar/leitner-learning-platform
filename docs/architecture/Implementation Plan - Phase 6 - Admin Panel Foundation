@@ -1,0 +1,124 @@
+# Implementation Plan - Phase 6: Admin Panel Foundation
+
+This phase establishes the administrative foundation for the Leitner Learning Platform, consisting of both backend API capabilities under `/api/v1/admin/` and a React + TypeScript + Vite web-based dashboard utilizing a pluggable architecture.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Admin Authentication:** Rather than introducing a complex password-based login structure for administrators, the system leverages the existing secure OTP (One-Time Password) SMS flow. A new `is_admin` column is added to the `users` table. If the authenticated mobile number has `is_admin = true`, a JWT is issued with the claim `Role: Admin`. This guarantees security consistency and integrates with the self-hosted CAPTCHA verification flow.
+> 
+> A default admin user with phone number `+989120000000` is seeded in the database. For local testing and development, the backend OTP bypass code `12345` is allowed.
+
+---
+
+## Open Questions
+
+- *Are there any additional admin fields or credentials you would like to support (e.g., password-based login in addition to OTP for admins)?* (Our proposed OTP is standard and highly secure).
+- *Should we add a visual charting library like Chart.js or Recharts to the React admin panel?* (We plan to use beautiful styled CSS elements to represent simple charts/bars to avoid bloated packages, but can add Recharts if requested).
+
+---
+
+## Proposed Changes
+
+### Component 1: Database Schema & Core Entities
+
+We will add the `is_admin` column to the user schema to support admin roles.
+
+#### [NEW] [V2__Add_User_IsAdmin.sql](file:///e:/projects/leitner-learning-platform/deployment/db/migrations/V2__Add_User_IsAdmin.sql)
+SQL migration script containing:
+- Addition of `is_admin` column to `users` table (defaults to `false`).
+- Seed a default admin record for mobile number `+989120000000` to allow local authentication and development.
+
+#### [MODIFY] [User.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/User.cs)
+- Add property `public bool IsAdmin { get; set; } = false;`
+
+#### [MODIFY] [LeitnerDbContext.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/LeitnerDbContext.cs)
+- Map the new `IsAdmin` property to `is_admin` column inside `OnModelCreating()`.
+
+---
+
+### Component 2: Backend Authentication & Security
+
+We will modify JWT generation to set the correct role for administrators.
+
+#### [MODIFY] [AuthController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/AuthController.cs)
+- Modify JWT claims in `GenerateJwtToken(User user)` to set `ClaimTypes.Role` to `"Admin"` if `user.IsAdmin` is true, otherwise `"Student"`.
+- Return the user status and user profile role upon OTP verification success.
+
+---
+
+### Component 3: Administrative APIs & Audit Logging
+
+We will build the `/api/v1/admin` REST endpoints to expose all administrative functions and record logs.
+
+#### [NEW] [IAuditLogService.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Interfaces/IAuditLogService.cs)
+- Abstraction defining `Task LogActionAsync(string actor, string actionType, string targetEntity, string? beforeValue, string? afterValue);`
+
+#### [NEW] [AuditLogService.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/Services/AuditLogService.cs)
+- Implementation of `IAuditLogService` that creates and saves `AuditLog` records to the database.
+
+#### [NEW] [AdminController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/AdminController.cs)
+Provides REST endpoints protected under `[Authorize(Roles = "Admin")]`:
+- **Dashboard Stats:** `GET /api/v1/admin/dashboard/stats` (retrieves counts for users, courses, purchases, active cards, and pending reports).
+- **User Management:**
+  - `GET /api/v1/admin/users`: Search and list users with pagination.
+  - `GET /api/v1/admin/users/{id}`: Detailed user info.
+  - `PUT /api/v1/admin/users/{id}`: Edit educational details, username, interest fields.
+- **Purchase Control (Course Activation):**
+  - `GET /api/v1/admin/purchases`: List purchases.
+  - `PATCH /api/v1/admin/users/{userId}/courses/{courseId}`: Toggle course purchase state. Publishes `PurchaseCompletedEvent` to trigger off-server backup replication.
+  - Audit logs are generated for all manual purchase changes (saving before/after values).
+- **Reports/Feedback System:**
+  - `GET /api/v1/admin/reports`: View card typo reports.
+  - `PATCH /api/v1/admin/reports/{id}`: Resolve/change report status.
+- **Announcement & Banner Management:**
+  - CRUD operations for announcements (`/api/v1/admin/announcements`) and banners (`/api/v1/admin/banners`).
+- **Audit Trails:**
+  - `GET /api/v1/admin/audit-logs`: Expose activity logs.
+
+#### [MODIFY] [Program.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Program.cs)
+- Register `IAuditLogService` in dependency injection.
+- Configure Swagger/API explorer mappings.
+
+---
+
+### Component 4: Web Admin Panel Frontend
+
+We will establish a modern, pluggable React web console inside an `admin-panel` folder in the root directory.
+
+#### [NEW] [admin-panel/](file:///e:/projects/leitner-learning-platform/admin-panel)
+A React TypeScript Vite project with a clean extension layout.
+- **Pluggable Architecture:**
+  - A core navigation sidebar loading screens dynamically.
+  - An index route registry (`src/modules/index.ts`) allowing independent modules to plug in their layout, links, and views.
+- **Core Screen Modules:**
+  - **Auth Screen:** Secure login incorporating CAPTCHA image loading, OTP request, and verification.
+  - **Dashboard:** Premium view of analytical counters (using gradient dashboard cards, micro-animations, glassmorphism cards).
+  - **Users module:** Table list with search, user profile editor, and manual course purchase triggers.
+  - **Purchases list:** Logs of transactions, provider types, and billing.
+  - **Announcements & Banners editor:** Simple forms to add, edit, or delete items.
+  - **Reports reviewer:** Filters to review and update student typos/feedback status.
+  - **Audit Logs viewer:** Detailed chronological table of modifications.
+- **Theme & Styling (`src/index.css`):**
+  - Modern typography: Outfit / Inter Google fonts.
+  - Visuals: Harmonious dark mode (deep blue/slate background, indigo accents, glassmorphic inputs, soft transitions, hover animations, responsive viewport).
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Build and compile the C# backend project.
+- Verify migration script executes successfully on startup.
+- Compile and build the React TypeScript admin-panel project.
+
+### Manual Verification
+- Log in to the Admin Panel locally using phone number `+989120000000` and OTP `12345` with visual Captcha bypass.
+- Verify dashboard layout mounts and displays stats from PostgreSQL.
+- Perform a manual course activation on a user and verify that:
+  1. The purchase record updates in the database.
+  2. An audit log is successfully generated with "before" and "after" state values.
+  3. `PurchaseCompletedEvent` is published, creating a backup JSON file in the `backups/` directory (local fallback of S3 backup).
+- Manage announcements and banners, and verify that changes appear in the `/api/v1/config/features` remote config response.

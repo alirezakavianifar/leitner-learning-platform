@@ -1,0 +1,237 @@
+import 'package:flutter/material.dart';
+import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
+import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
+import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
+import 'package:mobile_app/injection_container.dart' as di;
+
+class FavoritesScreen extends StatefulWidget {
+  final String courseId;
+  final String courseTitle;
+
+  const FavoritesScreen({
+    Key? key,
+    required this.courseId,
+    required this.courseTitle,
+  }) : super(key: key);
+
+  @override
+  State<FavoritesScreen> createState() => _FavoritesScreenState();
+}
+
+class _FavoritesScreenState extends State<FavoritesScreen> {
+  late FlashcardRepository _repository;
+  List<Flashcard> _favorites = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _repository = di.sl<FlashcardRepository>();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    setState(() => _isLoading = true);
+    try {
+      final list = await _repository.getFavoriteCards(widget.courseId);
+      setState(() {
+        _favorites = list;
+        _isLoading = false;
+      });
+    } catch (_) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _onCardTap(Flashcard card) async {
+    final currentBox = card.progress.currentBox;
+
+    // Rule B (Favorites View Reset): Prompt if card is in Boxes 2–5
+    if (currentBox >= 2 && currentBox <= 5) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogCtx) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppColors.border),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.box1),
+              SizedBox(width: 8),
+              Text('Reset Progress?', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            'Viewing Card #${card.cardNumber} from favorites will reset its Leitner progress back to Box 1.\n\nDo you want to proceed?',
+            style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              onPressed: () async {
+                Navigator.pop(dialogCtx);
+                setState(() => _isLoading = true);
+                
+                // Reset card progress locally
+                await _repository.resetCardProgress(
+                  courseId: widget.courseId,
+                  cardNumber: card.cardNumber,
+                  reason: 'FAVORITES',
+                );
+
+                // Reload and navigate
+                await _loadFavorites();
+                if (!mounted) return;
+                
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FlashcardStudyScreen(
+                      courseId: widget.courseId,
+                      courseTitle: widget.courseTitle,
+                      initialCardNumber: card.cardNumber,
+                    ),
+                  ),
+                );
+                
+                _loadFavorites();
+              },
+              child: const Text('Proceed', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // In Box 1 or Box 6 (Finished) - No warning or reset required
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => FlashcardStudyScreen(
+            courseId: widget.courseId,
+            courseTitle: widget.courseTitle,
+            initialCardNumber: card.cardNumber,
+          ),
+        ),
+      );
+      _loadFavorites();
+    }
+  }
+
+  Color _getBoxColor(int box) {
+    switch (box) {
+      case 1:
+        return AppColors.box1;
+      case 2:
+        return AppColors.box2;
+      case 3:
+        return AppColors.box3;
+      case 4:
+        return AppColors.box4;
+      case 5:
+        return AppColors.box5;
+      case 6:
+        return AppColors.finished;
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  String _getBoxName(int box) {
+    if (box == 6) return 'Finished';
+    return 'Box $box';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('Favorite Cards', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          : _favorites.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.star_border, size: 64, color: AppColors.textSecondary),
+                      SizedBox(height: 16),
+                      Text('No favorited cards yet.', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  itemCount: _favorites.length,
+                  itemBuilder: (context, index) {
+                    final card = _favorites[index];
+                    final boxColor = _getBoxColor(card.progress.currentBox);
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      color: AppColors.surface.withOpacity(0.6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: AppColors.border),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        title: Text(
+                          card.questionText,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500, fontSize: 15),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: boxColor.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(color: boxColor, shape: BoxShape.circle),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _getBoxName(card.progress.currentBox),
+                                      style: TextStyle(color: boxColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Card #${card.cardNumber}',
+                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+                        onTap: () => _onCardTap(card),
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+}

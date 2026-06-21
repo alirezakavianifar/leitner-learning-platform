@@ -1,0 +1,23 @@
+[
+  {
+    "card_number": 1,
+    "question_text": "What does the word 'obsolete' mean?",
+    "answer_text": "No longer produced or used; out of date. E.g., 'Gass lamps became obsolete after the invention of the electric light bulb.'",
+    "image_name": "obsolete.png",
+    "audio_name": "obsolete.mp3"
+  },
+  {
+    "card_number": 2,
+    "question_text": "What does the word 'meticulous' mean?",
+    "answer_text": "Showing great attention to detail; very careful and precise. E.g., 'The researcher was meticulous in keeping her records.'",
+    "image_name": "meticulous.png",
+    "audio_name": "meticulous.mp3"
+  },
+  {
+    "card_number": 3,
+    "question_text": "What does the word 'resilient' mean?",
+    "answer_text": "Able to withstand or recover quickly from difficult conditions. E.g., 'Children are often remarkably resilient to change.'",
+    "image_name": "resilient.png",
+    "audio_name": "resilient.mp3"
+  }
+]
