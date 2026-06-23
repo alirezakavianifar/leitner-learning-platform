@@ -23,6 +23,9 @@ jobs:
       - name: Restore Dependencies
         run: dotnet restore backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj
 
+      - name: Dependency Vulnerability Scan
+        run: dotnet list backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj package --vulnerable --include-transitive
+
       - name: Build Code
         run: dotnet build backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj --configuration Release --no-restore
 
@@ -48,6 +51,17 @@ jobs:
         run: |
           cd admin-panel
           npm ci
+
+      - name: Dependency Vulnerability Audit
+        run: |
+          cd admin-panel
+          npm audit --audit-level=high
+
+      - name: License Compliance Audit
+        run: |
+          cd admin-panel
+          # Run check for copyleft licenses (e.g. GPL/AGPL/LGPL) in production dependencies
+          npx -y license-checker-rseidelsohn --production --excludePrivatePackages --failOn "GPL;AGPL;LGPL" || echo "Warning: Some licenses require review"
 
       - name: Lint Rules Check
         run: |
@@ -84,6 +98,11 @@ jobs:
         run: |
           cd mobile-app
           flutter pub get
+
+      - name: Dependency Vulnerability Check
+        run: |
+          cd mobile-app
+          dart pub outdated --mode=security
 
       - name: Code Formatting Check
         run: |

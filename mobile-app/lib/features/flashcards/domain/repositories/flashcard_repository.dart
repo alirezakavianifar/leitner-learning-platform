@@ -67,4 +67,7 @@ abstract class FlashcardRepository {
 
   /// Fetches all finished cards for all courses.
   Future<List<Flashcard>> getFinishedCards();
+
+  /// Fetches all cards in a given course, matching with their current learning progress.
+  Future<List<Flashcard>> getAllCardsForCourse(String courseId);
 }

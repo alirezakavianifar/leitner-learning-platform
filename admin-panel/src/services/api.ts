@@ -153,6 +153,12 @@ export const api = {
       method: 'DELETE'
     }),
 
+    getConfig: () => request<{ success: boolean; configs: any[] }>('/admin/config'),
+    updateConfig: (configs: { key: string; value: string }[]) => request<{ success: boolean; message: string }>('/admin/config', {
+      method: 'PUT',
+      body: JSON.stringify({ configs })
+    }),
+
     getAuditLogs: (page = 1, pageSize = 30) => request<{ success: boolean; total_count: number; logs: any[] }>(`/admin/audit-logs?page=${page}&pageSize=${pageSize}`)
   }
 };

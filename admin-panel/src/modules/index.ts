@@ -7,6 +7,7 @@ import { ReportsModule } from './reports';
 import { AnnouncementsModule } from './announcements';
 import { BannersModule } from './banners';
 import { AuditLogsModule } from './audit-logs';
+import { SettingsModule } from './settings';
 
 export const modules: AdminModule[] = [
   DashboardModule,
@@ -16,5 +17,6 @@ export const modules: AdminModule[] = [
   ReportsModule,
   AnnouncementsModule,
   BannersModule,
-  AuditLogsModule
+  AuditLogsModule,
+  SettingsModule
 ];

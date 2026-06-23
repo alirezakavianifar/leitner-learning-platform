@@ -30,6 +30,24 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+
+    flavorDimensions.add("version")
+
+    productFlavors {
+        create("store") {
+            dimension = "version"
+            applicationIdSuffix = ".store"
+            versionNameSuffix = "-store"
+        }
+        create("premium") {
+            dimension = "version"
+            applicationIdSuffix = ".premium"
+            versionNameSuffix = "-premium"
         }
     }
 }

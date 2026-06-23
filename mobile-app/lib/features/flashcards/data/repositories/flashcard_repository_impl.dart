@@ -575,4 +575,64 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     }
     return finishedList;
   }
+
+  @override
+  Future<List<Flashcard>> getAllCardsForCourse(String courseId) async {
+    final dbPath = await _getCourseDatabasePath(courseId);
+    if (!File(dbPath).existsSync()) {
+      return [];
+    }
+
+    final courseDb = await databaseHelper.openCourseDatabase(dbPath);
+    final List<Map<String, dynamic>> cardMaps = await courseDb.query('cards', orderBy: 'card_number');
+    await courseDb.close();
+
+    final localDb = await databaseHelper.localDatabase;
+    final List<Map<String, dynamic>> progressMaps = await localDb.query(
+      'client_progress',
+      where: 'course_id = ?',
+      whereArgs: [courseId],
+    );
+
+    final progressMap = {
+      for (final map in progressMaps)
+        map['card_number'] as int: CardProgressModel.fromMap(map)
+    };
+
+    final List<Flashcard> cards = [];
+    final now = DateTime.now();
+
+    for (final cardMap in cardMaps) {
+      final cardNum = cardMap['card_number'] as int;
+      var progress = progressMap[cardNum];
+
+      if (progress == null) {
+        progress = CardProgressModel(
+          id: '${courseId}_$cardNum',
+          courseId: courseId,
+          cardNumber: cardNum,
+          currentBox: 1,
+          lastReviewedAt: null,
+          nextReviewDue: now,
+          lastTrigger: null,
+          isSynced: false,
+        );
+      }
+
+      cards.add(
+        Flashcard(
+          id: cardMap['id'] as String,
+          courseId: courseId,
+          cardNumber: cardNum,
+          questionText: cardMap['question_text'] as String,
+          answerText: cardMap['answer_text'] as String,
+          imageUrl: cardMap['image_url'] as String?,
+          audioUrl: cardMap['audio_url'] as String?,
+          progress: progress,
+        ),
+      );
+    }
+
+    return cards;
+  }
 }

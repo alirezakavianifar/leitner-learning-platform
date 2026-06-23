@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using LeitnerPlatform.Core.Entities;
 using LeitnerPlatform.Core.Interfaces;
 
@@ -11,6 +12,7 @@ namespace LeitnerPlatform.API.Controllers.v1
     [Authorize]
     [ApiController]
     [Route("api/v1/user")]
+    [EnableRateLimiting("GeneralRateLimit")]
     public class UserController : ControllerBase
     {
         private readonly IUserRepository _userRepository;

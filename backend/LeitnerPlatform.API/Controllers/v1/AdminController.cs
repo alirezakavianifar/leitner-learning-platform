@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using LeitnerPlatform.Core.Entities;
 using LeitnerPlatform.Core.Events;
@@ -18,6 +19,7 @@ namespace LeitnerPlatform.API.Controllers.v1
     [Authorize(Roles = "Admin")]
     [ApiController]
     [Route("api/v1/admin")]
+    [EnableRateLimiting("AdminRateLimit")]
     public class AdminController : ControllerBase
     {
         private readonly LeitnerDbContext _context;
@@ -838,6 +840,65 @@ namespace LeitnerPlatform.API.Controllers.v1
         }
 
         #endregion
+
+        #region System Config CRUD
+
+        [HttpGet("config")]
+        public async Task<IActionResult> GetSystemConfig()
+        {
+            var configs = await _context.SystemConfigs.ToListAsync();
+            return Ok(new { success = true, configs });
+        }
+
+        [HttpPut("config")]
+        public async Task<IActionResult> UpdateSystemConfig([FromBody] SystemConfigUpdateInput input)
+        {
+            if (input == null || input.Configs == null)
+            {
+                return BadRequest(new { success = false, message = "Invalid settings data." });
+            }
+
+            var beforeConfigs = await _context.SystemConfigs.AsNoTracking().ToListAsync();
+            var beforeJson = JsonSerializer.Serialize(beforeConfigs);
+
+            foreach (var item in input.Configs)
+            {
+                var existing = await _context.SystemConfigs.FindAsync(item.Key);
+                if (existing != null)
+                {
+                    existing.Value = item.Value;
+                    existing.UpdatedAt = DateTime.UtcNow;
+                    _context.Entry(existing).State = EntityState.Modified;
+                }
+                else
+                {
+                    var newConfig = new SystemConfig
+                    {
+                        Key = item.Key,
+                        Value = item.Value,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    await _context.SystemConfigs.AddAsync(newConfig);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            var afterConfigs = await _context.SystemConfigs.AsNoTracking().ToListAsync();
+            var afterJson = JsonSerializer.Serialize(afterConfigs);
+
+            await _auditLogService.LogActionAsync(
+                GetAdminUsername(),
+                "UPDATE_SYSTEM_CONFIG",
+                "SystemSettings",
+                beforeJson,
+                afterJson
+            );
+
+            return Ok(new { success = true, message = "System configuration updated successfully." });
+        }
+
+        #endregion
     }
 
     #region Input DTOs
@@ -884,6 +945,17 @@ namespace LeitnerPlatform.API.Controllers.v1
         public string? LinkUrl { get; set; }
         public int DisplayOrder { get; set; }
         public bool? IsActive { get; set; }
+    }
+
+    public class SystemConfigUpdateInput
+    {
+        public System.Collections.Generic.List<SystemConfigItemInput>? Configs { get; set; }
+    }
+
+    public class SystemConfigItemInput
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
     }
 
     #endregion

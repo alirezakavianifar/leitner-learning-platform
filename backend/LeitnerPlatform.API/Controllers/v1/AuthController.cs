@@ -18,6 +18,7 @@ namespace LeitnerPlatform.API.Controllers.v1
 {
     [ApiController]
     [Route("api/v1/auth")]
+    [EnableRateLimiting("GeneralRateLimit")]
     public class AuthController : ControllerBase
     {
         private readonly IUserRepository _userRepository;

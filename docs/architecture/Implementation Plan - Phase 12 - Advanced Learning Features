@@ -1,0 +1,114 @@
+# Implementation Plan - Phase 12: Advanced Learning Features
+
+This phase introduces secondary learning features, local-only backup systems, and payment provider integrations on the mobile app and backend.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Unified Payment Provider Mocks:** We will implement a unified `PaymentProvider` interface in the mobile app with adapters for Google Play, Cafe Bazaar, Myket, and Direct Payment Gateway. For demonstration/testing, the UI will display a mock payment popup prompting the user to complete the payment. Upon completion, a request is sent to the backend `/purchases` endpoint to record the purchase as `COMPLETED`.
+
+> [!NOTE]
+> **Offline Backup File Location:** Due to target platform filesystem variations, the offline backup file will be written to the app's documents directory (e.g. `leitner_backup.enc`). In the Settings page, we will provide a list of available backups found in that directory, letting users easily export/overwrite new ones or select an existing one to import.
+
+## Open Questions
+
+- *None at this stage. All requirements align with the UI design specification and database schemas.*
+
+---
+
+## Proposed Changes
+
+### Backend Component
+
+We need to add a public/authenticated purchase endpoint that mobile clients hit to record and verify purchases.
+
+#### [NEW] [PurchaseController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/PurchaseController.cs)
+- Implement `POST /api/v1/purchases` endpoint:
+  - Requires authentication.
+  - Takes `course_id`, `payment_provider`, and `transaction_id`.
+  - Inserts/updates a `Purchase` record with `Status = "COMPLETED"`.
+  - Publishes `PurchaseCompletedEvent` on the backend Event Bus (this automatically triggers the off-server S3 backup replication).
+  - Returns the purchase details.
+
+---
+
+### Mobile Client Component
+
+#### [MODIFY] [flashcard_repository.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/domain/repositories/flashcard_repository.dart)
+- Add new methods:
+  - `Future<int> getGlobalDueCount()`: Sums all Box 1 and due Box 2–5 cards across all downloaded courses.
+  - `Future<int> getGlobalFinishedCount()`: Count of cards in Box 6 (Finished).
+  - `Future<List<Flashcard>> getFinishedCards()`: Fetches all finished cards across all courses.
+
+#### [MODIFY] [flashcard_repository_impl.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/data/repositories/flashcard_repository_impl.dart)
+- Implement `getGlobalDueCount()`, `getGlobalFinishedCount()`, and `getFinishedCards()` utilizing raw SQL queries on the `client_progress` table.
+
+#### [NEW] [payment_provider.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/core/services/payment_provider.dart)
+- Define `PaymentProvider` abstract interface.
+- Implement concrete providers: `GooglePlayPaymentProvider`, `BazaarPaymentProvider`, `MyketPaymentProvider`, and `DirectPaymentProvider`.
+- These adapters will call the backend API `POST /purchases` to register the purchase in the database upon user transaction confirmation.
+
+#### [NEW] [backup_service.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/core/services/backup_service.dart)
+- Implement `OfflineBackupService` using `encrypt` package and standard AES-CBC encryption.
+- Method `exportBackup(String password)`: reads `client_progress`, `user_created_cards`, `favorites`, and `settings` tables, serializes to JSON, encrypts, and writes to `<documents>/backups/leitner_backup_<timestamp>.enc`.
+- Method `importBackup(String filePath, String password)`: reads the file, decrypts, deserializes, and restores tables (merging or replacing progress).
+
+#### [NEW] [dashboard_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/auth/presentation/screens/dashboard_screen.dart)
+- Implement a premium, rich dashboard screen:
+  - Welcome Banner displaying active user's details.
+  - Automatically rotating **Banner Carousel** (displays up to 5 promo banners, transitioning every 4 seconds).
+  - Feature Grid:
+    - **Today's Cards**: Grid item with orange/red badge displaying pending due cards count. Switches bottom tab index to 1 (ReviewTab).
+    - **Finished Cards**: Grid item with gold badge count. Opens `FinishedCardsScreen`.
+    - **Custom Cards**: Grid item. Opens `CustomCardsScreen`.
+    - **Favorites**: Grid item. Opens a list of favorited cards.
+    - **Statistics**: Opens a visual box-distribution dialog.
+    - **Settings**: Opens `SettingsScreen`.
+    - **Notifications**: Opens `NotificationsScreen`.
+
+#### [MODIFY] [home_hub_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/auth/presentation/screens/home_hub_screen.dart)
+- Replace `_PlaceholderTab` at index 0 with the new `DashboardScreen`.
+- Support callback to change navigation tabs (so Dashboard can redirect to Review/Courses tabs).
+
+#### [NEW] [finished_cards_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/presentation/screens/finished_cards_screen.dart)
+- Lists all finished cards (`current_box == 6`).
+- Tapping a card flips it, displaying the front & back with "Know" (remains finished) and "Don't Know" (resets back to Box 1) options.
+
+#### [NEW] [custom_cards_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/presentation/screens/custom_cards_screen.dart)
+- Lists user's custom created cards stored in `user_created_cards`.
+- Action to open `CreateCustomCardScreen`.
+- Allows studying/reviewing these cards.
+
+#### [NEW] [create_custom_card_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/presentation/screens/create_custom_card_screen.dart)
+- Form to add custom card (question and answer fields).
+- Saves directly to the device-only SQLite table `user_created_cards`.
+
+#### [NEW] [settings_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/auth/presentation/screens/settings_screen.dart)
+- Displays user profile (username, mobile number [read-only], educational fields).
+- Section for **Local Offline Backup & Restore**:
+  - Export: Prompts for password, generates backup.
+  - Import: Prompts for password, selects backup file, restores progress.
+- Logout button with confirmation dialog.
+
+#### [NEW] [notifications_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/auth/presentation/screens/notifications_screen.dart)
+- Mock notification center displaying recent messages.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Extend backend tests `LeitnerPlatform.Tests` to verify `/api/v1/purchases` endpoints.
+- Add unit/widget tests in `mobile-app/test` for:
+  - Backup & Restore decryption correctness.
+  - Custom card database operations.
+  - Finished cards progression logic.
+
+### Manual Verification
+1. Launch backend and admin-panel servers.
+2. Launch Flutter mobile client.
+3. Perform a purchase flow, confirm in database that purchase goes from PENDING to COMPLETED.
+4. Verify the course now displays as green border (downloaded/ready to study).
+5. Open Today's Cards badge on Dashboard, verify correct counts.
+6. Create several custom cards, verify they appear only locally.
+7. Generate an offline backup, uninstall/reinstall the application, import the backup and verify progress/custom cards are fully restored.

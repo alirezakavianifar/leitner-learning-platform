@@ -1,0 +1,103 @@
+# Phase 14 – Notifications & Banner System
+
+Implement engagement systems: backend API endpoints for banners and announcements, local SQLite persistence/sync on the mobile client, and front-end UI integrations.
+
+## User Review Required
+
+> [!IMPORTANT]
+> - **Dependency Addition:** We will add `url_launcher` to the `pubspec.yaml` of the Flutter application to handle "Banner Linking" (opening the URL when a user taps a promotional banner).
+> - **Database Schema Upgrade:** The local SQLite database version on the mobile client will be upgraded to `2` to introduce the `banners_cache` and `announcements_cache` tables. This upgrade is backward-compatible and preserves user progress (Leitner state).
+
+## Open Questions
+
+> [!NOTE]
+> There are no unresolved open questions. We will use the Announcements database table to power both the system-wide announcements and notifications screen, which matches the admin panel and existing database schema.
+
+---
+
+## Proposed Changes
+
+### Backend Components
+
+#### [NEW] [EngagementController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/EngagementController.cs)
+- Expose a versioned API controller under `/api/v1/banners` and `/api/v1/announcements` for client-side consumption.
+- `GET /api/v1/banners`: Retrieve active banners ordered by `DisplayOrder` (`IsActive == true`).
+- `GET /api/v1/announcements`: Retrieve all system-wide announcements sorted by `PublishedAt` descending.
+
+---
+
+### Mobile Client Components
+
+#### [MODIFY] [pubspec.yaml](file:///e:/projects/leitner-learning-platform/mobile-app/pubspec.yaml)
+- Add `url_launcher: ^6.2.0` dependency.
+
+#### [MODIFY] [database_helper.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/core/database/database_helper.dart)
+- Upgrade the database version constant to `2`.
+- Add tables `banners_cache` and `announcements_cache` to `_onCreate`.
+- Implement `_onUpgrade` callback to create these tables if the schema upgrades from version `1`.
+
+#### [NEW] [banner.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/notifications/domain/entities/banner.dart)
+- Define the client domain entity for a promotional Banner (`id`, `imageUrl`, `linkUrl`, `displayOrder`).
+
+#### [NEW] [announcement.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/notifications/domain/entities/announcement.dart)
+- Define the client domain entity for an Announcement (`id`, `title`, `content`, `publishedAt`).
+
+#### [NEW] [banner_model.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/notifications/data/models/banner_model.dart)
+- Implement JSON parsing, DB serialization, and cache mapping helpers for Banners.
+
+#### [NEW] [announcement_model.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/notifications/data/models/announcement_model.dart)
+- Implement JSON parsing, DB serialization, and cache mapping helpers for Announcements.
+
+#### [NEW] [notifications_local_data_source.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/notifications/data/datasources/notifications_local_data_source.dart)
+- Handle local persistence (caching) and retrieval of banners and announcements in SQLite.
+
+#### [NEW] [notifications_remote_data_source.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/notifications/data/datasources/notifications_remote_data_source.dart)
+- Fetch banners and announcements from backend endpoints.
+
+#### [NEW] [notifications_repository.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/notifications/domain/repositories/notifications_repository.dart)
+- Define the repository interface for loading and syncing notifications/banners.
+
+#### [NEW] [notifications_repository_impl.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/notifications/data/repositories/notifications_repository_impl.dart)
+- Implement repository caching and 24-hour sync logic:
+  - Cache the last successful sync timestamp in `SharedPreferences`.
+  - Fetch from local database if less than 24 hours have elapsed since the last sync.
+  - Fetch from remote API and refresh the local SQLite database if more than 24 hours have elapsed, updating the sync timestamp.
+  - Gracefully fall back to local database cache if network operations fail or the device is offline.
+
+#### [MODIFY] [injection_container.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/injection_container.dart)
+- Register `NotificationsRemoteDataSource`, `NotificationsLocalDataSource`, and `NotificationsRepository` in the service locator container.
+
+#### [NEW] [notifications_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/notifications/presentation/screens/notifications_screen.dart)
+- Display the actual announcements/notifications list fetched from the repository (ordered descending by timestamp).
+- Include pull-to-refresh to trigger sync manually.
+- Clean up / remove the old file [notifications_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/auth/presentation/screens/notifications_screen.dart).
+
+#### [MODIFY] [dashboard_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/auth/presentation/screens/dashboard_screen.dart)
+- Inject and retrieve active banners from `NotificationsRepository`.
+- Bound active banner count to a maximum of 5.
+- Render banner images in the Carousel.
+- Integrate `url_launcher` on banner tap to open `linkUrl`.
+- Fall back to the default/mock banners if no custom banners are available from the backend.
+- Update notifications target navigation screen path.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Create a unit/integration test file [notifications_test.dart](file:///e:/projects/leitner-learning-platform/mobile-app/test/notifications_test.dart) to verify:
+  - SQLite schema upgrade path.
+  - Caching and 24-hour sync rule logic (remote call occurs when time threshold is exceeded; local cache is used when within threshold or offline).
+- Run all tests using:
+  ```powershell
+  cd mobile-app
+  flutter test test/notifications_test.dart
+  flutter test
+  ```
+
+### Manual Verification
+1. Run backend server local development build (`dotnet run` or similar).
+2. Use Admin Panel to create sample banners (with image URLs and link URLs) and announcements.
+3. Launch mobile client in emulator/device, verify banner carousel loads active banners, auto-rotates every 4 seconds, and handles redirection links.
+4. Open Notification Center, verify announcements/notifications list is correctly populated (sorted descending by timestamp).
+5. Toggle internet connection off (airplane mode), relaunch mobile app, and verify that cached banners and announcements/notifications load successfully.

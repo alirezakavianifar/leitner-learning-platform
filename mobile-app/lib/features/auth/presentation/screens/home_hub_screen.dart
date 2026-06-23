@@ -10,6 +10,7 @@ import 'package:mobile_app/features/courses/presentation/screens/courses_screen.
 import 'package:mobile_app/features/flashcards/presentation/widgets/review_tab.dart';
 import 'package:mobile_app/features/flashcards/presentation/widgets/onboarding_tour.dart';
 import 'package:mobile_app/injection_container.dart' as di;
+import 'package:mobile_app/features/courses/presentation/screens/course_search_screen.dart';
 import 'otp_request_screen.dart';
 import 'dashboard_screen.dart';
 
@@ -122,6 +123,17 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                 ),
           ),
           actions: [
+            if (_currentIndex == 2)
+              IconButton(
+                icon: const Icon(Icons.search, color: AppColors.primary),
+                tooltip: 'Search',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CourseSearchScreen()),
+                  );
+                },
+              ),
             IconButton(
               icon: const Icon(Icons.help_outline, color: AppColors.primary),
               tooltip: 'Tutorial',

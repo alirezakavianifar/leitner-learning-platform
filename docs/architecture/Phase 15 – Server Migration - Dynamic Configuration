@@ -1,0 +1,113 @@
+# Phase 15 – Server Migration & Dynamic Configuration
+
+This phase implements a robust Remote Configuration Service and dynamic configuration endpoints to allow updating server URLs, feature flags, carousel configurations, and maintenance mode status without releasing a new mobile application build. Additionally, it implements a failover server switching strategy on the mobile client.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Anonymous Remote Config Access:** The Remote Config endpoint `/api/v1/config/features` will be accessible anonymously (unauthenticated) to allow the app to fetch server endpoints and check maintenance mode before logging in or on first launch.
+
+> [!NOTE]
+> **Transparent Failover Interceptor:** The failover server switching logic is implemented directly as a Dio interceptor. If any API request fails due to connection loss/timeout, the interceptor will automatically ping alternative server endpoints, switch to a working host, update the cached endpoint, and retry the request transparently.
+
+## Open Questions
+There are no open questions; the architecture aligns cleanly with client expectations.
+
+## Proposed Changes
+
+---
+
+### Backend (Database & Server API)
+
+#### [NEW] [SystemConfig.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Entities/SystemConfig.cs)
+Define the entity to store dynamic system configuration key-value pairs in the database.
+- Key: unique identifier (e.g., `maintenance_mode`, `api_server`).
+- Value: configuration payload (stored as text/string).
+- UpdatedAt: last modification timestamp.
+
+#### [NEW] [V4__Add_Remote_Config.sql](file:///e:/projects/leitner-learning-platform/deployment/db/migrations/V4__Add_Remote_Config.sql)
+SQL migration script creating the `system_configs` table and pre-populating default values for:
+- `maintenance_mode` (`false`)
+- `api_server`, `content_server`, `banner_server`
+- `enable_ai_tutor` (`false`), `enable_custom_themes` (`true`), `enable_search_v2` (`true`)
+- `rotation_interval_seconds` (`4`), `max_banner_count` (`5`)
+
+#### [MODIFY] [LeitnerDbContext.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/LeitnerDbContext.cs)
+Register the new `SystemConfig` DbSet and configure its model mapping (table name `system_configs`, key constraints).
+
+#### [NEW] [ConfigController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/ConfigController.cs)
+Implement the public, unauthenticated route:
+- `GET /api/v1/config/features` - Aggregates configuration, feature flags, active banners, and announcements into a unified JSON payload.
+
+#### [MODIFY] [AdminController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/AdminController.cs)
+Add admin-authenticated configuration endpoints:
+- `GET /api/v1/admin/config` - Fetches all system configs.
+- `PUT /api/v1/admin/config` - Batch updates system configs, logging the change in the Audit Trail (`UPDATE_SYSTEM_CONFIG`).
+
+---
+
+### Admin Panel Dashboard
+
+#### [MODIFY] [api.ts](file:///e:/projects/leitner-learning-platform/admin-panel/src/services/api.ts)
+Add endpoints:
+- `api.admin.getConfig()`
+- `api.admin.updateConfig(configs)`
+
+#### [NEW] [index.tsx](file:///e:/projects/leitner-learning-platform/admin-panel/src/modules/settings/index.tsx)
+Create a new pluggable admin screen for managing settings:
+- Forms to modify maintenance mode, server endpoints, and active feature flags.
+- Displays a visual layout matching the other modules.
+
+#### [MODIFY] [index.ts](file:///e:/projects/leitner-learning-platform/admin-panel/src/modules/index.ts)
+Register `SettingsModule` to make it appear dynamically in the administration sidebar.
+
+---
+
+### Mobile Application
+
+#### [NEW] [remote_config.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/config/domain/entities/remote_config.dart)
+Domain entity for storing the Remote Configuration model (feature flags, endpoints, maintenance state).
+
+#### [NEW] [config_repository.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/config/domain/repositories/config_repository.dart)
+Repository interface specifying configuration loading and failover functions.
+
+#### [NEW] [config_remote_data_source.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/config/data/datasources/config_remote_data_source.dart)
+Remote data source implementing the network request to fetch `/config/features`.
+
+#### [NEW] [config_repository_impl.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/config/data/repositories/config_repository_impl.dart)
+Repository implementation coordinating Remote Config fetching, caching configuration locally, and updating active servers.
+
+#### [NEW] [config_bloc.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/config/presentation/bloc/config_bloc.dart)
+BLoC manager handling:
+- LoadConfigEvent (fetches config, applies endpoints, checks maintenance mode).
+- ConfigLoadedState, ConfigMaintenanceState, ConfigErrorState.
+
+#### [NEW] [maintenance_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/config/presentation/screens/maintenance_screen.dart)
+A blocking UI screen styled with HSL colors (`background`, `primary`, `textPrimary`) shown to the user when the application is under maintenance.
+
+#### [MODIFY] [dio_client.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/core/network/dio_client.dart)
+- Expose an `updateBaseUrl(String url)` method.
+- Add an error interceptor that triggers `_attemptFailover()` upon timeout or socket exception, trying other fallback servers before failing.
+
+#### [MODIFY] [injection_container.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/injection_container.dart)
+Register new remote config components in the DI locator (`GetIt`).
+
+#### [MODIFY] [main.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/main.dart)
+- Wrap `MyApp` in `ConfigBloc` alongside `AuthBloc`.
+- Render the `MaintenanceScreen` if the config state shows maintenance is active.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+1. **Backend Integration Tests:** Add unit tests to verify `ConfigController` and `AdminController` settings endpoints.
+2. **Mobile Config Tests:** Verify JSON mapping of `RemoteConfig` and the BLoC state transitions.
+
+### Manual Verification
+1. Open Admin Panel -> Go to Settings.
+2. Turn ON Maintenance Mode -> Save.
+3. Reload/Open Mobile App -> Verify that the blocking Maintenance Screen is shown.
+4. Turn OFF Maintenance Mode -> Save.
+5. Reload/Open Mobile App -> Verify it functions normally.
+6. Shut down primary backend API port -> Verify that the mobile app automatically switches to fallback URLs and continues working.

@@ -18,6 +18,7 @@ namespace LeitnerPlatform.Data
         public DbSet<Banner> Banners => Set<Banner>();
         public DbSet<Announcement> Announcements => Set<Announcement>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+        public DbSet<SystemConfig> SystemConfigs => Set<SystemConfig>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -189,6 +190,16 @@ namespace LeitnerPlatform.Data
                 entity.Property(e => e.BeforeValue).HasColumnName("before_value");
                 entity.Property(e => e.AfterValue).HasColumnName("after_value");
                 entity.Property(e => e.Timestamp).HasColumnName("timestamp").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            });
+
+            // SystemConfig mapping
+            modelBuilder.Entity<SystemConfig>(entity =>
+            {
+                entity.ToTable("system_configs");
+                entity.HasKey(e => e.Key);
+                entity.Property(e => e.Key).HasColumnName("key").HasMaxLength(100);
+                entity.Property(e => e.Value).HasColumnName("value").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
         }
     }

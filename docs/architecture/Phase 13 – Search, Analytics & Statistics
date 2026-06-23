@@ -1,0 +1,83 @@
+# Phase 13 – Search, Analytics & Statistics
+
+This phase implements typo-tolerant course and card search workflows and detailed progress/Leitner statistics visualization on the mobile client.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Typo-Tolerant Search Logic:** The search will be executed fully offline on the client. We will implement a custom Levenshtein distance algorithm in a clean helper utility. Query terms of length 3–4 will tolerate up to 1 typo, and longer terms will tolerate up to 2 typos.
+>
+> **Safety Confirmation Dialog:** In compliance with Phase 10/11 requirements, when a user selects a card from search results, if that card is currently in Leitner Boxes 2–5, the application will show a confirmation dialog warning that viewing it directly will reset its learning progress back to Box 1. If confirmed, its progress is reset and the card is opened. Box 1 and Box 6 (Finished) cards open directly without prompting.
+>
+> **My Courses Toggle:** We will add a TabBar/SegmentedControl at the top of the existing `CoursesScreen` to let users toggle between "Catalog" (all courses) and "My Courses" (downloaded/purchased only), integrating the "My Courses" view directly into the Course tab.
+
+## Open Questions
+
+> [!NOTE]
+> **Server-side Analytics:** Currently, Phase 13 requirements do not specify any new server-side reporting APIs. All analytics and statistics are computed locally from the client SQLite databases (`courses_cache` and `client_progress`), matching the offline-first requirement. Please confirm if any server-side analytics report uploads are required beyond the existing sync endpoint.
+
+---
+
+## Proposed Changes
+
+### Mobile Client Component
+
+#### [NEW] [search_helper.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/core/utils/search_helper.dart)
+- Create a search helper providing Levenshtein distance computation and typo-tolerant word matching.
+- Define `bool fuzzyMatch(String text, String query)` utility.
+
+#### [MODIFY] [flashcard_repository.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/domain/repositories/flashcard_repository.dart)
+- Add abstract method:
+  `Future<List<Flashcard>> getAllCardsForCourse(String courseId);`
+
+#### [MODIFY] [flashcard_repository_impl.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/flashcards/data/repositories/flashcard_repository_impl.dart)
+- Implement `getAllCardsForCourse(String courseId)` querying the specific course database and joining with the `client_progress` database.
+
+#### [NEW] [course_search_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/presentation/screens/course_search_screen.dart)
+- Implement double-search workflow:
+  1. Input field for course search (filtering available cached courses with fuzzy match).
+  2. List of matching courses with checkmarks for multi-selection.
+  3. Input field for card search (searches inside cards of selected courses).
+  4. Cards results showing card numbers, question text snippet, and source course title.
+  5. Tapping a card checks its box number; displays safety warning if `box in 2..5` before resetting and opening study screen.
+
+#### [NEW] [statistics_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/auth/presentation/screens/statistics_screen.dart)
+- Dedicated, beautifully styled screen displaying:
+  - Global metrics: Total downloaded courses count and total cards count.
+  - Leitner Box Distribution: Percentage of cards in Box 1 to 5 + Finished.
+  - Per-course Statistics: Progress bar using custom color segments matching:
+    - Orange: Box 1
+    - Yellow: Box 2
+    - Green: Box 3
+    - Blue: Box 4
+    - Purple: Box 5
+    - Gold: Finished Cards
+  - Legend helper explaining colors and counts.
+
+#### [MODIFY] [dashboard_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/auth/presentation/screens/dashboard_screen.dart)
+- Update "Statistics" button behavior in grid view to navigate to the new `StatisticsScreen` instead of showing a dialog.
+
+#### [MODIFY] [home_hub_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/auth/presentation/screens/home_hub_screen.dart)
+- Add a Search icon button to the AppBar actions when `_currentIndex == 2` (Courses tab) which opens the `CourseSearchScreen`.
+
+#### [MODIFY] [courses_screen.dart](file:///e:/projects/leitner-learning-platform/mobile-app/lib/features/courses/presentation/screens/courses_screen.dart)
+- Add tab selection header ("Catalog" vs "My Courses").
+- If "My Courses" is selected, only display courses where `isDownloaded` is true.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Create a new unit test suite:
+  `flutter test test/search_and_statistics_test.dart`
+- Tests will verify:
+  1. Typo-tolerant search helper matches terms with minor spelling variations.
+  2. Direct jump reset event behavior.
+
+### Manual Verification
+1. Launch mobile app.
+2. Tap the search icon on the Courses tab.
+3. Perform search on courses, select one or more, search for cards inside them.
+4. Tap a card in Box 2-5, verify warning confirmation popup, select "Confirm", verify card resets to Box 1 and study screen opens.
+5. Navigate to Dashboard -> Statistics, verify global metrics, color-coded bars, and box distribution percentages match expectations.

@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using LeitnerPlatform.Core.Entities;
 using LeitnerPlatform.Core.Events;
@@ -17,6 +18,7 @@ namespace LeitnerPlatform.API.Controllers.v1
     [Authorize]
     [ApiController]
     [Route("api/v1/statistics")]
+    [EnableRateLimiting("GeneralRateLimit")]
     public class StatisticsController : ControllerBase
     {
         private readonly LeitnerDbContext _context;

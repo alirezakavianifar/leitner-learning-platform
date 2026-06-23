@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using LeitnerPlatform.Data;
 using LeitnerPlatform.Core.Entities;
@@ -14,6 +15,7 @@ namespace LeitnerPlatform.API.Controllers.v1
     [Authorize]
     [ApiController]
     [Route("api/v1/purchases")]
+    [EnableRateLimiting("GeneralRateLimit")]
     public class PurchaseController : ControllerBase
     {
         private readonly LeitnerDbContext _context;

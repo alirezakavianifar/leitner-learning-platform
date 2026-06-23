@@ -1,0 +1,144 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile_app/core/error/failures.dart';
+import 'package:mobile_app/core/usecase/usecase.dart';
+import 'package:mobile_app/features/config/domain/entities/remote_config.dart';
+import 'package:mobile_app/features/config/domain/repositories/config_repository.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_event.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
+
+class FakeConfigRepository implements ConfigRepository {
+  Either<Failure, RemoteConfig>? result;
+
+  @override
+  Future<Either<Failure, RemoteConfig>> getRemoteConfig() async {
+    return result ?? Left(ServerFailure('No mock result configured'));
+  }
+}
+
+void main() {
+  group('RemoteConfig Entity JSON Mapping', () {
+    test('should map json correctly to RemoteConfig entity', () {
+      final json = {
+        'maintenance_mode': false,
+        'endpoints': {
+          'api_server': 'https://api.test.com',
+          'content_server': 'https://content.test.com',
+          'banner_server': 'https://banners.test.com',
+        },
+        'feature_flags': {
+          'enable_ai_tutor': true,
+          'enable_custom_themes': false,
+          'enable_search_v2': true,
+        },
+        'banner_configs': {
+          'rotation_interval_seconds': 6,
+          'max_banner_count': 4,
+        }
+      };
+
+      final config = RemoteConfig.fromJson(json);
+
+      expect(config.maintenanceMode, false);
+      expect(config.apiServer, 'https://api.test.com');
+      expect(config.contentServer, 'https://content.test.com');
+      expect(config.bannerServer, 'https://banners.test.com');
+      expect(config.enableAiTutor, true);
+      expect(config.enableCustomThemes, false);
+      expect(config.enableSearchV2, true);
+      expect(config.rotationIntervalSeconds, 6);
+      expect(config.maxBannerCount, 4);
+    });
+
+    test('should return default values when fields are missing', () {
+      final json = <String, dynamic>{};
+      final config = RemoteConfig.fromJson(json);
+
+      expect(config.maintenanceMode, false);
+      expect(config.enableAiTutor, false);
+      expect(config.enableCustomThemes, true);
+      expect(config.enableSearchV2, true);
+    });
+  });
+
+  group('ConfigBloc States and Events', () {
+    late FakeConfigRepository repository;
+    late ConfigBloc bloc;
+
+    setUp(() {
+      repository = FakeConfigRepository();
+      bloc = ConfigBloc(configRepository: repository);
+    });
+
+    tearDown(() {
+      bloc.close();
+    });
+
+    test('initial state should be ConfigInitial', () {
+      expect(bloc.state, ConfigInitial());
+    });
+
+    test('should emit [ConfigLoading, ConfigLoaded] when config loads successfully', () async {
+      const config = RemoteConfig(
+        maintenanceMode: false,
+        apiServer: 'https://api.com',
+        contentServer: 'https://content.com',
+        bannerServer: 'https://banners.com',
+        enableAiTutor: false,
+        enableCustomThemes: true,
+        enableSearchV2: true,
+        rotationIntervalSeconds: 4,
+        maxBannerCount: 5,
+      );
+
+      repository.result = const Right(config);
+
+      final expectedStates = [
+        ConfigLoading(),
+        const ConfigLoaded(config: config),
+      ];
+
+      expectLater(bloc.stream, emitsInOrder(expectedStates));
+
+      bloc.add(LoadConfigEvent());
+    });
+
+    test('should emit [ConfigLoading, ConfigMaintenance] when maintenance mode is active', () async {
+      const config = RemoteConfig(
+        maintenanceMode: true,
+        apiServer: 'https://api.com',
+        contentServer: 'https://content.com',
+        bannerServer: 'https://banners.com',
+        enableAiTutor: false,
+        enableCustomThemes: true,
+        enableSearchV2: true,
+        rotationIntervalSeconds: 4,
+        maxBannerCount: 5,
+      );
+
+      repository.result = const Right(config);
+
+      final expectedStates = [
+        ConfigLoading(),
+        const ConfigMaintenance(config: config),
+      ];
+
+      expectLater(bloc.stream, emitsInOrder(expectedStates));
+
+      bloc.add(LoadConfigEvent());
+    });
+
+    test('should emit [ConfigLoading, ConfigError] when loading config fails', () async {
+      repository.result = const Left(ServerFailure('Connection error'));
+
+      final expectedStates = [
+        ConfigLoading(),
+        const ConfigError(message: 'Connection error'),
+      ];
+
+      expectLater(bloc.stream, emitsInOrder(expectedStates));
+
+      bloc.add(LoadConfigEvent());
+    });
+  });
+}

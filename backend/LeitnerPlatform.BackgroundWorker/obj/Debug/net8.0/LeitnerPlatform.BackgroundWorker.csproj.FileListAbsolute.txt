@@ -66,3 +66,4 @@ E:\projects\leitner-learning-platform\backend\LeitnerPlatform.BackgroundWorker\o
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.BackgroundWorker\obj\Debug\net8.0\LeitnerPlatform.BackgroundWorker.pdb
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.BackgroundWorker\obj\Debug\net8.0\LeitnerPlatform.BackgroundWorker.genruntimeconfig.cache
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.BackgroundWorker\obj\Debug\net8.0\ref\LeitnerPlatform.BackgroundWorker.dll
+E:\projects\leitner-learning-platform\backend\LeitnerPlatform.BackgroundWorker\obj\Debug\net8.0\LeitnerPlatform.BackgroundWorker.sourcelink.json

@@ -34,9 +34,28 @@ import 'features/flashcards/data/repositories/flashcard_repository_impl.dart';
 import 'features/flashcards/domain/repositories/flashcard_repository.dart';
 import 'features/flashcards/presentation/bloc/flashcard_bloc.dart';
 
+import 'features/notifications/data/datasources/notifications_local_data_source.dart';
+import 'features/notifications/data/datasources/notifications_remote_data_source.dart';
+import 'features/notifications/data/repositories/notifications_repository_impl.dart';
+import 'features/notifications/domain/repositories/notifications_repository.dart';
+
+import 'features/config/data/datasources/config_remote_data_source.dart';
+import 'features/config/data/repositories/config_repository_impl.dart';
+import 'features/config/domain/repositories/config_repository.dart';
+import 'features/config/presentation/bloc/config_bloc.dart';
+
 final sl = GetIt.instance;
 
-Future<void> init({String? apiBaseUrl}) async {
+class AppConfig {
+  final String flavor;
+  AppConfig({required this.flavor});
+
+  bool get isPremium => flavor == 'premium';
+}
+
+Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
+  sl.registerSingleton<AppConfig>(AppConfig(flavor: flavor));
+  
   // 1. Core Services / Singletons
   final sharedPrefs = await SharedPreferences.getInstance();
   sl.registerSingleton<SharedPreferences>(sharedPrefs);
@@ -90,6 +109,18 @@ Future<void> init({String? apiBaseUrl}) async {
     () => CoursesLocalDataSourceImpl(databaseHelper: sl()),
   );
 
+  // Notifications
+  sl.registerLazySingleton<NotificationsRemoteDataSource>(
+    () => NotificationsRemoteDataSourceImpl(dioClient: sl()),
+  );
+  sl.registerLazySingleton<NotificationsLocalDataSource>(
+    () => NotificationsLocalDataSourceImpl(databaseHelper: sl()),
+  );
+
+  sl.registerLazySingleton<ConfigRemoteDataSource>(
+    () => ConfigRemoteDataSourceImpl(dioClient: sl()),
+  );
+
   // 3. Repositories
   // Auth
   sl.registerLazySingleton<AuthRepository>(
@@ -114,6 +145,23 @@ Future<void> init({String? apiBaseUrl}) async {
       databaseHelper: sl(),
       dioClient: sl(),
       eventBus: sl(),
+    ),
+  );
+
+  // Notifications
+  sl.registerLazySingleton<NotificationsRepository>(
+    () => NotificationsRepositoryImpl(
+      localDataSource: sl(),
+      remoteDataSource: sl(),
+      sharedPreferences: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton<ConfigRepository>(
+    () => ConfigRepositoryImpl(
+      remoteDataSource: sl(),
+      sharedPreferences: sl(),
+      dioClient: sl(),
     ),
   );
 
@@ -159,6 +207,12 @@ Future<void> init({String? apiBaseUrl}) async {
   sl.registerFactory(
     () => FlashcardBloc(
       flashcardRepository: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => ConfigBloc(
+      configRepository: sl(),
     ),
   );
 }

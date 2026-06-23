@@ -488,3 +488,4 @@ E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Tests\bin\Debug\ne
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Tests\bin\Debug\net8.0\runtimes\win-x64\native\e_sqlite3.dll
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Tests\bin\Debug\net8.0\runtimes\win-x86\native\e_sqlite3.dll
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Tests\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.InMemory.dll
+E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Tests\obj\Debug\net8.0\LeitnerPlatform.Tests.sourcelink.json

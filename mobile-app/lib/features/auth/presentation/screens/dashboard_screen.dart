@@ -8,10 +8,14 @@ import 'package:mobile_app/features/courses/domain/repositories/courses_reposito
 import 'package:mobile_app/features/courses/domain/entities/course.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 import 'settings_screen.dart';
+import 'statistics_screen.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/finished_cards_screen.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/custom_cards_screen.dart';
 import 'support_screen.dart';
-import 'notifications_screen.dart';
+import 'package:mobile_app/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:mobile_app/features/notifications/domain/entities/banner.dart' as entity;
+import 'package:mobile_app/features/notifications/domain/repositories/notifications_repository.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/favorites_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -29,6 +33,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   late FlashcardRepository _flashcardRepository;
   late CoursesRepository _coursesRepository;
+  late NotificationsRepository _notificationsRepository;
   
   int _dueCount = 0;
   int _finishedCount = 0;
@@ -42,23 +47,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _currentBannerIndex = 0;
   Timer? _bannerTimer;
 
-  final List<Map<String, dynamic>> _banners = [
+  List<entity.Banner> _bannerList = [];
+  bool _bannersLoading = true;
+
+  final List<Map<String, dynamic>> _defaultBanners = const [
     {
       'title': 'Spaced Repetition Mastery',
       'subtitle': 'Study systematically to retain 90% of what you learn.',
-      'gradient': const [Color(0xFF8F53FF), Color(0xFF6236FF)],
+      'gradient': [Color(0xFF8F53FF), Color(0xFF6236FF)],
       'icon': Icons.psychology,
     },
     {
       'title': 'Offline Learning Active',
       'subtitle': 'All your downloaded courses are stored securely offline.',
-      'gradient': const [Color(0xFF09E5C3), Color(0xFF07A890)],
+      'gradient': [Color(0xFF09E5C3), Color(0xFF07A890)],
       'icon': Icons.offline_bolt,
     },
     {
       'title': 'Custom Flashcards',
       'subtitle': 'Create and study custom cards stored strictly on your device.',
-      'gradient': const [Color(0xFFFF7A1A), Color(0xFFFFB61A)],
+      'gradient': [Color(0xFFFF7A1A), Color(0xFFFFB61A)],
       'icon': Icons.dashboard_customize,
     },
   ];
@@ -68,9 +76,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _flashcardRepository = di.sl<FlashcardRepository>();
     _coursesRepository = di.sl<CoursesRepository>();
+    _notificationsRepository = di.sl<NotificationsRepository>();
     _pageController = PageController(initialPage: 0);
     _loadProfile();
     _loadStats();
+    _loadBanners();
     _startBannerRotation();
   }
 
@@ -84,14 +94,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _startBannerRotation() {
     _bannerTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_pageController.hasClients) {
-        final nextPage = (_currentBannerIndex + 1) % _banners.length;
-        _pageController.animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeInOutCubic,
-        );
+        final activeListLength = _bannerList.isNotEmpty ? _bannerList.length : _defaultBanners.length;
+        if (activeListLength > 0) {
+          final nextPage = (_currentBannerIndex + 1) % activeListLength;
+          _pageController.animateToPage(
+            nextPage,
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOutCubic,
+          );
+        }
       }
     });
+  }
+
+  Future<void> _loadBanners({bool force = false}) async {
+    try {
+      final data = await _notificationsRepository.getBanners(forceRefresh: force);
+      if (mounted) {
+        setState(() {
+          _bannerList = data.take(5).toList();
+          _bannersLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _bannerList = [];
+          _bannersLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _launchUrl(String urlString) async {
+    final uri = Uri.parse(urlString);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open banner link.')),
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open banner link.')),
+        );
+      }
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -114,139 +167,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _showStatsDialog() async {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return FutureBuilder<Either<dynamic, (List<Course> courses, bool isOffline)>>(
-          future: _coursesRepository.getCourses(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-            }
-            
-            List<Course> downloaded = [];
-            snapshot.data!.fold((_) {}, (r) {
-              downloaded = r.$1.where((c) => c.isDownloaded).toList();
-            });
 
-            if (downloaded.isEmpty) {
-              return AlertDialog(
-                backgroundColor: AppColors.surface,
-                title: const Text('Statistics', style: TextStyle(color: AppColors.textPrimary)),
-                content: const Text('No downloaded courses available for statistics.', style: TextStyle(color: AppColors.textSecondary)),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Close'),
-                  )
-                ],
-              );
-            }
-
-            return StatefulBuilder(
-              builder: (context, setState) {
-                return AlertDialog(
-                  backgroundColor: AppColors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: AppColors.border),
-                  ),
-                  title: const Text(
-                    'Leitner Box Distribution',
-                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
-                  ),
-                  content: SizedBox(
-                    width: double.maxFinite,
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: downloaded.length,
-                      itemBuilder: (context, idx) {
-                        final course = downloaded[idx];
-                        return FutureBuilder<Map<int, int>>(
-                          future: _flashcardRepository.getCourseStatistics(course.id),
-                          builder: (context, statSnap) {
-                            if (!statSnap.hasData) return const SizedBox();
-                            final stats = statSnap.data!;
-                            final total = stats.values.fold(0, (sum, val) => sum + val);
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    course.title,
-                                    style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  if (total == 0)
-                                    const Text('No learning progress on this course yet.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))
-                                  else
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: SizedBox(
-                                        height: 16,
-                                        width: double.infinity,
-                                        child: Row(
-                                          children: [
-                                            if (stats[1]! > 0) Expanded(flex: stats[1]!, child: Container(color: AppColors.box1)),
-                                            if (stats[2]! > 0) Expanded(flex: stats[2]!, child: Container(color: AppColors.box2)),
-                                            if (stats[3]! > 0) Expanded(flex: stats[3]!, child: Container(color: AppColors.box3)),
-                                            if (stats[4]! > 0) Expanded(flex: stats[4]!, child: Container(color: AppColors.box4)),
-                                            if (stats[5]! > 0) Expanded(flex: stats[5]!, child: Container(color: AppColors.box5)),
-                                            if (stats[6]! > 0) Expanded(flex: stats[6]!, child: Container(color: AppColors.finished)),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  const SizedBox(height: 8),
-                                  // Color legend helper
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 4,
-                                    children: [
-                                      _buildLegendItem('Box 1', AppColors.box1, stats[1] ?? 0),
-                                      _buildLegendItem('Box 2', AppColors.box2, stats[2] ?? 0),
-                                      _buildLegendItem('Box 3', AppColors.box3, stats[3] ?? 0),
-                                      _buildLegendItem('Box 4', AppColors.box4, stats[4] ?? 0),
-                                      _buildLegendItem('Box 5', AppColors.box5, stats[5] ?? 0),
-                                      _buildLegendItem('Finished', AppColors.finished, stats[6] ?? 0),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Close', style: TextStyle(color: AppColors.primary)),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildLegendItem(String label, Color color, int count) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 4),
-        Text('$label: $count', style: const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
-      ],
-    );
-  }
 
   void _showFavoritesSelectDialog() async {
     final either = await _coursesRepository.getCourses();
@@ -321,6 +242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onRefresh: () async {
           await _loadProfile();
           await _loadStats();
+          await _loadBanners(force: true);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -384,59 +306,104 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   borderRadius: BorderRadius.circular(16),
                   child: PageView.builder(
                     controller: _pageController,
-                    itemCount: _banners.length,
+                    itemCount: _bannerList.isNotEmpty ? _bannerList.length : _defaultBanners.length,
                     onPageChanged: (idx) {
                       setState(() {
                         _currentBannerIndex = idx;
                       });
                     },
                     itemBuilder: (context, index) {
-                      final banner = _banners[index];
-                      return Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: banner['gradient'] as List<Color>,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                      final activeList = _bannerList.isNotEmpty ? _bannerList : _defaultBanners;
+                      final isRealBanner = _bannerList.isNotEmpty;
+                      final banner = activeList[index];
+
+                      if (isRealBanner) {
+                        final realBanner = banner as entity.Banner;
+                        return GestureDetector(
+                          onTap: () {
+                            if (realBanner.linkUrl != null && realBanner.linkUrl!.isNotEmpty) {
+                              _launchUrl(realBanner.linkUrl!);
+                            }
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                            ),
+                            child: Image.network(
+                              realBanner.imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: AppColors.surface,
+                                  alignment: Alignment.center,
+                                  child: const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.broken_image, color: AppColors.textSecondary, size: 36),
+                                      SizedBox(height: 8),
+                                      Text('Failed to load banner', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                                    ],
+                                  ),
+                                );
+                              },
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return const Center(
+                                  child: CircularProgressIndicator(color: AppColors.primary),
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                        padding: const EdgeInsets.all(20.0),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    banner['title'] as String,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
+                        );
+                      } else {
+                        // Fallback/Default Banner
+                        final defaultBanner = banner as Map<String, dynamic>;
+                        return Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: defaultBanner['gradient'] as List<Color>,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(20.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      defaultBanner['title'] as String,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    banner['subtitle'] as String,
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                      height: 1.4,
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      defaultBanner['subtitle'] as String,
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                        height: 1.4,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Icon(
-                              banner['icon'] as IconData,
-                              size: 48,
-                              color: Colors.white.withOpacity(0.4),
-                            ),
-                          ],
-                        ),
-                      );
+                              const SizedBox(width: 12),
+                              Icon(
+                                defaultBanner['icon'] as IconData,
+                                size: 48,
+                                color: Colors.white.withOpacity(0.4),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
                     },
                   ),
                 ),
@@ -446,7 +413,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
-                  _banners.length,
+                  _bannerList.isNotEmpty ? _bannerList.length : _defaultBanners.length,
                   (index) => Container(
                     width: 6,
                     height: 6,
@@ -523,7 +490,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     title: 'Statistics',
                     icon: Icons.bar_chart,
                     iconColor: AppColors.box3,
-                    onTap: _showStatsDialog,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+                      );
+                    },
                   ),
                   _buildGridCard(
                     title: 'Settings',

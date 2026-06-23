@@ -1,0 +1,76 @@
+import 'package:equatable/equatable.dart';
+
+class RemoteConfig extends Equatable {
+  final bool maintenanceMode;
+  final String apiServer;
+  final String contentServer;
+  final String bannerServer;
+  final bool enableAiTutor;
+  final bool enableCustomThemes;
+  final bool enableSearchV2;
+  final int rotationIntervalSeconds;
+  final int maxBannerCount;
+
+  const RemoteConfig({
+    required this.maintenanceMode,
+    required this.apiServer,
+    required this.contentServer,
+    required this.bannerServer,
+    required this.enableAiTutor,
+    required this.enableCustomThemes,
+    required this.enableSearchV2,
+    required this.rotationIntervalSeconds,
+    required this.maxBannerCount,
+  });
+
+  @override
+  List<Object?> get props => [
+        maintenanceMode,
+        apiServer,
+        contentServer,
+        bannerServer,
+        enableAiTutor,
+        enableCustomThemes,
+        enableSearchV2,
+        rotationIntervalSeconds,
+        maxBannerCount,
+      ];
+
+  factory RemoteConfig.fromJson(Map<String, dynamic> json) {
+    final endpoints = json['endpoints'] as Map<String, dynamic>? ?? {};
+    final featureFlags = json['feature_flags'] as Map<String, dynamic>? ?? {};
+    final bannerConfigs = json['banner_configs'] as Map<String, dynamic>? ?? {};
+
+    return RemoteConfig(
+      maintenanceMode: json['maintenance_mode'] as bool? ?? false,
+      apiServer: endpoints['api_server'] as String? ?? 'http://10.0.2.2:8080/api/v1',
+      contentServer: endpoints['content_server'] as String? ?? 'http://10.0.2.2:8080/api/v1',
+      bannerServer: endpoints['banner_server'] as String? ?? 'http://10.0.2.2:8080/api/v1',
+      enableAiTutor: featureFlags['enable_ai_tutor'] as bool? ?? false,
+      enableCustomThemes: featureFlags['enable_custom_themes'] as bool? ?? true,
+      enableSearchV2: featureFlags['enable_search_v2'] as bool? ?? true,
+      rotationIntervalSeconds: bannerConfigs['rotation_interval_seconds'] as int? ?? 4,
+      maxBannerCount: bannerConfigs['max_banner_count'] as int? ?? 5,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'maintenance_mode': maintenanceMode,
+      'endpoints': {
+        'api_server': apiServer,
+        'content_server': contentServer,
+        'banner_server': bannerServer,
+      },
+      'feature_flags': {
+        'enable_ai_tutor': enableAiTutor,
+        'enable_custom_themes': enableCustomThemes,
+        'enable_search_v2': enableSearchV2,
+      },
+      'banner_configs': {
+        'rotation_interval_seconds': rotationIntervalSeconds,
+        'max_banner_count': maxBannerCount,
+      },
+    };
+  }
+}

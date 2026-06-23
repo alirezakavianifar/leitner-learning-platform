@@ -81,8 +81,9 @@ class DatabaseHelper {
     // Using standard sqflite for maximum compatibility across test and local compilation setups:
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -148,6 +149,49 @@ class DatabaseHelper {
         version INTEGER NOT NULL DEFAULT 1
       )
     ''');
+
+    // F. banners_cache
+    await db.execute('''
+      CREATE TABLE banners_cache (
+        id TEXT PRIMARY KEY,
+        image_url TEXT NOT NULL,
+        link_url TEXT,
+        display_order INTEGER NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
+
+    // G. announcements_cache
+    await db.execute('''
+      CREATE TABLE announcements_cache (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        published_at TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS banners_cache (
+          id TEXT PRIMARY KEY,
+          image_url TEXT NOT NULL,
+          link_url TEXT,
+          display_order INTEGER NOT NULL,
+          is_active INTEGER NOT NULL DEFAULT 1
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS announcements_cache (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          published_at TEXT NOT NULL
+        )
+      ''');
+    }
   }
 
   /// Opens a standalone course database file in read-only mode.

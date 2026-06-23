@@ -104,6 +104,11 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
 *   **Notification Ordering:** Inside the notification center, the latest notifications must appear at the top of the list.
 *   **Flashcard Report System:** Users submit feedback storing User ID, Course ID/title, Card number, Report text, and Timestamp.
 
+### 7. Remote Configuration & Dynamic Failover
+*   **Remote Config Endpoint:** `/api/v1/config/features` aggregates dynamic parameters (endpoints, feature flags, active banners, and announcements) in a single public JSON payload.
+*   **Maintenance Mode:** Can be enabled/disabled from the Admin Panel Settings dashboard. When enabled, a blocking "Scheduled Maintenance" screen is presented to all users on launch.
+*   **Dynamic Failover Strategy:** The mobile client's network layer registers a custom connection error interceptor. Upon connection timeout or socket exceptions, the client sequentially pings fallback hosts to resolve a working server, updates `baseUrl` dynamically, and retries the request transparently.
+
 ---
 
 ## Setup & Deployment Instructions

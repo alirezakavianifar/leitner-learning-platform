@@ -13,3 +13,4 @@ E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Data\obj\Debug\net
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Data\obj\Debug\net8.0\refint\LeitnerPlatform.Data.dll
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Data\obj\Debug\net8.0\LeitnerPlatform.Data.pdb
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Data\obj\Debug\net8.0\ref\LeitnerPlatform.Data.dll
+E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Data\obj\Debug\net8.0\LeitnerPlatform.Data.sourcelink.json
