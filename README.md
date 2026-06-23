@@ -8,8 +8,13 @@ Welcome to the Leitner Learning Platform repository. This repository contains th
 *   **[rcd.md](file:///e:/projects/leitner-learning-platform/rcd.md)**: The Requirements Clarification Document (RCD) generated and locked in Phase 0.
 *   **[document.PDF](file:///e:/projects/leitner-learning-platform/document.PDF)**: The original project requirement specifications and business rules provided by the client.
 *   **[docs/ui/ui_design.md](file:///e:/projects/leitner-learning-platform/docs/ui/ui_design.md)**: The UI/UX design specifications including typography, HSL color variables, component library details, and user flow diagram mappings.
-*   **[docs/ui/prototype/index.html](file:///e:/projects/leitner-learning-platform/docs/ui/prototype/index.html)**: Clickable interactive HTML/JS viewport prototype simulating all user screens (OTP verify, rules acceptance, profile completion, onboarding sequence, rotative banners, offline catalog logic, 3D card flipping reviews, jump-to alerts, favorites and statistics).
+*   **[docs/ui/prototype/index.html](file:///e:/projects/leitner-learning-platform/docs/ui/prototype/index.html)**: Clickable interactive HTML/JS viewport prototype simulating all user screens.
+*   **[docs/deployment/server_setup_guide.md](file:///e:/projects/leitner-learning-platform/docs/deployment/server_setup_guide.md)**: Prerequisites and server environment installations for Windows Server 2025 and Linux hosts.
+*   **[docs/deployment/docker_deployment_guide.md](file:///e:/projects/leitner-learning-platform/docs/deployment/docker_deployment_guide.md)**: Container orchestration, Nginx reverse proxy configuration, environment variable schemas, and Let's Encrypt configurations.
+*   **[docs/course/course_upload_guide.md](file:///e:/projects/leitner-learning-platform/docs/course/course_upload_guide.md)**: Steps to package, encrypt, compile, and upload Leitner courses using the Authoring Kit.
+*   **[docs/deployment/backup_and_recovery_guide.md](file:///e:/projects/leitner-learning-platform/docs/deployment/backup_and_recovery_guide.md)**: Backup schedule policies, S3 replication workflows, and database recovery commands.
 *   **[AGENTS.md](file:///e:/projects/leitner-learning-platform/AGENTS.md)**: Instructions and constraints for autonomous AI coding agents working on this repository.
+
 
 ---
 
