@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LeitnerPlatform.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d4a063adeacdde22aac880b5c5c95f3adcd8de9b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3fa2217b3375429c556a6dc7823e69a933f977f5")]
 [assembly: System.Reflection.AssemblyProductAttribute("LeitnerPlatform.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LeitnerPlatform.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

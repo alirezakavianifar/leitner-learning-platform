@@ -53,6 +53,27 @@ subprojects {
                 } catch (e: Exception) {
                     // Ignore reflection errors
                 }
+
+                // Configure compileSdkVersion / compileSdk to 36+
+                try {
+                    val setCompileSdkVersion = android.javaClass.getMethod("setCompileSdkVersion", String::class.java)
+                    setCompileSdkVersion.invoke(android, "android-36")
+                    println("Dynamically set compileSdkVersion to android-36 for subproject ${proj.name}")
+                } catch (e: Exception) {
+                    try {
+                        val setCompileSdkVersionInt = android.javaClass.getMethod("setCompileSdkVersion", Int::class.java)
+                        setCompileSdkVersionInt.invoke(android, 36)
+                        println("Dynamically set compileSdkVersion (int) to 36 for subproject ${proj.name}")
+                    } catch (e2: Exception) {
+                        try {
+                            val setCompileSdk = android.javaClass.getMethod("setCompileSdk", java.lang.Integer::class.java)
+                            setCompileSdk.invoke(android, 36)
+                            println("Dynamically set compileSdk to 36 for subproject ${proj.name}")
+                        } catch (e3: Exception) {
+                            // Ignore
+                        }
+                    }
+                }
             }
         }
     }

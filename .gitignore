@@ -45,3 +45,15 @@ ios/Flutter/App.framework
 ios/Flutter/App.podspec
 ios/Flutter/Flutter.framework
 ios/Flutter/Flutter.podspec
+
+# .NET / Visual Studio build outputs
+**/[Dd]ebug/
+**/[Rr]elease/
+**/bin/
+**/obj/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+**/backups/

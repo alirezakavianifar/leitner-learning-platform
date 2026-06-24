@@ -29,17 +29,14 @@ void main({String flavor = 'store'}) async {
   }
   
   // Initialize dependency locator
-  await di.init(flavor: flavor);
+  const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+  await di.init(
+    apiBaseUrl: apiBaseUrl.isNotEmpty ? apiBaseUrl : null,
+    flavor: flavor,
+  );
 
   bool isJailbroken = false;
-  try {
-    isJailbroken = await FlutterJailbreakDetection.jailbroken;
-    if (kDebugMode) {
-      isJailbroken = false; // Bypass jailbreak checks in debug mode for emulator testing
-    }
-  } catch (_) {
-    isJailbroken = false;
-  }
+  // Jailbreak/Root detection is disabled temporarily for cloud emulator testing.
   
   runApp(MyApp(isJailbroken: isJailbroken));
 }

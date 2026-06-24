@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "gArggZ5N3Os=",
+  "dgSpecHash": "INrE3FFuNfQ=",
   "success": true,
-  "projectFilePath": "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.API\\LeitnerPlatform.API.csproj",
+  "projectFilePath": "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.API\\LeitnerPlatform.API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Administrator\\.nuget\\packages\\awssdk.core\\4.0.9.6\\awssdk.core.4.0.9.6.nupkg.sha512",
     "C:\\Users\\Administrator\\.nuget\\packages\\awssdk.s3\\4.0.25.2\\awssdk.s3.4.0.25.2.nupkg.sha512",

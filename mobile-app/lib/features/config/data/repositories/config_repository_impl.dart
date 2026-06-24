@@ -27,8 +27,9 @@ class ConfigRepositoryImpl implements ConfigRepository {
       // Cache settings locally
       await sharedPreferences.setString(_kCachedConfigKey, jsonEncode(config.toJson()));
       
-      // Update dynamic endpoints
-      if (config.apiServer.isNotEmpty) {
+      // Update dynamic endpoints (only if not overridden at compile time)
+      const customUrl = String.fromEnvironment('API_BASE_URL');
+      if (config.apiServer.isNotEmpty && customUrl.isEmpty) {
         dioClient.updateBaseUrl(config.apiServer);
       }
       
@@ -40,8 +41,9 @@ class ConfigRepositoryImpl implements ConfigRepository {
         try {
           final config = RemoteConfig.fromJson(jsonDecode(cachedJson) as Map<String, dynamic>);
           
-          // Still apply endpoints if we had cached values
-          if (config.apiServer.isNotEmpty) {
+          // Still apply endpoints if we had cached values (and no compile-time override)
+          const customUrl = String.fromEnvironment('API_BASE_URL');
+          if (config.apiServer.isNotEmpty && customUrl.isEmpty) {
             dioClient.updateBaseUrl(config.apiServer);
           }
           

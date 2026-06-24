@@ -5,8 +5,8 @@ E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Core\obj\Debug\net
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Core\obj\Debug\net8.0\LeitnerPlatform.Core.AssemblyInfoInputs.cache
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Core\obj\Debug\net8.0\LeitnerPlatform.Core.AssemblyInfo.cs
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Core\obj\Debug\net8.0\LeitnerPlatform.Core.csproj.CoreCompileInputs.cache
+E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Core\obj\Debug\net8.0\LeitnerPlatform.Core.sourcelink.json
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Core\obj\Debug\net8.0\LeitnerPlatform.Core.dll
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Core\obj\Debug\net8.0\refint\LeitnerPlatform.Core.dll
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Core\obj\Debug\net8.0\LeitnerPlatform.Core.pdb
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Core\obj\Debug\net8.0\ref\LeitnerPlatform.Core.dll
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.Core\obj\Debug\net8.0\LeitnerPlatform.Core.sourcelink.json
