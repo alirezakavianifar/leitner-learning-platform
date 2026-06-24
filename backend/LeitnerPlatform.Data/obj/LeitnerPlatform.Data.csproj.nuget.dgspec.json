@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Data\\LeitnerPlatform.Data.csproj": {}
+    "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Data\\LeitnerPlatform.Data.csproj": {}
   },
   "projects": {
-    "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj": {
+    "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj",
+        "projectUniqueName": "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj",
         "projectName": "LeitnerPlatform.Core",
-        "projectPath": "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj",
+        "projectPath": "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj",
         "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
-        "outputPath": "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\obj\\",
+        "outputPath": "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -85,14 +85,14 @@
         }
       }
     },
-    "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Data\\LeitnerPlatform.Data.csproj": {
+    "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Data\\LeitnerPlatform.Data.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Data\\LeitnerPlatform.Data.csproj",
+        "projectUniqueName": "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Data\\LeitnerPlatform.Data.csproj",
         "projectName": "LeitnerPlatform.Data",
-        "projectPath": "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Data\\LeitnerPlatform.Data.csproj",
+        "projectPath": "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Data\\LeitnerPlatform.Data.csproj",
         "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
-        "outputPath": "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Data\\obj\\",
+        "outputPath": "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Data\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -114,8 +114,8 @@
             "framework": "net8.0",
             "targetAlias": "net8.0",
             "projectReferences": {
-              "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj": {
-                "projectPath": "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj"
+              "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj": {
+                "projectPath": "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj"
               }
             }
           }
@@ -149,6 +149,10 @@
               "target": "Package",
               "version": "[8.0.*, )"
             },
+            "Npgsql": {
+              "target": "Package",
+              "version": "[8.0.6, )"
+            },
             "Npgsql.EntityFrameworkCore.PostgreSQL": {
               "target": "Package",
               "version": "[8.0.*, )"
@@ -159,7 +163,7 @@
             },
             "dbup-postgresql": {
               "target": "Package",
-              "version": "[7.0.1, )"
+              "version": "[5.0.40, )"
             }
           },
           "imports": [

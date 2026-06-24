@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj": {}
+    "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj": {}
   },
   "projects": {
-    "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj": {
+    "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj",
+        "projectUniqueName": "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj",
         "projectName": "LeitnerPlatform.Core",
-        "projectPath": "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj",
+        "projectPath": "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\LeitnerPlatform.Core.csproj",
         "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
-        "outputPath": "E:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\obj\\",
+        "outputPath": "e:\\projects\\leitner-learning-platform\\backend\\LeitnerPlatform.Core\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

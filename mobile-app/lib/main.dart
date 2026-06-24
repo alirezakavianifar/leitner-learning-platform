@@ -1,3 +1,7 @@
+import 'dart:io' show Platform;
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
@@ -19,12 +23,20 @@ import 'injection_container.dart' as di;
 void main({String flavor = 'store'}) async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  if (!kIsWeb && Platform.isWindows) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+  
   // Initialize dependency locator
   await di.init(flavor: flavor);
 
   bool isJailbroken = false;
   try {
     isJailbroken = await FlutterJailbreakDetection.jailbroken;
+    if (kDebugMode) {
+      isJailbroken = false; // Bypass jailbreak checks in debug mode for emulator testing
+    }
   } catch (_) {
     isJailbroken = false;
   }

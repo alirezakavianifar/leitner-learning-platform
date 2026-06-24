@@ -184,15 +184,21 @@ This commands builds the backend and admin panel containers and boots the follow
 
 #### C. Flutter Mobile Client
 1.  **Dependencies:** Install Flutter SDK (3.22.x LTS) and Java JDK 21. Configure Android SDK / Xcode for target simulators.
+    *   *Windows Desktop Run:* To run the client natively as a Windows application, ensure Visual Studio is installed with the "C++ desktop development" workload and the optional "C++ ATL for v143 build tools" component.
 2.  **Get Packages:**
     ```bash
     cd mobile-app
     flutter pub get
     ```
 3.  **Run App:**
-    ```bash
-    flutter run
-    ```
+    *   *Android Emulator / iOS Simulator:*
+        ```bash
+        flutter run
+        ```
+    *   *Windows Desktop Native:*
+        ```bash
+        flutter run -d windows
+        ```
 4.  **Build Configurations:**
     *   **Premium Version:** Build including payment gateway abstractions:
         ```bash

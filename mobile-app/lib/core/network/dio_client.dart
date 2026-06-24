@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
 import 'package:mobile_app/core/services/storage_service.dart';
 
@@ -24,6 +26,7 @@ class DioClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          print('Dio Request: ${options.uri}');
           final token = await storageService.readSecure('jwt_token');
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
@@ -55,7 +58,13 @@ class DioClient {
   }
 
   void updateBaseUrl(String newUrl) {
-    dio.options.baseUrl = newUrl;
+    var resolvedUrl = newUrl;
+    if (kIsWeb || (!kIsWeb && Platform.isWindows)) {
+      resolvedUrl = resolvedUrl.replaceAll('10.0.2.2', 'localhost');
+    } else {
+      resolvedUrl = resolvedUrl.replaceAll('localhost', '10.0.2.2');
+    }
+    dio.options.baseUrl = resolvedUrl;
   }
 
   Future<bool> _attemptFailover() async {

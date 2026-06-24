@@ -50,6 +50,8 @@ dependencies:
   audioplayers: ^6.0.0
   url_launcher: ^6.2.0
   flutter_jailbreak_detection: ^1.10.0
+  sqflite_common_ffi: ^2.4.2
+  sqlite3_flutter_libs: ^0.6.0+eol
 
 dev_dependencies:
   flutter_test:

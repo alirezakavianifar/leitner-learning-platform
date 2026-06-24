@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
@@ -73,7 +75,10 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
   sl.registerSingleton<EventBus>(eventBus);
 
   // Default development URL (can be customized via Remote Config later)
-  final fallbackUrl = apiBaseUrl ?? 'http://10.0.2.2:8080/api/v1';
+  final defaultUrl = (kIsWeb || (!kIsWeb && Platform.isWindows))
+      ? 'http://localhost:8080/api/v1'
+      : 'http://10.0.2.2:8080/api/v1';
+  final fallbackUrl = apiBaseUrl ?? defaultUrl;
   final dioInstance = Dio();
   final dioClient = DioClient(
     dio: dioInstance,

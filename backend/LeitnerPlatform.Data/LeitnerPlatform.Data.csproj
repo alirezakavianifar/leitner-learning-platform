@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\LeitnerPlatform.Core\LeitnerPlatform.Core.csproj" />
@@ -6,9 +6,10 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.25.2" />
-    <PackageReference Include="dbup-postgresql" Version="7.0.1" />
+    <PackageReference Include="dbup-postgresql" Version="5.0.40" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.*" />
+    <PackageReference Include="Npgsql" Version="8.0.6" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.*" />
     <PackageReference Include="StackExchange.Redis" Version="3.0.0" />
   </ItemGroup>
