@@ -1,12 +1,3 @@
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\appsettings.Development.json
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\appsettings.json
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\backups\users\e84f209a-8267-497f-8a64-1c14bb7d1612.json
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\LeitnerPlatform.API.staticwebassets.endpoints.json
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\LeitnerPlatform.API.exe
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\LeitnerPlatform.API.deps.json
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\LeitnerPlatform.API.runtimeconfig.json
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\LeitnerPlatform.API.dll
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\LeitnerPlatform.API.pdb
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\AWSSDK.Core.dll
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\AWSSDK.S3.dll
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\dbup-core.dll
@@ -155,12 +146,6 @@ E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\obj\Debug\net8
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\obj\Debug\net8.0\staticwebassets.development.json
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\obj\Debug\net8.0\staticwebassets.build.endpoints.json
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\obj\Debug\net8.0\swae.build.ex.cache
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\obj\Debug\net8.0\LeitnerP.FE46B62C.Up2Date
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\obj\Debug\net8.0\LeitnerPlatform.API.dll
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\obj\Debug\net8.0\refint\LeitnerPlatform.API.dll
 E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\obj\Debug\net8.0\LeitnerPlatform.API.pdb
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\obj\Debug\net8.0\LeitnerPlatform.API.genruntimeconfig.cache
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\obj\Debug\net8.0\ref\LeitnerPlatform.API.dll
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\backups\users\17b1a11d-0d9a-49a8-913d-f03ebbc6c477.json
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\backups\users\3bc711a8-d4e0-48e0-9d5f-da08288e6f9c.json
-E:\projects\leitner-learning-platform\backend\LeitnerPlatform.API\bin\Debug\net8.0\LeitnerPlatform.API.staticwebassets.runtime.json

@@ -1,0 +1,56 @@
+\documentclass[12pt]{article}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xepersian}
+
+\settextfont{Vazirmatn}
+
+\title{راهنمای ساختار پایگاه داده SQLite دوره برای سکوی یادگیری لایتنر}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{مقدمه}
+برای اطمینان از بارگذاری و نمایش صحیح کارت‌های آموزشی در اپلیکیشن موبایل لایتنر، پایگاه‌های داده ارسالی باید مطابق با مستندات ساختار فنی طراحی شوند. فرمت پایگاه داده باید به صورت \verb|SQLite| با پسوند \verb|.db| باشد.
+
+\section{ساختار جدول پایگاه داده}
+دیتابیس ارسالی باید شامل جدولی به نام \verb|cards| باشد که فیلدهای زیر در آن تعریف شده باشند:
+
+\begin{latin}
+\begin{verbatim}
+CREATE TABLE cards (
+    number INTEGER PRIMARY KEY AUTOINCREMENT, -- Card row index (starts at 1)
+    questions TEXT NOT NULL,                  -- Front card question text
+    "first option" TEXT,                     -- Option 1 (optional)
+    "second option" TEXT,                    -- Option 2 (optional)
+    "third option" TEXT,                     -- Option 3 (optional)
+    "fourth option" TEXT,                    -- Option 4 (optional)
+    answer TEXT NOT NULL,                    -- Back card answer text
+    "front image" TEXT,                      -- Front image filename (optional)
+    "front voice" TEXT,                      -- Front audio filename (optional)
+    "back image" TEXT,                       -- Back image filename (optional)
+    "back voice" TEXT                        -- Back audio filename (optional)
+);
+\end{verbatim}
+\end{latin}
+
+\section{دستورالعمل‌های فایل‌های چندرسانه‌ای و داده‌ها}
+\begin{itemize}
+    \item \textbf{نام فیلدهای جدول:} دقیقاً از نام‌های انگلیسی ذکر شده در دستور بالا (به صورت حروف کوچک و با فواصل مشخص مانند \verb|"front image"|) استفاده کنید.
+    \item \textbf{آدرس‌دهی فایل‌های چندرسانه‌ای:} در فیلدهای صوتی و تصویری فقط \textbf{نام دقیق فایل به همراه پسوند} (مانند \verb|apple.webp| یا \verb|lesson1.mp3|) را ذخیره کنید و از نوشتن آدرس‌های کامل کامپیوتر خود (مانند \verb|C:/Users/...|) خودداری فرمایید.
+    \item \textbf{پوشه فایل‌ها:} فایل‌های صوتی و تصویری باید در دو پوشه مجزا با نام‌های \verb|images| و \verb|audio| در کنار فایل دیتابیس تحویل داده شوند.
+    \item \textbf{بهینه‌سازی تصاویر:} تصاویر بهتر است با فرمت \verb|WebP| (یا \verb|PNG/JPG|) با ابعاد حداکثر $1080 \times 800$ پیکسل و حجم زیر ۱۵۰ کیلوبایت باشند.
+    \item \textbf{بهینه‌سازی فایل‌های صوتی:} فایل‌های صوتی ضبط شده برای تلفظ باید مونو (Mono) با فرمت \verb|MP3| یا \verb|AAC| و بیت‌ریت بین ۶۴ تا ۹۶ کیلوبیت بر ثانیه باشند.
+\end{itemize}
+
+\section{نکات مهم در نمایش اپلیکیشن لایتنر}
+\begin{itemize}
+    \item \textbf{گزینه‌های چهارگزینه‌ای:} به دلیل اینکه سیستم اصلی اپلیکیشن بر اساس کارت لایتنر دوطرفه (سوال/پاسخ) طراحی شده است، گزینه‌های اول تا چهارم ارسالی شما به صورت خودکار قالب‌بندی شده و در زیر سوال در جلوی کارت نمایش داده می‌شوند تا کاربر بتواند آن‌ها را مشاهده کند.
+    \item \textbf{فایل‌های پشت کارت:} اپلیکیشن تصاویر و تلفظ‌های صوتی را در جلوی کارت (سمت سوال) نمایش و پخش می‌کند. در صورتی که برای پشت کارت صوتی یا تصویری تعریف کنید، نام آن به صورت متنی در توضیحات پاسخ نشان داده خواهد شد. بنابراین پیشنهاد می‌شود فایل‌های رسانه‌ای خود را برای جلوی کارت متمرکز کنید.
+\end{itemize}
+
+\end{document}
