@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
@@ -65,6 +66,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
@@ -98,7 +100,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Complete Profile',
+                        loc.completeProfile,
                         style: textTheme.displaySmall?.copyWith(
                           color: AppColors.primary,
                         ),
@@ -106,7 +108,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Tell us about yourself to personalize your studies',
+                        loc.tellUsProfile,
                         style: textTheme.bodyLarge,
                         textAlign: TextAlign.center,
                       ),
@@ -117,9 +119,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                         controller: _phoneController,
                         enabled: false, // Strictly locked/read-only
                         style: TextStyle(color: AppColors.textPrimary.withOpacity(0.6)),
-                        decoration: const InputDecoration(
-                          labelText: 'Mobile Number (Read-only)',
-                          prefixIcon: Icon(Icons.lock_outline, color: AppColors.textSecondary),
+                        decoration: InputDecoration(
+                          labelText: loc.mobileReadonly,
+                          prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -128,14 +130,13 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       TextFormField(
                         controller: _usernameController,
                         style: const TextStyle(color: AppColors.textPrimary),
-                        decoration: const InputDecoration(
-                          labelText: 'Username',
-                          hintText: 'Enter your username',
-                          prefixIcon: Icon(Icons.person_outline, color: AppColors.textSecondary),
+                        decoration: InputDecoration(
+                          labelText: loc.username,
+                          prefixIcon: const Icon(Icons.person_outline, color: AppColors.textSecondary),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a username';
+                            return loc.username;
                           }
                           return null;
                         },
@@ -146,10 +147,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       TextFormField(
                         controller: _interestsController,
                         style: const TextStyle(color: AppColors.textPrimary),
-                        decoration: const InputDecoration(
-                          labelText: 'Interests',
-                          hintText: 'e.g. English, Math, Engineering',
-                          prefixIcon: Icon(Icons.interests_outlined, color: AppColors.textSecondary),
+                        decoration: InputDecoration(
+                          labelText: loc.interests,
+                          prefixIcon: const Icon(Icons.interests_outlined, color: AppColors.textSecondary),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -158,10 +158,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       TextFormField(
                         controller: _fieldController,
                         style: const TextStyle(color: AppColors.textPrimary),
-                        decoration: const InputDecoration(
-                          labelText: 'Educational Field',
-                          hintText: 'e.g. Computer Science, Languages',
-                          prefixIcon: Icon(Icons.school_outlined, color: AppColors.textSecondary),
+                        decoration: InputDecoration(
+                          labelText: loc.educationalField,
+                          prefixIcon: const Icon(Icons.school_outlined, color: AppColors.textSecondary),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -170,10 +169,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       TextFormField(
                         controller: _levelController,
                         style: const TextStyle(color: AppColors.textPrimary),
-                        decoration: const InputDecoration(
-                          labelText: 'Educational Level',
-                          hintText: 'e.g. Undergraduate, High School',
-                          prefixIcon: Icon(Icons.grade_outlined, color: AppColors.textSecondary),
+                        decoration: InputDecoration(
+                          labelText: loc.educationalLevel,
+                          prefixIcon: const Icon(Icons.grade_outlined, color: AppColors.textSecondary),
                         ),
                       ),
                       const SizedBox(height: 40),
@@ -198,7 +196,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                                 ),
                               )
                             : Text(
-                                'Save and Enter App',
+                                loc.saveEnterApp,
                                 style: textTheme.titleLarge?.copyWith(
                                   color: Colors.white,
                                   fontSize: 16,

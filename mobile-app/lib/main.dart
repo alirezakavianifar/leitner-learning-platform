@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
+import 'package:mobile_app/core/localization/locale_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
@@ -50,6 +53,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider<LocaleBloc>(
+          create: (_) => di.sl<LocaleBloc>()..add(LoadSavedLocaleEvent()),
+        ),
         BlocProvider<ConfigBloc>(
           create: (_) => di.sl<ConfigBloc>()..add(LoadConfigEvent()),
         ),
@@ -57,11 +63,26 @@ class MyApp extends StatelessWidget {
           create: (_) => di.sl<AuthBloc>()..add(CheckAuthStatusEvent()),
         ),
       ],
-      child: MaterialApp(
-        title: 'Leitner Learning Platform',
-        theme: AppTheme.darkTheme,
-        debugShowCheckedModeBanner: false,
-        home: isJailbroken ? const SecurityBlockScreen() : const AppGate(),
+      child: BlocBuilder<LocaleBloc, LocaleState>(
+        builder: (context, localeState) {
+          return MaterialApp(
+            title: 'Leitner Learning Platform',
+            theme: AppTheme.darkTheme,
+            debugShowCheckedModeBanner: false,
+            locale: localeState.locale,
+            supportedLocales: const [
+              Locale('fa', 'IR'),
+              Locale('en', 'US'),
+            ],
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: isJailbroken ? const SecurityBlockScreen() : const AppGate(),
+          );
+        },
       ),
     );
   }

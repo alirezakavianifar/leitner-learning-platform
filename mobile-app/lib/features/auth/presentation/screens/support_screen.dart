@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({Key? key}) : super(key: key);
@@ -24,14 +25,15 @@ class _SupportScreenState extends State<SupportScreen> {
   void _submitSupport() {
     if (!_formKey.currentState!.validate()) return;
     
+    final loc = AppLocalizations.of(context);
     setState(() => _isSending = true);
     
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
         setState(() => _isSending = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Support ticket submitted successfully! We will contact you soon.'),
+          SnackBar(
+            content: Text(loc.supportSubmittedMsg),
             backgroundColor: AppColors.secondary,
           ),
         );
@@ -44,6 +46,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -53,9 +56,9 @@ class _SupportScreenState extends State<SupportScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Help & Support',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+        title: Text(
+          loc.helpAndSupport,
+          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
@@ -72,20 +75,20 @@ class _SupportScreenState extends State<SupportScreen> {
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(color: AppColors.border),
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.all(16.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
                       ListTile(
-                        leading: Icon(Icons.email, color: AppColors.primary),
-                        title: Text('Email Support', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-                        subtitle: Text('support@leitnerplatform.com', style: TextStyle(color: AppColors.textSecondary)),
+                        leading: const Icon(Icons.email, color: AppColors.primary),
+                        title: Text(loc.emailSupport, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+                        subtitle: const Text('support@leitnerplatform.com', style: TextStyle(color: AppColors.textSecondary)),
                       ),
-                      Divider(color: Color(0xFF333E56), height: 1),
+                      const Divider(color: Color(0xFF333E56), height: 1),
                       ListTile(
-                        leading: Icon(Icons.phone, color: AppColors.primary),
-                        title: Text('Phone Support', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-                        subtitle: Text('+98 21 8888 8888', style: TextStyle(color: AppColors.textSecondary)),
+                        leading: const Icon(Icons.phone, color: AppColors.primary),
+                        title: Text(loc.phoneSupport, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+                        subtitle: const Text('+98 21 8888 8888', textDirection: TextDirection.ltr, style: TextStyle(color: AppColors.textSecondary)),
                       ),
                     ],
                   ),
@@ -93,9 +96,9 @@ class _SupportScreenState extends State<SupportScreen> {
               ),
               const SizedBox(height: 24),
 
-              const Text(
-                'Submit a Ticket',
-                style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                loc.submitATicket,
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
 
@@ -105,7 +108,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 keyboardType: TextInputType.emailAddress,
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'Contact Email',
+                  labelText: loc.contactEmail,
                   labelStyle: const TextStyle(color: AppColors.textSecondary),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.border),
@@ -117,8 +120,8 @@ class _SupportScreenState extends State<SupportScreen> {
                   ),
                 ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Contact email is required';
-                  if (!val.contains('@')) return 'Please enter a valid email address';
+                  if (val == null || val.trim().isEmpty) return loc.contactEmailRequired;
+                  if (!val.contains('@')) return loc.enterValidEmail;
                   return null;
                 },
               ),
@@ -130,7 +133,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 maxLines: 6,
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'How can we help you?',
+                  labelText: loc.howCanWeHelp,
                   labelStyle: const TextStyle(color: AppColors.textSecondary),
                   alignLabelWithHint: true,
                   enabledBorder: OutlineInputBorder(
@@ -143,7 +146,7 @@ class _SupportScreenState extends State<SupportScreen> {
                   ),
                 ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Message content is required';
+                  if (val == null || val.trim().isEmpty) return loc.messageRequired;
                   return null;
                 },
               ),
@@ -158,7 +161,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 onPressed: _isSending ? null : _submitSupport,
                 child: _isSending
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Submit Ticket', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    : Text(loc.submitTicket, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ],
           ),

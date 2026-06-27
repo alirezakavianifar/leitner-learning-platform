@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/courses/domain/entities/course.dart';
 import 'package:mobile_app/features/courses/domain/repositories/courses_repository.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
@@ -64,6 +65,8 @@ class _ReviewTabState extends State<ReviewTab> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
@@ -77,14 +80,14 @@ class _ReviewTabState extends State<ReviewTab> {
             children: [
               Icon(Icons.download_for_offline_outlined, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
               const SizedBox(height: 16),
-              const Text(
-                'No Downloaded Courses',
-                style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                loc.noDownloadedCoursesTitle,
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Go to the Courses tab to download packages and start studying offline.',
-                style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+              Text(
+                loc.noDownloadedCoursesDesc,
+                style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -150,7 +153,7 @@ class _ReviewTabState extends State<ReviewTab> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              '$dueCount Due',
+                              '$dueCount ${loc.dueBadge}',
                               style: TextStyle(
                                 color: dueCount > 0 ? AppColors.box1 : AppColors.textSecondary,
                                 fontWeight: FontWeight.bold,
@@ -164,7 +167,7 @@ class _ReviewTabState extends State<ReviewTab> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${course.cardCount} total cards',
+                    '${course.cardCount} ${loc.totalCardsCount}',
                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   ),
                   const SizedBox(height: 16),
@@ -193,7 +196,7 @@ class _ReviewTabState extends State<ReviewTab> {
                           _loadData();
                         },
                         icon: const Icon(Icons.star, size: 16),
-                        label: const Text('Favorites'),
+                        label: Text(loc.favorites),
                       ),
                       // Start Study loop button
                       ElevatedButton.icon(
@@ -214,7 +217,7 @@ class _ReviewTabState extends State<ReviewTab> {
                           _loadData();
                         },
                         icon: const Icon(Icons.play_arrow, color: Colors.white, size: 16),
-                        label: const Text('Start Study', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        label: Text(loc.startStudy, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),

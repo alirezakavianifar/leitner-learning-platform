@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/core/usecase/usecase.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
 import 'package:mobile_app/features/courses/domain/repositories/courses_repository.dart';
@@ -52,20 +53,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   final List<Map<String, dynamic>> _defaultBanners = const [
     {
-      'title': 'Spaced Repetition Mastery',
-      'subtitle': 'Study systematically to retain 90% of what you learn.',
+      'key': 'banner_1',
       'gradient': [Color(0xFF8F53FF), Color(0xFF6236FF)],
       'icon': Icons.psychology,
     },
     {
-      'title': 'Offline Learning Active',
-      'subtitle': 'All your downloaded courses are stored securely offline.',
+      'key': 'banner_2',
       'gradient': [Color(0xFF09E5C3), Color(0xFF07A890)],
       'icon': Icons.offline_bolt,
     },
     {
-      'title': 'Custom Flashcards',
-      'subtitle': 'Create and study custom cards stored strictly on your device.',
+      'key': 'banner_3',
       'gradient': [Color(0xFFFF7A1A), Color(0xFFFFB61A)],
       'icon': Icons.dashboard_customize,
     },
@@ -134,14 +132,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open banner link.')),
+            SnackBar(content: Text(AppLocalizations.of(context).couldNotOpenBanner)),
           );
         }
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open banner link.')),
+          SnackBar(content: Text(AppLocalizations.of(context).couldNotOpenBanner)),
         );
       }
     }
@@ -167,9 +165,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-
-
   void _showFavoritesSelectDialog() async {
+    final loc = AppLocalizations.of(context);
     final either = await _coursesRepository.getCourses();
     either.fold(
       (failure) {
@@ -182,10 +179,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             context: context,
             builder: (context) => AlertDialog(
               backgroundColor: AppColors.surface,
-              title: const Text('Favorites', style: TextStyle(color: AppColors.textPrimary)),
-              content: const Text('No downloaded courses found to browse favorites.', style: TextStyle(color: AppColors.textSecondary)),
+              title: Text(loc.favorites, style: const TextStyle(color: AppColors.textPrimary)),
+              content: Text(loc.noDownloadedCourses, style: const TextStyle(color: AppColors.textSecondary)),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+                TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.confirm)),
               ],
             ),
           );
@@ -201,7 +198,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(color: AppColors.border),
               ),
-              title: const Text('Select Course', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+              title: Text(loc.selectCourse, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
               content: SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
@@ -234,6 +231,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
@@ -276,7 +275,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Welcome back, $_username!',
+                            '${loc.welcomeBack} $_username!',
                             style: const TextStyle(
                               color: AppColors.textPrimary,
                               fontSize: 18,
@@ -358,6 +357,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       } else {
                         // Fallback/Default Banner
                         final defaultBanner = banner as Map<String, dynamic>;
+                        final key = defaultBanner['key'] as String;
+                        String title = '';
+                        String subtitle = '';
+                        if (key == 'banner_1') {
+                          title = loc.banner1Title;
+                          subtitle = loc.banner1Sub;
+                        } else if (key == 'banner_2') {
+                          title = loc.banner2Title;
+                          subtitle = loc.banner2Sub;
+                        } else if (key == 'banner_3') {
+                          title = loc.banner3Title;
+                          subtitle = loc.banner3Sub;
+                        }
+
                         return Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -375,7 +388,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      defaultBanner['title'] as String,
+                                      title,
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 18,
@@ -384,7 +397,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      defaultBanner['subtitle'] as String,
+                                      subtitle,
                                       style: const TextStyle(
                                         color: Colors.white70,
                                         fontSize: 12,
@@ -429,9 +442,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 24),
 
-              const Text(
-                'Quick Hub',
-                style: TextStyle(
+              Text(
+                loc.quickHub,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -446,10 +459,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 1.4,
+                childAspectRatio: 1.15,
                 children: [
                   _buildGridCard(
-                    title: "Today's Cards",
+                    title: loc.reviewToday,
                     icon: Icons.today,
                     badgeCount: _dueCount,
                     badgeColor: AppColors.error,
@@ -457,7 +470,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onTap: () => widget.onTabChange(1),
                   ),
                   _buildGridCard(
-                    title: 'Finished Cards',
+                    title: loc.finishedCards,
                     icon: Icons.verified,
                     badgeCount: _finishedCount,
                     badgeColor: const Color(0xFFFFD700),
@@ -470,7 +483,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                   _buildGridCard(
-                    title: 'Custom Cards',
+                    title: loc.customCards,
                     icon: Icons.add_card,
                     iconColor: AppColors.secondary,
                     onTap: () {
@@ -481,13 +494,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                   _buildGridCard(
-                    title: 'Favorites',
+                    title: loc.favorites,
                     icon: Icons.star,
                     iconColor: AppColors.box2,
                     onTap: _showFavoritesSelectDialog,
                   ),
                   _buildGridCard(
-                    title: 'Statistics',
+                    title: loc.statistics,
                     icon: Icons.bar_chart,
                     iconColor: AppColors.box3,
                     onTap: () {
@@ -498,7 +511,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                   _buildGridCard(
-                    title: 'Settings',
+                    title: loc.settings,
                     icon: Icons.settings,
                     iconColor: AppColors.textSecondary,
                     onTap: () {
@@ -512,7 +525,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                   _buildGridCard(
-                    title: 'Notifications',
+                    title: loc.notifications,
                     icon: Icons.notifications,
                     iconColor: AppColors.box4,
                     onTap: () {
@@ -523,7 +536,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                   _buildGridCard(
-                    title: 'Support',
+                    title: loc.support,
                     icon: Icons.contact_support,
                     iconColor: AppColors.box5,
                     onTap: () {
@@ -562,7 +575,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(14.0),
           child: Stack(
             children: [
               Column(
@@ -570,20 +583,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Icon(icon, size: 28, color: iconColor),
+                  const SizedBox(height: 8),
                   Text(
                     title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: AppColors.textPrimary,
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
               if (badgeCount != null && badgeCount > 0)
-                Positioned(
+                PositionedDirectional(
                   top: 0,
-                  right: 0,
+                  end: 0,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(

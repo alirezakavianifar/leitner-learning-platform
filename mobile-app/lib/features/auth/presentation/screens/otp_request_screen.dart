@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
+import 'package:mobile_app/core/localization/locale_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
@@ -52,6 +54,7 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
@@ -100,9 +103,35 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Language Switcher Toggle
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: BlocBuilder<LocaleBloc, LocaleState>(
+                          builder: (context, localeState) {
+                            final isPersian = localeState.locale.languageCode == 'fa';
+                            return TextButton.icon(
+                              style: TextButton.styleFrom(
+                                backgroundColor: AppColors.surfaceWithOpacity,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              ),
+                              icon: const Icon(Icons.language, color: AppColors.primary, size: 20),
+                              label: Text(
+                                isPersian ? 'English' : 'فارسی',
+                                style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                              ),
+                              onPressed: () {
+                                final newLocale = isPersian ? const Locale('en') : const Locale('fa');
+                                context.read<LocaleBloc>().add(ChangeLocaleEvent(newLocale));
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
                       // Header Branding
                       Text(
-                        'Leitner Platform',
+                        loc.appTitle,
                         style: textTheme.displayMedium?.copyWith(
                           color: AppColors.primary,
                         ),
@@ -110,7 +139,7 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Enter your mobile number to receive an OTP',
+                        loc.enterMobileOtp,
                         style: textTheme.bodyLarge,
                         textAlign: TextAlign.center,
                       ),
@@ -121,10 +150,10 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         style: const TextStyle(color: AppColors.textPrimary),
-                        decoration: const InputDecoration(
-                          labelText: 'Mobile Number',
-                          hintText: 'e.g. 09123456789 or +989123456789',
-                          prefixIcon: Icon(Icons.phone_android, color: AppColors.textSecondary),
+                        decoration: InputDecoration(
+                          labelText: loc.mobileNumber,
+                          hintText: '09123456789',
+                          prefixIcon: const Icon(Icons.phone_android, color: AppColors.textSecondary),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -160,9 +189,12 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: _captchaSvgString != null
-                                          ? SvgPicture.string(
-                                              _captchaSvgString!,
-                                              fit: BoxFit.contain,
+                                          ? Directionality(
+                                              textDirection: TextDirection.ltr,
+                                              child: SvgPicture.string(
+                                                _captchaSvgString!,
+                                                fit: BoxFit.contain,
+                                              ),
                                             )
                                           : const Center(
                                               child: CircularProgressIndicator(),
@@ -186,14 +218,14 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                                 controller: _captchaController,
                                 keyboardType: TextInputType.text,
                                 style: const TextStyle(color: AppColors.textPrimary),
-                                decoration: const InputDecoration(
-                                  labelText: 'CAPTCHA Answer',
-                                  hintText: 'Solve the equation',
-                                  prefixIcon: Icon(Icons.security, color: AppColors.textSecondary),
+                                decoration: InputDecoration(
+                                  labelText: loc.captchaAnswer,
+                                  hintText: '?',
+                                  prefixIcon: const Icon(Icons.security, color: AppColors.textSecondary),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter the CAPTCHA answer';
+                                    return loc.captchaAnswer;
                                   }
                                   return null;
                                 },
@@ -224,7 +256,7 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                                 ),
                               )
                             : Text(
-                                'Send Verification Code',
+                                loc.sendVerificationCode,
                                 style: textTheme.titleLarge?.copyWith(
                                   color: Colors.white,
                                   fontSize: 16,

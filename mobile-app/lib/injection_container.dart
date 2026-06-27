@@ -45,6 +45,7 @@ import 'features/config/data/datasources/config_remote_data_source.dart';
 import 'features/config/data/repositories/config_repository_impl.dart';
 import 'features/config/domain/repositories/config_repository.dart';
 import 'features/config/presentation/bloc/config_bloc.dart';
+import 'core/localization/locale_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -76,8 +77,8 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
 
   // Default development URL (can be customized via Remote Config later)
   final defaultUrl = (kIsWeb || (!kIsWeb && Platform.isWindows))
-      ? 'http://localhost:8080/api/v1'
-      : 'http://10.0.2.2:8080/api/v1';
+      ? 'http://localhost:5217/api/v1'
+      : 'http://10.0.2.2:5217/api/v1';
   final fallbackUrl = apiBaseUrl ?? defaultUrl;
   final dioInstance = Dio();
   final dioClient = DioClient(
@@ -218,6 +219,12 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
   sl.registerFactory(
     () => ConfigBloc(
       configRepository: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => LocaleBloc(
+      sharedPreferences: sl(),
     ),
   );
 }

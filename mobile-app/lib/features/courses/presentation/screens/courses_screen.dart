@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/core/services/payment_provider.dart';
 import 'package:mobile_app/injection_container.dart';
 import 'package:mobile_app/features/courses/domain/entities/course.dart';
@@ -41,6 +42,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
   }
 
   Widget _buildTabSelector() {
+    final loc = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 12.0, bottom: 4.0),
       child: Container(
@@ -63,7 +65,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   ),
                   child: Center(
                     child: Text(
-                      'Catalog',
+                      loc.catalog,
                       style: TextStyle(
                         color: _selectedTab == 0 ? Colors.white : AppColors.textSecondary,
                         fontWeight: FontWeight.bold,
@@ -85,7 +87,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   ),
                   child: Center(
                     child: Text(
-                      'My Courses',
+                      loc.myCourses,
                       style: TextStyle(
                         color: _selectedTab == 1 ? Colors.white : AppColors.textSecondary,
                         fontWeight: FontWeight.bold,
@@ -475,7 +477,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${course.cardCount} Cards',
+                        '${course.cardCount} ${AppLocalizations.of(context).cardsCount}',
                         style: const TextStyle(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w500,
@@ -484,7 +486,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        course.price == 0 ? 'Free' : '${course.price.toStringAsFixed(0)} IRR',
+                        course.price == 0 ? AppLocalizations.of(context).free : '${course.price.toStringAsFixed(0)} IRR',
                         style: TextStyle(
                           color: course.price == 0 ? AppColors.secondary : AppColors.textSecondary,
                           fontSize: 12,
@@ -504,6 +506,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
   }
 
   Widget _buildActionButton(Course course, bool isDownloading) {
+    final loc = AppLocalizations.of(context);
     if (course.isDownloaded) {
       return ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -512,12 +515,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
         side: const BorderSide(color: AppColors.courseDownloaded, width: 1),
       ).build(
         context,
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check, size: 16),
-            SizedBox(width: 6),
-            Text('Ready to Study'),
+            const Icon(Icons.check, size: 16),
+            const SizedBox(width: 6),
+            Text(loc.readyToStudy),
           ],
         ),
         onPressed: () {
@@ -558,12 +561,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
         onPressed: () {
           context.read<CoursesBloc>().add(DownloadCourseEvent(courseId: course.id));
         },
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.download, size: 16),
-            SizedBox(width: 6),
-            Text('Download Now'),
+            const Icon(Icons.download, size: 16),
+            const SizedBox(width: 6),
+            Text(loc.downloadNow),
           ],
         ),
       );
@@ -579,12 +582,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
       onPressed: () {
         _purchaseCourse(course);
       },
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.payment, size: 16),
-          SizedBox(width: 6),
-          Text('Purchase'),
+          const Icon(Icons.payment, size: 16),
+          const SizedBox(width: 6),
+          Text(loc.purchase),
         ],
       ),
     );

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
@@ -49,6 +50,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
   }
 
   void _showLogoutConfirmation(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -59,13 +61,13 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(color: AppColors.border),
           ),
-          title: const Text(
-            'Confirm Logout',
-            style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+          title: Text(
+            loc.logout,
+            style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
           ),
-          content: const Text(
-            'Are you sure you want to log out? Un-synchronized local course settings and user-created cards may be affected.',
-            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+          content: Text(
+            loc.logoutConfirm,
+            style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
           actions: [
             TextButton(
@@ -76,9 +78,9 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                 ),
               ),
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text('Cancel', style: TextStyle(color: AppColors.textPrimary)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Text(loc.cancel, style: const TextStyle(color: AppColors.textPrimary)),
               ),
             ),
             ElevatedButton(
@@ -92,7 +94,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                 Navigator.pop(dialogContext); // Close modal
                 context.read<AuthBloc>().add(LogoutEvent()); // Trigger logout
               },
-              child: const Text('Confirm Logout', style: TextStyle(color: Colors.white)),
+              child: Text(loc.confirm, style: const TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -102,6 +104,8 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is UnauthenticatedState) {
@@ -117,7 +121,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
-            'Leitner Learning',
+            loc.leitnerLearning,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: AppColors.primary,
                 ),
@@ -141,7 +145,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.logout, color: AppColors.error),
-              tooltip: 'Logout',
+              tooltip: loc.logout,
               onPressed: () => _showLogoutConfirmation(context),
             ),
           ],
@@ -173,21 +177,21 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                 elevation: 0,
                 selectedItemColor: AppColors.primary,
                 unselectedItemColor: AppColors.textSecondary,
-                items: const [
+                items: [
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.home_outlined),
-                    activeIcon: Icon(Icons.home),
-                    label: 'Home',
+                    icon: const Icon(Icons.home_outlined),
+                    activeIcon: const Icon(Icons.home),
+                    label: loc.home,
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.rate_review_outlined),
-                    activeIcon: Icon(Icons.rate_review),
-                    label: 'Review',
+                    icon: const Icon(Icons.rate_review_outlined),
+                    activeIcon: const Icon(Icons.rate_review),
+                    label: loc.review,
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.library_books_outlined),
-                    activeIcon: Icon(Icons.library_books),
-                    label: 'Courses',
+                    icon: const Icon(Icons.library_books_outlined),
+                    activeIcon: const Icon(Icons.library_books),
+                    label: loc.courses,
                   ),
                 ],
               ),

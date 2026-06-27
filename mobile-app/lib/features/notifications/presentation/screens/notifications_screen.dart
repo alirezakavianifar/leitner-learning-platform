@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/notifications/domain/entities/announcement.dart';
 import 'package:mobile_app/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:mobile_app/injection_container.dart' as di;
@@ -41,8 +42,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final loc = AppLocalizations.of(context);
         setState(() {
-          _errorMessage = 'Failed to load system notifications.';
+          _errorMessage = loc.failedLoadNotifications;
           _isLoading = false;
         });
       }
@@ -51,6 +53,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -60,21 +63,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Notification Center',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+        title: Text(
+          loc.notificationCenter,
+          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
       body: RefreshIndicator(
         color: AppColors.primary,
         backgroundColor: AppColors.surface,
         onRefresh: () => _loadAnnouncements(force: true),
-        child: _buildBody(),
+        child: _buildBody(loc),
       ),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(AppLocalizations loc) {
     if (_isLoading && _announcements.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -103,7 +106,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.black,
                   ),
-                  child: const Text('Retry'),
+                  child: Text(loc.retry),
                 ),
               ],
             ),
@@ -117,15 +120,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-          const Center(
+          Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.notifications_off_outlined, color: AppColors.textSecondary, size: 48),
-                SizedBox(height: 16),
+                const Icon(Icons.notifications_off_outlined, color: AppColors.textSecondary, size: 48),
+                const SizedBox(height: 16),
                 Text(
-                  'No notifications found.',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                  loc.noNotificationsFound,
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
                 ),
               ],
             ),

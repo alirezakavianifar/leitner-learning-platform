@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
+import 'package:mobile_app/core/localization/locale_bloc.dart';
 import 'package:mobile_app/core/services/backup_service.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
@@ -178,6 +180,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLogoutConfirmation() {
+    final loc = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -188,13 +191,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(color: AppColors.border),
           ),
-          title: const Text(
-            'Confirm Logout',
-            style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+          title: Text(
+            loc.logout,
+            style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
           ),
-          content: const Text(
-            'Are you sure you want to log out? Un-synchronized local course settings and user-created cards may be affected.',
-            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+          content: Text(
+            loc.logoutConfirm,
+            style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
           actions: [
             TextButton(
@@ -205,9 +208,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text('Cancel', style: TextStyle(color: AppColors.textPrimary)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Text(loc.cancel, style: const TextStyle(color: AppColors.textPrimary)),
               ),
             ),
             ElevatedButton(
@@ -222,7 +225,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context.read<AuthBloc>().add(LogoutEvent()); // Trigger logout
                 Navigator.pop(context); // Close settings screen
               },
-              child: const Text('Confirm Logout', style: TextStyle(color: Colors.white)),
+              child: Text(loc.confirm, style: const TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -232,6 +235,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -241,9 +246,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Settings',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+        title: Text(
+          loc.settings,
+          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
@@ -251,17 +256,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Section 0: Language Selection Card
+            BlocBuilder<LocaleBloc, LocaleState>(
+              builder: (context, localeState) {
+                final isFa = localeState.locale.languageCode == 'fa';
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.language, color: AppColors.primary),
+                          const SizedBox(width: 10),
+                          Text(
+                            loc.language,
+                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: Center(child: Text(loc.persian, style: TextStyle(color: isFa ? Colors.white : AppColors.textPrimary, fontWeight: FontWeight.bold))),
+                              selected: isFa,
+                              selectedColor: AppColors.primary,
+                              backgroundColor: AppColors.background,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  context.read<LocaleBloc>().add(ChangeLocaleEvent(const Locale('fa')));
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: Center(child: Text(loc.english, style: TextStyle(color: !isFa ? Colors.white : AppColors.textPrimary, fontWeight: FontWeight.bold))),
+                              selected: !isFa,
+                              selectedColor: AppColors.primary,
+                              backgroundColor: AppColors.background,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  context.read<LocaleBloc>().add(ChangeLocaleEvent(const Locale('en')));
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+
             // Section 1: Profile Editing
-            const Text(
-              'Profile Details',
-              style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              loc.profileDetails,
+              style: const TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _usernameController,
               style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
-                labelText: 'Username',
+                labelText: loc.username,
                 labelStyle: const TextStyle(color: AppColors.textSecondary),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: AppColors.border),
@@ -280,7 +348,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               enabled: false,
               style: const TextStyle(color: AppColors.textSecondary),
               decoration: InputDecoration(
-                labelText: 'Mobile Number (Locked)',
+                labelText: loc.mobileReadonly,
                 labelStyle: const TextStyle(color: AppColors.textSecondary),
                 disabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: AppColors.border.withOpacity(0.3)),
@@ -294,7 +362,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               enabled: false,
               style: const TextStyle(color: AppColors.textSecondary),
               decoration: InputDecoration(
-                labelText: 'Educational Fields',
+                labelText: loc.educationalField,
                 labelStyle: const TextStyle(color: AppColors.textSecondary),
                 disabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: AppColors.border.withOpacity(0.3)),
@@ -312,14 +380,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: _isSavingProfile ? null : _saveProfile,
               child: _isSavingProfile
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Update Profile', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  : Text(loc.updateProfile, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 32),
 
             // Section 2: Backup & Restore
-            const Text(
-              'Offline Backup & Restore',
-              style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              loc.offlineBackupRestore,
+              style: const TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Container(
@@ -329,9 +397,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.secondary.withOpacity(0.3)),
               ),
-              child: const Text(
-                'Protect your database! Backups export your progress, custom cards, and favorites to an encrypted file.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4),
+              child: Text(
+                loc.backupDesc,
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4),
               ),
             ),
             const SizedBox(height: 16),
@@ -340,7 +408,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               obscureText: true,
               style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
-                labelText: 'Backup Encryption Password',
+                labelText: loc.backupEncryptionPassword,
                 labelStyle: const TextStyle(color: AppColors.textSecondary),
                 hintText: 'Minimum 6 characters',
                 hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
@@ -364,21 +432,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               onPressed: _exportBackup,
               icon: const Icon(Icons.download),
-              label: const Text('Export New Encrypted Backup', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(loc.exportNewBackup, style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 24),
 
-            const Text(
-              'Available Backups',
-              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+            Text(
+              loc.availableBackups,
+              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 8),
             _isLoadingBackups
                 ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
                 : _backupFiles.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12.0),
-                        child: Text('No backup files found on device.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12.0),
+                        child: Text(loc.noBackupsFound, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                       )
                     : ListView.builder(
                         shrinkWrap: true,
@@ -424,7 +492,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               onPressed: _showLogoutConfirmation,
               icon: const Icon(Icons.logout),
-              label: const Text('Log Out Account', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              label: Text(loc.logoutAccount, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ),
             const SizedBox(height: 24),
           ],

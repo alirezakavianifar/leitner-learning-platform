@@ -56,9 +56,16 @@ namespace LeitnerPlatform.API.Controllers.v1
             // Extract values with sensible defaults
             bool maintenanceMode = configs.TryGetValue("maintenance_mode", out var mVal) && bool.TryParse(mVal, out var mBool) && mBool;
             
-            string apiServer = configs.TryGetValue("api_server", out var apiVal) ? apiVal : "http://localhost:5000/api/v1";
-            string contentServer = configs.TryGetValue("content_server", out var contentVal) ? contentVal : "http://localhost:5000/api/v1";
-            string bannerServer = configs.TryGetValue("banner_server", out var bannerVal) ? bannerVal : "http://localhost:5000/api/v1";
+            string apiServer = configs.TryGetValue("api_server", out var apiVal) ? apiVal : "http://localhost:5217/api/v1";
+            string contentServer = configs.TryGetValue("content_server", out var contentVal) ? contentVal : "http://localhost:5217/api/v1";
+            string bannerServer = configs.TryGetValue("banner_server", out var bannerVal) ? bannerVal : "http://localhost:5217/api/v1";
+
+            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+            {
+                apiServer = apiServer.Replace("8080", "5217");
+                contentServer = contentServer.Replace("8080", "5217");
+                bannerServer = bannerServer.Replace("8080", "5217");
+            }
 
             bool enableAiTutor = configs.TryGetValue("enable_ai_tutor", out var aiVal) && bool.TryParse(aiVal, out var aiBool) && aiBool;
             bool enableCustomThemes = !configs.TryGetValue("enable_custom_themes", out var themeVal) || !bool.TryParse(themeVal, out var themeBool) || themeBool;

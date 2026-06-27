@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/courses/domain/entities/course.dart';
 import 'package:mobile_app/features/courses/domain/repositories/courses_repository.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
@@ -89,6 +90,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -98,9 +100,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Learning Statistics',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+        title: Text(
+          loc.learningStatistics,
+          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
       body: _isLoading
@@ -113,12 +115,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   ),
                 )
               : _totalCourses == 0
-                  ? const Center(
+                  ? Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24.0),
+                        padding: const EdgeInsets.all(24.0),
                         child: Text(
-                          'No downloaded courses found. Please download courses to see statistics.',
-                          style: TextStyle(color: AppColors.textSecondary),
+                          loc.noDownloadedCoursesStats,
+                          style: const TextStyle(color: AppColors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -134,33 +136,33 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // 1. Global Metrics Card
-                            _buildGlobalMetricsCard(),
+                            _buildGlobalMetricsCard(loc),
                             const SizedBox(height: 24),
 
                             // 2. Global Leitner Box Distribution
-                            const Text(
-                              'Global Box Distribution',
-                              style: TextStyle(
+                            Text(
+                              loc.globalBoxDistribution,
+                              style: const TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 12),
-                            _buildGlobalDistributionCard(),
+                            _buildGlobalDistributionCard(loc),
                             const SizedBox(height: 24),
 
                             // 3. Per-Course Statistics
-                            const Text(
-                              'Per-Course Progression',
-                              style: TextStyle(
+                            Text(
+                              loc.perCourseProgression,
+                              style: const TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 12),
-                            ..._downloadedCourses.map(_buildCourseStatsCard),
+                            ..._downloadedCourses.map((c) => _buildCourseStatsCard(c, loc)),
                             const SizedBox(height: 80),
                           ],
                         ),
@@ -169,7 +171,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     );
   }
 
-  Widget _buildGlobalMetricsCard() {
+  Widget _buildGlobalMetricsCard(AppLocalizations loc) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -181,9 +183,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildMetricCol('Active Courses', '$_totalCourses', Icons.library_books, AppColors.primary),
+          _buildMetricCol(loc.activeCourses, '$_totalCourses', Icons.library_books, AppColors.primary),
           Container(width: 1, height: 48, color: AppColors.border),
-          _buildMetricCol('Total Cards', '$_totalCards', Icons.style, AppColors.secondary),
+          _buildMetricCol(loc.totalCards, '$_totalCards', Icons.style, AppColors.secondary),
         ],
       ),
     );
@@ -214,7 +216,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     );
   }
 
-  Widget _buildGlobalDistributionCard() {
+  Widget _buildGlobalDistributionCard(AppLocalizations loc) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -247,18 +249,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ),
           const SizedBox(height: 20),
           // Percentage list with specific colors
-          _buildDistributionRow('Box 1 (Orange)', _globalBoxCounts[1] ?? 0, AppColors.box1),
-          _buildDistributionRow('Box 2 (Yellow)', _globalBoxCounts[2] ?? 0, AppColors.box2),
-          _buildDistributionRow('Box 3 (Green)', _globalBoxCounts[3] ?? 0, AppColors.box3),
-          _buildDistributionRow('Box 4 (Blue)', _globalBoxCounts[4] ?? 0, AppColors.box4),
-          _buildDistributionRow('Box 5 (Purple)', _globalBoxCounts[5] ?? 0, AppColors.box5),
-          _buildDistributionRow('Finished (Gold)', _globalBoxCounts[6] ?? 0, AppColors.finished),
+          _buildDistributionRow(loc.box1Orange, _globalBoxCounts[1] ?? 0, AppColors.box1, loc),
+          _buildDistributionRow(loc.box2Yellow, _globalBoxCounts[2] ?? 0, AppColors.box2, loc),
+          _buildDistributionRow(loc.box3Green, _globalBoxCounts[3] ?? 0, AppColors.box3, loc),
+          _buildDistributionRow(loc.box4Blue, _globalBoxCounts[4] ?? 0, AppColors.box4, loc),
+          _buildDistributionRow(loc.box5Purple, _globalBoxCounts[5] ?? 0, AppColors.box5, loc),
+          _buildDistributionRow(loc.finishedGold, _globalBoxCounts[6] ?? 0, AppColors.finished, loc),
         ],
       ),
     );
   }
 
-  Widget _buildDistributionRow(String label, int count, Color color) {
+  Widget _buildDistributionRow(String label, int count, Color color, AppLocalizations loc) {
     final pct = _getBoxPercentage(count);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10.0),
@@ -277,7 +279,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ],
           ),
           Text(
-            '$count cards (${pct.toStringAsFixed(1)}%)',
+            '$count ${loc.cardsUnit} (${pct.toStringAsFixed(1)}%)',
             style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
           ),
         ],
@@ -285,7 +287,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     );
   }
 
-  Widget _buildCourseStatsCard(Course course) {
+  Widget _buildCourseStatsCard(Course course, AppLocalizations loc) {
     final stats = _courseStats[course.id] ?? {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0};
     final sumCards = stats.values.fold(0, (sum, val) => sum + val);
 
@@ -313,7 +315,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 ),
               ),
               Text(
-                '$sumCards Cards',
+                '$sumCards ${loc.cardsUnit}',
                 style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ],
@@ -344,12 +346,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             spacing: 12,
             runSpacing: 4,
             children: [
-              _buildMiniBoxTag('B1', stats[1] ?? 0, AppColors.box1),
-              _buildMiniBoxTag('B2', stats[2] ?? 0, AppColors.box2),
-              _buildMiniBoxTag('B3', stats[3] ?? 0, AppColors.box3),
-              _buildMiniBoxTag('B4', stats[4] ?? 0, AppColors.box4),
-              _buildMiniBoxTag('B5', stats[5] ?? 0, AppColors.box5),
-              _buildMiniBoxTag('Fin', stats[6] ?? 0, AppColors.finished),
+              _buildMiniBoxTag(loc.b1Mini, stats[1] ?? 0, AppColors.box1),
+              _buildMiniBoxTag(loc.b2Mini, stats[2] ?? 0, AppColors.box2),
+              _buildMiniBoxTag(loc.b3Mini, stats[3] ?? 0, AppColors.box3),
+              _buildMiniBoxTag(loc.b4Mini, stats[4] ?? 0, AppColors.box4),
+              _buildMiniBoxTag(loc.b5Mini, stats[5] ?? 0, AppColors.box5),
+              _buildMiniBoxTag(loc.finMini, stats[6] ?? 0, AppColors.finished),
             ],
           ),
         ],

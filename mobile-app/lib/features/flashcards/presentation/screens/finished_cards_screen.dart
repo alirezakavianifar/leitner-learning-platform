@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
 import 'package:mobile_app/injection_container.dart' as di;
@@ -37,10 +38,11 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
   }
 
   void _handleKnowIt() {
+    final loc = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Card retained in Finished pool.'),
-        duration: Duration(milliseconds: 1200),
+      SnackBar(
+        content: Text(loc.cardRetainedMsg),
+        duration: const Duration(milliseconds: 1200),
         backgroundColor: AppColors.finished,
       ),
     );
@@ -48,6 +50,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
   }
 
   void _handleDontKnow() async {
+    final loc = AppLocalizations.of(context);
     final card = _finishedCards[_currentIndex];
     await _flashcardRepository.submitReview(
       courseId: card.courseId,
@@ -55,10 +58,11 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
       isCorrect: false,
     );
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Card reset and returned to Box 1.'),
-        duration: Duration(milliseconds: 1200),
+      SnackBar(
+        content: Text(loc.cardResetMsg),
+        duration: const Duration(milliseconds: 1200),
         backgroundColor: AppColors.error,
       ),
     );
@@ -90,6 +94,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -99,9 +104,9 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Finished Cards',
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+        title: Text(
+          loc.finishedCards,
+          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -125,18 +130,18 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                           color: AppColors.finished.withOpacity(0.5),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'No Finished Cards Yet',
-                          style: TextStyle(
+                        Text(
+                          loc.noFinishedCardsTitle,
+                          style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Once you master and complete Box 5 cards, they will appear here.',
-                          style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+                        Text(
+                          loc.noFinishedCardsDesc,
+                          style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -150,9 +155,9 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Reviewing Mastered Cards',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                          Text(
+                            loc.reviewingMasteredCards,
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -162,7 +167,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                               border: Border.all(color: AppColors.finished),
                             ),
                             child: Text(
-                              'Card ${_currentIndex + 1}/${_finishedCards.length}',
+                              '${loc.cardPrefix}${_currentIndex + 1}/${_finishedCards.length}',
                               style: const TextStyle(
                                 color: AppColors.finished,
                                 fontWeight: FontWeight.bold,
@@ -206,7 +211,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        _showAnswer ? 'ANSWER' : 'QUESTION',
+                                        _showAnswer ? loc.answerLabel : loc.questionLabel,
                                         style: TextStyle(
                                           color: _showAnswer ? AppColors.primary : AppColors.finished,
                                           fontWeight: FontWeight.bold,
@@ -239,9 +244,9 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                                         color: AppColors.textSecondary,
                                       ),
                                       const SizedBox(height: 4),
-                                      const Text(
-                                        'Tap card to flip',
-                                        style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                      Text(
+                                        loc.tapCardToFlip,
+                                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
                                       ),
                                     ],
                                   ),
@@ -264,9 +269,9 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                               ),
                               onPressed: _handleDontKnow,
                               icon: const Icon(Icons.close, color: Colors.white),
-                              label: const Text(
-                                "Don't Know",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              label: Text(
+                                loc.dontKnow,
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                               ),
                             ),
                             ElevatedButton.icon(
@@ -277,9 +282,9 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                               ),
                               onPressed: _handleKnowIt,
                               icon: const Icon(Icons.check, color: Colors.black),
-                              label: const Text(
-                                'Know It',
-                                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                              label: Text(
+                                loc.know,
+                                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],
@@ -289,15 +294,15 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.arrow_back_ios, color: AppColors.primary),
+                              icon: Icon(Directionality.of(context) == TextDirection.rtl ? Icons.arrow_forward_ios : Icons.arrow_back_ios, color: AppColors.primary),
                               onPressed: _prevCard,
                             ),
-                            const Text(
-                              'Tap card to show answer',
-                              style: TextStyle(color: AppColors.textSecondary),
+                            Text(
+                              loc.tapCardToShowAnswer,
+                              style: const TextStyle(color: AppColors.textSecondary),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.arrow_forward_ios, color: AppColors.primary),
+                              icon: Icon(Directionality.of(context) == TextDirection.rtl ? Icons.arrow_back_ios : Icons.arrow_forward_ios, color: AppColors.primary),
                               onPressed: _nextCard,
                             ),
                           ],

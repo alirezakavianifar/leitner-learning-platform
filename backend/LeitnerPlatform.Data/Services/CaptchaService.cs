@@ -54,7 +54,7 @@ namespace LeitnerPlatform.Data.Services
               <rect width=""100%"" height=""100%"" fill=""#f0f0f0"" rx=""5"" ry=""5"" />
               <line x1=""10"" y1=""15"" x2=""140"" y2=""35"" stroke=""#ccc"" stroke-width=""2"" />
               <line x1=""15"" y1=""40"" x2=""135"" y2=""12"" stroke=""#ccc"" stroke-width=""2"" />
-              <text x=""25"" y=""32"" font-family=""monospace, Arial"" font-size=""22"" fill=""#d32f2f"" font-weight=""bold"" letter-spacing=""2"">{questionText}</text>
+              <text x=""75"" y=""32"" text-anchor=""middle"" font-family=""monospace, Arial"" font-size=""22"" fill=""#d32f2f"" font-weight=""bold"" letter-spacing=""2"">{questionText}</text>
             </svg>";
 
             var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(svg));

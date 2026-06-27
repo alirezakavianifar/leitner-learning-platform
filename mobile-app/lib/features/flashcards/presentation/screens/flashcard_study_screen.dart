@@ -6,6 +6,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 import 'package:mobile_app/features/flashcards/presentation/bloc/flashcard_bloc.dart';
 import 'package:mobile_app/features/flashcards/presentation/bloc/flashcard_event.dart';
@@ -77,6 +78,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
   }
 
   void _showJumpDialog(BuildContext context, FlashcardBloc bloc) {
+    final loc = AppLocalizations.of(context);
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -86,19 +88,19 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: AppColors.border),
         ),
-        title: const Text('Direct Card Jump', style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(loc.directCardJump, style: const TextStyle(color: AppColors.textPrimary)),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            hintText: 'Enter card number (e.g. 15)',
+          decoration: InputDecoration(
+            hintText: loc.enterCardNumberHint,
           ),
           style: const TextStyle(color: AppColors.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(loc.cancel, style: const TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
@@ -109,7 +111,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                 bloc.add(JumpToCardNumber(number));
               }
             },
-            child: const Text('Jump', style: TextStyle(color: Colors.white)),
+            child: Text(loc.jump, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -117,6 +119,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
   }
 
   void _showReportDialog(BuildContext context, FlashcardBloc bloc) {
+    final loc = AppLocalizations.of(context);
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -126,19 +129,19 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: AppColors.border),
         ),
-        title: const Text('Submit Content Report', style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(loc.submitReport, style: const TextStyle(color: AppColors.textPrimary)),
         content: TextField(
           controller: controller,
           maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Describe card typos, errors, or feedback here...',
+          decoration: InputDecoration(
+            hintText: loc.reportHint,
           ),
           style: const TextStyle(color: AppColors.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(loc.cancel, style: const TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
@@ -148,7 +151,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                 bloc.add(SubmitReport(controller.text.trim()));
               }
             },
-            child: const Text('Submit', style: TextStyle(color: Colors.white)),
+            child: Text(loc.submit, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -156,6 +159,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
   }
 
   void _showJumpWarningDialog(BuildContext context, FlashcardBloc bloc, int cardNumber) {
+    final loc = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -165,15 +169,15 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: AppColors.border),
         ),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: AppColors.box1),
-            SizedBox(width: 8),
-            Text('Warning', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+            const Icon(Icons.warning_amber_rounded, color: AppColors.box1),
+            const SizedBox(width: 8),
+            Text(loc.warning, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Text(
-          'Card #$cardNumber is currently in an active Leitner Box (Boxes 2–5). Viewing it directly will reset its learning progress back to Box 1.\n\nDo you want to proceed?',
+          loc.jumpWarningMsg,
           style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
         ),
         actions: [
@@ -183,7 +187,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
               // Discard jump request
               bloc.add(LoadFlashcardQueue(widget.courseId));
             },
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(loc.cancel, style: const TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
@@ -191,7 +195,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
               Navigator.pop(dialogCtx);
               bloc.add(JumpToCardNumber(cardNumber, forceReset: true));
             },
-            child: const Text('Reset & Jump', style: TextStyle(color: Colors.white)),
+            child: Text(loc.resetAndJump, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -217,9 +221,24 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
     }
   }
 
-  String _getBoxName(int box) {
-    if (box == 6) return 'Finished';
-    return 'Box $box';
+  String _getBoxName(BuildContext context, int box) {
+    final loc = AppLocalizations.of(context);
+    switch (box) {
+      case 1:
+        return loc.box1;
+      case 2:
+        return loc.box2;
+      case 3:
+        return loc.box3;
+      case 4:
+        return loc.box4;
+      case 5:
+        return loc.box5;
+      case 6:
+        return loc.finished;
+      default:
+        return '${loc.box1} $box';
+    }
   }
 
   @override
@@ -272,6 +291,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
             }
           },
           builder: (context, state) {
+            final loc = AppLocalizations.of(context);
+
             if (state is FlashcardLoading) {
               return const Center(child: CircularProgressIndicator(color: AppColors.primary));
             }
@@ -292,14 +313,14 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                         child: const Icon(Icons.emoji_events, color: AppColors.secondary, size: 64),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
-                        'Study Loop Complete!',
-                        style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold),
+                      Text(
+                        loc.studyLoopComplete,
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'You have reviewed all currently due cards in this course. Come back later for your next spaced review session!',
-                        style: TextStyle(color: AppColors.textSecondary, height: 1.5),
+                      Text(
+                        loc.studyLoopCompleteDesc,
+                        style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
@@ -310,7 +331,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         ),
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Back to Courses', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        child: Text(loc.backToCourses, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -333,9 +354,9 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Review Queue',
-                          style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                        Text(
+                          loc.reviewQueue,
+                          style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -354,7 +375,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                _getBoxName(currentBox),
+                                _getBoxName(context, currentBox),
                                 style: TextStyle(color: boxColor, fontWeight: FontWeight.bold, fontSize: 12),
                               ),
                             ],
@@ -412,12 +433,12 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                               onPressed: () {
                                 context.read<FlashcardBloc>().add(const SubmitReview(isCorrect: false));
                               },
-                              child: const Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.close, color: Colors.white),
-                                  SizedBox(width: 8),
-                                  Text("Don't Know", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  const Icon(Icons.close, color: Colors.white),
+                                  const SizedBox(width: 8),
+                                  Text(loc.dontKnow, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                 ],
                               ),
                             ),
@@ -433,12 +454,12 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                               onPressed: () {
                                 context.read<FlashcardBloc>().add(const SubmitReview(isCorrect: true));
                               },
-                              child: const Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.check, color: Colors.white),
-                                  SizedBox(width: 8),
-                                  Text("I Know It", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  const Icon(Icons.check, color: Colors.white),
+                                  const SizedBox(width: 8),
+                                  Text(loc.iKnowIt, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                 ],
                               ),
                             ),
@@ -480,7 +501,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                               child: Row(
                                 children: [
                                   Text(
-                                    'Card #${card.cardNumber}',
+                                    '${loc.cardPrefix}${card.cardNumber}',
                                     style: const TextStyle(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.bold,
@@ -538,6 +559,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
   }
 
   Widget _buildCardFace(Flashcard card, {required bool isFront}) {
+    final loc = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -559,7 +581,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
         children: [
           // Section header indicating front/back
           Text(
-            isFront ? 'QUESTION' : 'ANSWER',
+            isFront ? loc.questionLabel : loc.answerLabel,
             style: TextStyle(
               color: isFront ? AppColors.primary : AppColors.secondary,
               fontWeight: FontWeight.bold,

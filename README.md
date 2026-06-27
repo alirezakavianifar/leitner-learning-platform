@@ -208,6 +208,11 @@ This commands builds the backend and admin panel containers and boots the follow
         ```bash
         flutter build apk --flavor store -t lib/main_store.dart
         ```
+    *   **Appetize.io Cloud Emulator Testing (Automated):**
+        To quickly build the APK, run a local backend, start an Ngrok tunnel, and automatically deploy/update the app on Appetize.io, see the [Appetize Testing Guide](file:///e:/projects/leitner-learning-platform/docs/appetize_testing_guide.md) or run the PowerShell script:
+        ```powershell
+        powershell -ExecutionPolicy Bypass -File ./scripts/deploy_to_appetize.ps1
+        ```
 
 ---
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
@@ -45,6 +46,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   void _onCardTap(Flashcard card) async {
+    final loc = AppLocalizations.of(context);
     final currentBox = card.progress.currentBox;
 
     // Rule B (Favorites View Reset): Prompt if card is in Boxes 2–5
@@ -58,21 +60,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(color: AppColors.border),
           ),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: AppColors.box1),
-              SizedBox(width: 8),
-              Text('Reset Progress?', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+              const Icon(Icons.warning_amber_rounded, color: AppColors.box1),
+              const SizedBox(width: 8),
+              Text(loc.resetProgressQuestion, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
             ],
           ),
           content: Text(
-            'Viewing Card #${card.cardNumber} from favorites will reset its Leitner progress back to Box 1.\n\nDo you want to proceed?',
+            loc.jumpWarningMsg,
             style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+              child: Text(loc.cancel, style: const TextStyle(color: AppColors.textSecondary)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
@@ -104,7 +106,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 
                 _loadFavorites();
               },
-              child: const Text('Proceed', style: TextStyle(color: Colors.white)),
+              child: Text(loc.proceed, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -144,30 +146,46 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
   }
 
-  String _getBoxName(int box) {
-    if (box == 6) return 'Finished';
-    return 'Box $box';
+  String _getBoxName(BuildContext context, int box) {
+    final loc = AppLocalizations.of(context);
+    switch (box) {
+      case 1:
+        return loc.box1;
+      case 2:
+        return loc.box2;
+      case 3:
+        return loc.box3;
+      case 4:
+        return loc.box4;
+      case 5:
+        return loc.box5;
+      case 6:
+        return loc.finished;
+      default:
+        return '${loc.box1} $box';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Favorite Cards', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        title: Text(loc.favoriteCards, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _favorites.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.star_border, size: 64, color: AppColors.textSecondary),
-                      SizedBox(height: 16),
-                      Text('No favorited cards yet.', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+                      const Icon(Icons.star_border, size: 64, color: AppColors.textSecondary),
+                      const SizedBox(height: 16),
+                      Text(loc.noFavoritesYet, style: const TextStyle(color: AppColors.textSecondary, fontSize: 16)),
                     ],
                   ),
                 )
@@ -212,7 +230,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      _getBoxName(card.progress.currentBox),
+                                      _getBoxName(context, card.progress.currentBox),
                                       style: TextStyle(color: boxColor, fontSize: 10, fontWeight: FontWeight.bold),
                                     ),
                                   ],
@@ -220,13 +238,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'Card #${card.cardNumber}',
+                                '${loc.cardPrefix}${card.cardNumber}',
                                 style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
                               ),
                             ],
                           ),
                         ),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+                        trailing: Icon(Directionality.of(context) == TextDirection.rtl ? Icons.arrow_back_ios : Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
                         onTap: () => _onCardTap(card),
                       ),
                     );

@@ -72,8 +72,9 @@ class DioClient {
     _isFailoverInProgress = true;
 
     final fallbacks = [
+      'http://10.0.2.2:5217/api/v1',
+      'http://localhost:5217/api/v1',
       'http://10.0.2.2:8080/api/v1',
-      'http://localhost:5000/api/v1',
       'http://localhost:8080/api/v1',
     ];
 

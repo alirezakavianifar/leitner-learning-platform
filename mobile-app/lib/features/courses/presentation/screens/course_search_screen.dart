@@ -440,7 +440,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                                       ),
                                                     ],
                                                   ),
-                                                  trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.primary),
+                                                  trailing: Icon(Directionality.of(context) == TextDirection.rtl ? Icons.arrow_back_ios : Icons.arrow_forward_ios, size: 16, color: AppColors.primary),
                                                   onTap: () => _handleCardTap(card),
                                                 ),
                                               );
