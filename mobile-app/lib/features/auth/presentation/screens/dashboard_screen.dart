@@ -578,23 +578,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: const EdgeInsets.all(14.0),
           child: Stack(
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Icon(icon, size: 28, color: iconColor),
-                  const SizedBox(height: 8),
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
+              SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(icon, size: 28, color: iconColor),
+                    const SizedBox(height: 12),
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               if (badgeCount != null && badgeCount > 0)
                 PositionedDirectional(

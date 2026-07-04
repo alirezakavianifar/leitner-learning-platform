@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// HSL-derived color tokens defined in ui_design.md.
 class AppColors {
@@ -52,58 +51,44 @@ class AppColors {
 
 class AppTheme {
   static ThemeData get darkTheme {
-    final baseTheme = ThemeData.dark();
-
-    return baseTheme.copyWith(
+    return ThemeData(
+      brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.background,
       primaryColor: AppColors.primary,
-      colorScheme: baseTheme.colorScheme.copyWith(
+      fontFamily: 'Vazirmatn',
+      colorScheme: const ColorScheme.dark().copyWith(
         primary: AppColors.primary,
         secondary: AppColors.secondary,
         background: AppColors.background,
         surface: AppColors.surface,
         error: AppColors.error,
       ),
-      textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme).copyWith(
-        displayLarge: GoogleFonts.outfit(
-          textStyle: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
+      textTheme: TextTheme(
+        displayLarge: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
         ),
-        displayMedium: GoogleFonts.outfit(
-          textStyle: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
+        displayMedium: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
         ),
-        displaySmall: GoogleFonts.outfit(
-          textStyle: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
+        displaySmall: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
         ),
-        headlineMedium: GoogleFonts.outfit(
-          textStyle: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
+        headlineMedium: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
         ),
-        titleLarge: GoogleFonts.outfit(
-          textStyle: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
+        titleLarge: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
         ),
-        bodyLarge: GoogleFonts.inter(
-          textStyle: TextStyle(
-            color: AppColors.textSecondary,
-          ),
+        bodyLarge: TextStyle(
+          color: AppColors.textSecondary,
         ),
-        bodyMedium: GoogleFonts.inter(
-          textStyle: TextStyle(
-            color: AppColors.textSecondary,
-          ),
+        bodyMedium: TextStyle(
+          color: AppColors.textSecondary,
         ),
       ),
       cardTheme: CardThemeData(
@@ -141,58 +126,44 @@ class AppTheme {
   }
 
   static ThemeData get lightTheme {
-    final baseTheme = ThemeData.light();
-
-    return baseTheme.copyWith(
+    return ThemeData(
+      brightness: Brightness.light,
       scaffoldBackgroundColor: const Color(0xFFF5F6FA),
       primaryColor: const Color(0xFF8F53FF),
-      colorScheme: baseTheme.colorScheme.copyWith(
+      fontFamily: 'Vazirmatn',
+      colorScheme: const ColorScheme.light().copyWith(
         primary: const Color(0xFF8F53FF),
         secondary: const Color(0xFF09E5C3),
         background: const Color(0xFFF5F6FA),
         surface: const Color(0xFFFFFFFF),
         error: const Color(0xFFE53935),
       ),
-      textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme).copyWith(
-        displayLarge: GoogleFonts.outfit(
-          textStyle: const TextStyle(
-            color: Color(0xFF1E293B),
-            fontWeight: FontWeight.bold,
-          ),
+      textTheme: TextTheme(
+        displayLarge: TextStyle(
+          color: Color(0xFF1E293B),
+          fontWeight: FontWeight.bold,
         ),
-        displayMedium: GoogleFonts.outfit(
-          textStyle: const TextStyle(
-            color: Color(0xFF1E293B),
-            fontWeight: FontWeight.bold,
-          ),
+        displayMedium: TextStyle(
+          color: Color(0xFF1E293B),
+          fontWeight: FontWeight.bold,
         ),
-        displaySmall: GoogleFonts.outfit(
-          textStyle: const TextStyle(
-            color: Color(0xFF1E293B),
-            fontWeight: FontWeight.bold,
-          ),
+        displaySmall: TextStyle(
+          color: Color(0xFF1E293B),
+          fontWeight: FontWeight.bold,
         ),
-        headlineMedium: GoogleFonts.outfit(
-          textStyle: const TextStyle(
-            color: Color(0xFF1E293B),
-            fontWeight: FontWeight.w600,
-          ),
+        headlineMedium: TextStyle(
+          color: Color(0xFF1E293B),
+          fontWeight: FontWeight.w600,
         ),
-        titleLarge: GoogleFonts.outfit(
-          textStyle: const TextStyle(
-            color: Color(0xFF1E293B),
-            fontWeight: FontWeight.w600,
-          ),
+        titleLarge: TextStyle(
+          color: Color(0xFF1E293B),
+          fontWeight: FontWeight.w600,
         ),
-        bodyLarge: GoogleFonts.inter(
-          textStyle: const TextStyle(
-            color: Color(0xFF64748B),
-          ),
+        bodyLarge: TextStyle(
+          color: Color(0xFF64748B),
         ),
-        bodyMedium: GoogleFonts.inter(
-          textStyle: const TextStyle(
-            color: Color(0xFF64748B),
-          ),
+        bodyMedium: TextStyle(
+          color: Color(0xFF64748B),
         ),
       ),
       cardTheme: CardThemeData(
