@@ -251,7 +251,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                         controller: _courseController,
                         onChanged: _onCourseSearchChanged,
                         decoration: InputDecoration(
-                          hintText: 'Filter courses...',
+                          hintText: 'جستجو در عنوان دوره ها',
                           prefixIcon: Icon(Icons.library_books, color: AppColors.textSecondary),
                           suffixIcon: _courseController.text.isNotEmpty
                               ? IconButton(
@@ -284,7 +284,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                   final isSelected = _selectedCourseIds.contains(course.id);
 
                                   return GestureDetector(
-                                    onTap: () => _onCourseSelectionChanged(course.id, !isSelected),
+                                    onLongPress: () => _onCourseSelectionChanged(course.id, !isSelected),
                                     child: Container(
                                       margin: const EdgeInsets.only(right: 12, top: 4, bottom: 8),
                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

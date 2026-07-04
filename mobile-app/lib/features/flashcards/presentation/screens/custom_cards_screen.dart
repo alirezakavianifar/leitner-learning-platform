@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -377,16 +378,25 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                           Expanded(
                             child: Center(
                               child: SingleChildScrollView(
-                                child: Text(
-                                  _showAnswer
-                                      ? card['answer_text'] as String
-                                      : card['question_text'] as String,
-                                  style: TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 20 * _fontScale,
-                                    height: 1.5,
-                                  ),
-                                  textAlign: TextAlign.center,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _showAnswer
+                                          ? card['answer_text'] as String
+                                          : card['question_text'] as String,
+                                      style: TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 20 * _fontScale,
+                                        height: 1.5,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    if (!_showAnswer && card['options'] != null && (card['options'] as String).isNotEmpty) ...[
+                                      const SizedBox(height: 16),
+                                      ..._buildCustomCardOptions(card['options'] as String),
+                                    ],
+                                  ],
                                 ),
                               ),
                             ),
@@ -452,5 +462,32 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
         ],
       ),
     );
+  }
+
+  List<Widget> _buildCustomCardOptions(String optionsJson) {
+    try {
+      final List<dynamic> options = jsonDecode(optionsJson);
+      if (options.isEmpty) return [];
+
+      return options.map((opt) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Text(
+            opt.toString(),
+            style: TextStyle(color: AppColors.textPrimary, fontSize: 13 * _fontScale),
+            textAlign: TextAlign.center,
+          ),
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -21,6 +22,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
   final _questionController = TextEditingController();
   final _answerController = TextEditingController();
   final _titleController = TextEditingController(text: 'My Custom Cards');
+  final _optionsController = TextEditingController();
   
   bool _isSaving = false;
   
@@ -38,6 +40,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
     _questionController.dispose();
     _answerController.dispose();
     _titleController.dispose();
+    _optionsController.dispose();
     _recorder.dispose();
     _audioPlayer.dispose();
     super.dispose();
@@ -144,10 +147,18 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
         } catch (_) {}
       }
       
+      final optionsText = _optionsController.text.trim();
+      String? optionsJson;
+      if (optionsText.isNotEmpty) {
+        final optionsList = optionsText.split(',').map((o) => o.trim()).where((o) => o.isNotEmpty).toList();
+        optionsJson = jsonEncode(optionsList);
+      }
+      
       await db.insert('user_created_cards', {
         'course_title': _titleController.text.trim(),
         'question_text': _questionController.text.trim(),
         'answer_text': _answerController.text.trim(),
+        'options': optionsJson,
         'image_path': imagePath,
         'audio_path': audioPath,
         'created_at': DateTime.now().toUtc().toIso8601String(),
@@ -291,6 +302,27 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                   if (val == null || val.trim().isEmpty) return 'Answer is required';
                   return null;
                 },
+              ),
+              const SizedBox(height: 20),
+
+              // Options
+              TextFormField(
+                controller: _optionsController,
+                style: TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Multiple-Choice Options (Optional, comma-separated)',
+                  labelStyle: TextStyle(color: AppColors.textSecondary),
+                  hintText: 'e.g. Tehran, Shiraz, Isfahan',
+                  hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.primary),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
 

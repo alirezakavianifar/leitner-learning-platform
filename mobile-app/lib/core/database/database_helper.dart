@@ -81,7 +81,7 @@ class DatabaseHelper {
     // Using standard sqflite for maximum compatibility across test and local compilation setups:
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -110,6 +110,7 @@ class DatabaseHelper {
         course_title TEXT NOT NULL DEFAULT 'My Custom Cards',
         question_text TEXT NOT NULL,
         answer_text TEXT NOT NULL,
+        options TEXT,
         image_path TEXT,
         audio_path TEXT,
         created_at TEXT NOT NULL
@@ -191,6 +192,11 @@ class DatabaseHelper {
           published_at TEXT NOT NULL
         )
       ''');
+    }
+    if (oldVersion < 3) {
+      try {
+        await db.execute('ALTER TABLE user_created_cards ADD COLUMN options TEXT');
+      } catch (_) {}
     }
   }
 

@@ -534,6 +534,7 @@ Define:
 Define:
 
 * Automatic off-server backups: immediate backup replication of user registration and purchase data upon every change, stored securely outside the main server (e.g. S3, FTP, or remote secure storage)
+* Email Logging: Immediately log user registration and purchase transactions via email (e.g., to a designated administrative email account).
 * Backup retention policy
 
 ### Secrets Management
@@ -650,19 +651,19 @@ Design:
 * Profile (including username, interests, educational field, educational level. Note: Mobile number field is read-only/non-editable by the user.)
 * Home
 * Global Bottom Navigation (Visible on all main screens, containing persistent navigation tabs: Home, Review, Courses)
-* Course List (Visual rule: Downloaded/purchased courses must appear at the top. Downloaded courses get a green border; not purchased/not downloaded courses get a yellow border. Display course title, card count, paid/free status, and colored border. When offline: display previously downloaded course list with a clear status message indicating that internet is unavailable and update was not performed.)
+* Course List (Visual rule: Downloaded/purchased courses must appear at the top. Downloaded courses get a green border; not purchased/not downloaded courses get a yellow border. Display course title, card count, paid/free status, and colored border. Include course search result long-click selection capability, and search text placeholder `"جستجو در عنوان دوره ها"`. When offline: display previously downloaded course list with a clear status message indicating that internet is unavailable and update was not performed.)
 * My Courses Screen (Displays only purchased and downloaded courses, visual green border for downloaded status)
-* Flashcards Screen (Visual layout: Fixed header, rotating center card, fixed footer, clickable card number triggering jump-to-card dialog, left/right navigation arrows, course title display, colored Leitner stage indicator)
+* Flashcards Screen (Visual layout: Fixed header displaying course title, colored Leitner stage indicator, card number at top right below title, and favorite star toggle. Rotating center card supporting text, images, audio, and multiple-choice options with flip-on-touch animation, and conditional rendering to hide empty sections. Fixed footer containing Know button on the right, Don't Know button on the left, and Report issue button below them. Navigation arrows flanking the card on the left and right sides of the screen rather than in the footer.)
 * Favorites
 * Today's Reviews (Displays a pending review count badge)
 * Finished Cards (Displays a badge count)
 * Statistics
 * Notifications
-* Create Card
-* Settings (includes a Logout button with a mandatory confirmation dialog prompting the user before execution)
+* Create Card (Supports inputting: Course Title, Question, Options, and Answer for card creation)
+* Settings (includes Font customization settings for flashcard texts, App theme selector, and a Logout button with a mandatory confirmation dialog prompting the user before execution)
 * Support
 * Mandatory Terms & Rules Acceptance Screen (Mandatory terms & rules acceptance after OTP verification and before profile completion)
-* Onboarding & Guided Tutorials (First-run app walkthrough mapping out the specific PDF onboarding flow: Courses -> Search -> Flashcard -> Know button -> Don't Know button -> Create Card -> Finished Cards -> Favorites -> My Courses -> Reports -> Today's Cards -> Statistics; Leitner system guide; Color status guide)
+* Onboarding & Guided Tutorials (First-run app walkthrough mapping out the specific PDF onboarding flow: Courses -> Search -> Flashcard -> Know button -> Don't Know button -> Create Card -> Finished Cards -> Favorites -> My Courses -> Reports -> Today's Cards -> Statistics; Leitner system guide; Color status guide). Help menu screen containing three separate trigger buttons for the App Walkthrough, the Leitner method explanation, and the Color status guide.
 
 ### UI Design
 
@@ -727,8 +728,9 @@ Build server infrastructure with domain-separated architecture and database migr
 ### CI/CD Build Pipeline Configuration
 * Setup automated build and test pipeline (e.g. GitHub Actions) to compile code and run unit tests on every pull request/commit.
 
-### Backup Foundation (Off-Server Replication)
+### Backup Foundation (Off-Server Replication & Email Logging)
 * Automated, immediate replication of user registration and purchase data upon every change to a secure external domestic S3-compatible Object Storage (e.g., ArvanCloud/ParsPack or independent remote storage).
+* Immediate SMTP/Email registration log containing user info and purchased courses sent to the administrative email account.
 
 ---
 
@@ -886,9 +888,9 @@ Build application shell enforcing feature-based clean architecture, dependency i
 
 ### Navigation
 * Global Bottom Navigation bar visible on all primary application screens, containing persistent navigation to:
-  1. Home (Dashboard/Welcome, Banners, Announcements)
-  2. Review (Leitner boxes, Today's reviews, Finished cards)
-  3. Courses (Course list, My Courses, Search)
+  1. Home (takes user back to the Main Home Dashboard screen)
+  2. Review (takes user directly to the Today's Cards list screen)
+  3. Courses (takes user to the Courses catalog screen)
 
 ### Client Event Bus
 * Setup a central client-side event bus.
@@ -1001,8 +1003,7 @@ Implement all Leitner logic, progression timings, and custom reset behaviors, em
 ### Leitner Business Rules & Reset Logic
 * **Incorrect Review Reset:** If a card is answered incorrectly during review, reset it back to Box 1 immediately.
 * **Rule A (Due-Date Overdue Reset):** If a card is due on a given day and the user does NOT review it on that day, the card's progress resets, and it is returned to Box 1.
-* **Rule B (Favorites View Reset):** If a user views a card from the "Favorites" screen and the card is currently in Leitner boxes 2–5, the app prompts for confirmation. Upon user confirmation, its Leitner progress is reset, and it returns to Box 1.
-* **Rule C (Card Number View Reset):** If a user views a card directly by searching/navigating by card number, the app prompts for confirmation to reset Leitner progress. Upon user confirmation, the progress is reset, and the card returns to Box 1.
+* **Universal Leitner Reset on View (Boxes 2-5):** If a user views any card (except Finished Cards) currently in active Leitner boxes 2-5 outside its scheduled review time (e.g., from the Favorites screen, search results, direct card number jump, or manual browsing via side arrows), the app must prompt the user with a confirmation dialog: "This card is inside the Leitner stages. If displayed, it will return to stage 1. Are you sure you want to display it?" Upon confirmation, the card is displayed and its progress resets to Box 1 immediately.
 * **Only Due Cards Restriction:** Normal study navigation within a course must prevent users from freely browsing or viewing cards in intermediate Leitner boxes (Boxes 2–5) before their respective scheduled due date. When opening a course for study, only Box 1 cards and active due cards from Boxes 2–5 may appear in the review queue.
 
 ### Engine Event Emission
@@ -1049,8 +1050,11 @@ Implement learning experience and guided onboarding/tutorials.
 ## Tasks
 
 ### Flashcard UI & Layout
-* **Specific Presentation Layout:** Fixed header (displays course title and colored Leitner stage indicator), rotating center card (with flip animation, support for images and audio), and fixed footer (with left/right navigation arrows, favorites toggle, and card status).
-* **Only Due Cards Restriction:** Standard browsing through card list or using next/prev navigation arrows must restrict access to Box 2-5 cards that are not yet due today.
+* **Specific Presentation Layout:**
+  - **Fixed Header:** Displays course title at the top, card number at the bottom-right of the title, current Leitner box color indicator, and favorite star toggle.
+  - **Rotating Center Card:** Flippable front-and-back container supporting text, image, audio, and multiple-choice options. Flips on touch to show the answer, and flips back on another touch. The center card is flanked on the left and right sides of the screen by navigation arrows to browse cards (since the card container does not fill the screen width).
+  - **Fixed Footer:** Displays the "Know" (بلدم) button on the right, the "Don't Know" (بلد نیستم) button on the left, and the "Report Issue" button positioned below the two study buttons.
+* **Only Due Cards Restriction:** Standard browsing through card list or using next/prev navigation arrows must restrict access to Box 2-5 cards that are not yet due today. If accessed, it triggers the Universal Reset on View warning.
 * **Conditional UI Rendering:** If a flashcard has no image, audio, or options (such as multiple choice or custom layout sections), those respective sections must be hidden completely and not reserve or render any blank/empty space in the layout.
 
 ### Audio
@@ -1093,6 +1097,7 @@ Implement learning experience and guided onboarding/tutorials.
   12. Statistics and color-coded status charts
 * **Leitner System Tutorial:** Visual explanation of box progression and Leitner learning logic.
 * **Color Guide Tutorial:** Dynamic guide explaining what different box/card colors mean and their status.
+* **Help Menu Triggers:** A Help section in the menu exposing three explicit buttons to trigger on-demand: the App Walkthrough Guide, the Leitner Method Guide, and the Color Status Guide.
 
 ---
 
@@ -1141,6 +1146,7 @@ Implement secondary learning modules, local-only backup systems, and payment pro
 ### User-Created Cards (Device-Only Storage)
 * **Device-Only Storage:** User-created cards are stored strictly locally on the device (protecting user privacy) and are not synchronized to the server database.
 * **Support Backup & Restore:** Local backup/restore functionality must be provided so users can preserve their user-created cards and progress after app reinstallation.
+* **Card Creation Schema & Input Fields:** The card creation interface must allow the user to select or create a course, and input: Course Title, Question, Options (for multiple choice), and Answer.
 
 ### Unified Payment Provider Integration
 * Implement platform-specific payment options (Google Play, Cafe Bazaar, Myket, Direct Payment Gateway) using the unified `PaymentProvider` interface to handle purchases and course activation.
@@ -1150,6 +1156,7 @@ Implement secondary learning modules, local-only backup systems, and payment pro
 * **Offline Backup:** Export user-created cards, custom notes, and local learning progress to an encrypted file stored locally or shareable via system share sheet (e.g., email, messaging apps).
 * **Restore after Reinstall:** Import the backup file to restore user-created cards and progress after app reinstallation.
 * **User Logout Confirmation:** Prompt the user with a modal confirmation dialog before executing logout to prevent accidental progress loss.
+* **Font & Theme Customization settings:** Settings screen includes customization settings for flashcard font adjustments (font sizes/family) and app theme selections.
 
 ---
 
@@ -1185,8 +1192,8 @@ Implement reporting and analytics.
 
 ### Course & Card Search Workflows
 * **Targeted Search Process:**
-  1. User searches courses.
-  2. User selects one or more courses from the results/list.
+  1. User searches courses. The search input field background displays the placeholder text `"جستجو در عنوان دوره ها"`.
+  2. User selects one or more courses from the list view results (courses must be selectable via long-click).
   3. User searches cards inside those selected courses.
   4. Search results display the card numbers and matching card list.
   5. User taps a search result to open that matching card directly.
@@ -1438,33 +1445,34 @@ Client validates:
 
 ## Objectives
 
-Prepare two separate editions.
+Prepare two separate builds (Premium and Store version) and publish both to stores (Google Play, Cafe Bazaar, and Myket) as required by the dual-distribution model.
 
-## Build A – Premium Version
+## Build A – Premium / IAP Version (Main Version)
 
 Distribution:
 
-* Client Website
-* Direct Download
-* Telegram/Channel
+* Google Play (if Play Billing compliant)
+* Cafe Bazaar (with in-app billing integrated)
+* Myket (with in-app billing integrated)
+* Client Website & Telegram Channel (direct download with custom billing/direct gateway)
 
 Includes:
 
-* In-App Purchases
+* In-App Purchases (via Bazaar, Myket, and Google Play Billing, or direct gateway)
 
 ---
 
-## Build B – Store Version
+## Build B – Sub / Non-IAP Version (Secondary Version)
 
 Distribution:
 
 * Google Play
-* Bazaar
+* Cafe Bazaar
 * Myket
 
 Excludes:
 
-* In-App Purchases
+* In-App Purchases (for regions or stores where in-app billing integrations are not used)
 
 ---
 

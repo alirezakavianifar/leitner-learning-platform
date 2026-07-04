@@ -16,6 +16,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
     on<SubmitReport>(_onSubmitReport);
     on<NextCard>(_onNextCard);
     on<PrevCard>(_onPrevCard);
+    on<ClearJumpWarning>(_onClearJumpWarning);
   }
 
   Future<void> _onLoadFlashcardQueue(
@@ -226,16 +227,43 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
     if (currentState is FlashcardQueueLoaded) {
       final nextIndex = currentState.currentIndex + 1;
       if (nextIndex < currentState.queue.length) {
-        final isFav = await flashcardRepository.isFavorite(
-          courseId: currentState.courseId,
-          cardNumber: currentState.queue[nextIndex].cardNumber,
-        );
+        final card = currentState.queue[nextIndex];
+        final currentBox = card.progress.currentBox;
 
-        emit(currentState.copyWith(
-          currentIndex: nextIndex,
-          isFlipped: false,
-          isFavorited: isFav,
-        ));
+        if (currentBox >= 2 && currentBox <= 5 && !event.forceReset) {
+          emit(currentState.copyWith(
+            jumpWarningCardNumber: card.cardNumber,
+            jumpTargetCard: card,
+          ));
+        } else {
+          if (currentBox >= 2 && currentBox <= 5 && event.forceReset) {
+            await flashcardRepository.resetCardProgress(
+              courseId: currentState.courseId,
+              cardNumber: card.cardNumber,
+              reason: 'BROWSE',
+            );
+            final updatedCard = await flashcardRepository.getCardByNumber(
+              currentState.courseId,
+              card.cardNumber,
+            );
+            if (updatedCard != null) {
+              currentState.queue[nextIndex] = updatedCard;
+            }
+          }
+
+          final isFav = await flashcardRepository.isFavorite(
+            courseId: currentState.courseId,
+            cardNumber: currentState.queue[nextIndex].cardNumber,
+          );
+
+          emit(currentState.copyWith(
+            currentIndex: nextIndex,
+            isFlipped: false,
+            isFavorited: isFav,
+            jumpWarningCardNumber: null,
+            jumpTargetCard: null,
+          ));
+        }
       }
     }
   }
@@ -248,17 +276,54 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
     if (currentState is FlashcardQueueLoaded) {
       final prevIndex = currentState.currentIndex - 1;
       if (prevIndex >= 0) {
-        final isFav = await flashcardRepository.isFavorite(
-          courseId: currentState.courseId,
-          cardNumber: currentState.queue[prevIndex].cardNumber,
-        );
+        final card = currentState.queue[prevIndex];
+        final currentBox = card.progress.currentBox;
 
-        emit(currentState.copyWith(
-          currentIndex: prevIndex,
-          isFlipped: false,
-          isFavorited: isFav,
-        ));
+        if (currentBox >= 2 && currentBox <= 5 && !event.forceReset) {
+          emit(currentState.copyWith(
+            jumpWarningCardNumber: card.cardNumber,
+            jumpTargetCard: card,
+          ));
+        } else {
+          if (currentBox >= 2 && currentBox <= 5 && event.forceReset) {
+            await flashcardRepository.resetCardProgress(
+              courseId: currentState.courseId,
+              cardNumber: card.cardNumber,
+              reason: 'BROWSE',
+            );
+            final updatedCard = await flashcardRepository.getCardByNumber(
+              currentState.courseId,
+              card.cardNumber,
+            );
+            if (updatedCard != null) {
+              currentState.queue[prevIndex] = updatedCard;
+            }
+          }
+
+          final isFav = await flashcardRepository.isFavorite(
+            courseId: currentState.courseId,
+            cardNumber: currentState.queue[prevIndex].cardNumber,
+          );
+
+          emit(currentState.copyWith(
+            currentIndex: prevIndex,
+            isFlipped: false,
+            isFavorited: isFav,
+            jumpWarningCardNumber: null,
+            jumpTargetCard: null,
+          ));
+        }
       }
+    }
+  }
+
+  void _onClearJumpWarning(
+    ClearJumpWarning event,
+    Emitter<FlashcardState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is FlashcardQueueLoaded) {
+      emit(currentState.copyWith());
     }
   }
 }

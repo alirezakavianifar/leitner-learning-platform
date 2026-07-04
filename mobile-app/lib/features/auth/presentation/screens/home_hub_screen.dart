@@ -140,8 +140,8 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
               ),
             IconButton(
               icon: Icon(Icons.help_outline, color: AppColors.primary),
-              tooltip: 'Tutorial',
-              onPressed: () => OnboardingTour.showIfNeeded(context, force: true),
+              tooltip: 'Help Guide',
+              onPressed: () => _showHelpSelectionDialog(context),
             ),
             IconButton(
               icon: Icon(Icons.logout, color: AppColors.error),
@@ -198,6 +198,203 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showHelpSelectionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: AppColors.border),
+          ),
+          title: Text(
+            'راهنمای برنامه (Help Guide)',
+            style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Button 1: Walkthrough Guide
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  OnboardingTour.showIfNeeded(context, force: true);
+                },
+                icon: const Icon(Icons.school),
+                label: const Text('آموزش ابتدای برنامه (Walkthrough)'),
+              ),
+              const SizedBox(height: 12),
+              // Button 2: Leitner Method
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: AppColors.background,
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  _showLeitnerMethodDialog(context);
+                },
+                icon: const Icon(Icons.explore),
+                label: const Text('آموزش روش لایتنر (Leitner Method)'),
+              ),
+              const SizedBox(height: 12),
+              // Button 3: Color Status
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueGrey,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  _showColorStatusDialog(context);
+                },
+                icon: const Icon(Icons.palette),
+                label: const Text('راهنمای رنگ‌ها (Color Status Guide)'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showLeitnerMethodDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: AppColors.border),
+          ),
+          title: Text(
+            'روش جعبه لایتنر (Leitner Method)',
+            style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'روش لایتنر یک روش علمی برای انتقال اطلاعات به حافظه بلندمدت بر اساس فواصل مرور است:',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 13, height: 1.4),
+                  textAlign: TextAlign.right,
+                ),
+                const SizedBox(height: 12),
+                _buildLeitnerStep(context, 'خانه اول (Box 1)', 'کارت های جدید و اشتباه شده. مرور روزانه.'),
+                _buildLeitnerStep(context, 'خانه دوم (Box 2)', 'کارت هایی که بلد بودید. مرور هر ۲ روز.'),
+                _buildLeitnerStep(context, 'خانه سوم (Box 3)', 'کارت های تایید شده قبلی. مرور هر ۴ روز.'),
+                _buildLeitnerStep(context, 'خانه چهارم (Box 4)', 'مرور هر ۸ روز.'),
+                _buildLeitnerStep(context, 'خانه پنجم (Box 5)', 'مرور هر ۱۶ روز.'),
+                _buildLeitnerStep(context, 'خانه ششم (Finished)', 'اتمام یادگیری کارت و آرشیو شدن آن.'),
+                const SizedBox(height: 12),
+                Text(
+                  'قوانین پیشرفت:',
+                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                Text(
+                  '- پاسخ صحیح (بلدم): کارت یک خانه به جلو میرود.\n- پاسخ غلط (بلد نیستم): کارت بلافاصله به خانه اول (Box 1) برمی‌گردد و تمام مراحل از اول آغاز می‌شود.',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('بستن (Close)'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLeitnerStep(BuildContext context, String title, String desc) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12)),
+          Text(desc, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  void _showColorStatusDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: AppColors.border),
+          ),
+          title: Text(
+            'راهنمای رنگ وضعیت خانه‌ها (Color Guide)',
+            style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildColorStatusRow('خانه اول (Box 1)', AppColors.box1),
+              _buildColorStatusRow('خانه دوم (Box 2)', AppColors.box2),
+              _buildColorStatusRow('خانه سوم (Box 3)', AppColors.box3),
+              _buildColorStatusRow('خانه چهارم (Box 4)', AppColors.box4),
+              _buildColorStatusRow('خانه پنجم (Box 5)', AppColors.box5),
+              _buildColorStatusRow('کارت‌های تمام شده (Finished)', AppColors.finished),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('بستن (Close)'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildColorStatusRow(String label, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white24),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(label, style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+        ],
       ),
     );
   }

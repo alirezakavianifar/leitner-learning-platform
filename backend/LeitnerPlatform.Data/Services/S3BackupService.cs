@@ -16,6 +16,21 @@ namespace LeitnerPlatform.Data.Services
             var key = $"users/{user.Id}.json";
             var json = JsonSerializer.Serialize(user, new JsonSerializerOptions { WriteIndented = true });
             await ReplicateAsync(key, json);
+
+            var subject = $"Leitner Platform - User Registered: {user.Username}";
+            var body = $@"
+                <h2>New User Registered</h2>
+                <table border='1' cellpadding='5' style='border-collapse: collapse; font-family: sans-serif;'>
+                    <tr bgcolor='#f2f2f2'><th>Field</th><th>Value</th></tr>
+                    <tr><td><b>ID</b></td><td>{user.Id}</td></tr>
+                    <tr><td><b>Username</b></td><td>{user.Username}</td></tr>
+                    <tr><td><b>Mobile Number</b></td><td>{user.MobileNumber}</td></tr>
+                    <tr><td><b>Interests</b></td><td>{user.Interests ?? "None"}</td></tr>
+                    <tr><td><b>Educational Field</b></td><td>{user.EducationalField ?? "None"}</td></tr>
+                    <tr><td><b>Educational Level</b></td><td>{user.EducationalLevel ?? "None"}</td></tr>
+                    <tr><td><b>Created At</b></td><td>{user.CreatedAt:yyyy-MM-dd HH:mm:ss} UTC</td></tr>
+                </table>";
+            await SendEmailAsync(subject, body);
         }
 
         public async Task ReplicatePurchaseAsync(Purchase purchase)
@@ -23,6 +38,24 @@ namespace LeitnerPlatform.Data.Services
             var key = $"purchases/{purchase.Id}.json";
             var json = JsonSerializer.Serialize(purchase, new JsonSerializerOptions { WriteIndented = true });
             await ReplicateAsync(key, json);
+
+            var courseTitle = purchase.Course?.Title ?? purchase.CourseId.ToString();
+            var userDetail = purchase.User != null ? $"{purchase.User.Username} ({purchase.User.MobileNumber})" : purchase.UserId.ToString();
+
+            var subject = $"Leitner Platform - Purchase Completed: Course {courseTitle}";
+            var body = $@"
+                <h2>Purchase Completed</h2>
+                <table border='1' cellpadding='5' style='border-collapse: collapse; font-family: sans-serif;'>
+                    <tr bgcolor='#f2f2f2'><th>Field</th><th>Value</th></tr>
+                    <tr><td><b>Purchase ID</b></td><td>{purchase.Id}</td></tr>
+                    <tr><td><b>User</b></td><td>{userDetail}</td></tr>
+                    <tr><td><b>Course</b></td><td>{courseTitle}</td></tr>
+                    <tr><td><b>Payment Provider</b></td><td>{purchase.PaymentProvider}</td></tr>
+                    <tr><td><b>Transaction ID</b></td><td>{purchase.TransactionId}</td></tr>
+                    <tr><td><b>Status</b></td><td>{purchase.Status}</td></tr>
+                    <tr><td><b>Purchased At</b></td><td>{purchase.PurchasedAt:yyyy-MM-dd HH:mm:ss} UTC</td></tr>
+                </table>";
+            await SendEmailAsync(subject, body);
         }
 
         private async Task ReplicateAsync(string objectKey, string content)
@@ -85,6 +118,53 @@ namespace LeitnerPlatform.Data.Services
                 {
                     Console.WriteLine($"Critical: Local backup safety failover also failed: {localEx.Message}");
                 }
+            }
+        }
+
+        private async Task SendEmailAsync(string subject, string body)
+        {
+            var host = Environment.GetEnvironmentVariable("SMTP_HOST");
+            var portStr = Environment.GetEnvironmentVariable("SMTP_PORT");
+            var username = Environment.GetEnvironmentVariable("SMTP_USERNAME");
+            var password = Environment.GetEnvironmentVariable("SMTP_PASSWORD");
+            var receiver = Environment.GetEnvironmentVariable("SMTP_RECEIVER");
+            var sender = Environment.GetEnvironmentVariable("SMTP_SENDER") ?? (string.IsNullOrEmpty(username) ? "backup@leitnerplatform.com" : username);
+
+            if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(receiver))
+            {
+                Console.WriteLine("[Backup Warning] SMTP settings not configured. Email notification skipped.");
+                return;
+            }
+
+            int port = 587;
+            if (!string.IsNullOrEmpty(portStr))
+            {
+                int.TryParse(portStr, out port);
+            }
+
+            try
+            {
+                using var client = new System.Net.Mail.SmtpClient(host, port)
+                {
+                    Credentials = new System.Net.NetworkCredential(username, password),
+                    EnableSsl = true
+                };
+
+                using var mailMessage = new System.Net.Mail.MailMessage
+                {
+                    From = new System.Net.Mail.MailAddress(sender),
+                    Subject = subject,
+                    Body = body,
+                    IsBodyHtml = true
+                };
+                mailMessage.To.Add(receiver);
+
+                await client.SendMailAsync(mailMessage);
+                Console.WriteLine($"Emailed backup notification to: {receiver}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending backup email: {ex.Message}");
             }
         }
     }

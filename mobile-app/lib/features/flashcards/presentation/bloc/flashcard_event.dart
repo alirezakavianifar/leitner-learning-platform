@@ -48,6 +48,20 @@ class SubmitReport extends FlashcardEvent {
   List<Object?> get props => [reportText];
 }
 
-class NextCard extends FlashcardEvent {}
+class NextCard extends FlashcardEvent {
+  final bool forceReset;
+  const NextCard({this.forceReset = false});
 
-class PrevCard extends FlashcardEvent {}
+  @override
+  List<Object?> get props => [forceReset];
+}
+
+class PrevCard extends FlashcardEvent {
+  final bool forceReset;
+  const PrevCard({this.forceReset = false});
+
+  @override
+  List<Object?> get props => [forceReset];
+}
+
+class ClearJumpWarning extends FlashcardEvent {}

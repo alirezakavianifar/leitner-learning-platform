@@ -21,7 +21,15 @@ class DioClient {
     required String baseUrl,
     this.onUnauthorized,
   }) {
-    dio.options.baseUrl = baseUrl;
+    var sanitizedBaseUrl = baseUrl;
+    if (!sanitizedBaseUrl.endsWith('/')) {
+      sanitizedBaseUrl = '$sanitizedBaseUrl/';
+    }
+    if (sanitizedBaseUrl.isNotEmpty && sanitizedBaseUrl != '/') {
+      dio.options.baseUrl = sanitizedBaseUrl;
+    } else {
+      dio.options.baseUrl = 'http://localhost/';
+    }
     dio.options.connectTimeout = const Duration(seconds: 15);
     dio.options.receiveTimeout = const Duration(seconds: 15);
     dio.options.headers = {
@@ -32,6 +40,9 @@ class DioClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          if (options.path.startsWith('/')) {
+            options.path = options.path.substring(1);
+          }
           print('Dio Request: ${options.uri}');
           final token = await storageService.readSecure('jwt_token');
           if (token != null) {
@@ -76,6 +87,9 @@ class DioClient {
       resolvedUrl = resolvedUrl.replaceAll('10.0.2.2', 'localhost');
     } else {
       resolvedUrl = resolvedUrl.replaceAll('localhost', '10.0.2.2');
+    }
+    if (!resolvedUrl.endsWith('/')) {
+      resolvedUrl = '$resolvedUrl/';
     }
     dio.options.baseUrl = resolvedUrl;
   }
