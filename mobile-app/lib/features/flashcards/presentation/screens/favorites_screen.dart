@@ -62,19 +62,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ),
           title: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: AppColors.box1),
+              Icon(Icons.warning_amber_rounded, color: AppColors.box1),
               const SizedBox(width: 8),
-              Text(loc.resetProgressQuestion, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+              Text(loc.resetProgressQuestion, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
             ],
           ),
           content: Text(
             loc.jumpWarningMsg,
-            style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
-              child: Text(loc.cancel, style: const TextStyle(color: AppColors.textSecondary)),
+              child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
@@ -174,18 +174,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(loc.favoriteCards, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        title: Text(loc.favoriteCards, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _favorites.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.star_border, size: 64, color: AppColors.textSecondary),
+                      Icon(Icons.star_border, size: 64, color: AppColors.textSecondary),
                       const SizedBox(height: 16),
-                      Text(loc.noFavoritesYet, style: const TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+                      Text(loc.noFavoritesYet, style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
                     ],
                   ),
                 )
@@ -209,7 +209,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           card.questionText,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500, fontSize: 15),
+                          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500, fontSize: 15),
                         ),
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 8.0),
@@ -239,7 +239,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                               const SizedBox(width: 12),
                               Text(
                                 '${loc.cardPrefix}${card.cardNumber}',
-                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
                               ),
                             ],
                           ),

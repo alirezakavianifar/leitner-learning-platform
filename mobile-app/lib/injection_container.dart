@@ -49,6 +49,7 @@ import 'features/config/data/repositories/config_repository_impl.dart';
 import 'features/config/domain/repositories/config_repository.dart';
 import 'features/config/presentation/bloc/config_bloc.dart';
 import 'core/localization/locale_bloc.dart';
+import 'app/theme_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -239,6 +240,12 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
   sl.registerFactory(
     () => LocaleBloc(
       sharedPreferences: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => ThemeBloc(
+      sl(),
     ),
   );
 }

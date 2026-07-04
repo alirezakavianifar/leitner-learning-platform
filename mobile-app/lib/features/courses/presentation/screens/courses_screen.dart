@@ -125,7 +125,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
               },
               builder: (context, state) {
                 if (state is CoursesLoading) {
-                  return const Center(
+                  return Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   );
                 }
@@ -146,9 +146,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                        Icon(Icons.error_outline, size: 48, color: AppColors.error),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Failed to load courses catalog.',
                           style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
                         ),
@@ -212,7 +212,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                               _selectedTab == 1
                                   ? 'No downloaded courses available.'
                                   : 'No courses available.',
-                              style: const TextStyle(color: AppColors.textSecondary),
+                              style: TextStyle(color: AppColors.textSecondary),
                             ),
                           ),
                         )
@@ -260,7 +260,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
+                  Text(
                     'Select Payment Method',
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -271,23 +271,23 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   ),
                   const SizedBox(height: 20),
                   ListTile(
-                    leading: const Icon(Icons.payment, color: AppColors.primary),
-                    title: const Text('Direct Gateway (ZarinPal)', style: TextStyle(color: AppColors.textPrimary)),
+                    leading: Icon(Icons.payment, color: AppColors.primary),
+                    title: Text('Direct Gateway (ZarinPal)', style: TextStyle(color: AppColors.textPrimary)),
                     onTap: () => _processPurchase(course, sl<DirectPaymentProvider>()),
                   ),
                   ListTile(
-                    leading: const Icon(Icons.store, color: AppColors.secondary),
-                    title: const Text('Cafe Bazaar Billing', style: TextStyle(color: AppColors.textPrimary)),
+                    leading: Icon(Icons.store, color: AppColors.secondary),
+                    title: Text('Cafe Bazaar Billing', style: TextStyle(color: AppColors.textPrimary)),
                     onTap: () => _processPurchase(course, sl<BazaarPaymentProvider>()),
                   ),
                   ListTile(
-                    leading: const Icon(Icons.shopping_bag_outlined, color: AppColors.secondary),
-                    title: const Text('Myket Billing', style: TextStyle(color: AppColors.textPrimary)),
+                    leading: Icon(Icons.shopping_bag_outlined, color: AppColors.secondary),
+                    title: Text('Myket Billing', style: TextStyle(color: AppColors.textPrimary)),
                     onTap: () => _processPurchase(course, sl<MyketPaymentProvider>()),
                   ),
                   ListTile(
                     leading: const Icon(Icons.shop_two, color: Colors.blue),
-                    title: const Text('Google Play IAP', style: TextStyle(color: AppColors.textPrimary)),
+                    title: Text('Google Play IAP', style: TextStyle(color: AppColors.textPrimary)),
                     onTap: () => _processPurchase(course, sl<GooglePlayPaymentProvider>()),
                   ),
                 ],
@@ -303,18 +303,18 @@ class _CoursesScreenState extends State<CoursesScreen> {
         builder: (context) {
           return AlertDialog(
             backgroundColor: AppColors.surface,
-            title: const Text(
+            title: Text(
               'Purchase Course',
               style: TextStyle(color: AppColors.textPrimary),
             ),
-            content: const Text(
+            content: Text(
               'In-App Purchases are not supported in this edition.\n\nPlease visit our official website to purchase courses and unlock premium content.',
               style: TextStyle(color: AppColors.textSecondary),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
@@ -337,7 +337,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
+      builder: (context) => Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       ),
     );
@@ -357,7 +357,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
       context.read<CoursesBloc>().add(LoadCoursesEvent());
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Purchase transaction failed. Please try again.'),
           backgroundColor: AppColors.error,
         ),
@@ -400,7 +400,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                       children: [
                         Text(
                           course.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -419,7 +419,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                   ),
                                   child: Text(
                                     course.category!,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.primary,
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
@@ -437,7 +437,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                   ),
                                   child: Text(
                                     course.difficulty!,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.textSecondary,
                                       fontSize: 11,
                                     ),
@@ -462,7 +462,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
               if (course.description != null) ...[
                 Text(
                   course.description!,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -478,7 +478,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                     children: [
                       Text(
                         '${course.cardCount} ${AppLocalizations.of(context).cardsCount}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w500,
                           fontSize: 14,
@@ -512,7 +512,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         backgroundColor: AppColors.courseDownloaded.withOpacity(0.15),
         foregroundColor: AppColors.courseDownloaded,
-        side: const BorderSide(color: AppColors.courseDownloaded, width: 1),
+        side: BorderSide(color: AppColors.courseDownloaded, width: 1),
       ).build(
         context,
         child: Row(
@@ -544,7 +544,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
           backgroundColor: AppColors.surface,
         ),
         onPressed: null,
-        child: const SizedBox(
+        child: SizedBox(
           width: 18,
           height: 18,
           child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),

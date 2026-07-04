@@ -179,8 +179,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             context: context,
             builder: (context) => AlertDialog(
               backgroundColor: AppColors.surface,
-              title: Text(loc.favorites, style: const TextStyle(color: AppColors.textPrimary)),
-              content: Text(loc.noDownloadedCourses, style: const TextStyle(color: AppColors.textSecondary)),
+              title: Text(loc.favorites, style: TextStyle(color: AppColors.textPrimary)),
+              content: Text(loc.noDownloadedCourses, style: TextStyle(color: AppColors.textSecondary)),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.confirm)),
               ],
@@ -198,7 +198,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(color: AppColors.border),
               ),
-              title: Text(loc.selectCourse, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+              title: Text(loc.selectCourse, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
               content: SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
@@ -207,8 +207,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   itemBuilder: (context, idx) {
                     final course = downloaded[idx];
                     return ListTile(
-                      title: Text(course.title, style: const TextStyle(color: AppColors.textPrimary)),
-                      trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
+                      title: Text(course.title, style: TextStyle(color: AppColors.textPrimary)),
+                      trailing: Icon(Icons.chevron_right, color: AppColors.primary),
                       onTap: () {
                         Navigator.pop(context);
                         Navigator.push(
@@ -267,7 +267,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     CircleAvatar(
                       radius: 30,
                       backgroundColor: AppColors.primary.withOpacity(0.2),
-                      child: const Icon(Icons.person, size: 36, color: AppColors.primary),
+                      child: Icon(Icons.person, size: 36, color: AppColors.primary),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -276,7 +276,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Text(
                             '${loc.welcomeBack} $_username!',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.textPrimary,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -285,7 +285,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 6),
                           Text(
                             '$_educationalField • $_educationalLevel',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 13,
                             ),
@@ -335,7 +335,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 return Container(
                                   color: AppColors.surface,
                                   alignment: Alignment.center,
-                                  child: const Column(
+                                  child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(Icons.broken_image, color: AppColors.textSecondary, size: 36),
@@ -347,7 +347,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               },
                               loadingBuilder: (context, child, loadingProgress) {
                                 if (loadingProgress == null) return child;
-                                return const Center(
+                                return Center(
                                   child: CircularProgressIndicator(color: AppColors.primary),
                                 );
                               },
@@ -444,7 +444,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               Text(
                 loc.quickHub,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -588,7 +588,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,

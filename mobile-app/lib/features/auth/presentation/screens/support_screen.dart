@@ -53,12 +53,12 @@ class _SupportScreenState extends State<SupportScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           loc.helpAndSupport,
-          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
@@ -80,15 +80,15 @@ class _SupportScreenState extends State<SupportScreen> {
                   child: Column(
                     children: [
                       ListTile(
-                        leading: const Icon(Icons.email, color: AppColors.primary),
-                        title: Text(loc.emailSupport, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-                        subtitle: const Text('support@leitnerplatform.com', style: TextStyle(color: AppColors.textSecondary)),
+                        leading: Icon(Icons.email, color: AppColors.primary),
+                        title: Text(loc.emailSupport, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+                        subtitle: Text('support@leitnerplatform.com', style: TextStyle(color: AppColors.textSecondary)),
                       ),
                       const Divider(color: Color(0xFF333E56), height: 1),
                       ListTile(
-                        leading: const Icon(Icons.phone, color: AppColors.primary),
-                        title: Text(loc.phoneSupport, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-                        subtitle: const Text('+98 21 8888 8888', textDirection: TextDirection.ltr, style: TextStyle(color: AppColors.textSecondary)),
+                        leading: Icon(Icons.phone, color: AppColors.primary),
+                        title: Text(loc.phoneSupport, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+                        subtitle: Text('+98 21 8888 8888', textDirection: TextDirection.ltr, style: TextStyle(color: AppColors.textSecondary)),
                       ),
                     ],
                   ),
@@ -98,7 +98,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
               Text(
                 loc.submitATicket,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
 
@@ -106,16 +106,16 @@ class _SupportScreenState extends State<SupportScreen> {
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   labelText: loc.contactEmail,
-                  labelStyle: const TextStyle(color: AppColors.textSecondary),
+                  labelStyle: TextStyle(color: AppColors.textSecondary),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.border),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: AppColors.primary),
+                    borderSide: BorderSide(color: AppColors.primary),
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
@@ -131,17 +131,17 @@ class _SupportScreenState extends State<SupportScreen> {
               TextFormField(
                 controller: _messageController,
                 maxLines: 6,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   labelText: loc.howCanWeHelp,
-                  labelStyle: const TextStyle(color: AppColors.textSecondary),
+                  labelStyle: TextStyle(color: AppColors.textSecondary),
                   alignLabelWithHint: true,
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.border),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: AppColors.primary),
+                    borderSide: BorderSide(color: AppColors.primary),
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),

@@ -101,22 +101,22 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           loc.finishedCards,
-          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.primary),
+            icon: Icon(Icons.refresh, color: AppColors.primary),
             onPressed: _loadFinishedCards,
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _finishedCards.isEmpty
               ? Center(
                   child: Padding(
@@ -132,7 +132,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                         const SizedBox(height: 16),
                         Text(
                           loc.noFinishedCardsTitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -141,7 +141,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                         const SizedBox(height: 8),
                         Text(
                           loc.noFinishedCardsDesc,
-                          style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+                          style: TextStyle(color: AppColors.textSecondary, height: 1.4),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -157,7 +157,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                         children: [
                           Text(
                             loc.reviewingMasteredCards,
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -168,7 +168,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                             ),
                             child: Text(
                               '${loc.cardPrefix}${_currentIndex + 1}/${_finishedCards.length}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.finished,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
@@ -227,7 +227,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                                               _showAnswer
                                                   ? _finishedCards[_currentIndex].answerText
                                                   : _finishedCards[_currentIndex].questionText,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 color: AppColors.textPrimary,
                                                 fontSize: 20,
                                                 height: 1.5,
@@ -238,7 +238,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                                         ),
                                       ),
                                       const SizedBox(height: 16),
-                                      const Icon(
+                                      Icon(
                                         Icons.touch_app,
                                         size: 16,
                                         color: AppColors.textSecondary,
@@ -246,7 +246,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                                       const SizedBox(height: 4),
                                       Text(
                                         loc.tapCardToFlip,
-                                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                        style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
                                       ),
                                     ],
                                   ),
@@ -299,7 +299,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                             ),
                             Text(
                               loc.tapCardToShowAnswer,
-                              style: const TextStyle(color: AppColors.textSecondary),
+                              style: TextStyle(color: AppColors.textSecondary),
                             ),
                             IconButton(
                               icon: Icon(Directionality.of(context) == TextDirection.rtl ? Icons.arrow_back_ios : Icons.arrow_forward_ios, color: AppColors.primary),

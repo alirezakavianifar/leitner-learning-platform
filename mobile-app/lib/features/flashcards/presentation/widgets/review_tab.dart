@@ -68,7 +68,7 @@ class _ReviewTabState extends State<ReviewTab> {
     final loc = AppLocalizations.of(context);
 
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
     if (_downloadedCourses.isEmpty) {
@@ -82,12 +82,12 @@ class _ReviewTabState extends State<ReviewTab> {
               const SizedBox(height: 16),
               Text(
                 loc.noDownloadedCoursesTitle,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
                 loc.noDownloadedCoursesDesc,
-                style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+                style: TextStyle(color: AppColors.textSecondary, height: 1.4),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -125,7 +125,7 @@ class _ReviewTabState extends State<ReviewTab> {
                       Expanded(
                         child: Text(
                           course.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -168,7 +168,7 @@ class _ReviewTabState extends State<ReviewTab> {
                   const SizedBox(height: 8),
                   Text(
                     '${course.cardCount} ${loc.totalCardsCount}',
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   ),
                   const SizedBox(height: 16),
                   const Divider(color: Color(0xFF333E56), height: 1),
@@ -180,7 +180,7 @@ class _ReviewTabState extends State<ReviewTab> {
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.box2,
-                          side: const BorderSide(color: AppColors.box2),
+                          side: BorderSide(color: AppColors.box2),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: () async {

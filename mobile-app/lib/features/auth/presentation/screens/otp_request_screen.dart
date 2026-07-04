@@ -114,10 +114,10 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                                 backgroundColor: AppColors.surfaceWithOpacity,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                               ),
-                              icon: const Icon(Icons.language, color: AppColors.primary, size: 20),
+                              icon: Icon(Icons.language, color: AppColors.primary, size: 20),
                               label: Text(
                                 isPersian ? 'English' : 'فارسی',
-                                style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
                               ),
                               onPressed: () {
                                 final newLocale = isPersian ? const Locale('en') : const Locale('fa');
@@ -149,11 +149,11 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
-                        style: const TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: loc.mobileNumber,
                           hintText: '09123456789',
-                          prefixIcon: const Icon(Icons.phone_android, color: AppColors.textSecondary),
+                          prefixIcon: Icon(Icons.phone_android, color: AppColors.textSecondary),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -203,7 +203,7 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                                   ),
                                   const SizedBox(width: 12),
                                   IconButton(
-                                    icon: const Icon(Icons.refresh, color: AppColors.secondary),
+                                    icon: Icon(Icons.refresh, color: AppColors.secondary),
                                     tooltip: 'Refresh CAPTCHA',
                                     onPressed: isLoading
                                         ? null
@@ -217,11 +217,11 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                               TextFormField(
                                 controller: _captchaController,
                                 keyboardType: TextInputType.text,
-                                style: const TextStyle(color: AppColors.textPrimary),
+                                style: TextStyle(color: AppColors.textPrimary),
                                 decoration: InputDecoration(
                                   labelText: loc.captchaAnswer,
                                   hintText: '?',
-                                  prefixIcon: const Icon(Icons.security, color: AppColors.textSecondary),
+                                  prefixIcon: Icon(Icons.security, color: AppColors.textSecondary),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {

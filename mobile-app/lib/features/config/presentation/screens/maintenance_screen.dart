@@ -26,7 +26,7 @@ class MaintenanceScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 2),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.construction_rounded,
                     size: 64,
                     color: AppColors.primary,
@@ -63,8 +63,8 @@ class MaintenanceScreen extends StatelessWidget {
                   onPressed: () {
                     context.read<ConfigBloc>().add(LoadConfigEvent());
                   },
-                  icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
-                  label: const Text(
+                  icon: Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+                  label: Text(
                     'Check Again',
                     style: TextStyle(
                       color: AppColors.textPrimary,

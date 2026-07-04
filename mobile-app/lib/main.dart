@@ -9,6 +9,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/core/localization/locale_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/app/theme_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
@@ -60,6 +61,9 @@ class MyApp extends StatelessWidget {
         BlocProvider<LocaleBloc>(
           create: (_) => di.sl<LocaleBloc>()..add(LoadSavedLocaleEvent()),
         ),
+        BlocProvider<ThemeBloc>(
+          create: (_) => di.sl<ThemeBloc>()..add(LoadThemeEvent()),
+        ),
         BlocProvider<ConfigBloc>(
           create: (_) => di.sl<ConfigBloc>()..add(LoadConfigEvent()),
         ),
@@ -69,23 +73,27 @@ class MyApp extends StatelessWidget {
       ],
       child: BlocBuilder<LocaleBloc, LocaleState>(
         builder: (context, localeState) {
-          return MaterialApp(
-            title: 'Leitner Learning Platform',
-            theme: AppTheme.darkTheme,
-            debugShowCheckedModeBanner: false,
-            locale: localeState.locale,
-            supportedLocales: const [
-              Locale('fa', 'IR'),
-              Locale('en', 'US'),
-            ],
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            home: isJailbroken ? const SecurityBlockScreen() : const AppGate(),
-            navigatorKey: navigatorKey,
+          return BlocBuilder<ThemeBloc, ThemeState>(
+            builder: (context, themeState) {
+              return MaterialApp(
+                title: 'Leitner Learning Platform',
+                theme: themeState.themeData,
+                debugShowCheckedModeBanner: false,
+                locale: localeState.locale,
+                supportedLocales: const [
+                  Locale('fa', 'IR'),
+                  Locale('en', 'US'),
+                ],
+                localizationsDelegates: const [
+                  AppLocalizations.delegate,
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                ],
+                home: isJailbroken ? const SecurityBlockScreen() : const AppGate(),
+                navigatorKey: navigatorKey,
+              );
+            },
           );
         },
       ),
@@ -105,7 +113,7 @@ class AppGate extends StatelessWidget {
         }
 
         if (state is ConfigLoading || state is ConfigInitial) {
-          return const Scaffold(
+          return Scaffold(
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -163,7 +171,7 @@ class AuthGate extends StatelessWidget {
         }
         
         // Boot loading screen
-        return const Scaffold(
+        return Scaffold(
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

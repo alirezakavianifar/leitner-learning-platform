@@ -79,7 +79,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -157,7 +157,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       maxLength: 5,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 24,
                         letterSpacing: 8,
@@ -166,7 +166,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                       ],
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: '•••••',
                         counterText: '',
                         prefixIcon: Icon(Icons.lock_outline, color: AppColors.textSecondary),
@@ -188,7 +188,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                 // Pop back to OTP request screen so they can request with a new CAPTCHA
                                 Navigator.pop(context);
                               },
-                              child: const Text(
+                              child: Text(
                                 'Resend Code',
                                 style: TextStyle(
                                   color: AppColors.secondary,

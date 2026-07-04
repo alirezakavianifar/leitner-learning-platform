@@ -145,7 +145,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(color: AppColors.border),
           ),
-          title: const Row(
+          title: Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: AppColors.box1),
               SizedBox(width: 8),
@@ -159,12 +159,12 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
             'Card #${card.cardNumber} is currently in Leitner Box $currentBox. '
             'Viewing it directly will reset its learning progress back to Box 1.\n\n'
             'Do you want to proceed?',
-            style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx, false),
-              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+              child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
@@ -214,21 +214,21 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Typo-Tolerant Search',
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
       body: _isLoadingCourses
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _errorMessage != null
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
-                    child: Text(_errorMessage!, style: const TextStyle(color: AppColors.error)),
+                    child: Text(_errorMessage!, style: TextStyle(color: AppColors.error)),
                   ),
                 )
               : Padding(
@@ -237,7 +237,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 12),
-                      const Text(
+                      Text(
                         'Step 1: Select Courses',
                         style: TextStyle(
                           color: AppColors.textPrimary,
@@ -252,10 +252,10 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                         onChanged: _onCourseSearchChanged,
                         decoration: InputDecoration(
                           hintText: 'Filter courses...',
-                          prefixIcon: const Icon(Icons.library_books, color: AppColors.textSecondary),
+                          prefixIcon: Icon(Icons.library_books, color: AppColors.textSecondary),
                           suffixIcon: _courseController.text.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.clear, color: AppColors.textSecondary),
+                                  icon: Icon(Icons.clear, color: AppColors.textSecondary),
                                   onPressed: () {
                                     _courseController.clear();
                                     _onCourseSearchChanged('');
@@ -263,14 +263,14 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                 )
                               : null,
                         ),
-                        style: const TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 12),
                       // Matching courses list with checkboxes
                       SizedBox(
                         height: 90,
                         child: _filteredCourses.isEmpty
-                            ? const Center(
+                            ? Center(
                                 child: Text(
                                   'No downloaded courses found.',
                                   style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
@@ -323,7 +323,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                               ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'Step 2: Search Cards Inside Selection',
                         style: TextStyle(
                           color: AppColors.textPrimary,
@@ -341,10 +341,10 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                           hintText: _selectedCourseIds.isEmpty
                               ? 'Please select one or more courses first'
                               : 'Search card contents or numbers...',
-                          prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                          prefixIcon: Icon(Icons.search, color: AppColors.textSecondary),
                           suffixIcon: _cardController.text.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.clear, color: AppColors.textSecondary),
+                                  icon: Icon(Icons.clear, color: AppColors.textSecondary),
                                   onPressed: () {
                                     _cardController.clear();
                                     _onCardSearchChanged('');
@@ -352,29 +352,29 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                 )
                               : null,
                         ),
-                        style: const TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 16),
                       // Card Results List
                       Expanded(
                         child: _isLoadingCards
-                            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                            ? Center(child: CircularProgressIndicator(color: AppColors.primary))
                             : _selectedCourseIds.isEmpty
-                                ? const Center(
+                                ? Center(
                                     child: Text(
                                       'Select courses above to begin searching.',
                                       style: TextStyle(color: AppColors.textSecondary),
                                     ),
                                   )
                                 : _cardController.text.trim().isEmpty
-                                    ? const Center(
+                                    ? Center(
                                         child: Text(
                                           'Type keywords or card number to show results.',
                                           style: TextStyle(color: AppColors.textSecondary),
                                         ),
                                       )
                                     : _filteredCards.isEmpty
-                                        ? const Center(
+                                        ? Center(
                                             child: Text(
                                               'No matching cards found.',
                                               style: TextStyle(color: AppColors.textSecondary),
@@ -403,7 +403,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                                     children: [
                                                       Text(
                                                         'Card #${card.cardNumber}',
-                                                        style: const TextStyle(
+                                                        style: TextStyle(
                                                           color: AppColors.textPrimary,
                                                           fontWeight: FontWeight.bold,
                                                         ),
@@ -431,12 +431,12 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                                         card.questionText,
                                                         maxLines: 2,
                                                         overflow: TextOverflow.ellipsis,
-                                                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                                                        style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                                                       ),
                                                       const SizedBox(height: 4),
                                                       Text(
                                                         'Course: ${course.title}',
-                                                        style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600),
+                                                        style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600),
                                                       ),
                                                     ],
                                                   ),

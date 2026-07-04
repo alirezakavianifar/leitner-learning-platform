@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/database/database_helper.dart';
 import 'package:mobile_app/injection_container.dart' as di;
@@ -20,6 +23,10 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
   int _studyIndex = 0;
   bool _showAnswer = false;
   late TabController _tabController;
+  
+  double _fontScale = 1.0;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlayingCustom = false;
 
   @override
   void initState() {
@@ -32,6 +39,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
   @override
   void dispose() {
     _tabController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -40,10 +48,12 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
     try {
       final db = await _databaseHelper.localDatabase;
       final results = await db.query('user_created_cards', orderBy: 'id DESC');
+      final prefs = di.sl<SharedPreferences>();
       setState(() {
         _customCards = results;
         _isLoading = false;
         _showAnswer = false;
+        _fontScale = prefs.getDouble('flashcard_font_scale') ?? 1.0;
         if (_studyIndex >= results.length) {
           _studyIndex = 0;
         }
@@ -58,8 +68,8 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Delete Custom Card', style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('Are you sure you want to delete this card? This action cannot be undone.', style: TextStyle(color: AppColors.textSecondary)),
+        title: Text('Delete Custom Card', style: TextStyle(color: AppColors.textPrimary)),
+        content: Text('Are you sure you want to delete this card? This action cannot be undone.', style: TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -73,11 +83,42 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
 
     if (confirmed == true) {
       final db = await _databaseHelper.localDatabase;
+      // Get paths to delete physical files too
+      final card = _customCards.firstWhere((c) => c['id'] == id);
+      final imgPath = card['image_path'] as String?;
+      final audPath = card['audio_path'] as String?;
+      
+      if (imgPath != null && File(imgPath).existsSync()) {
+        try { File(imgPath).deleteSync(); } catch (_) {}
+      }
+      if (audPath != null && File(audPath).existsSync()) {
+        try { File(audPath).deleteSync(); } catch (_) {}
+      }
+
       await db.delete('user_created_cards', where: 'id = ?', whereArgs: [id]);
       _loadCustomCards();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Card deleted.'), backgroundColor: AppColors.error),
+        SnackBar(content: Text('Card deleted.'), backgroundColor: AppColors.error),
       );
+    }
+  }
+
+  Future<void> _playCustomAudio(String path) async {
+    try {
+      if (_isPlayingCustom) {
+        await _audioPlayer.stop();
+        setState(() => _isPlayingCustom = false);
+      } else {
+        setState(() => _isPlayingCustom = true);
+        await _audioPlayer.play(DeviceFileSource(path));
+        _audioPlayer.onPlayerComplete.listen((_) {
+          if (mounted) {
+            setState(() => _isPlayingCustom = false);
+          }
+        });
+      }
+    } catch (_) {
+      setState(() => _isPlayingCustom = false);
     }
   }
 
@@ -89,16 +130,16 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'My Custom Cards',
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add, color: AppColors.primary),
+            icon: Icon(Icons.add, color: AppColors.primary),
             onPressed: () async {
               final created = await Navigator.push(
                 context,
@@ -122,7 +163,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _customCards.isEmpty
               ? _buildEmptyState()
               : TabBarView(
@@ -144,13 +185,13 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
           children: [
             Icon(Icons.add_card, size: 64, color: AppColors.secondary.withOpacity(0.5)),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No Custom Cards Found',
               style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Create your own custom cards and study them locally. Privacy locked on your device.',
+            Text(
+              'Create your own custom cards with images and voice recording, and study them locally.',
               style: TextStyle(color: AppColors.textSecondary, height: 1.4),
               textAlign: TextAlign.center,
             ),
@@ -185,6 +226,8 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
       itemCount: _customCards.length,
       itemBuilder: (context, index) {
         final card = _customCards[index];
+        final imgPath = card['image_path'] as String?;
+        
         return Card(
           margin: const EdgeInsets.only(bottom: 16),
           color: AppColors.surface.withOpacity(0.6),
@@ -208,25 +251,39 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                       ),
                       child: Text(
                         card['course_title'] as String? ?? 'Custom Card',
-                        style: const TextStyle(color: AppColors.secondary, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: AppColors.secondary, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
+                      icon: Icon(Icons.delete_outline, color: AppColors.error, size: 20),
                       onPressed: () => _deleteCard(card['id'] as int),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                const Text('QUESTION', style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(card['question_text'] as String, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15)),
+                Text('QUESTION', style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                if (imgPath != null && File(imgPath).existsSync()) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        File(imgPath),
+                        height: 120,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ],
+                Text(card['question_text'] as String, style: TextStyle(color: AppColors.textPrimary, fontSize: 15)),
                 const SizedBox(height: 12),
-                const Divider(color: Color(0xFF333E56), height: 1),
+                Divider(color: AppColors.border, height: 1),
                 const SizedBox(height: 12),
-                const Text('ANSWER', style: TextStyle(color: AppColors.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(card['answer_text'] as String, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                Text('ANSWER', style: TextStyle(color: AppColors.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Text(card['answer_text'] as String, style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
               ],
             ),
           ),
@@ -237,6 +294,9 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
 
   Widget _buildStudyModeTab() {
     final card = _customCards[_studyIndex];
+    final imgPath = card['image_path'] as String?;
+    final audPath = card['audio_path'] as String?;
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -246,11 +306,11 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
             children: [
               Text(
                 card['course_title'] as String? ?? 'Custom Card',
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
               Text(
                 'Card ${_studyIndex + 1}/${_customCards.length}',
-                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -296,7 +356,24 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                               letterSpacing: 1.5,
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
+                          
+                          // Display attached card image if present
+                          if (imgPath != null && File(imgPath).existsSync()) ...[
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.file(
+                                  File(imgPath),
+                                  height: 140,
+                                  width: double.infinity,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          ],
+                          
                           Expanded(
                             child: Center(
                               child: SingleChildScrollView(
@@ -304,9 +381,9 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                                   _showAnswer
                                       ? card['answer_text'] as String
                                       : card['question_text'] as String,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.textPrimary,
-                                    fontSize: 20,
+                                    fontSize: 20 * _fontScale,
                                     height: 1.5,
                                   ),
                                   textAlign: TextAlign.center,
@@ -314,10 +391,26 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                               ),
                             ),
                           ),
+                          
+                          // Audio control buttons
+                          if (audPath != null && File(audPath).existsSync()) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: Icon(_isPlayingCustom ? Icons.pause : Icons.volume_up, color: AppColors.primary, size: 24),
+                                onPressed: () => _playCustomAudio(audPath),
+                              ),
+                            ),
+                          ],
+                          
                           const SizedBox(height: 16),
-                          const Icon(Icons.touch_app, size: 16, color: AppColors.textSecondary),
+                          Icon(Icons.touch_app, size: 16, color: AppColors.textSecondary),
                           const SizedBox(height: 4),
-                          const Text('Tap card to flip', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                          Text('Tap card to flip', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
                         ],
                       ),
                     ),
@@ -331,19 +424,23 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_ios, color: AppColors.primary),
+                icon: Icon(Icons.arrow_back_ios, color: AppColors.primary),
                 onPressed: () {
+                  _audioPlayer.stop();
                   setState(() {
+                    _isPlayingCustom = false;
                     _showAnswer = false;
                     _studyIndex = (_studyIndex - 1 + _customCards.length) % _customCards.length;
                   });
                 },
               ),
-              const Text('Tap card to show answer', style: TextStyle(color: AppColors.textSecondary)),
+              Text('Tap card to show answer', style: TextStyle(color: AppColors.textSecondary)),
               IconButton(
-                icon: const Icon(Icons.arrow_forward_ios, color: AppColors.primary),
+                icon: Icon(Icons.arrow_forward_ios, color: AppColors.primary),
                 onPressed: () {
+                  _audioPlayer.stop();
                   setState(() {
+                    _isPlayingCustom = false;
                     _showAnswer = false;
                     _studyIndex = (_studyIndex + 1) % _customCards.length;
                   });

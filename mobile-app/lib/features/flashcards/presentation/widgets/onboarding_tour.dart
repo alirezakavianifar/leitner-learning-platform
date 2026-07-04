@@ -95,7 +95,7 @@ class _OnboardingTourState extends State<OnboardingTour> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Row(
+                    Row(
                       children: [
                         Icon(Icons.school, color: AppColors.primary),
                         SizedBox(width: 8),
@@ -111,7 +111,7 @@ class _OnboardingTourState extends State<OnboardingTour> {
                     ),
                     Text(
                       '${_currentStep + 1} / 14',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -230,7 +230,7 @@ class _OnboardingTourState extends State<OnboardingTour> {
                 color: AppColors.primary.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.calendar_month_outlined,
                 color: AppColors.primary,
                 size: 48,
@@ -238,7 +238,7 @@ class _OnboardingTourState extends State<OnboardingTour> {
             ),
           ),
           const SizedBox(height: 20),
-          const Center(
+          Center(
             child: Text(
               'Leitner Spaced Repetition',
               style: TextStyle(
@@ -249,7 +249,7 @@ class _OnboardingTourState extends State<OnboardingTour> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'The Leitner platform optimizes memory retention by spacing review intervals across 5 distinct boxes:',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5),
             textAlign: TextAlign.center,
@@ -278,7 +278,7 @@ class _OnboardingTourState extends State<OnboardingTour> {
                 color: AppColors.secondary.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.palette_outlined,
                 color: AppColors.secondary,
                 size: 48,
@@ -286,7 +286,7 @@ class _OnboardingTourState extends State<OnboardingTour> {
             ),
           ),
           const SizedBox(height: 20),
-          const Center(
+          Center(
             child: Text(
               'Leitner Box Colors',
               style: TextStyle(
@@ -297,7 +297,7 @@ class _OnboardingTourState extends State<OnboardingTour> {
             ),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Throughout the application, cards and progress states are color-coded to indicate their current Leitner Box status:',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5),
             textAlign: TextAlign.center,
@@ -336,7 +336,7 @@ class _OnboardingTourState extends State<OnboardingTour> {
           const SizedBox(height: 28),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -346,7 +346,7 @@ class _OnboardingTourState extends State<OnboardingTour> {
           const SizedBox(height: 16),
           Text(
             description,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
               height: 1.6,
@@ -383,12 +383,12 @@ class _OnboardingTourState extends State<OnboardingTour> {
             style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
           ),
           const SizedBox(width: 8),
-          const Text('•', style: TextStyle(color: AppColors.textSecondary)),
+          Text('•', style: TextStyle(color: AppColors.textSecondary)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               '$duration ($info)',
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
           ),
         ],
@@ -427,12 +427,12 @@ class _OnboardingTourState extends State<OnboardingTour> {
             children: [
               Text(
                 colorName,
-                style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
+                style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
               ),
               const SizedBox(height: 2),
               Text(
                 desc,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
               ),
             ],
           ),

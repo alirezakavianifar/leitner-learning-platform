@@ -63,11 +63,11 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
           ),
           title: Text(
             loc.logout,
-            style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
           ),
           content: Text(
             loc.logoutConfirm,
-            style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
           actions: [
             TextButton(
@@ -80,7 +80,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
               onPressed: () => Navigator.pop(dialogContext),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text(loc.cancel, style: const TextStyle(color: AppColors.textPrimary)),
+                child: Text(loc.cancel, style: TextStyle(color: AppColors.textPrimary)),
               ),
             ),
             ElevatedButton(
@@ -129,7 +129,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
           actions: [
             if (_currentIndex == 2)
               IconButton(
-                icon: const Icon(Icons.search, color: AppColors.primary),
+                icon: Icon(Icons.search, color: AppColors.primary),
                 tooltip: 'Search',
                 onPressed: () {
                   Navigator.push(
@@ -139,12 +139,12 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                 },
               ),
             IconButton(
-              icon: const Icon(Icons.help_outline, color: AppColors.primary),
+              icon: Icon(Icons.help_outline, color: AppColors.primary),
               tooltip: 'Tutorial',
               onPressed: () => OnboardingTour.showIfNeeded(context, force: true),
             ),
             IconButton(
-              icon: const Icon(Icons.logout, color: AppColors.error),
+              icon: Icon(Icons.logout, color: AppColors.error),
               tooltip: loc.logout,
               onPressed: () => _showLogoutConfirmation(context),
             ),

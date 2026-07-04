@@ -1,8 +1,11 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_windowmanager/flutter_windowmanager.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:mobile_app/app/theme.dart';
@@ -33,6 +36,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
   late AnimationController _flipController;
   late AudioPlayer _audioPlayer;
   String? _documentsPath;
+  double _fontScale = 1.0;
 
   @override
   void initState() {
@@ -43,17 +47,33 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
     );
     _audioPlayer = AudioPlayer();
     _loadDocumentsPath();
+    _enableSecureMode();
+  }
+
+  Future<void> _enableSecureMode() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+    }
+  }
+
+  Future<void> _disableSecureMode() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      await FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+    }
   }
 
   Future<void> _loadDocumentsPath() async {
     final dir = await getApplicationDocumentsDirectory();
+    final prefs = di.sl<SharedPreferences>();
     setState(() {
       _documentsPath = dir.path;
+      _fontScale = prefs.getDouble('flashcard_font_scale') ?? 1.0;
     });
   }
 
   @override
   void dispose() {
+    _disableSecureMode();
     _flipController.dispose();
     _audioPlayer.dispose();
     super.dispose();
@@ -68,7 +88,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
         await _audioPlayer.play(DeviceFileSource(audioFilePath));
       } catch (_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Failed to play card audio file.'),
             backgroundColor: AppColors.error,
           ),
@@ -88,19 +108,19 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: AppColors.border),
         ),
-        title: Text(loc.directCardJump, style: const TextStyle(color: AppColors.textPrimary)),
+        title: Text(loc.directCardJump, style: TextStyle(color: AppColors.textPrimary)),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
             hintText: loc.enterCardNumberHint,
           ),
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: Text(loc.cancel, style: const TextStyle(color: AppColors.textSecondary)),
+            child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
@@ -129,19 +149,19 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: AppColors.border),
         ),
-        title: Text(loc.submitReport, style: const TextStyle(color: AppColors.textPrimary)),
+        title: Text(loc.submitReport, style: TextStyle(color: AppColors.textPrimary)),
         content: TextField(
           controller: controller,
           maxLines: 3,
           decoration: InputDecoration(
             hintText: loc.reportHint,
           ),
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: AppColors.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: Text(loc.cancel, style: const TextStyle(color: AppColors.textSecondary)),
+            child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
@@ -171,14 +191,14 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
         ),
         title: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: AppColors.box1),
+            Icon(Icons.warning_amber_rounded, color: AppColors.box1),
             const SizedBox(width: 8),
-            Text(loc.warning, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+            Text(loc.warning, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Text(
           loc.jumpWarningMsg,
-          style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+          style: TextStyle(color: AppColors.textSecondary, height: 1.4),
         ),
         actions: [
           TextButton(
@@ -187,7 +207,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
               // Discard jump request
               bloc.add(LoadFlashcardQueue(widget.courseId));
             },
-            child: Text(loc.cancel, style: const TextStyle(color: AppColors.textSecondary)),
+            child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
@@ -257,12 +277,12 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+            icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
             widget.courseTitle,
-            style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
           ),
         ),
         body: BlocConsumer<FlashcardBloc, FlashcardState>(
@@ -294,7 +314,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
             final loc = AppLocalizations.of(context);
 
             if (state is FlashcardLoading) {
-              return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+              return Center(child: CircularProgressIndicator(color: AppColors.primary));
             }
 
             if (state is FlashcardFinished) {
@@ -310,17 +330,17 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                           color: AppColors.secondary.withOpacity(0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.emoji_events, color: AppColors.secondary, size: 64),
+                        child: Icon(Icons.emoji_events, color: AppColors.secondary, size: 64),
                       ),
                       const SizedBox(height: 24),
                       Text(
                         loc.studyLoopComplete,
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         loc.studyLoopCompleteDesc,
-                        style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
+                        style: TextStyle(color: AppColors.textSecondary, height: 1.5),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
@@ -356,7 +376,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                       children: [
                         Text(
                           loc.reviewQueue,
-                          style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                          style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -502,7 +522,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                 children: [
                                   Text(
                                     '${loc.cardPrefix}${card.cardNumber}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
@@ -511,7 +531,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                   const SizedBox(width: 6),
                                   Text(
                                     '(${state.currentIndex + 1}/${state.queue.length})',
-                                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                    style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
                                   ),
                                 ],
                               ),
@@ -528,7 +548,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                 onPressed: () => context.read<FlashcardBloc>().add(ToggleFavorite()),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.flag_outlined, color: AppColors.textSecondary),
+                                icon: Icon(Icons.flag_outlined, color: AppColors.textSecondary),
                                 onPressed: () => _showReportDialog(context, context.read<FlashcardBloc>()),
                               ),
                             ],
@@ -560,92 +580,124 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
 
   Widget _buildCardFace(Flashcard card, {required bool isFront}) {
     final loc = AppLocalizations.of(context);
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+    final prefs = di.sl<SharedPreferences>();
+    final username = prefs.getString('user_username') ?? 'User';
+    final mobile = prefs.getString('user_mobile_number') ?? '';
+    final maskedMobile = mobile.length > 6 
+        ? '${mobile.substring(0, mobile.length - 7)}***${mobile.substring(mobile.length - 4)}' 
+        : mobile;
+    final watermarkText = '$username ($maskedMobile)';
+
+    return Stack(
+      children: [
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.border, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Section header indicating front/back
-          Text(
-            isFront ? loc.questionLabel : loc.answerLabel,
-            style: TextStyle(
-              color: isFront ? AppColors.primary : AppColors.secondary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Conditional image rendering (Front only, or both if needed)
-          if (isFront && card.imageUrl != null && card.imageUrl!.trim().isNotEmpty && _documentsPath != null) ...[
-            FutureBuilder<String>(
-              future: Future.value(p.join(_documentsPath!, 'courses', widget.courseId, 'images', card.imageUrl!)),
-              builder: (context, snapshot) {
-                if (snapshot.hasData && File(snapshot.data!).existsSync()) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 20.0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.file(
-                        File(snapshot.data!),
-                        height: 180,
-                        width: double.infinity,
-                        fit: BoxFit.contain,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Section header indicating front/back
+              Text(
+                isFront ? loc.questionLabel : loc.answerLabel,
+                style: TextStyle(
+                  color: isFront ? AppColors.primary : AppColors.secondary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Conditional image rendering (Front only, or both if needed)
+              if (isFront && card.imageUrl != null && card.imageUrl!.trim().isNotEmpty && _documentsPath != null) ...[
+                FutureBuilder<String>(
+                  future: Future.value(p.join(_documentsPath!, 'courses', widget.courseId, 'images', card.imageUrl!)),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && File(snapshot.data!).existsSync()) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 20.0),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.file(
+                            File(snapshot.data!),
+                            height: 180,
+                            width: double.infinity,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ],
+              // Main text
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    child: Text(
+                      isFront ? card.questionText : card.answerText,
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 20 * _fontScale,
+                        height: 1.5,
+                        fontWeight: FontWeight.w500,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ],
-          // Main text
-          Expanded(
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Conditional audio player rendering (Front only)
+              if (isFront && card.audioUrl != null && card.audioUrl!.trim().isNotEmpty) ...[
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(Icons.volume_up, color: AppColors.primary, size: 28),
+                    onPressed: () => _playAudio(card.audioUrl!),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        IgnorePointer(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Center(
-              child: SingleChildScrollView(
+              child: Transform.rotate(
+                angle: -0.4,
                 child: Text(
-                  isFront ? card.questionText : card.answerText,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 20,
-                    height: 1.5,
-                    fontWeight: FontWeight.w500,
+                  watermarkText,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.04),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2.0,
                   ),
                   textAlign: TextAlign.center,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          // Conditional audio player rendering (Front only)
-          if (isFront && card.audioUrl != null && card.audioUrl!.trim().isNotEmpty) ...[
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.volume_up, color: AppColors.primary, size: 28),
-                onPressed: () => _playAudio(card.audioUrl!),
-              ),
-            ),
-          ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

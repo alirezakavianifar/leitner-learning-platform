@@ -121,7 +121,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                         style: TextStyle(color: AppColors.textPrimary.withOpacity(0.6)),
                         decoration: InputDecoration(
                           labelText: loc.mobileReadonly,
-                          prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
+                          prefixIcon: Icon(Icons.lock_outline, color: AppColors.textSecondary),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -129,10 +129,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       // Username
                       TextFormField(
                         controller: _usernameController,
-                        style: const TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: loc.username,
-                          prefixIcon: const Icon(Icons.person_outline, color: AppColors.textSecondary),
+                          prefixIcon: Icon(Icons.person_outline, color: AppColors.textSecondary),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
@@ -146,10 +146,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       // Interests
                       TextFormField(
                         controller: _interestsController,
-                        style: const TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: loc.interests,
-                          prefixIcon: const Icon(Icons.interests_outlined, color: AppColors.textSecondary),
+                          prefixIcon: Icon(Icons.interests_outlined, color: AppColors.textSecondary),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -157,10 +157,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       // Educational Field
                       TextFormField(
                         controller: _fieldController,
-                        style: const TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: loc.educationalField,
-                          prefixIcon: const Icon(Icons.school_outlined, color: AppColors.textSecondary),
+                          prefixIcon: Icon(Icons.school_outlined, color: AppColors.textSecondary),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -168,10 +168,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       // Educational Level
                       TextFormField(
                         controller: _levelController,
-                        style: const TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: loc.educationalLevel,
-                          prefixIcon: const Icon(Icons.grade_outlined, color: AppColors.textSecondary),
+                          prefixIcon: Icon(Icons.grade_outlined, color: AppColors.textSecondary),
                         ),
                       ),
                       const SizedBox(height: 40),

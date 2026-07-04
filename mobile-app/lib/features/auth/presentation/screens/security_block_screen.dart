@@ -15,7 +15,7 @@ class SecurityBlockScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.security_update_warning_rounded,
                 color: AppColors.error,
                 size: 80,
@@ -29,7 +29,7 @@ class SecurityBlockScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'For security and content protection reasons, the Leitner Learning Platform cannot be run on rooted or jailbroken devices.\n\nPlease use a secure, non-rooted device to access your courses and learning progress.',
                 textAlign: TextAlign.center,
                 style: TextStyle(

@@ -97,21 +97,21 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           loc.learningStatistics,
-          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _errorMessage != null
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
-                    child: Text(_errorMessage!, style: const TextStyle(color: AppColors.error)),
+                    child: Text(_errorMessage!, style: TextStyle(color: AppColors.error)),
                   ),
                 )
               : _totalCourses == 0
@@ -120,7 +120,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                         padding: const EdgeInsets.all(24.0),
                         child: Text(
                           loc.noDownloadedCoursesStats,
-                          style: const TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(color: AppColors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -142,7 +142,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             // 2. Global Leitner Box Distribution
                             Text(
                               loc.globalBoxDistribution,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -155,7 +155,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             // 3. Per-Course Statistics
                             Text(
                               loc.perCourseProgression,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -198,7 +198,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -207,7 +207,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.textSecondary,
             fontSize: 12,
           ),
@@ -275,12 +275,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               const SizedBox(width: 12),
-              Text(label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+              Text(label, style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
             ],
           ),
           Text(
             '$count ${loc.cardsUnit} (${pct.toStringAsFixed(1)}%)',
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -309,14 +309,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               Expanded(
                 child: Text(
                   course.title,
-                  style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(
                 '$sumCards ${loc.cardsUnit}',
-                style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -369,7 +369,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text('$label: $count', style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+        Text('$label: $count', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
       ],
     );
   }

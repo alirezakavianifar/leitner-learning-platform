@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/app/theme_bloc.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/core/localization/locale_bloc.dart';
 import 'package:mobile_app/core/services/backup_service.dart';
@@ -26,6 +27,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _mobileNumber = '';
   String _educationalField = 'General';
   String _educationalLevel = 'Learner';
+  double _fontScale = 1.0;
 
   List<FileSystemEntity> _backupFiles = [];
   bool _isLoadingBackups = true;
@@ -53,6 +55,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _mobileNumber = prefs.getString('user_mobile_number') ?? '';
       _educationalField = prefs.getString('user_educational_field') ?? 'General';
       _educationalLevel = prefs.getString('user_educational_level') ?? 'Learner';
+      _fontScale = prefs.getDouble('flashcard_font_scale') ?? 1.0;
+    });
+  }
+
+  Future<void> _changeFontScale(double scale) async {
+    final prefs = di.sl<SharedPreferences>();
+    await prefs.setDouble('flashcard_font_scale', scale);
+    setState(() {
+      _fontScale = scale;
     });
   }
 
@@ -62,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString('user_username', _usernameController.text.trim());
     
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated successfully!'), backgroundColor: AppColors.secondary),
+      SnackBar(content: Text('Profile updated successfully!'), backgroundColor: AppColors.secondary),
     );
     setState(() => _isSavingProfile = false);
   }
@@ -87,7 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final password = _passwordController.text;
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 6 characters.'), backgroundColor: AppColors.error),
+        SnackBar(content: Text('Password must be at least 6 characters.'), backgroundColor: AppColors.error),
       );
       return;
     }
@@ -116,12 +127,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final controller = TextEditingController();
         return AlertDialog(
           backgroundColor: AppColors.surface,
-          title: const Text('Enter Backup Password', style: TextStyle(color: AppColors.textPrimary)),
+          title: Text('Enter Backup Password', style: TextStyle(color: AppColors.textPrimary)),
           content: TextField(
             controller: controller,
             obscureText: true,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+            style: TextStyle(color: AppColors.textPrimary),
+            decoration: InputDecoration(
               hintText: 'Enter password used during export',
               hintStyle: TextStyle(color: AppColors.textSecondary),
             ),
@@ -144,7 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final success = await _backupService.importBackup(filePath, password);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Local database restored successfully!'), backgroundColor: AppColors.secondary),
+          SnackBar(content: Text('Local database restored successfully!'), backgroundColor: AppColors.secondary),
         );
         _loadProfile();
       }
@@ -160,8 +171,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Delete Backup', style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('Are you sure you want to delete this backup file?', style: TextStyle(color: AppColors.textSecondary)),
+        title: Text('Delete Backup', style: TextStyle(color: AppColors.textPrimary)),
+        content: Text('Are you sure you want to delete this backup file?', style: TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -193,11 +204,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           title: Text(
             loc.logout,
-            style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
           ),
           content: Text(
             loc.logoutConfirm,
-            style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
           actions: [
             TextButton(
@@ -210,7 +221,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () => Navigator.pop(dialogContext),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text(loc.cancel, style: const TextStyle(color: AppColors.textPrimary)),
+                child: Text(loc.cancel, style: TextStyle(color: AppColors.textPrimary)),
               ),
             ),
             ElevatedButton(
@@ -243,12 +254,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           loc.settings,
-          style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
@@ -272,11 +283,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.language, color: AppColors.primary),
+                          Icon(Icons.language, color: AppColors.primary),
                           const SizedBox(width: 10),
                           Text(
                             loc.language,
-                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -317,26 +328,198 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
             ),
+            const SizedBox(height: 16),
+
+            // Section 0.1: Theme Selection Card
+            BlocBuilder<ThemeBloc, ThemeState>(
+              builder: (context, themeState) {
+                final isFa = Localizations.localeOf(context).languageCode == 'fa';
+                final isLight = themeState.themeMode == ThemeMode.light;
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.palette_outlined, color: AppColors.primary),
+                          const SizedBox(width: 10),
+                          Text(
+                            isFa ? 'پوسته برنامه' : 'App Theme',
+                            style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: Center(
+                                child: Text(
+                                  isFa ? 'تیره' : 'Dark Mode',
+                                  style: TextStyle(
+                                    color: !isLight ? Colors.white : AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              selected: !isLight,
+                              selectedColor: AppColors.primary,
+                              backgroundColor: AppColors.background,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  context.read<ThemeBloc>().add(ChangeThemeEvent(ThemeMode.dark));
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: Center(
+                                child: Text(
+                                  isFa ? 'روشن' : 'Light Mode',
+                                  style: TextStyle(
+                                    color: isLight ? Colors.white : AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              selected: isLight,
+                              selectedColor: AppColors.primary,
+                              backgroundColor: AppColors.background,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  context.read<ThemeBloc>().add(ChangeThemeEvent(ThemeMode.light));
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Section 0.2: Font Size Adjustment Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.format_size, color: AppColors.primary),
+                      const SizedBox(width: 10),
+                      Text(
+                        Localizations.localeOf(context).languageCode == 'fa'
+                            ? 'اندازه قلم فلش‌کارت‌ها'
+                            : 'Flashcard Font Size',
+                        style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: Center(
+                            child: Text(
+                              Localizations.localeOf(context).languageCode == 'fa' ? 'کوچک' : 'Small',
+                              style: TextStyle(
+                                color: _fontScale == 0.85 ? Colors.white : AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          selected: _fontScale == 0.85,
+                          selectedColor: AppColors.primary,
+                          backgroundColor: AppColors.background,
+                          onSelected: (selected) {
+                            if (selected) _changeFontScale(0.85);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: Center(
+                            child: Text(
+                              Localizations.localeOf(context).languageCode == 'fa' ? 'معمولی' : 'Medium',
+                              style: TextStyle(
+                                color: _fontScale == 1.0 ? Colors.white : AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          selected: _fontScale == 1.0,
+                          selectedColor: AppColors.primary,
+                          backgroundColor: AppColors.background,
+                          onSelected: (selected) {
+                            if (selected) _changeFontScale(1.0);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: Center(
+                            child: Text(
+                              Localizations.localeOf(context).languageCode == 'fa' ? 'بزرگ' : 'Large',
+                              style: TextStyle(
+                                color: _fontScale == 1.25 ? Colors.white : AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          selected: _fontScale == 1.25,
+                          selectedColor: AppColors.primary,
+                          backgroundColor: AppColors.background,
+                          onSelected: (selected) {
+                            if (selected) _changeFontScale(1.25);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 24),
 
             // Section 1: Profile Editing
             Text(
               loc.profileDetails,
-              style: const TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _usernameController,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 labelText: loc.username,
-                labelStyle: const TextStyle(color: AppColors.textSecondary),
+                labelStyle: TextStyle(color: AppColors.textSecondary),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: AppColors.border),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: AppColors.primary),
+                  borderSide: BorderSide(color: AppColors.primary),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -346,10 +529,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextFormField(
               initialValue: _mobileNumber,
               enabled: false,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: AppColors.textSecondary),
               decoration: InputDecoration(
                 labelText: loc.mobileReadonly,
-                labelStyle: const TextStyle(color: AppColors.textSecondary),
+                labelStyle: TextStyle(color: AppColors.textSecondary),
                 disabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: AppColors.border.withOpacity(0.3)),
                   borderRadius: BorderRadius.circular(12),
@@ -360,10 +543,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextFormField(
               initialValue: '$_educationalField • $_educationalLevel',
               enabled: false,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: AppColors.textSecondary),
               decoration: InputDecoration(
                 labelText: loc.educationalField,
-                labelStyle: const TextStyle(color: AppColors.textSecondary),
+                labelStyle: TextStyle(color: AppColors.textSecondary),
                 disabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: AppColors.border.withOpacity(0.3)),
                   borderRadius: BorderRadius.circular(12),
@@ -387,7 +570,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Section 2: Backup & Restore
             Text(
               loc.offlineBackupRestore,
-              style: const TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Container(
@@ -399,25 +582,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               child: Text(
                 loc.backupDesc,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4),
               ),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _passwordController,
               obscureText: true,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 labelText: loc.backupEncryptionPassword,
-                labelStyle: const TextStyle(color: AppColors.textSecondary),
+                labelStyle: TextStyle(color: AppColors.textSecondary),
                 hintText: 'Minimum 6 characters',
-                hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: AppColors.border),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: AppColors.primary),
+                  borderSide: BorderSide(color: AppColors.primary),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -438,15 +621,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             Text(
               loc.availableBackups,
-              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 8),
             _isLoadingBackups
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? Center(child: CircularProgressIndicator(color: AppColors.primary))
                 : _backupFiles.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12.0),
-                        child: Text(loc.noBackupsFound, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        child: Text(loc.noBackupsFound, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                       )
                     : ListView.builder(
                         shrinkWrap: true,
@@ -459,17 +642,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: AppColors.surface.withOpacity(0.4),
                             margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
-                              title: Text(filename, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+                              title: Text(filename, style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.settings_backup_restore, color: AppColors.primary),
+                                    icon: Icon(Icons.settings_backup_restore, color: AppColors.primary),
                                     onPressed: () => _restoreBackup(file.path),
                                     tooltip: 'Restore from this backup',
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete, color: AppColors.error),
+                                    icon: Icon(Icons.delete, color: AppColors.error),
                                     onPressed: () => _deleteBackup(file.path),
                                     tooltip: 'Delete backup file',
                                   ),
@@ -486,7 +669,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error.withOpacity(0.15),
                 foregroundColor: AppColors.error,
-                side: const BorderSide(color: AppColors.error, width: 1.5),
+                side: BorderSide(color: AppColors.error, width: 1.5),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
