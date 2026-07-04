@@ -41,6 +41,20 @@ if (-not (Get-Command ngrok -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
+# 1.5. Ensure backend is running on port 5217
+$ROOT         = Split-Path $PSScriptRoot -Parent
+$BACKEND_PROJ = "$ROOT\backend\LeitnerPlatform.API\LeitnerPlatform.API.csproj"
+$BACKEND_URL  = "http://localhost:5217"
+
+$backendRunning = netstat -ano | Select-String ":5217\s.*LISTENING"
+if (-not $backendRunning) {
+    Write-Step "Starting .NET backend in a new window..."
+    $backendArgs = "dotnet run --project `"$BACKEND_PROJ`" --urls `"$BACKEND_URL`""
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendArgs -WindowStyle Normal
+} else {
+    Write-Info "Backend is already running on port 5217."
+}
+
 # 2. Check if ngrok is already running
 $ngrokUrl = $null
 try {
@@ -55,7 +69,7 @@ if ($null -eq $ngrokUrl) {
     Write-Step "Launching Ngrok tunnel on port 5217 in a new window..."
     
     # Launch in a new command window so user can monitor logs/close it manually
-    Start-Process cmd -ArgumentList "/k title Ngrok Tunnel - Leitner & ngrok http 5217"
+    Start-Process cmd -ArgumentList '/k "title Ngrok Tunnel - Leitner & ngrok http 5217"'
     
     Write-Step "Waiting for tunnel to establish..."
     $attempts = 0

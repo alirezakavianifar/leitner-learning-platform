@@ -530,6 +530,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
               builder: (_) => FlashcardStudyScreen(
                 courseId: course.id,
                 courseTitle: course.title,
+                isTodayReview: false,
               ),
             ),
           );

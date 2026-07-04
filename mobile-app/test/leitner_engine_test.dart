@@ -635,6 +635,61 @@ void main() {
       expect(queue[0].cardNumber, 1);
       expect(queue[1].cardNumber, 2);
     });
+
+    test('Review queue: conditional session filtering for Box 2-5 due today', () async {
+      // Setup progress in local DB
+      // Card 1: Box 1 (Due)
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_1',
+        'course_id': courseId,
+        'card_number': 1,
+        'current_box': 1,
+        'last_reviewed_at': null,
+        'next_review_due': DateTime.now().toIso8601String(),
+        'last_trigger': null,
+        'is_synced': 0,
+      });
+      // Card 2: Box 2, due today (Due today, not overdue yesterday, so NOT reset)
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_2',
+        'course_id': courseId,
+        'card_number': 2,
+        'current_box': 2,
+        'last_reviewed_at': DateTime.now().subtract(const Duration(hours: 48)).toIso8601String(),
+        'next_review_due': DateTime.now().subtract(const Duration(minutes: 5)).toIso8601String(),
+        'last_trigger': 'REVIEW_CORRECT',
+        'is_synced': 1,
+      });
+      // Card 3: Box 6 (Finished)
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_3',
+        'course_id': courseId,
+        'card_number': 3,
+        'current_box': 6,
+        'last_reviewed_at': DateTime.now().toIso8601String(),
+        'next_review_due': null,
+        'last_trigger': 'REVIEW_CORRECT',
+        'is_synced': 1,
+      });
+
+      // Act 1: Direct study session (isTodayReview = false)
+      final queueDirect = await repository.getReviewQueue(courseId, isTodayReview: false);
+
+      // Assert 1: direct session should contain Card 1 (Box 1) and Card 3 (Box 6), but NOT Card 2 (Box 2)
+      expect(queueDirect.length, 2);
+      expect(queueDirect.any((c) => c.cardNumber == 1), isTrue);
+      expect(queueDirect.any((c) => c.cardNumber == 3), isTrue);
+      expect(queueDirect.any((c) => c.cardNumber == 2), isFalse);
+
+      // Act 2: Today's review session (isTodayReview = true)
+      final queueToday = await repository.getReviewQueue(courseId, isTodayReview: true);
+
+      // Assert 2: today session should contain Card 1 (Box 1) and Card 2 (Box 2 due today), but NOT Card 3 (Box 6)
+      expect(queueToday.length, 2);
+      expect(queueToday.any((c) => c.cardNumber == 1), isTrue);
+      expect(queueToday.any((c) => c.cardNumber == 2), isTrue);
+      expect(queueToday.any((c) => c.cardNumber == 3), isFalse);
+    });
   });
 
   group('Leitner Engine Progress Sync API client', () {

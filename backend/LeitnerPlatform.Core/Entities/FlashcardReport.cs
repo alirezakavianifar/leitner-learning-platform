@@ -6,6 +6,7 @@ namespace LeitnerPlatform.Core.Entities
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
+        public string UserMobileNumber { get; set; } = string.Empty;
         public Guid CourseId { get; set; }
         public int CardNumber { get; set; }
         public string ReportText { get; set; } = string.Empty;

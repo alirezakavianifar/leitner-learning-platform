@@ -138,6 +138,7 @@ namespace LeitnerPlatform.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).HasColumnName("id").HasDefaultValueSql("uuid_generate_v4()");
                 entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired();
+                entity.Property(e => e.UserMobileNumber).HasColumnName("user_mobile_number").HasMaxLength(15).IsRequired();
                 entity.Property(e => e.CourseId).HasColumnName("course_id").IsRequired();
                 entity.Property(e => e.CardNumber).HasColumnName("card_number").IsRequired();
                 entity.Property(e => e.ReportText).HasColumnName("report_text").IsRequired();

@@ -45,7 +45,7 @@ class _ReviewTabState extends State<ReviewTab> {
         
         for (final course in downloaded) {
           try {
-            final queue = await _flashcardRepository.getReviewQueue(course.id);
+            final queue = await _flashcardRepository.getReviewQueue(course.id, isTodayReview: true);
             counts[course.id] = queue.length;
           } catch (_) {
             counts[course.id] = 0;
@@ -211,6 +211,7 @@ class _ReviewTabState extends State<ReviewTab> {
                               builder: (_) => FlashcardStudyScreen(
                                 courseId: course.id,
                                 courseTitle: course.title,
+                                isTodayReview: true,
                               ),
                             ),
                           );

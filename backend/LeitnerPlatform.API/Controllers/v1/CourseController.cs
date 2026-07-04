@@ -145,10 +145,14 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return NotFound(new { success = false, message = "Course not found." });
             }
 
+            var user = await _context.Users.FindAsync(userId);
+            var mobileNumber = user?.MobileNumber ?? string.Empty;
+
             var report = new FlashcardReport
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
+                UserMobileNumber = mobileNumber,
                 CourseId = input.CourseId,
                 CardNumber = input.CardNumber,
                 ReportText = input.ReportText ?? string.Empty,

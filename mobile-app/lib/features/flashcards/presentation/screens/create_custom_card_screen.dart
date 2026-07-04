@@ -47,6 +47,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
   }
 
   Future<void> _pickImage() async {
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
       if (image != null) {
@@ -56,12 +57,13 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e')),
+        SnackBar(content: Text(isFa ? 'خطا در انتخاب تصویر: $e' : 'Failed to pick image: $e')),
       );
     }
   }
 
   Future<void> _toggleRecording() async {
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     try {
       if (await _recorder.hasPermission()) {
         if (_isRecording) {
@@ -81,17 +83,18 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Microphone permission denied.')),
+          SnackBar(content: Text(isFa ? 'دسترسی به میکروفون رد شد.' : 'Microphone permission denied.')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to record: $e')),
+        SnackBar(content: Text(isFa ? 'خطا در ضبط صدا: $e' : 'Failed to record: $e')),
       );
     }
   }
 
   Future<void> _playRecordedAudio() async {
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     if (_recordedAudioPath == null) return;
     try {
       if (_isPlaying) {
@@ -108,7 +111,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to play audio: $e')),
+        SnackBar(content: Text(isFa ? 'خطا در پخش صدا: $e' : 'Failed to play audio: $e')),
       );
       setState(() => _isPlaying = false);
     }
@@ -118,6 +121,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     
     try {
       final dbHelper = di.sl<DatabaseHelper>();
@@ -166,7 +170,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Custom card saved successfully (device-only)!'),
+          content: Text(isFa ? 'کارت اختصاصی با موفقیت ذخیره شد (فقط روی دستگاه)!' : 'Custom card saved successfully (device-only)!'),
           backgroundColor: AppColors.secondary,
         ),
       );
@@ -175,7 +179,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to save card: $e'),
+          content: Text(isFa ? 'خطا در ذخیره کارت: $e' : 'Failed to save card: $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -187,7 +191,39 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_titleController.text == 'My Custom Cards' || _titleController.text == 'کارت‌های اختصاصی من') {
+      final isFa = Localizations.localeOf(context).languageCode == 'fa';
+      _titleController.text = isFa ? 'کارت‌های اختصاصی من' : 'My Custom Cards';
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
+    
+    final tCreateCustomCard = isFa ? 'ایجاد کارت اختصاصی' : 'Create Custom Card';
+    final tDeviceStorageInfo = isFa 
+        ? 'ذخیره‌سازی فقط روی دستگاه: این کارت برای حفظ حریم خصوصی شما صرفاً به صورت محلی روی دستگاهتان ذخیره می‌شود.'
+        : 'Device-Only Storage: This card is stored strictly locally on your device to protect your privacy.';
+    final tCourseCategory = isFa ? 'دسته‌بندی / عنوان دوره' : 'Course Category / Title';
+    final tCategoryRequired = isFa ? 'ورود دسته‌بندی الزامی است' : 'Category is required';
+    final tQuestionText = isFa ? 'متن سوال' : 'Question Text';
+    final tQuestionRequired = isFa ? 'ورود سوال الزامی است' : 'Question is required';
+    final tAnswerText = isFa ? 'متن پاسخ' : 'Answer Text';
+    final tAnswerRequired = isFa ? 'ورود پاسخ الزامی است' : 'Answer is required';
+    final tMultipleChoice = isFa ? 'گزینه‌های چندگزینه‌ای (اختیاری، جدا شده با کاما)' : 'Multiple-Choice Options (Optional, comma-separated)';
+    final tOptionsExample = isFa ? 'مثال: تهران، شیراز، اصفهان' : 'e.g. Tehran, Shiraz, Isfahan';
+    final tMediaAttachments = isFa ? 'فایل‌های پیوست (اختیاری)' : 'Media Attachments (Optional)';
+    final tChangeImage = isFa ? 'تغییر تصویر' : 'Change Image';
+    final tPickImage = isFa ? 'انتخاب تصویر' : 'Pick Image';
+    final tStop = isFa ? 'توقف' : 'Stop';
+    final tRerecord = isFa ? 'ضبط مجدد' : 'Re-record';
+    final tRecordAudio = isFa ? 'ضبط صدا' : 'Record Audio';
+    final tAudioAttached = isFa ? 'فایل صوتی پیوست شد' : 'Audio attached';
+    final tSaveCard = isFa ? 'ذخیره کارت' : 'Save Card';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -198,7 +234,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Create Custom Card',
+          tCreateCustomCard,
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
@@ -223,7 +259,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Device-Only Storage: This card is stored strictly locally on your device to protect your privacy.',
+                        tDeviceStorageInfo,
                         style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4),
                       ),
                     ),
@@ -237,7 +273,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                 controller: _titleController,
                 style: TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'Course Category / Title',
+                  labelText: tCourseCategory,
                   labelStyle: TextStyle(color: AppColors.textSecondary),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.border),
@@ -249,7 +285,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                   ),
                 ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Category is required';
+                  if (val == null || val.trim().isEmpty) return tCategoryRequired;
                   return null;
                 },
               ),
@@ -261,7 +297,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                 maxLines: 4,
                 style: TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'Question Text',
+                  labelText: tQuestionText,
                   labelStyle: TextStyle(color: AppColors.textSecondary),
                   alignLabelWithHint: true,
                   enabledBorder: OutlineInputBorder(
@@ -274,7 +310,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                   ),
                 ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Question is required';
+                  if (val == null || val.trim().isEmpty) return tQuestionRequired;
                   return null;
                 },
               ),
@@ -286,7 +322,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                 maxLines: 4,
                 style: TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'Answer Text',
+                  labelText: tAnswerText,
                   labelStyle: TextStyle(color: AppColors.textSecondary),
                   alignLabelWithHint: true,
                   enabledBorder: OutlineInputBorder(
@@ -299,7 +335,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                   ),
                 ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Answer is required';
+                  if (val == null || val.trim().isEmpty) return tAnswerRequired;
                   return null;
                 },
               ),
@@ -310,9 +346,9 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                 controller: _optionsController,
                 style: TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  labelText: 'Multiple-Choice Options (Optional, comma-separated)',
+                  labelText: tMultipleChoice,
                   labelStyle: TextStyle(color: AppColors.textSecondary),
-                  hintText: 'e.g. Tehran, Shiraz, Isfahan',
+                  hintText: tOptionsExample,
                   hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: AppColors.border),
@@ -328,7 +364,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
 
               // Media selection UI
               Text(
-                'Media Attachments (Optional)',
+                tMediaAttachments,
                 style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
               ),
               const SizedBox(height: 10),
@@ -344,7 +380,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                       ),
                       onPressed: _pickImage,
                       icon: Icon(Icons.image, color: AppColors.secondary),
-                      label: Text(_pickedImage != null ? 'Change Image' : 'Pick Image'),
+                      label: Text(_pickedImage != null ? tChangeImage : tPickImage),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -358,7 +394,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                       ),
                       onPressed: _toggleRecording,
                       icon: Icon(_isRecording ? Icons.stop : Icons.mic),
-                      label: Text(_isRecording ? 'Stop' : (_recordedAudioPath != null ? 'Re-record' : 'Record Audio')),
+                      label: Text(_isRecording ? tStop : (_recordedAudioPath != null ? tRerecord : tRecordAudio)),
                     ),
                   ),
                 ],
@@ -408,7 +444,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                             icon: Icon(_isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: AppColors.primary, size: 36),
                             onPressed: _playRecordedAudio,
                           ),
-                          Text('Audio attached', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          Text(tAudioAttached, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                           IconButton(
                             icon: Icon(Icons.delete_outline, color: AppColors.error),
                             onPressed: () => setState(() => _recordedAudioPath = null),
@@ -438,9 +474,9 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
                         height: 20,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
-                    : const Text(
-                        'Save Card',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    : Text(
+                        tSaveCard,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
               ),
               const SizedBox(height: 24),

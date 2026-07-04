@@ -20,12 +20,14 @@ class FlashcardStudyScreen extends StatefulWidget {
   final String courseId;
   final String courseTitle;
   final int? initialCardNumber;
+  final bool isTodayReview;
 
   const FlashcardStudyScreen({
     Key? key,
     required this.courseId,
     required this.courseTitle,
     this.initialCardNumber,
+    this.isTodayReview = false,
   }) : super(key: key);
 
   @override
@@ -265,7 +267,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
   Widget build(BuildContext context) {
     return BlocProvider<FlashcardBloc>(
       create: (_) {
-        final bloc = di.sl<FlashcardBloc>()..add(LoadFlashcardQueue(widget.courseId));
+        final bloc = di.sl<FlashcardBloc>()
+          ..add(LoadFlashcardQueue(widget.courseId, isTodayReview: widget.isTodayReview));
         if (widget.initialCardNumber != null) {
           bloc.add(JumpToCardNumber(widget.initialCardNumber!, forceReset: true));
         }

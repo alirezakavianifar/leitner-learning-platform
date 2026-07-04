@@ -10,7 +10,10 @@ import 'package:mobile_app/core/localization/locale_bloc.dart';
 import 'package:mobile_app/core/services/backup_service.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
+import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:mobile_app/injection_container.dart' as di;
+import 'about_us_screen.dart';
+import 'rules_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -25,9 +28,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _usernameController = TextEditingController();
   
   String _mobileNumber = '';
+  String? _interests;
   String _educationalField = 'General';
   String _educationalLevel = 'Learner';
   double _fontScale = 1.0;
+
+  final List<Map<String, String>> _interestsOptions = const [
+    {'en': 'Foreign Languages', 'fa': 'زبان‌های خارجی'},
+    {'en': 'Basic Sciences', 'fa': 'علوم پایه'},
+    {'en': 'Information Technology', 'fa': 'فناوری اطلاعات'},
+    {'en': 'Exams & Academics', 'fa': 'کنکور و تحصیلات'},
+    {'en': 'General & Misc', 'fa': 'عمومی و متفرقه'},
+  ];
+
+  final List<Map<String, String>> _fieldOptions = const [
+    {'en': 'Technical & Engineering', 'fa': 'فنی و مهندسی'},
+    {'en': 'Humanities', 'fa': 'علوم انسانی'},
+    {'en': 'Medical Sciences', 'fa': 'علوم پزشکی'},
+    {'en': 'Basic Sciences', 'fa': 'علوم پایه'},
+    {'en': 'Art', 'fa': 'هنر'},
+    {'en': 'General', 'fa': 'عمومی'},
+  ];
+
+  final List<Map<String, String>> _levelOptions = const [
+    {'en': 'Student', 'fa': 'دانش‌آموز'},
+    {'en': 'High School Diploma', 'fa': 'دیپلم'},
+    {'en': 'Associate Degree', 'fa': 'کاردانی'},
+    {'en': 'Bachelor\'s', 'fa': 'کارشناسی'},
+    {'en': 'Master\'s', 'fa': 'کارشناسی ارشد'},
+    {'en': 'PhD & Above', 'fa': 'دکتری و بالاتر'},
+  ];
 
   List<FileSystemEntity> _backupFiles = [];
   bool _isLoadingBackups = true;
@@ -53,6 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _usernameController.text = prefs.getString('user_username') ?? '';
       _mobileNumber = prefs.getString('user_mobile_number') ?? '';
+      _interests = prefs.getString('user_interests');
       _educationalField = prefs.getString('user_educational_field') ?? 'General';
       _educationalLevel = prefs.getString('user_educational_level') ?? 'Learner';
       _fontScale = prefs.getDouble('flashcard_font_scale') ?? 1.0;
@@ -69,13 +100,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _saveProfile() async {
     setState(() => _isSavingProfile = true);
-    final prefs = di.sl<SharedPreferences>();
-    await prefs.setString('user_username', _usernameController.text.trim());
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Profile updated successfully!'), backgroundColor: AppColors.secondary),
-    );
-    setState(() => _isSavingProfile = false);
+    context.read<AuthBloc>().add(
+          UpdateProfileEvent(
+            username: _usernameController.text.trim(),
+            interests: _interests,
+            educationalField: _educationalField,
+            educationalLevel: _educationalLevel,
+          ),
+        );
   }
 
   Future<void> _loadBackupFiles() async {
@@ -247,6 +279,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -262,7 +295,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
-      body: SingleChildScrollView(
+      body: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthenticatedState) {
+            setState(() {
+              _isSavingProfile = false;
+            });
+            // Update local fields from updated user model
+            final user = state.user;
+            final prefs = di.sl<SharedPreferences>();
+            prefs.setString('user_username', user.username);
+            if (user.interests != null) prefs.setString('user_interests', user.interests!);
+            prefs.setString('user_educational_field', user.educationalField ?? 'General');
+            prefs.setString('user_educational_level', user.educationalLevel ?? 'Learner');
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(loc.saveProfile),
+                backgroundColor: AppColors.secondary,
+              ),
+            );
+          } else if (state is AuthErrorState) {
+            setState(() {
+              _isSavingProfile = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        },
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -527,6 +592,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 16),
             // Mobile Number (Locked / Read-Only)
             TextFormField(
+              key: ValueKey(_mobileNumber),
               initialValue: _mobileNumber,
               enabled: false,
               style: TextStyle(color: AppColors.textSecondary),
@@ -540,18 +606,94 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              initialValue: '$_educationalField • $_educationalLevel',
-              enabled: false,
-              style: TextStyle(color: AppColors.textSecondary),
+            // Interests Dropdown
+            DropdownButtonFormField<String>(
+              value: _interests,
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+              dropdownColor: AppColors.surface,
               decoration: InputDecoration(
-                labelText: loc.educationalField,
+                labelText: loc.interests,
                 labelStyle: TextStyle(color: AppColors.textSecondary),
-                disabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.border.withOpacity(0.3)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.primary),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
+              items: _interestsOptions.map((opt) {
+                return DropdownMenuItem<String>(
+                  value: opt['en'],
+                  child: Text(isFa ? opt['fa']! : opt['en']!),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _interests = value;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            // Educational Field Dropdown
+            DropdownButtonFormField<String>(
+              value: _educationalField,
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+              dropdownColor: AppColors.surface,
+              decoration: InputDecoration(
+                labelText: loc.educationalField,
+                labelStyle: TextStyle(color: AppColors.textSecondary),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.primary),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              items: _fieldOptions.map((opt) {
+                return DropdownMenuItem<String>(
+                  value: opt['en'],
+                  child: Text(isFa ? opt['fa']! : opt['en']!),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _educationalField = value ?? 'General';
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            // Educational Level Dropdown
+            DropdownButtonFormField<String>(
+              value: _educationalLevel,
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+              dropdownColor: AppColors.surface,
+              decoration: InputDecoration(
+                labelText: loc.educationalLevel,
+                labelStyle: TextStyle(color: AppColors.textSecondary),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.primary),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              items: _levelOptions.map((opt) {
+                return DropdownMenuItem<String>(
+                  value: opt['en'],
+                  child: Text(isFa ? opt['fa']! : opt['en']!),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _educationalLevel = value ?? 'Learner';
+                });
+              },
             ),
             const SizedBox(height: 16),
             ElevatedButton(
@@ -564,6 +706,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: _isSavingProfile
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                   : Text(loc.updateProfile, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 24),
+
+            // Section 1.5: Information & Guidelines
+            Text(
+              isFa ? 'راهنما و اطلاعات برنامه' : 'Information & Rules',
+              style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              color: AppColors.surface.withOpacity(0.4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.description_outlined, color: AppColors.secondary),
+                    title: Text(isFa ? 'قوانین و مقررات لایتنر' : 'Leitner Learning Rules', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+                    trailing: Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RulesScreen()),
+                      );
+                    },
+                  ),
+                  const Divider(color: Color(0xFF333E56), height: 1),
+                  ListTile(
+                    leading: Icon(Icons.info_outline, color: AppColors.secondary),
+                    title: Text(isFa ? 'درباره ما' : 'About Us', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+                    trailing: Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AboutUsScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 32),
 
@@ -680,6 +864,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 24),
           ],
         ),
+      ),
       ),
     );
   }

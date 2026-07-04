@@ -27,7 +27,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
   }
 
   @override
-  Future<List<Flashcard>> getReviewQueue(String courseId) async {
+  Future<List<Flashcard>> getReviewQueue(String courseId, {bool isTodayReview = false}) async {
     // 1. Run the Rule A checks first to reset any overdue cards
     await checkForOverdueResets(courseId);
 
@@ -73,14 +73,21 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
         );
       }
 
-      // Progression filter: Box 1 is always due. Boxes 2-5 are due if nextReviewDue <= now. Box 6 (Finished) is never due.
-      final isDue = progress.currentBox == 1 ||
-          (progress.currentBox >= 2 &&
-              progress.currentBox <= 5 &&
-              progress.nextReviewDue != null &&
-              progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1))));
+      // Progression filter:
+      // 1. In Today's Reviews: Box 1 (always due) + Box 2-5 (if nextReviewDue <= now).
+      // 2. In Direct Course Study: Box 1 + Box 6 (Finished) only. Boxes 2-5 are hidden.
+      final bool included;
+      if (isTodayReview) {
+        included = progress.currentBox == 1 ||
+            (progress.currentBox >= 2 &&
+                progress.currentBox <= 5 &&
+                progress.nextReviewDue != null &&
+                progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1))));
+      } else {
+        included = progress.currentBox == 1 || progress.currentBox == 6;
+      }
 
-      if (isDue) {
+      if (included) {
         reviewQueue.add(
           Flashcard(
             id: cardMap['id'] as String,

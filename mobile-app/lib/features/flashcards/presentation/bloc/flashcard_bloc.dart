@@ -25,7 +25,10 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
   ) async {
     emit(FlashcardLoading());
     try {
-      final queue = await flashcardRepository.getReviewQueue(event.courseId);
+      final queue = await flashcardRepository.getReviewQueue(
+        event.courseId,
+        isTodayReview: event.isTodayReview,
+      );
       if (queue.isEmpty) {
         emit(FlashcardFinished(event.courseId));
         return;
@@ -40,6 +43,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         courseId: event.courseId,
         queue: queue,
         currentIndex: 0,
+        isTodayReview: event.isTodayReview,
         isFavorited: isFav,
       ));
     } catch (e) {
@@ -73,7 +77,10 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           isCorrect: event.isCorrect,
         );
 
-        final newQueue = await flashcardRepository.getReviewQueue(currentState.courseId);
+        final newQueue = await flashcardRepository.getReviewQueue(
+          currentState.courseId,
+          isTodayReview: currentState.isTodayReview,
+        );
         if (newQueue.isEmpty) {
           emit(FlashcardFinished(currentState.courseId));
           return;

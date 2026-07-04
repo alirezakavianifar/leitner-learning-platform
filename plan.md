@@ -159,7 +159,7 @@ Define:
 * Progress Database
 * Notification Database
 * Banner Database
-* Reports Database (stores user ID, course ID/title, card number, report text, timestamp, and review status)
+* Reports Database (stores user ID, user mobile number, course ID/title, card number, report text, timestamp, and review status)
 * **Database Migration Framework:** Define versioned migration strategies for both server databases and local client SQLite databases. All schema updates must support versioned migrations with raw scripts stored in source control.
 
 ### Development Environment & Technology Stack
@@ -648,7 +648,7 @@ Create all application screens.
 Design:
 
 * Login
-* Profile (including username, interests, educational field, educational level. Note: Mobile number field is read-only/non-editable by the user.)
+* Profile (including username, interests, educational field, educational level selected from predefined lists. Note: Mobile number field is read-only/non-editable by the user.)
 * Home
 * Global Bottom Navigation (Visible on all main screens, containing persistent navigation tabs: Home, Review, Courses)
 * Course List (Visual rule: Downloaded/purchased courses must appear at the top. Downloaded courses get a green border; not purchased/not downloaded courses get a yellow border. Display course title, card count, paid/free status, and colored border. Include course search result long-click selection capability, and search text placeholder `"جستجو در عنوان دوره ها"`. When offline: display previously downloaded course list with a clear status message indicating that internet is unavailable and update was not performed.)
@@ -662,6 +662,8 @@ Design:
 * Create Card (Supports inputting: Course Title, Question, Options, and Answer for card creation)
 * Settings (includes Font customization settings for flashcard texts, App theme selector, and a Logout button with a mandatory confirmation dialog prompting the user before execution)
 * Support
+* About Us (displays team descriptions/text provided by client, accessible from the menu drawer)
+* Rules (displays persistent application terms/rules, accessible from the menu drawer)
 * Mandatory Terms & Rules Acceptance Screen (Mandatory terms & rules acceptance after OTP verification and before profile completion)
 * Onboarding & Guided Tutorials (First-run app walkthrough mapping out the specific PDF onboarding flow: Courses -> Search -> Flashcard -> Know button -> Don't Know button -> Create Card -> Finished Cards -> Favorites -> My Courses -> Reports -> Today's Cards -> Statistics; Leitner system guide; Color status guide). Help menu screen containing three separate trigger buttons for the App Walkthrough, the Leitner method explanation, and the Color status guide.
 
@@ -915,7 +917,7 @@ Users can:
 
 * Login & OTP verification
 * Accept Terms & Rules
-* Setup profile (username, interests, educational field, educational level; mobile number is locked/read-only)
+* Setup profile (username, interests, educational field, educational level selected from predefined lists; mobile number is locked/read-only)
 * Enter app
 
 ---
@@ -1004,7 +1006,7 @@ Implement all Leitner logic, progression timings, and custom reset behaviors, em
 * **Incorrect Review Reset:** If a card is answered incorrectly during review, reset it back to Box 1 immediately.
 * **Rule A (Due-Date Overdue Reset):** If a card is due on a given day and the user does NOT review it on that day, the card's progress resets, and it is returned to Box 1.
 * **Universal Leitner Reset on View (Boxes 2-5):** If a user views any card (except Finished Cards) currently in active Leitner boxes 2-5 outside its scheduled review time (e.g., from the Favorites screen, search results, direct card number jump, or manual browsing via side arrows), the app must prompt the user with a confirmation dialog: "This card is inside the Leitner stages. If displayed, it will return to stage 1. Are you sure you want to display it?" Upon confirmation, the card is displayed and its progress resets to Box 1 immediately.
-* **Only Due Cards Restriction:** Normal study navigation within a course must prevent users from freely browsing or viewing cards in intermediate Leitner boxes (Boxes 2–5) before their respective scheduled due date. When opening a course for study, only Box 1 cards and active due cards from Boxes 2–5 may appear in the review queue.
+* **Only Due Cards Restriction:** Normal study navigation within a course must prevent users from freely browsing or viewing cards in intermediate Leitner boxes (Boxes 2–5). When opening a course directly for study, the queue must only contain Box 1 cards and Finished Cards (Box 6); cards currently in Boxes 2–5 must not be displayed in the direct course study queue, as they can only be reviewed on their exact scheduled day via the dedicated "Today's reviews" (کارت های امروز) interface.
 
 ### Engine Event Emission
 * Integrate with client and backend event systems to emit specific events: `Card Reviewed`, `Card Finished`, `Due-Date Overdue Reset`, and `Leitner Progress Reset`.
@@ -1054,7 +1056,7 @@ Implement learning experience and guided onboarding/tutorials.
   - **Fixed Header:** Displays course title at the top, card number at the bottom-right of the title, current Leitner box color indicator, and favorite star toggle.
   - **Rotating Center Card:** Flippable front-and-back container supporting text, image, audio, and multiple-choice options. Flips on touch to show the answer, and flips back on another touch. The center card is flanked on the left and right sides of the screen by navigation arrows to browse cards (since the card container does not fill the screen width).
   - **Fixed Footer:** Displays the "Know" (بلدم) button on the right, the "Don't Know" (بلد نیستم) button on the left, and the "Report Issue" button positioned below the two study buttons.
-* **Only Due Cards Restriction:** Standard browsing through card list or using next/prev navigation arrows must restrict access to Box 2-5 cards that are not yet due today. If accessed, it triggers the Universal Reset on View warning.
+* **Only Due Cards Restriction:** Standard browsing through card list or using next/prev navigation arrows must restrict access to Box 2-5 cards. If accessed, it triggers the Universal Reset on View warning.
 * **Conditional UI Rendering:** If a flashcard has no image, audio, or options (such as multiple choice or custom layout sections), those respective sections must be hidden completely and not reserve or render any blank/empty space in the layout.
 
 ### Audio
@@ -1067,6 +1069,7 @@ Implement learning experience and guided onboarding/tutorials.
 * Enable users to submit reports or feedback on specific flashcards.
 * Mobile app submits and Server stores:
   * User ID
+  * User Mobile Number
   * Course ID / title
   * Card number
   * Report text
@@ -1634,7 +1637,7 @@ Quoted separately based on scope and effort.
 
 ### Source Code Ownership & Non-Reuse
 * **Full Ownership Transfer:** Upon project completion and final payment, complete ownership of the source code, database structures, assets, and documentation transfers to the client.
-* **Non-Reuse Clause:** The development team is strictly prohibited from reusing the custom source code, assets, branding, and project-specific implementations for any other client, competitor, or commercial project. The code is custom-developed solely for this client.
+* **Non-Reuse Clause:** The development team is strictly prohibited from reusing the project idea/concept, custom source code, assets, branding, and project-specific implementations for any other client, competitor, or commercial project. The concept and code are custom-developed solely for this client.
 
 ### Architectural Stability Requirement
 * **Architectural Stability Requirement:** The development team shall implement all major platform features using modular, domain-driven boundaries. New features added in future versions must be capable of being introduced as independent modules without requiring significant refactoring of existing domains. All inter-module communication shall occur through documented interfaces, events, repositories, or service abstractions rather than direct coupling. The architecture shall prioritize maintainability, testability, and long-term extensibility over short-term implementation convenience.

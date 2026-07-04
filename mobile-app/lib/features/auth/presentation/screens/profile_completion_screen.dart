@@ -28,9 +28,36 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   
   late final TextEditingController _phoneController;
   final _usernameController = TextEditingController();
-  final _interestsController = TextEditingController();
-  final _fieldController = TextEditingController();
-  final _levelController = TextEditingController();
+
+  String? _selectedInterest;
+  String? _selectedField = 'General';
+  String? _selectedLevel = 'Student';
+
+  final List<Map<String, String>> _interestsOptions = const [
+    {'en': 'Foreign Languages', 'fa': 'زبان‌های خارجی'},
+    {'en': 'Basic Sciences', 'fa': 'علوم پایه'},
+    {'en': 'Information Technology', 'fa': 'فناوری اطلاعات'},
+    {'en': 'Exams & Academics', 'fa': 'کنکور و تحصیلات'},
+    {'en': 'General & Misc', 'fa': 'عمومی و متفرقه'},
+  ];
+
+  final List<Map<String, String>> _fieldOptions = const [
+    {'en': 'Technical & Engineering', 'fa': 'فنی و مهندسی'},
+    {'en': 'Humanities', 'fa': 'علوم انسانی'},
+    {'en': 'Medical Sciences', 'fa': 'علوم پزشکی'},
+    {'en': 'Basic Sciences', 'fa': 'علوم پایه'},
+    {'en': 'Art', 'fa': 'هنر'},
+    {'en': 'General', 'fa': 'عمومی'},
+  ];
+
+  final List<Map<String, String>> _levelOptions = const [
+    {'en': 'Student', 'fa': 'دانش‌آموز'},
+    {'en': 'High School Diploma', 'fa': 'دیپلم'},
+    {'en': 'Associate Degree', 'fa': 'کاردانی'},
+    {'en': 'Bachelor\'s', 'fa': 'کارشناسی'},
+    {'en': 'Master\'s', 'fa': 'کارشناسی ارشد'},
+    {'en': 'PhD & Above', 'fa': 'دکتری و بالاتر'},
+  ];
 
   @override
   void initState() {
@@ -44,9 +71,6 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   void dispose() {
     _phoneController.dispose();
     _usernameController.dispose();
-    _interestsController.dispose();
-    _fieldController.dispose();
-    _levelController.dispose();
     super.dispose();
   }
 
@@ -55,9 +79,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       context.read<AuthBloc>().add(
             UpdateProfileEvent(
               username: _usernameController.text.trim(),
-              interests: _interestsController.text.trim().isNotEmpty ? _interestsController.text.trim() : null,
-              educationalField: _fieldController.text.trim().isNotEmpty ? _fieldController.text.trim() : null,
-              educationalLevel: _levelController.text.trim().isNotEmpty ? _levelController.text.trim() : null,
+              interests: _selectedInterest,
+              educationalField: _selectedField,
+              educationalLevel: _selectedLevel,
             ),
           );
     }
@@ -67,6 +91,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final loc = AppLocalizations.of(context);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
 
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
@@ -143,36 +168,72 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Interests
-                      TextFormField(
-                        controller: _interestsController,
-                        style: TextStyle(color: AppColors.textPrimary),
+                      // Interests Dropdown
+                      DropdownButtonFormField<String>(
+                        value: _selectedInterest,
+                        style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                        dropdownColor: AppColors.surface,
                         decoration: InputDecoration(
                           labelText: loc.interests,
                           prefixIcon: Icon(Icons.interests_outlined, color: AppColors.textSecondary),
                         ),
+                        items: _interestsOptions.map((opt) {
+                          return DropdownMenuItem<String>(
+                            value: opt['en'],
+                            child: Text(isFa ? opt['fa']! : opt['en']!),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedInterest = value;
+                          });
+                        },
                       ),
                       const SizedBox(height: 20),
 
-                      // Educational Field
-                      TextFormField(
-                        controller: _fieldController,
-                        style: TextStyle(color: AppColors.textPrimary),
+                      // Educational Field Dropdown
+                      DropdownButtonFormField<String>(
+                        value: _selectedField,
+                        style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                        dropdownColor: AppColors.surface,
                         decoration: InputDecoration(
                           labelText: loc.educationalField,
                           prefixIcon: Icon(Icons.school_outlined, color: AppColors.textSecondary),
                         ),
+                        items: _fieldOptions.map((opt) {
+                          return DropdownMenuItem<String>(
+                            value: opt['en'],
+                            child: Text(isFa ? opt['fa']! : opt['en']!),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedField = value;
+                          });
+                        },
                       ),
                       const SizedBox(height: 20),
 
-                      // Educational Level
-                      TextFormField(
-                        controller: _levelController,
-                        style: TextStyle(color: AppColors.textPrimary),
+                      // Educational Level Dropdown
+                      DropdownButtonFormField<String>(
+                        value: _selectedLevel,
+                        style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                        dropdownColor: AppColors.surface,
                         decoration: InputDecoration(
                           labelText: loc.educationalLevel,
                           prefixIcon: Icon(Icons.grade_outlined, color: AppColors.textSecondary),
                         ),
+                        items: _levelOptions.map((opt) {
+                          return DropdownMenuItem<String>(
+                            value: opt['en'],
+                            child: Text(isFa ? opt['fa']! : opt['en']!),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedLevel = value;
+                          });
+                        },
                       ),
                       const SizedBox(height: 40),
 

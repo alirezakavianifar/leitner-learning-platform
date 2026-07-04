@@ -9,11 +9,12 @@ abstract class FlashcardEvent extends Equatable {
 
 class LoadFlashcardQueue extends FlashcardEvent {
   final String courseId;
+  final bool isTodayReview;
 
-  const LoadFlashcardQueue(this.courseId);
+  const LoadFlashcardQueue(this.courseId, {this.isTodayReview = false});
 
   @override
-  List<Object?> get props => [courseId];
+  List<Object?> get props => [courseId, isTodayReview];
 }
 
 class FlipFlashcard extends FlashcardEvent {}

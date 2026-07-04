@@ -3,7 +3,7 @@ import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 abstract class FlashcardRepository {
   /// Fetches the review queue for a given course.
   /// Only returns Box 1 cards + active due cards from Boxes 2–5.
-  Future<List<Flashcard>> getReviewQueue(String courseId);
+  Future<List<Flashcard>> getReviewQueue(String courseId, {bool isTodayReview = false});
 
   /// Submits the review outcome for a card (Know / Don't Know).
   /// Calculates the next box, progression intervals, and next review due time.
