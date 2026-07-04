@@ -1,8 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Outfit', sans-serif;
+  --font-sans: 'Vazirmatn', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', 'Vazirmatn', sans-serif;
   
   /* Color Palette (Harmonious Dark Theme) */
   --bg-main: #0b0f19;
@@ -648,3 +648,95 @@ h1, h2, h3, h4, h5, h6 {
 .text-success {
   color: var(--accent-green);
 }
+
+/* ==========================================
+   RTL LAYOUT OVERRIDES (Farsi Mode)
+   ========================================== */
+
+[dir="rtl"] body {
+  direction: rtl;
+}
+
+[dir="rtl"] .sidebar {
+  border-right: none;
+  border-left: 1px solid var(--border-color);
+}
+
+[dir="rtl"] .sidebar-logo {
+  padding: 0 12px 24px 12px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 24px;
+}
+
+[dir="rtl"] .sidebar-item button {
+  text-align: right;
+  flex-direction: row;
+}
+
+[dir="rtl"] .user-info {
+  text-align: left;
+}
+
+[dir="rtl"] .data-table {
+  text-align: right;
+}
+
+[dir="rtl"] .data-table th {
+  text-align: right;
+}
+
+[dir="rtl"] .stat-card::before {
+  left: auto;
+  right: 0;
+}
+
+[dir="rtl"] .table-header {
+  flex-direction: row;
+}
+
+[dir="rtl"] .table-header > form {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+[dir="rtl"] .table-header > div {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .modal-header {
+  flex-direction: row;
+}
+
+[dir="rtl"] .modal-header h3 {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+[dir="rtl"] .modal-header button {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .modal-footer {
+  justify-content: flex-end;
+  flex-direction: row;
+  gap: 12px;
+}
+
+[dir="rtl"] .form-group input,
+[dir="rtl"] .form-group textarea,
+[dir="rtl"] .form-group select {
+  text-align: right;
+  direction: rtl;
+}
+
+[dir="rtl"] .form-group input[type="file"] {
+  text-align: right;
+  direction: ltr; /* Keeps file explorer input path readable */
+}
+
+[dir="rtl"] .graph-value {
+  text-align: left;
+}
+

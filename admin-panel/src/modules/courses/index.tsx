@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { localizeNumber, formatPrice } from '../../i18n';
 import { api } from '../../services/api';
 import type { Course, AdminModule } from '../../types';
 
 export const CoursesView: React.FC = () => {
+  const { t } = useTranslation();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -70,11 +73,11 @@ export const CoursesView: React.FC = () => {
         price,
         is_published: isPublished
       });
-      alert('Course metadata updated successfully.');
+      alert(t('courses.alert_save_success', 'Course metadata updated successfully.'));
       setShowEditModal(false);
       loadCourses();
     } catch (err: any) {
-      alert(err.message || 'Failed to update course.');
+      alert(err.message || t('courses.alert_save_failed', 'Failed to update course.'));
     }
   };
 
@@ -85,28 +88,28 @@ export const CoursesView: React.FC = () => {
       });
       loadCourses();
     } catch (err: any) {
-      alert(err.message || 'Failed to toggle publish status.');
+      alert(err.message || t('courses.alert_save_failed', 'Failed to toggle publish status.'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this course and all associated cards? This cannot be undone.')) {
+    if (!confirm(t('courses.confirm_delete', 'Are you sure you want to delete this course and all associated cards? This cannot be undone.'))) {
       return;
     }
 
     try {
       await api.admin.deleteCourse(id);
-      alert('Course deleted successfully.');
+      alert(t('courses.alert_delete_success', 'Course deleted successfully.'));
       loadCourses();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete course.');
+      alert(err.message || t('courses.alert_delete_failed', 'Failed to delete course.'));
     }
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadFile) {
-      alert('Please select a file to upload.');
+      alert(t('courses.alert_select_file', 'Please select a file to upload.'));
       return;
     }
 
@@ -116,12 +119,12 @@ export const CoursesView: React.FC = () => {
     try {
       setUploading(true);
       await api.admin.uploadCourse(formData);
-      alert('Course package uploaded and parsed successfully!');
+      alert(t('courses.alert_upload_success', 'Course package uploaded and parsed successfully!'));
       setShowUploadModal(false);
       setUploadFile(null);
       loadCourses();
     } catch (err: any) {
-      alert(err.message || 'Failed to upload course package.');
+      alert(err.message || t('courses.alert_upload_failed', 'Failed to upload course package.'));
     } finally {
       setUploading(false);
     }
@@ -132,46 +135,46 @@ export const CoursesView: React.FC = () => {
       <div className="table-container">
         <div className="table-header" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h2>Course Management Module</h2>
+            <h2>{t('courses.title')}</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-              Upload ZIP packages, modify pricing, difficulty levels, and publish status.
+              {t('courses.subtitle', 'Upload ZIP packages, modify pricing, difficulty levels, and publish status.')}
             </p>
           </div>
           <div style={{ display: 'flex', gap: '12px', marginLeft: 'auto', alignItems: 'center' }}>
             <input
               type="text"
               className="search-input"
-              placeholder="Search courses..."
+              placeholder={t('courses.search_placeholder')}
               value={search}
               onChange={handleSearchChange}
             />
             <button className="btn" onClick={() => setShowUploadModal(true)}>
-              Upload Package
+              {t('courses.btn_add')}
             </button>
           </div>
         </div>
 
         {loading ? (
-          <div className="text-center p-24">Loading courses catalog...</div>
+          <div className="text-center p-24">{t('login.verifying', 'Loading...')}</div>
         ) : (
           <div>
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Course Title</th>
-                  <th>Category</th>
-                  <th>Difficulty</th>
-                  <th>Price (IRR)</th>
-                  <th>Cards</th>
-                  <th>Version</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{t('courses.th_title')}</th>
+                  <th>{t('courses.field_category')}</th>
+                  <th>{t('courses.th_difficulty', 'Difficulty')}</th>
+                  <th>{t('courses.th_price')}</th>
+                  <th>{t('courses.th_cards')}</th>
+                  <th>{t('courses.th_version', 'Version')}</th>
+                  <th>{t('users.th_status')}</th>
+                  <th>{t('courses.th_actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {courses.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center text-muted">No courses available. Click "Upload Package" to import one.</td>
+                    <td colSpan={8} className="text-center text-muted">{t('courses.no_courses', 'No courses available.')}</td>
                   </tr>
                 ) : (
                   courses.map((course) => (
@@ -179,30 +182,34 @@ export const CoursesView: React.FC = () => {
                       <td>
                         <div style={{ fontWeight: 600, color: 'var(--text-inverse)' }}>{course.title}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {course.description || 'No description provided'}
+                          {course.description || t('courses.no_description', 'No description provided')}
                         </div>
                       </td>
-                      <td>{course.category || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>None</span>}</td>
+                      <td>{course.category || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>{t('banners.status_inactive', 'None')}</span>}</td>
                       <td>
                         <span style={{
                           fontSize: '12px',
                           fontWeight: 500,
                           color: course.difficulty === 'Advanced' ? 'var(--accent-red)' : course.difficulty === 'Intermediate' ? 'var(--accent-yellow)' : 'var(--accent-green)'
                         }}>
-                          {course.difficulty || 'Intermediate'}
+                          {course.difficulty === 'Advanced' 
+                            ? t('courses.difficulty_advanced', 'Advanced')
+                            : course.difficulty === 'Beginner'
+                            ? t('courses.difficulty_beginner', 'Beginner')
+                            : t('courses.difficulty_intermediate', 'Intermediate')}
                         </span>
                       </td>
                       <td>
                         {course.price === 0 ? (
-                          <span className="badge completed" style={{ fontSize: '10px' }}>Free</span>
+                          <span className="badge completed" style={{ fontSize: '10px' }}>{t('courses.status_free')}</span>
                         ) : (
-                          `${course.price.toLocaleString()} IRR`
+                          `${formatPrice(course.price)} ${t('courses.irr', 'IRR')}`
                         )}
                       </td>
                       <td>
-                        <strong style={{ color: 'var(--accent-cyan)' }}>{course.card_count}</strong> cards
+                        <strong style={{ color: 'var(--accent-cyan)' }}>{localizeNumber(course.card_count)}</strong> {t('courses.cards_unit', 'cards')}
                       </td>
-                      <td>v{course.version}</td>
+                      <td>v{localizeNumber(course.version)}</td>
                       <td>
                         <button
                           style={{
@@ -215,7 +222,7 @@ export const CoursesView: React.FC = () => {
                           title="Click to toggle publish status"
                         >
                           <span className={`badge ${course.is_published ? 'completed' : 'pending'}`}>
-                            {course.is_published ? 'Published' : 'Draft / Private'}
+                            {course.is_published ? t('announcements.th_published', 'Published') : t('courses.status_draft', 'Draft / Private')}
                           </span>
                         </button>
                       </td>
@@ -226,14 +233,14 @@ export const CoursesView: React.FC = () => {
                             style={{ padding: '6px 12px', fontSize: '12px' }}
                             onClick={() => openEdit(course)}
                           >
-                            Edit
+                            {t('courses.btn_edit')}
                           </button>
                           <button
                             className="btn btn-danger"
                             style={{ padding: '6px 12px', fontSize: '12px' }}
                             onClick={() => handleDelete(course.id)}
                           >
-                            Delete
+                            {t('courses.btn_delete')}
                           </button>
                         </div>
                       </td>
@@ -252,10 +259,10 @@ export const CoursesView: React.FC = () => {
                   disabled={page === 1}
                   onClick={() => setPage(p => Math.max(p - 1, 1))}
                 >
-                  Previous
+                  {t('users.prev')}
                 </button>
                 <span style={{ alignSelf: 'center', fontSize: '14px', color: 'var(--text-muted)' }}>
-                  Page {page} of {totalPages}
+                  {t('courses.pagination_page', 'Page')} {localizeNumber(page)} {t('courses.pagination_of', 'of')} {localizeNumber(totalPages)}
                 </span>
                 <button
                   className="btn btn-secondary"
@@ -263,7 +270,7 @@ export const CoursesView: React.FC = () => {
                   disabled={page === totalPages}
                   onClick={() => setPage(p => Math.min(p + 1, totalPages))}
                 >
-                  Next
+                  {t('users.next')}
                 </button>
               </div>
             )}
@@ -276,36 +283,36 @@ export const CoursesView: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h3>Edit Course Metadata</h3>
+              <h3>{t('courses.modal_edit_title')}</h3>
               <button className="refresh-captcha-btn" style={{ fontSize: '20px' }} onClick={() => setShowEditModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleEditSubmit}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label>Course Title</label>
+                  <label>{t('courses.field_title')}</label>
                   <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
                 </div>
                 <div className="form-group">
-                  <label>Description</label>
+                  <label>{t('courses.field_description', 'Description')}</label>
                   <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
                 </div>
                 <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label>Category</label>
+                    <label>{t('courses.field_category')}</label>
                     <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Languages" />
                   </div>
                   <div>
-                    <label>Difficulty</label>
+                    <label>{t('courses.th_difficulty', 'Difficulty')}</label>
                     <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate</option>
-                      <option value="Advanced">Advanced</option>
+                      <option value="Beginner">{t('courses.difficulty_beginner', 'Beginner')}</option>
+                      <option value="Intermediate">{t('courses.difficulty_intermediate', 'Intermediate')}</option>
+                      <option value="Advanced">{t('courses.difficulty_advanced', 'Advanced')}</option>
                     </select>
                   </div>
                 </div>
                 <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label>Price (IRR)</label>
+                    <label>{t('courses.field_price')}</label>
                     <input type="number" min="0" value={price} onChange={(e) => setPrice(parseFloat(e.target.value) || 0)} required />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
@@ -317,17 +324,17 @@ export const CoursesView: React.FC = () => {
                         onChange={(e) => setIsPublished(e.target.checked)}
                         style={{ width: 'auto' }}
                       />
-                      <label htmlFor="coursePublish" style={{ margin: 0, cursor: 'pointer' }}>Publish Course</label>
+                      <label htmlFor="coursePublish" style={{ margin: 0, cursor: 'pointer' }}>{t('courses.field_publish', 'Publish Course')}</label>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>
-                  Cancel
+                  {t('courses.btn_cancel')}
                 </button>
                 <button type="submit" className="btn">
-                  Save Changes
+                  {t('courses.btn_save')}
                 </button>
               </div>
             </form>
@@ -340,17 +347,16 @@ export const CoursesView: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h3>Upload Course ZIP Package</h3>
+              <h3>{t('courses.modal_add_title')}</h3>
               <button className="refresh-captcha-btn" style={{ fontSize: '20px' }} onClick={() => setShowUploadModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleUploadSubmit}>
               <div className="modal-body">
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                  Select the compiled <strong>course_package.zip</strong> file compiled using the Course Authoring Kit compiler.
-                  The backend will parse the manifest, extract card details, and securely host the package.
+                  {t('courses.upload_desc', 'Select the compiled course ZIP package.')}
                 </p>
                 <div className="form-group">
-                  <label>Select ZIP Package</label>
+                  <label>{t('courses.field_file')}</label>
                   <input
                     type="file"
                     accept=".zip"
@@ -362,10 +368,10 @@ export const CoursesView: React.FC = () => {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowUploadModal(false)} disabled={uploading}>
-                  Cancel
+                  {t('courses.btn_cancel')}
                 </button>
                 <button type="submit" className="btn" disabled={uploading}>
-                  {uploading ? 'Processing Package...' : 'Upload & Import'}
+                  {uploading ? t('login.verifying', 'Processing...') : t('courses.btn_add')}
                 </button>
               </div>
             </form>

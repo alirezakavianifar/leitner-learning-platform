@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { AdminModule } from '../types';
 import { modules } from '../modules';
 
@@ -8,11 +9,13 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeModuleId, onSelectModule }) => {
+  const { t } = useTranslation();
+
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
         <div className="logo-icon">L</div>
-        <div className="logo-text">Leitner Portal</div>
+        <div className="logo-text">{t('logo')}</div>
       </div>
       
       <ul className="sidebar-menu">
@@ -22,7 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeModuleId, onSelectModule
             <li key={mod.id} className={`sidebar-item ${activeModuleId === mod.id ? 'active' : ''}`}>
               <button onClick={() => onSelectModule(mod.id)}>
                 <Icon />
-                <span>{mod.name}</span>
+                <span>{t(`menu.${mod.id}`, mod.name)}</span>
               </button>
             </li>
           );
@@ -31,3 +34,4 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeModuleId, onSelectModule
     </aside>
   );
 };
+

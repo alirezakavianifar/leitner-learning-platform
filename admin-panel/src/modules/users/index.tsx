@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '../../services/api';
+import { useTranslation } from 'react-i18next';
+import { localizeNumber, formatPrice } from '../../i18n';
+import { api, getBaseUrl } from '../../services/api';
 import type { User, AdminModule } from '../../types';
 
 export const UsersView: React.FC = () => {
@@ -67,7 +69,7 @@ export const UsersView: React.FC = () => {
         
         // Fetch all courses to match status
         const token = localStorage.getItem('admin_token');
-        const res = await fetch('http://localhost:5000/api/v1/courses', {
+        const res = await fetch(`${getBaseUrl()}/courses`, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         if (res.ok) {
@@ -140,40 +142,42 @@ export const UsersView: React.FC = () => {
     }
   };
 
+  const { t } = useTranslation();
+
   return (
     <div>
       <div className="table-container">
         <div className="table-header">
-          <h2>User Accounts Management</h2>
+          <h2>{t('users.title')}</h2>
           <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '12px' }}>
             <input
               type="text"
-              placeholder="Search by Mobile or Name..."
+              placeholder={t('users.search_placeholder')}
               className="search-input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <button type="submit" className="btn">Search</button>
+            <button type="submit" className="btn">{t('users.search_btn', 'Search')}</button>
           </form>
         </div>
 
         {loading ? (
-          <div className="text-center p-24">Loading accounts...</div>
+          <div className="text-center p-24">{t('login.verifying', 'Loading...')}</div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Username</th>
-                <th>Mobile Number</th>
-                <th>Role</th>
-                <th>Registered Date</th>
-                <th>Actions</th>
+                <th>{t('users.field_username')}</th>
+                <th>{t('users.th_mobile')}</th>
+                <th>{t('users.role', 'Role')}</th>
+                <th>{t('users.th_joined')}</th>
+                <th>{t('users.th_actions')}</th>
               </tr>
             </thead>
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-muted">No users found.</td>
+                  <td colSpan={5} className="text-center text-muted">{t('users.no_users', 'No users found.')}</td>
                 </tr>
               ) : (
                 users.map((user) => (
@@ -181,16 +185,16 @@ export const UsersView: React.FC = () => {
                     <td>
                       <div style={{ fontWeight: 600, color: 'var(--text-inverse)' }}>{user.username}</div>
                     </td>
-                    <td>{user.mobile_number}</td>
+                    <td>{localizeNumber(user.mobile_number)}</td>
                     <td>
                       <span className={`badge ${user.is_admin ? 'admin' : 'student'}`}>
-                        {user.is_admin ? 'Admin' : 'Student'}
+                        {user.is_admin ? t('system_admin') : t('login.role_student', 'Student')}
                       </span>
                     </td>
-                    <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                    <td>{localizeNumber(new Date(user.created_at).toLocaleDateString())}</td>
                     <td>
                       <button className="btn btn-secondary" onClick={() => handleOpenEdit(user)}>
-                        Manage Access
+                        {t('users.btn_view_profile', 'Manage Access')}
                       </button>
                     </td>
                   </tr>
@@ -201,13 +205,13 @@ export const UsersView: React.FC = () => {
         )}
 
         <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)' }}>
-          <div className="stat-label">Total: {totalCount} users</div>
+          <div className="stat-label">{t('users.total') || 'Total'}: {localizeNumber(totalCount)}</div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button className="btn btn-secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>
-              Prev
+              {t('users.prev', 'Prev')}
             </button>
             <button className="btn btn-secondary" disabled={page * 10 >= totalCount} onClick={() => setPage(page + 1)}>
-              Next
+              {t('users.next', 'Next')}
             </button>
           </div>
         </div>
@@ -218,37 +222,37 @@ export const UsersView: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '750px' }}>
             <div className="modal-header">
-              <h3>Manage User: {selectedUser.username}</h3>
+              <h3>{t('users.modal_title')}: {selectedUser.username}</h3>
               <button className="refresh-captcha-btn" style={{ fontSize: '20px' }} onClick={() => setShowEditModal(false)}>&times;</button>
             </div>
             
             <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
               {/* Profile Details Form */}
               <form onSubmit={handleProfileSubmit}>
-                <h4 style={{ marginBottom: '16px', color: 'var(--primary-hover)' }}>Edit Profile Info</h4>
+                <h4 style={{ marginBottom: '16px', color: 'var(--primary-hover)' }}>{t('users.modal_title')}</h4>
                 
                 <div className="form-group">
-                  <label>Mobile Number (Read-Only)</label>
-                  <input type="text" value={selectedUser.mobile_number} disabled style={{ opacity: 0.6 }} />
+                  <label>{t('users.field_mobile')}</label>
+                  <input type="text" value={localizeNumber(selectedUser.mobile_number)} disabled style={{ opacity: 0.6 }} />
                 </div>
                 
                 <div className="form-group">
-                  <label>Username</label>
+                  <label>{t('users.field_username')}</label>
                   <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} required />
                 </div>
                 
                 <div className="form-group">
-                  <label>Interests</label>
+                  <label>{t('users.field_interests')}</label>
                   <input type="text" value={editInterests} onChange={(e) => setEditInterests(e.target.value)} />
                 </div>
                 
                 <div className="form-group">
-                  <label>Educational Field</label>
+                  <label>{t('users.field_field')}</label>
                   <input type="text" value={editField} onChange={(e) => setEditField(e.target.value)} />
                 </div>
                 
                 <div className="form-group">
-                  <label>Educational Level</label>
+                  <label>{t('users.field_level')}</label>
                   <input type="text" value={editLevel} onChange={(e) => setEditLevel(e.target.value)} />
                 </div>
                 
@@ -260,20 +264,20 @@ export const UsersView: React.FC = () => {
                     onChange={(e) => setEditIsAdmin(e.target.checked)}
                     style={{ width: 'auto' }}
                   />
-                  <label htmlFor="isAdminCheck" style={{ margin: 0, cursor: 'pointer' }}>Grant Admin Privileges</label>
+                  <label htmlFor="isAdminCheck" style={{ margin: 0, cursor: 'pointer' }}>{t('users.grant_admin', 'Grant Admin Privileges')}</label>
                 </div>
                 
                 <button type="submit" className="btn" style={{ width: '100%', marginTop: '24px' }}>
-                  Save Profile Changes
+                  {t('courses.btn_save', 'Save Changes')}
                 </button>
               </form>
 
               {/* Course Access Management */}
               <div>
-                <h4 style={{ marginBottom: '16px', color: 'var(--accent-cyan)' }}>Course Access Matrix</h4>
+                <h4 style={{ marginBottom: '16px', color: 'var(--accent-cyan)' }}>{t('users.section_courses')}</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto', paddingRight: '8px' }}>
                   {courses.length === 0 ? (
-                    <div className="text-muted" style={{ fontStyle: 'italic', fontSize: '13px' }}>No courses exist in catalog.</div>
+                    <div className="text-muted" style={{ fontStyle: 'italic', fontSize: '13px' }}>{t('courses.no_courses', 'No courses exist.')}</div>
                   ) : (
                     courses.map((course) => {
                       const purchase = purchases.find(p => p.course_id === course.id);
@@ -284,7 +288,7 @@ export const UsersView: React.FC = () => {
                           <div style={{ marginRight: '8px' }}>
                             <div style={{ fontWeight: 600, fontSize: '13px' }}>{course.title}</div>
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                              {course.price === 0 ? 'Free' : `${course.price.toLocaleString()} IRR`}
+                              {course.price === 0 ? t('courses.status_free') : `${formatPrice(course.price)} ${t('courses.irr', 'IRR')}`}
                             </div>
                           </div>
                           <button
@@ -292,7 +296,7 @@ export const UsersView: React.FC = () => {
                             style={{ padding: '6px 12px', fontSize: '12px' }}
                             onClick={() => openCourseToggle(course, !!isPurchased)}
                           >
-                            {isPurchased ? 'Revoke' : 'Grant'}
+                            {isPurchased ? t('users.btn_revoke', 'Revoke') : t('users.btn_grant', 'Grant')}
                           </button>
                         </div>
                       );
@@ -310,21 +314,21 @@ export const UsersView: React.FC = () => {
         <div className="modal-overlay" style={{ zIndex: 1100 }}>
           <div className="modal-content" style={{ maxWidth: '450px' }}>
             <div className="modal-header">
-              <h3>Confirm Manual Override</h3>
+              <h3>{t('users.confirm_override_title', 'Confirm Manual Override')}</h3>
               <button className="refresh-captcha-btn" style={{ fontSize: '20px' }} onClick={() => setShowToggleModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleCourseToggleSubmit}>
               <div className="modal-body">
                 <p style={{ fontSize: '14px', marginBottom: '16px' }}>
-                  You are about to <strong>{grantState ? 'GRANT' : 'REVOKE'}</strong> access to the course:
+                  {t('users.override_desc_1', 'You are about to')} <strong>{grantState ? t('users.btn_grant') : t('users.btn_revoke')}</strong> {t('users.override_desc_2', 'access to the course:')}
                   <br />
                   <span style={{ color: 'var(--primary-hover)', fontWeight: 600 }}>{targetCourse.title}</span>
                 </p>
                 <div className="form-group">
-                  <label>Reason for auditing (Required)</label>
+                  <label>{t('users.audit_reason_label', 'Reason for auditing (Required)')}</label>
                   <textarea
                     rows={3}
-                    placeholder="Provide details about why access is being overridden (e.g. manual user purchase, support case)..."
+                    placeholder={t('users.audit_reason_placeholder', 'Provide override reason details...')}
                     value={overrideReason}
                     onChange={(e) => setOverrideReason(e.target.value)}
                     required
@@ -333,10 +337,10 @@ export const UsersView: React.FC = () => {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowToggleModal(false)}>
-                  Cancel
+                  {t('courses.btn_cancel', 'Cancel')}
                 </button>
                 <button type="submit" className={`btn ${grantState ? 'btn-success' : 'btn-danger'}`}>
-                  Confirm Override
+                  {t('users.confirm_override_btn', 'Confirm Override')}
                 </button>
               </div>
             </form>

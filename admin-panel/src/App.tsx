@@ -56,6 +56,7 @@ export const App: React.FC = () => {
       
       <main className="main-content">
         <Header
+          moduleId={activeModuleId}
           moduleName={activeModule.name}
           adminUsername={adminUser}
           onLogout={handleLogout}

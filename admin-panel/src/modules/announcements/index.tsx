@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { localizeNumber } from '../../i18n';
 import { api } from '../../services/api';
 import type { Announcement, AdminModule } from '../../types';
 
 export const AnnouncementsView: React.FC = () => {
+  const { t } = useTranslation();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<Announcement | null>(null);
@@ -49,26 +52,26 @@ export const AnnouncementsView: React.FC = () => {
     try {
       if (editingItem) {
         await api.admin.updateAnnouncement(editingItem.id, title, content);
-        alert('Announcement updated successfully.');
+        alert(t('announcements.alert_save_success', 'Announcement updated successfully.'));
       } else {
         await api.admin.createAnnouncement(title, content);
-        alert('Announcement created successfully.');
+        alert(t('announcements.alert_create_success', 'Announcement created successfully.'));
       }
       setShowModal(false);
       loadAnnouncements();
     } catch (err: any) {
-      alert(err.message || 'Failed to save announcement.');
+      alert(err.message || t('announcements.alert_save_failed', 'Failed to save announcement.'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this announcement?')) return;
+    if (!confirm(t('announcements.confirm_delete', 'Are you sure you want to delete this announcement?'))) return;
     try {
       await api.admin.deleteAnnouncement(id);
-      alert('Announcement deleted.');
+      alert(t('announcements.alert_delete_success', 'Announcement deleted.'));
       loadAnnouncements();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete announcement.');
+      alert(err.message || t('announcements.alert_delete_failed', 'Failed to delete announcement.'));
     }
   };
 
@@ -76,26 +79,26 @@ export const AnnouncementsView: React.FC = () => {
     <div>
       <div className="table-container">
         <div className="table-header">
-          <h2>System-wide Announcements</h2>
-          <button className="btn" onClick={openCreate}>Create Announcement</button>
+          <h2>{t('announcements.title')}</h2>
+          <button className="btn" onClick={openCreate}>{t('announcements.btn_add')}</button>
         </div>
 
         {loading ? (
-          <div className="text-center p-24">Loading announcements...</div>
+          <div className="text-center p-24">{t('login.verifying', 'Loading...')}</div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Content Snippet</th>
-                <th>Published At</th>
-                <th>Actions</th>
+                <th>{t('announcements.th_title')}</th>
+                <th>{t('announcements.th_content')}</th>
+                <th>{t('announcements.th_published')}</th>
+                <th>{t('announcements.th_actions')}</th>
               </tr>
             </thead>
             <tbody>
               {announcements.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-center text-muted">No announcements posted yet.</td>
+                  <td colSpan={4} className="text-center text-muted">{t('announcements.no_announcements', 'No announcements posted yet.')}</td>
                 </tr>
               ) : (
                 announcements.map((item) => (
@@ -106,14 +109,14 @@ export const AnnouncementsView: React.FC = () => {
                     <td style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {item.content}
                     </td>
-                    <td>{new Date(item.published_at).toLocaleString()}</td>
+                    <td>{localizeNumber(new Date(item.published_at).toLocaleString())}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => openEdit(item)}>
-                          Edit
+                          {t('courses.btn_edit')}
                         </button>
                         <button className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => handleDelete(item.id)}>
-                          Delete
+                          {t('courses.btn_delete')}
                         </button>
                       </div>
                     </td>
@@ -129,26 +132,26 @@ export const AnnouncementsView: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h3>{editingItem ? 'Edit Announcement' : 'Create Announcement'}</h3>
+              <h3>{editingItem ? t('announcements.modal_edit') : t('announcements.modal_add')}</h3>
               <button className="refresh-captcha-btn" style={{ fontSize: '20px' }} onClick={() => setShowModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label>Title</label>
+                  <label>{t('announcements.field_title')}</label>
                   <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
                 </div>
                 <div className="form-group">
-                  <label>Content Description</label>
+                  <label>{t('announcements.field_content')}</label>
                   <textarea rows={5} value={content} onChange={(e) => setContent(e.target.value)} required></textarea>
                 </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                  Cancel
+                  {t('courses.btn_cancel')}
                 </button>
                 <button type="submit" className="btn">
-                  {editingItem ? 'Save Changes' : 'Publish Alert'}
+                  {editingItem ? t('courses.btn_save') : t('announcements.btn_save')}
                 </button>
               </div>
             </form>
@@ -170,3 +173,4 @@ export const AnnouncementsModule: AdminModule = {
   ),
   component: AnnouncementsView
 };
+

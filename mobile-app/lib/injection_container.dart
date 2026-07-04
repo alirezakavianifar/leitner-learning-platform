@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
@@ -24,6 +25,8 @@ import 'features/auth/domain/usecases/request_otp.dart';
 import 'features/auth/domain/usecases/update_profile.dart';
 import 'features/auth/domain/usecases/verify_otp.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_event.dart';
+import 'main.dart' show navigatorKey;
 
 import 'features/courses/data/datasources/courses_local_data_source.dart';
 import 'features/courses/data/datasources/courses_remote_data_source.dart';
@@ -85,6 +88,17 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
     dio: dioInstance,
     storageService: storageService,
     baseUrl: fallbackUrl,
+    onUnauthorized: () {
+      // Dispatch LogoutEvent on the AuthBloc so AuthGate redirects to login
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        try {
+          context.read<AuthBloc>().add(LogoutEvent());
+        } catch (_) {
+          // AuthBloc may not be available in context yet
+        }
+      }
+    },
   );
   sl.registerSingleton<Dio>(dioInstance);
   sl.registerSingleton<DioClient>(dioClient);

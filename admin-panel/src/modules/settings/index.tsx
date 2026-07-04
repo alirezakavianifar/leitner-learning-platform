@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
 import type { AdminModule } from '../../types';
 
 export const SettingsView: React.FC = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -85,10 +87,10 @@ export const SettingsView: React.FC = () => {
         { key: 'max_banner_count', value: maxBannerCount.toString() },
       ];
       await api.admin.updateConfig(payload);
-      alert('System configuration updated successfully.');
+      alert(t('settings.save_success'));
       loadSettings();
     } catch (err: any) {
-      alert(err.message || 'Failed to save configuration settings.');
+      alert(err.message || t('settings.save_failed', 'Failed to save configuration settings.'));
     } finally {
       setSaving(false);
     }
@@ -98,29 +100,29 @@ export const SettingsView: React.FC = () => {
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div className="table-container" style={{ padding: '24px' }}>
         <div className="table-header" style={{ marginBottom: '24px' }}>
-          <h2>System Settings & Dynamic Config</h2>
+          <h2>{t('settings.title')}</h2>
           <button className="btn" onClick={loadSettings} disabled={loading}>
-            Refresh
+            {t('login.captcha_refresh')}
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center p-24">Loading system settings...</div>
+          <div className="text-center p-24">{t('login.verifying', 'Loading settings...')}</div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
             {/* Global Maintenance Mode */}
-            <div style={{ padding: '16px', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <div style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.15)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#ff7a1a' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                   <line x1="12" y1="9" x2="12" y2="13"/>
                   <line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
-                Maintenance Mode Control
+                {t('settings.section_maintenance')}
               </h3>
               <p className="text-muted" style={{ fontSize: '13px', margin: '4px 0 16px 0' }}>
-                Enabling maintenance mode blocks all client mobile applications immediately, presenting a "Scheduled Maintenance" screen.
+                {t('settings.maintenance_desc')}
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <input
@@ -131,20 +133,20 @@ export const SettingsView: React.FC = () => {
                   style={{ width: '20px', height: '20px', cursor: 'pointer' }}
                 />
                 <label htmlFor="maintenance_mode" style={{ fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', color: maintenanceMode ? '#ff7a1a' : 'inherit' }}>
-                  Enable System-Wide Maintenance Mode
+                  {t('settings.maintenance_enable')}
                 </label>
               </div>
             </div>
 
             {/* API Endpoints */}
-            <div style={{ padding: '16px', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <h3 style={{ marginTop: 0, color: 'var(--primary-color)' }}>Dynamic Server Endpoints</h3>
+            <div style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.15)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginTop: 0, color: 'var(--primary-hover)' }}>{t('settings.endpoints_title', 'Dynamic Server Endpoints')}</h3>
               <p className="text-muted" style={{ fontSize: '13px', margin: '4px 0 16px 0' }}>
-                Define URLs used by the client to communicate with API endpoints, media content, and banners.
+                {t('settings.endpoints_subtitle', 'Define URLs used by the client to communicate with API endpoints.')}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div className="form-group">
-                  <label>Primary API Server URL</label>
+                  <label>{t('settings.api_server_label', 'Primary API Server URL')}</label>
                   <input
                     type="url"
                     value={apiServer}
@@ -154,7 +156,7 @@ export const SettingsView: React.FC = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Content Delivery Server URL (Course Zip downloads)</label>
+                  <label>{t('settings.content_server_label', 'Content Delivery Server URL')}</label>
                   <input
                     type="url"
                     value={contentServer}
@@ -164,7 +166,7 @@ export const SettingsView: React.FC = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Promo Banner Media Server URL</label>
+                  <label>{t('settings.banner_server_label', 'Promo Banner Media Server URL')}</label>
                   <input
                     type="url"
                     value={bannerServer}
@@ -177,10 +179,10 @@ export const SettingsView: React.FC = () => {
             </div>
 
             {/* Remote Feature Flags */}
-            <div style={{ padding: '16px', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <h3 style={{ marginTop: 0, color: 'var(--primary-color)' }}>Remote Feature Flags</h3>
+            <div style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.15)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginTop: 0, color: 'var(--primary-hover)' }}>{t('settings.section_flags')}</h3>
               <p className="text-muted" style={{ fontSize: '13px', margin: '4px 0 16px 0' }}>
-                Toggle features dynamically on the mobile client without releasing a new store build.
+                {t('settings.subtitle')}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -191,7 +193,7 @@ export const SettingsView: React.FC = () => {
                     onChange={(e) => setEnableAiTutor(e.target.checked)}
                     style={{ width: '18px', height: '18px' }}
                   />
-                  <label htmlFor="enable_ai_tutor">Enable AI Tutor Features (Beta)</label>
+                  <label htmlFor="enable_ai_tutor">{t('settings.flag_ai_tutor')}</label>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
@@ -201,7 +203,7 @@ export const SettingsView: React.FC = () => {
                     onChange={(e) => setEnableCustomThemes(e.target.checked)}
                     style={{ width: '18px', height: '18px' }}
                   />
-                  <label htmlFor="enable_custom_themes">Enable Custom Client Themes</label>
+                  <label htmlFor="enable_custom_themes">{t('settings.flag_themes')}</label>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
@@ -211,20 +213,20 @@ export const SettingsView: React.FC = () => {
                     onChange={(e) => setEnableSearchV2(e.target.checked)}
                     style={{ width: '18px', height: '18px' }}
                   />
-                  <label htmlFor="enable_search_v2">Enable Advanced Search (Search v2)</label>
+                  <label htmlFor="enable_search_v2">{t('settings.flag_search')}</label>
                 </div>
               </div>
             </div>
 
             {/* Banner Layout and Carousel Configs */}
-            <div style={{ padding: '16px', background: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <h3 style={{ marginTop: 0, color: 'var(--primary-color)' }}>Client Carousel Configurations</h3>
+            <div style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.15)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginTop: 0, color: 'var(--primary-hover)' }}>{t('settings.carousel_title', 'Client Carousel Configurations')}</h3>
               <p className="text-muted" style={{ fontSize: '13px', margin: '4px 0 16px 0' }}>
-                Adjust display properties of banners dynamically on the mobile hub screen.
+                {t('settings.carousel_subtitle', 'Adjust display properties of banners dynamically.')}
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="form-group">
-                  <label>Banner Rotation Speed (Seconds)</label>
+                  <label>{t('settings.rotation_speed_label', 'Banner Rotation Speed (Seconds)')}</label>
                   <input
                     type="number"
                     min="1"
@@ -235,7 +237,7 @@ export const SettingsView: React.FC = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Max Dashboard Banner Count</label>
+                  <label>{t('settings.max_banner_label', 'Max Dashboard Banner Count')}</label>
                   <input
                     type="number"
                     min="1"
@@ -250,7 +252,7 @@ export const SettingsView: React.FC = () => {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
               <button type="submit" className="btn" style={{ minWidth: '150px' }} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Configuration'}
+                {saving ? t('login.verifying', 'Saving...') : t('settings.btn_save')}
               </button>
             </div>
           </form>
@@ -275,3 +277,4 @@ export const SettingsModule: AdminModule = {
 function SettingsModuleView() {
   return <SettingsView />;
 }
+

@@ -1,5 +1,5 @@
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, VoidCallback;
 import 'package:dio/dio.dart';
 import 'package:mobile_app/core/services/storage_service.dart';
 
@@ -8,12 +8,18 @@ import 'package:mobile_app/core/services/storage_service.dart';
 class DioClient {
   final Dio dio;
   final StorageService storageService;
+
+  /// Called when the server returns 401 Unauthorized.
+  /// Use this to clear credentials and redirect the user to the login screen.
+  final VoidCallback? onUnauthorized;
+
   bool _isFailoverInProgress = false;
 
   DioClient({
     required this.dio,
     required this.storageService,
     required String baseUrl,
+    this.onUnauthorized,
   }) {
     dio.options.baseUrl = baseUrl;
     dio.options.connectTimeout = const Duration(seconds: 15);
@@ -34,6 +40,13 @@ class DioClient {
           return handler.next(options);
         },
         onError: (DioException e, handler) async {
+          // Handle 401 Unauthorized — clear token and redirect to login
+          if (e.response?.statusCode == 401) {
+            await storageService.deleteSecure('jwt_token');
+            onUnauthorized?.call();
+            return handler.next(e);
+          }
+
           if (e.type == DioExceptionType.connectionTimeout ||
               e.type == DioExceptionType.receiveTimeout ||
               e.type == DioExceptionType.sendTimeout ||

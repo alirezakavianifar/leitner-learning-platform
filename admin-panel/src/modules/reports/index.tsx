@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { localizeNumber } from '../../i18n';
 import { api } from '../../services/api';
 import type { FlashcardReport, AdminModule } from '../../types';
 
 export const ReportsView: React.FC = () => {
+  const { t } = useTranslation();
   const [reports, setReports] = useState<FlashcardReport[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('PENDING');
   const [loading, setLoading] = useState(true);
@@ -27,11 +30,11 @@ export const ReportsView: React.FC = () => {
     try {
       const res = await api.admin.updateReportStatus(id, newStatus);
       if (res.success) {
-        alert(`Report marked as ${newStatus}`);
+        alert(t('reports.alert_status', { status: newStatus }));
         loadReports();
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to update report status.');
+      alert(err.message || t('reports.alert_failed', 'Failed to update report status.'));
     }
   };
 
@@ -39,7 +42,7 @@ export const ReportsView: React.FC = () => {
     <div>
       <div className="table-container">
         <div className="table-header">
-          <h2>Flashcard Content Reports</h2>
+          <h2>{t('reports.title')}</h2>
           <div style={{ display: 'flex', gap: '8px' }}>
             {['PENDING', 'REVIEWED', 'RESOLVED', ''].map((status) => (
               <button
@@ -48,48 +51,58 @@ export const ReportsView: React.FC = () => {
                 className={`btn ${filterStatus === status ? '' : 'btn-secondary'}`}
                 style={{ padding: '6px 12px', fontSize: '13px' }}
               >
-                {status === '' ? 'All' : status}
+                {status === '' 
+                  ? t('reports.filter_all', 'All') 
+                  : status === 'PENDING'
+                  ? t('reports.status_pending', 'Pending')
+                  : status === 'REVIEWED'
+                  ? t('reports.status_reviewed', 'Reviewed')
+                  : t('reports.status_resolved', 'Resolved')}
               </button>
             ))}
           </div>
         </div>
 
         {loading ? (
-          <div className="text-center p-24">Loading typo reports...</div>
+          <div className="text-center p-24">{t('login.verifying', 'Loading...')}</div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Submitted By</th>
-                <th>Course</th>
-                <th>Card No.</th>
-                <th>Description</th>
-                <th>Submitted At</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{t('reports.th_submitted_by')}</th>
+                <th>{t('reports.th_course')}</th>
+                <th>{t('reports.th_card_no')}</th>
+                <th>{t('reports.th_description')}</th>
+                <th>{t('reports.th_submitted_at')}</th>
+                <th>{t('reports.th_status')}</th>
+                <th>{t('reports.th_actions')}</th>
               </tr>
             </thead>
             <tbody>
               {reports.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-muted">No typo reports logged.</td>
+                  <td colSpan={7} className="text-center text-muted">{t('reports.no_reports')}</td>
                 </tr>
               ) : (
                 reports.map((report) => (
                   <tr key={report.report_id}>
                     <td>
                       <div style={{ fontWeight: 600, color: 'var(--text-inverse)' }}>{report.username}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{report.mobile_number}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{localizeNumber(report.mobile_number)}</div>
                     </td>
                     <td>{report.course_title}</td>
                     <td>
-                      <span className="badge admin" style={{ fontSize: '12px' }}>#{report.card_number}</span>
+                      <span className="badge admin" style={{ fontSize: '12px' }}>#{localizeNumber(report.card_number)}</span>
                     </td>
                     <td style={{ maxWidth: '250px', wordBreak: 'break-word' }}>{report.report_text}</td>
-                    <td>{new Date(report.submitted_at).toLocaleString()}</td>
+                    <td>{localizeNumber(new Date(report.submitted_at).toLocaleString())}</td>
                     <td>
                       <span className={`badge ${report.status.toLowerCase()}`}>
-                        {report.status}
+                        {report.status === 'PENDING'
+                          ? t('reports.status_pending', 'Pending')
+                          : report.status === 'REVIEWED'
+                          ? t('reports.status_reviewed', 'Reviewed')
+                          : t('reports.status_resolved', 'Resolved')}
                       </span>
                     </td>
                     <td>
@@ -100,7 +113,7 @@ export const ReportsView: React.FC = () => {
                             style={{ padding: '4px 8px', fontSize: '11px' }}
                             onClick={() => updateStatus(report.report_id, 'REVIEWED')}
                           >
-                            Mark Reviewed
+                            {t('reports.btn_mark_reviewed')}
                           </button>
                         )}
                         {report.status !== 'RESOLVED' && (
@@ -109,7 +122,7 @@ export const ReportsView: React.FC = () => {
                             style={{ padding: '4px 8px', fontSize: '11px', background: 'var(--accent-green)' }}
                             onClick={() => updateStatus(report.report_id, 'RESOLVED')}
                           >
-                            Resolve
+                            {t('reports.btn_resolve')}
                           </button>
                         )}
                       </div>
@@ -137,3 +150,4 @@ export const ReportsModule: AdminModule = {
   ),
   component: ReportsView
 };
+

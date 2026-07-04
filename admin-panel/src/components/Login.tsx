@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { localizeNumber } from '../i18n';
 import { api, setToken } from '../services/api';
 
 interface LoginProps {
@@ -6,6 +8,7 @@ interface LoginProps {
 }
 
 export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState<'REQUEST' | 'VERIFY'>('REQUEST');
   const [mobileNumber, setMobileNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -30,7 +33,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         setCaptchaImage(data.image_base64);
       }
     } catch (err: any) {
-      setError('Could not retrieve visual CAPTCHA.');
+      setError(t('login.error_captcha'));
     }
   };
 
@@ -51,11 +54,11 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mobileNumber.trim()) {
-      setError('Mobile number is required.');
+      setError(t('login.error_mobile_req'));
       return;
     }
     if (!captchaAnswer.trim()) {
-      setError('Please answer the CAPTCHA math challenge.');
+      setError(t('login.error_captcha_req'));
       return;
     }
 
@@ -69,7 +72,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         setTimer(res.expires_in_seconds || 120);
       }
     } catch (err: any) {
-      setError(err.message || 'OTP dispatch failed. Check CAPTCHA and mobile input.');
+      setError(err.message || t('login.error_failed'));
       fetchCaptcha(); // Reload CAPTCHA on failure
     } finally {
       setLoading(false);
@@ -79,7 +82,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpCode.trim()) {
-      setError('Verification code is required.');
+      setError(t('login.error_otp_req'));
       return;
     }
 
@@ -90,7 +93,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       const res = await api.auth.verifyOtp(mobileNumber, otpCode);
       if (res.success) {
         if (res.role !== 'Admin') {
-          setError('Access Denied: Only administrators can access this terminal.');
+          setError(t('login.error_denied'));
           setStep('REQUEST');
           fetchCaptcha();
           return;
@@ -109,7 +112,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         onLoginSuccess(res.token, name);
       }
     } catch (err: any) {
-      setError(err.message || 'Verification failed. Re-enter the OTP.');
+      setError(err.message || t('login.error_failed'));
     } finally {
       setLoading(false);
     }
@@ -125,8 +128,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     <div className="login-page">
       <div className="login-card">
         <div className="login-header">
-          <h2>Administrative Console</h2>
-          <p>{step === 'REQUEST' ? 'Sign in to access control portal' : 'Enter the SMS code sent to you'}</p>
+          <h2>{t('login.console_title')}</h2>
+          <p>{step === 'REQUEST' ? t('login.sign_in_desc') : t('login.enter_sms_desc')}</p>
         </div>
 
         {error && (
@@ -138,10 +141,10 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         {step === 'REQUEST' ? (
           <form onSubmit={handleRequestOtp}>
             <div className="form-group">
-              <label>Mobile Number</label>
+              <label>{t('login.mobile_label')}</label>
               <input
                 type="tel"
-                placeholder="e.g. +989123456789 or 09123456789"
+                placeholder={t('login.mobile_placeholder')}
                 value={mobileNumber}
                 onChange={(e) => setMobileNumber(e.target.value)}
                 required
@@ -150,7 +153,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
 
             <div className="form-group">
-              <label>CAPTCHA Math Challenge</label>
+              <label>{t('login.captcha_label')}</label>
               <div className="captcha-container">
                 <div className="captcha-image-wrapper" onClick={fetchCaptcha} title="Click to refresh CAPTCHA">
                   {captchaImage ? (
@@ -162,12 +165,12 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                   )}
                 </div>
                 <button type="button" className="refresh-captcha-btn" onClick={fetchCaptcha}>
-                  Refresh
+                  {t('login.captcha_refresh')}
                 </button>
               </div>
               <input
                 type="text"
-                placeholder="Answer"
+                placeholder={t('login.captcha_placeholder')}
                 value={captchaAnswer}
                 onChange={(e) => setCaptchaAnswer(e.target.value)}
                 required
@@ -176,16 +179,16 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
 
             <button type="submit" className="btn" style={{ width: '100%', marginTop: '12px' }} disabled={loading}>
-              {loading ? 'Requesting OTP...' : 'Send Verification Code'}
+              {loading ? t('login.requesting_otp') : t('login.send_code_btn')}
             </button>
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp}>
             <div className="form-group">
-              <label>Verification SMS Code</label>
+              <label>{t('login.sms_code_label')}</label>
               <input
                 type="text"
-                placeholder="Enter 5-digit code (use 12345 to bypass)"
+                placeholder={t('login.sms_code_placeholder')}
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value)}
                 required
@@ -195,17 +198,17 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
 
             <button type="submit" className="btn" style={{ width: '100%', marginTop: '12px' }} disabled={loading}>
-              {loading ? 'Verifying...' : 'Access Dashboard'}
+              {loading ? t('login.verifying') : t('login.access_dashboard_btn')}
             </button>
 
             <div className="text-center" style={{ marginTop: '18px' }}>
               {timer > 0 ? (
                 <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Resend code in {timer}s
+                  {t('login.resend_timer', { timer: localizeNumber(timer) })}
                 </span>
               ) : (
                 <button type="button" className="refresh-captcha-btn" onClick={handleResendOtp} style={{ fontWeight: 600 }}>
-                  Resend OTP Code
+                  {t('login.resend_btn')}
                 </button>
               )}
             </div>
@@ -215,3 +218,4 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     </div>
   );
 };
+

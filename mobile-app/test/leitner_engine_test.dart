@@ -324,6 +324,30 @@ void main() {
       expect(reviewEvent!.box, 2);
     });
 
+    test('Submit review for card with no prior progress record: should initialize, insert default Box 1 entry, and progress to Box 2', () async {
+      // Arrange - client_progress is empty (no prior progress record exists)
+      expect(localDb.tables['client_progress']!, isEmpty);
+
+      // Assert event fires
+      CardReviewed? reviewEvent;
+      eventBus.on<CardReviewed>().listen((e) => reviewEvent = e);
+
+      // Act
+      await repository.submitReview(courseId: courseId, cardNumber: 1, isCorrect: true);
+      await Future.delayed(Duration.zero);
+
+      // Assert - entry should have been created and updated to Box 2
+      expect(localDb.tables['client_progress']!.length, 1);
+      final progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
+      expect(progress.cardNumber, 1);
+      expect(progress.currentBox, 2);
+      expect(progress.lastTrigger, 'REVIEW_CORRECT');
+      expect(progress.isSynced, false);
+      expect(progress.nextReviewDue!.difference(progress.lastReviewedAt!).inDays, 3);
+      expect(reviewEvent, isNotNull);
+      expect(reviewEvent!.box, 2);
+    });
+
     test('Correct review: Box 4 to Box 5 should schedule review after 31 days', () async {
       // Arrange - Box 4 progress
       final id = '${courseId}_2';

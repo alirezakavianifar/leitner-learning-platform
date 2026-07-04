@@ -112,12 +112,27 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       whereArgs: [courseId, cardNumber],
     );
 
-    if (maps.isEmpty) {
-      throw Exception('Progress entry not found for course: $courseId, card: $cardNumber');
-    }
-
-    final currentProgress = CardProgressModel.fromMap(maps.first);
     final now = DateTime.now();
+    CardProgressModel currentProgress;
+    if (maps.isEmpty) {
+      currentProgress = CardProgressModel(
+        id: '${courseId}_$cardNumber',
+        courseId: courseId,
+        cardNumber: cardNumber,
+        currentBox: 1,
+        lastReviewedAt: null,
+        nextReviewDue: now,
+        lastTrigger: null,
+        isSynced: false,
+      );
+      await localDb.insert(
+        'client_progress',
+        currentProgress.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } else {
+      currentProgress = CardProgressModel.fromMap(maps.first);
+    }
 
     int newBox = currentProgress.currentBox;
     DateTime? newNextReviewDue = currentProgress.nextReviewDue;

@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { localizeNumber } from '../../i18n';
 import { api } from '../../services/api';
 import type { Banner, AdminModule } from '../../types';
 
 export const BannersView: React.FC = () => {
+  const { t } = useTranslation();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<any | null>(null);
@@ -64,26 +67,26 @@ export const BannersView: React.FC = () => {
       const targetLink = linkUrl.trim() === '' ? null : linkUrl.trim();
       if (editingItem) {
         await api.admin.updateBanner(editingItem.id, imageUrl, targetLink, displayOrder, isActive);
-        alert('Banner updated successfully.');
+        alert(t('banners.alert_save_success', 'Banner updated successfully.'));
       } else {
         await api.admin.createBanner(imageUrl, targetLink, displayOrder, isActive);
-        alert('Banner created successfully.');
+        alert(t('banners.alert_create_success', 'Banner created successfully.'));
       }
       setShowModal(false);
       loadBanners();
     } catch (err: any) {
-      alert(err.message || 'Failed to save banner details.');
+      alert(err.message || t('banners.alert_save_failed', 'Failed to save banner details.'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this promotional banner?')) return;
+    if (!confirm(t('banners.confirm_delete', 'Are you sure you want to delete this promotional banner?'))) return;
     try {
       await api.admin.deleteBanner(id);
-      alert('Banner deleted.');
+      alert(t('banners.alert_delete_success', 'Banner deleted.'));
       loadBanners();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete banner.');
+      alert(err.message || t('banners.alert_delete_failed', 'Failed to delete banner.'));
     }
   };
 
@@ -91,28 +94,28 @@ export const BannersView: React.FC = () => {
     <div>
       <div className="table-container">
         <div className="table-header">
-          <h2>Carousel Promotional Banners</h2>
-          <button className="btn" onClick={openCreate}>Add Banner</button>
+          <h2>{t('banners.title')}</h2>
+          <button className="btn" onClick={openCreate}>{t('banners.btn_add')}</button>
         </div>
 
         {loading ? (
-          <div className="text-center p-24">Loading banners...</div>
+          <div className="text-center p-24">{t('login.verifying', 'Loading...')}</div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Preview</th>
-                <th>Image URL</th>
-                <th>Link URL</th>
-                <th>Display Order</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{t('banners.th_image')}</th>
+                <th>{t('banners.field_image')}</th>
+                <th>{t('banners.th_link')}</th>
+                <th>{t('banners.th_order')}</th>
+                <th>{t('banners.th_status')}</th>
+                <th>{t('users.th_actions')}</th>
               </tr>
             </thead>
             <tbody>
               {banners.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-muted">No promotional banners uploaded.</td>
+                  <td colSpan={6} className="text-center text-muted">{t('banners.no_banners', 'No promotional banners uploaded.')}</td>
                 </tr>
               ) : (
                 banners.map((item) => (
@@ -130,20 +133,20 @@ export const BannersView: React.FC = () => {
                     <td>
                       <code style={{ fontSize: '11px' }}>{item.image_url}</code>
                     </td>
-                    <td>{item.link_url || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>None</span>}</td>
-                    <td>{item.display_order}</td>
+                    <td>{item.link_url || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>{t('banners.status_inactive', 'None')}</span>}</td>
+                    <td>{localizeNumber(item.display_order)}</td>
                     <td>
                       <span className={`badge ${item.is_active ? 'completed' : 'failed'}`}>
-                        {item.is_active ? 'Active' : 'Inactive'}
+                        {item.is_active ? t('banners.status_active') : t('banners.status_inactive')}
                       </span>
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => openEdit(item)}>
-                          Edit
+                          {t('courses.btn_edit')}
                         </button>
                         <button className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => handleDelete(item.id)}>
-                          Delete
+                          {t('courses.btn_delete')}
                         </button>
                       </div>
                     </td>
@@ -159,22 +162,22 @@ export const BannersView: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h3>{editingItem ? 'Edit Promotional Banner' : 'Add Promotional Banner'}</h3>
+              <h3>{editingItem ? t('banners.modal_edit') : t('banners.modal_add')}</h3>
               <button className="refresh-captcha-btn" style={{ fontSize: '20px' }} onClick={() => setShowModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label>Image Resource URL</label>
+                  <label>{t('banners.field_image')}</label>
                   <input type="url" placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} required />
                 </div>
                 <div className="form-group">
-                  <label>Redirection Target Link URL (Optional)</label>
+                  <label>{t('banners.field_link')}</label>
                   <input type="url" placeholder="https://..." value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
                 </div>
                 <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
-                    <label>Display Order Sequence</label>
+                    <label>{t('banners.field_order')}</label>
                     <input type="number" min="0" value={displayOrder} onChange={(e) => setDisplayOrder(parseInt(e.target.value) || 0)} required />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
@@ -186,17 +189,17 @@ export const BannersView: React.FC = () => {
                         onChange={(e) => setIsActive(e.target.checked)}
                         style={{ width: 'auto' }}
                       />
-                      <label htmlFor="bannerActive" style={{ margin: 0, cursor: 'pointer' }}>Mark Banner Active</label>
+                      <label htmlFor="bannerActive" style={{ margin: 0, cursor: 'pointer' }}>{t('banners.field_active')}</label>
                     </div>
                   </div>
                 </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                  Cancel
+                  {t('courses.btn_cancel')}
                 </button>
                 <button type="submit" className="btn">
-                  {editingItem ? 'Save Changes' : 'Upload Banner'}
+                  {editingItem ? t('courses.btn_save') : t('banners.btn_save')}
                 </button>
               </div>
             </form>
@@ -220,7 +223,7 @@ export const BannersModule: AdminModule = {
   component: BannersModuleView
 };
 
-// Simple helper to resolve React TS compilation naming conflicts
 function BannersModuleView() {
   return <BannersView />;
 }
+

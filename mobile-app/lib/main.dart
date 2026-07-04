@@ -23,6 +23,10 @@ import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/features/config/presentation/screens/maintenance_screen.dart';
 import 'injection_container.dart' as di;
 
+/// Global navigator key — used by the Dio 401 interceptor to redirect to
+/// the login screen without requiring a BuildContext.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main({String flavor = 'store'}) async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -81,6 +85,7 @@ class MyApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             home: isJailbroken ? const SecurityBlockScreen() : const AppGate(),
+            navigatorKey: navigatorKey,
           );
         },
       ),
