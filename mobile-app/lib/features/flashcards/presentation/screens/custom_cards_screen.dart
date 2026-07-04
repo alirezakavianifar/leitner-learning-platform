@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/database/database_helper.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 import 'create_custom_card_screen.dart';
 
@@ -125,6 +126,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -135,7 +137,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'My Custom Cards',
+          loc.customCards,
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -157,9 +159,9 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
           labelColor: AppColors.primary,
           unselectedLabelColor: AppColors.textSecondary,
           indicatorColor: AppColors.primary,
-          tabs: const [
-            Tab(icon: Icon(Icons.list), text: 'All Cards'),
-            Tab(icon: Icon(Icons.play_circle_outline), text: 'Study Mode'),
+          tabs: [
+            Tab(icon: const Icon(Icons.list), text: loc.allCards),
+            Tab(icon: const Icon(Icons.play_circle_outline), text: loc.studyMode),
           ],
         ),
       ),
@@ -178,6 +180,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
   }
 
   Widget _buildEmptyState() {
+    final loc = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -187,12 +190,12 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
             Icon(Icons.add_card, size: 64, color: AppColors.secondary.withOpacity(0.5)),
             const SizedBox(height: 16),
             Text(
-              'No Custom Cards Found',
+              loc.noCustomCardsFound,
               style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              'Create your own custom cards with images and voice recording, and study them locally.',
+              loc.createCustomCardsEmptyDesc,
               style: TextStyle(color: AppColors.textSecondary, height: 1.4),
               textAlign: TextAlign.center,
             ),
@@ -213,7 +216,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                 }
               },
               icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Create First Card', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              label: Text(loc.createFirstCard, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),

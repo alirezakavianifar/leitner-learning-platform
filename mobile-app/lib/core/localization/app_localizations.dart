@@ -164,6 +164,11 @@ class AppLocalizations {
       'failed_load_notifications': 'Failed to load system notifications.',
       'no_notifications_found': 'No notifications found.',
       'retry': 'Retry',
+      'no_custom_cards_found': 'No Custom Cards Found',
+      'create_custom_cards_empty_desc': 'Create your own custom cards with images and voice recording, and study them locally.',
+      'create_first_card': 'Create First Card',
+      'all_cards': 'All Cards',
+      'study_mode': 'Study Mode',
     },
     'fa': {
       'app_title': 'سامانه لایتنر',
@@ -317,6 +322,11 @@ class AppLocalizations {
       'failed_load_notifications': 'خطا در دریافت اعلان‌های سیستم.',
       'no_notifications_found': 'هیچ اعلانی یافت نشد.',
       'retry': 'تلاش مجدد',
+      'no_custom_cards_found': 'هیچ کارت اختصاصی یافت نشد',
+      'create_custom_cards_empty_desc': 'کارت‌های اختصاصی دلخواه خود را همراه با تصویر و ضبط صدا ایجاد کرده و به صورت محلی مطالعه کنید.',
+      'create_first_card': 'ایجاد اولین کارت',
+      'all_cards': 'همه کارت‌ها',
+      'study_mode': 'حالت مطالعه',
     },
   };
 
@@ -484,6 +494,12 @@ class AppLocalizations {
   String get failedLoadNotifications => translate('failed_load_notifications');
   String get noNotificationsFound => translate('no_notifications_found');
   String get retry => translate('retry');
+
+  String get noCustomCardsFound => translate('no_custom_cards_found');
+  String get createCustomCardsEmptyDesc => translate('create_custom_cards_empty_desc');
+  String get createFirstCard => translate('create_first_card');
+  String get allCards => translate('all_cards');
+  String get studyMode => translate('study_mode');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
