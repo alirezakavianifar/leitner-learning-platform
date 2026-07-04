@@ -61,3 +61,5 @@ ios/Flutter/Flutter.podspec
 # Binaries and Releases
 *.apk
 *.zip
+*.rar
+*.7z

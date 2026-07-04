@@ -214,11 +214,15 @@ This commands builds the backend and admin panel containers and boots the follow
         powershell -ExecutionPolicy Bypass -File ./scripts/deploy_to_appetize.ps1
         ```
     *   **Automated Release APK Build (Local testing / Ngrok):**
-        To build a release APK compiled with a custom Ngrok backend URL or the default loopback emulator URL, run:
-        ```powershell
-        powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -NgrokUrl "https://xxxx.ngrok-free.app"
-        ```
-        The compiled APK will be automatically copied to the repository root as `app-release.apk`.
+        1. **Start Tunnel:** Launch a persistent public tunnel pointing to your local backend (port 5217):
+           ```powershell
+           powershell -ExecutionPolicy Bypass -File ./scripts/start-tunnel.ps1
+           ```
+        2. **Build APK:** Compile the premium release APK. (The script will automatically detect and target your active Ngrok URL if it is running):
+           ```powershell
+           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1
+           ```
+        The compiled APK will be automatically copied to the repository root as `app-premium-release.apk`.
 
 
 ---
