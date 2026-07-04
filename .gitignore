@@ -57,3 +57,7 @@ ios/Flutter/Flutter.podspec
 *.sln.docstates
 .vs/
 **/backups/
+
+# Binaries and Releases
+*.apk
+*.zip

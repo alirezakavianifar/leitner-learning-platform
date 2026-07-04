@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_windowmanager/flutter_windowmanager.dart';
+import 'package:no_screenshot/no_screenshot.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:mobile_app/app/theme.dart';
@@ -51,14 +51,14 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
   }
 
   Future<void> _enableSecureMode() async {
-    if (!kIsWeb && Platform.isAndroid) {
-      await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+    if (!kIsWeb) {
+      await NoScreenshot.instance.screenshotOff();
     }
   }
 
   Future<void> _disableSecureMode() async {
-    if (!kIsWeb && Platform.isAndroid) {
-      await FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+    if (!kIsWeb) {
+      await NoScreenshot.instance.screenshotOn();
     }
   }
 
