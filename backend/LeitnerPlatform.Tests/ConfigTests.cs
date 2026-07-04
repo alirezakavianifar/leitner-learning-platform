@@ -52,7 +52,7 @@ namespace LeitnerPlatform.Tests
             Assert.NotNull(bannerConfigs);
 
             var epType = endpoints.GetType();
-            Assert.Equal("http://localhost:5000/api/v1", epType.GetProperty("api_server")?.GetValue(endpoints));
+            Assert.Equal("http://localhost:5217/api/v1", epType.GetProperty("api_server")?.GetValue(endpoints));
 
             var flagType = featureFlags.GetType();
             Assert.False((bool?)flagType.GetProperty("enable_ai_tutor")?.GetValue(featureFlags));

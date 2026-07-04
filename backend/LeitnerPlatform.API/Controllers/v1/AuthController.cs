@@ -233,10 +233,22 @@ namespace LeitnerPlatform.API.Controllers.v1
 
         private string NormalizeMobileNumber(string mobile)
         {
-            var clean = mobile.Trim().Replace(" ", "");
+            var clean = mobile.Trim().Replace(" ", "").Replace("-", "");
             if (clean.StartsWith("0098"))
             {
                 clean = "+" + clean.Substring(2);
+            }
+            else if (clean.StartsWith("09"))
+            {
+                clean = "+98" + clean.Substring(1);
+            }
+            else if (clean.StartsWith("9") && clean.Length == 10)
+            {
+                clean = "+98" + clean;
+            }
+            else if (clean.StartsWith("989") && clean.Length == 12)
+            {
+                clean = "+" + clean;
             }
             return clean;
         }
