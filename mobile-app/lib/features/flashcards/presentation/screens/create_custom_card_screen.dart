@@ -12,7 +12,8 @@ import 'package:mobile_app/injection_container.dart' as di;
 
 class CreateCustomCardScreen extends StatefulWidget {
   final String courseTitle;
-  const CreateCustomCardScreen({Key? key, required this.courseTitle}) : super(key: key);
+  final Map<String, dynamic>? cardToEdit;
+  const CreateCustomCardScreen({Key? key, required this.courseTitle, this.cardToEdit}) : super(key: key);
 
   @override
   State<CreateCustomCardScreen> createState() => _CreateCustomCardScreenState();
@@ -40,6 +41,25 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.courseTitle);
+    if (widget.cardToEdit != null) {
+      _questionController.text = widget.cardToEdit!['question_text'] as String? ?? '';
+      _answerController.text = widget.cardToEdit!['answer_text'] as String? ?? '';
+      final optionsJson = widget.cardToEdit!['options'] as String?;
+      if (optionsJson != null && optionsJson.isNotEmpty) {
+        try {
+          final List<dynamic> optionsList = jsonDecode(optionsJson);
+          _optionsController.text = optionsList.join(', ');
+        } catch (_) {}
+      }
+      final imgPath = widget.cardToEdit!['image_path'] as String?;
+      if (imgPath != null && File(imgPath).existsSync()) {
+        _pickedImage = File(imgPath);
+      }
+      final audPath = widget.cardToEdit!['audio_path'] as String?;
+      if (audPath != null && File(audPath).existsSync()) {
+        _recordedAudioPath = audPath;
+      }
+    }
   }
 
   @override
@@ -140,22 +160,53 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
         customMediaDir.createSync(recursive: true);
       }
 
-      String? imagePath;
+      String? imagePath = widget.cardToEdit?['image_path'];
       if (_pickedImage != null) {
-        final filename = 'image_${DateTime.now().millisecondsSinceEpoch}${p.extension(_pickedImage!.path)}';
-        final savedImageFile = await _pickedImage!.copy(p.join(customMediaDir.path, filename));
-        imagePath = savedImageFile.path;
+        if (widget.cardToEdit == null || _pickedImage!.path != widget.cardToEdit!['image_path']) {
+          // A new image was picked, save it and clean up the old one
+          final filename = 'image_${DateTime.now().millisecondsSinceEpoch}${p.extension(_pickedImage!.path)}';
+          final savedImageFile = await _pickedImage!.copy(p.join(customMediaDir.path, filename));
+          imagePath = savedImageFile.path;
+          
+          final oldImgPath = widget.cardToEdit?['image_path'] as String?;
+          if (oldImgPath != null && File(oldImgPath).existsSync()) {
+            try { File(oldImgPath).deleteSync(); } catch (_) {}
+          }
+        }
+      } else {
+        // Image was cleared by the user, delete the old physical file
+        final oldImgPath = widget.cardToEdit?['image_path'] as String?;
+        if (oldImgPath != null && File(oldImgPath).existsSync()) {
+          try { File(oldImgPath).deleteSync(); } catch (_) {}
+        }
+        imagePath = null;
       }
 
-      String? audioPath;
+      String? audioPath = widget.cardToEdit?['audio_path'];
       if (_recordedAudioPath != null) {
-        final filename = 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
-        final savedAudioFile = await File(_recordedAudioPath!).copy(p.join(customMediaDir.path, filename));
-        audioPath = savedAudioFile.path;
-        // Clean up temporary recording
-        try {
-          File(_recordedAudioPath!).deleteSync();
-        } catch (_) {}
+        if (widget.cardToEdit == null || _recordedAudioPath != widget.cardToEdit!['audio_path']) {
+          // A new audio was recorded, save it and clean up the old one
+          final filename = 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+          final savedAudioFile = await File(_recordedAudioPath!).copy(p.join(customMediaDir.path, filename));
+          audioPath = savedAudioFile.path;
+          
+          // Clean up temporary recording
+          try {
+            File(_recordedAudioPath!).deleteSync();
+          } catch (_) {}
+
+          final oldAudPath = widget.cardToEdit?['audio_path'] as String?;
+          if (oldAudPath != null && File(oldAudPath).existsSync()) {
+            try { File(oldAudPath).deleteSync(); } catch (_) {}
+          }
+        }
+      } else {
+        // Audio was cleared by the user, delete the old physical file
+        final oldAudPath = widget.cardToEdit?['audio_path'] as String?;
+        if (oldAudPath != null && File(oldAudPath).existsSync()) {
+          try { File(oldAudPath).deleteSync(); } catch (_) {}
+        }
+        audioPath = null;
       }
       
       final optionsText = _optionsController.text.trim();
@@ -165,19 +216,37 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
         optionsJson = jsonEncode(optionsList);
       }
       
-      await db.insert('user_created_cards', {
-        'course_title': _titleController.text.trim(),
-        'question_text': _questionController.text.trim(),
-        'answer_text': _answerController.text.trim(),
-        'options': optionsJson,
-        'image_path': imagePath,
-        'audio_path': audioPath,
-        'created_at': DateTime.now().toUtc().toIso8601String(),
-      });
+      if (widget.cardToEdit != null) {
+        await db.update(
+          'user_created_cards',
+          {
+            'course_title': _titleController.text.trim(),
+            'question_text': _questionController.text.trim(),
+            'answer_text': _answerController.text.trim(),
+            'options': optionsJson,
+            'image_path': imagePath,
+            'audio_path': audioPath,
+          },
+          where: 'id = ?',
+          whereArgs: [widget.cardToEdit!['id']],
+        );
+      } else {
+        await db.insert('user_created_cards', {
+          'course_title': _titleController.text.trim(),
+          'question_text': _questionController.text.trim(),
+          'answer_text': _answerController.text.trim(),
+          'options': optionsJson,
+          'image_path': imagePath,
+          'audio_path': audioPath,
+          'created_at': DateTime.now().toUtc().toIso8601String(),
+        });
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isFa ? 'کارت اختصاصی با موفقیت ذخیره شد (فقط روی دستگاه)!' : 'Custom card saved successfully (device-only)!'),
+          content: Text(widget.cardToEdit != null
+              ? (isFa ? 'تغییرات کارت با موفقیت ذخیره شد!' : 'Custom card updated successfully!')
+              : (isFa ? 'کارت اختصاصی با موفقیت ذخیره شد (فقط روی دستگاه)!' : 'Custom card saved successfully (device-only)!')),
           backgroundColor: AppColors.secondary,
         ),
       );
@@ -203,7 +272,9 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
   Widget build(BuildContext context) {
     final isFa = Localizations.localeOf(context).languageCode == 'fa';
     
-    final tCreateCustomCard = isFa ? 'ایجاد کارت اختصاصی' : 'Create Custom Card';
+    final tCreateCustomCard = widget.cardToEdit != null
+        ? (isFa ? 'ویرایش کارت اختصاصی' : 'Edit Custom Card')
+        : (isFa ? 'ایجاد کارت اختصاصی' : 'Create Custom Card');
     final tDeviceStorageInfo = isFa 
         ? 'ذخیره‌سازی فقط روی دستگاه: این کارت برای حفظ حریم خصوصی شما صرفاً به صورت محلی روی دستگاهتان ذخیره می‌شود.'
         : 'Device-Only Storage: This card is stored strictly locally on your device to protect your privacy.';
@@ -221,7 +292,9 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
     final tRerecord = isFa ? 'ضبط مجدد' : 'Re-record';
     final tRecordAudio = isFa ? 'ضبط صدا' : 'Record Audio';
     final tAudioAttached = isFa ? 'فایل صوتی پیوست شد' : 'Audio attached';
-    final tSaveCard = isFa ? 'ذخیره کارت' : 'Save Card';
+    final tSaveCard = widget.cardToEdit != null
+        ? (isFa ? 'ذخیره تغییرات' : 'Save Changes')
+        : (isFa ? 'ذخیره کارت' : 'Save Card');
 
     return Scaffold(
       backgroundColor: AppColors.background,

@@ -1157,6 +1157,7 @@ Implement secondary learning modules, local-only backup systems, and payment pro
 * **Support Backup & Restore:** Local backup/restore functionality must be provided so users can preserve their user-created cards and progress after app reinstallation.
 * **Card Creation Schema & Input Fields:** The card creation interface must allow the user to select or create a course, and input: Course Title, Question, Options (for multiple choice), and Answer.
 * **Custom Courses Workflow (Sequential Navigation):** Enforce a workflow where the user first creates a custom course (deck) and then adds cards specifically to that course. Custom courses are listed in a folder-like screen supporting creation and confirmation-guarded cascading deletion of the course and its cards.
+* **Card Editing & Management:** Support return to any custom course at any time to add, edit, or delete its cards. The editing interface pre-populates existing card details (questions, answers, multiple-choice options) and media files (images and voice recordings), allowing updates via database `UPDATE` queries.
 * **Direct Study & Card Opening:** Tapping on a card inside the custom cards list must open that card directly in the study mode tab.
 
 ### Unified Payment Provider Integration

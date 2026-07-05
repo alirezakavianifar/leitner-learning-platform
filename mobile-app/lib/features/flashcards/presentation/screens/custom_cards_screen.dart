@@ -111,6 +111,21 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
     }
   }
 
+  Future<void> _editCard(Map<String, dynamic> card) async {
+    final updated = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreateCustomCardScreen(
+          courseTitle: widget.courseTitle,
+          cardToEdit: card,
+        ),
+      ),
+    );
+    if (updated == true) {
+      _loadCustomCards();
+    }
+  }
+
   Future<void> _playCustomAudio(String path) async {
     try {
       if (_isPlayingCustom) {
@@ -162,16 +177,18 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
             },
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          indicatorColor: AppColors.primary,
-          tabs: [
-            Tab(icon: const Icon(Icons.list), text: loc.allCards),
-            Tab(icon: const Icon(Icons.play_circle_outline), text: loc.studyMode),
-          ],
-        ),
+        bottom: _customCards.isEmpty
+            ? null
+            : TabBar(
+                controller: _tabController,
+                labelColor: AppColors.primary,
+                unselectedLabelColor: AppColors.textSecondary,
+                indicatorColor: AppColors.primary,
+                tabs: [
+                  Tab(icon: const Icon(Icons.list), text: loc.allCards),
+                  Tab(icon: const Icon(Icons.play_circle_outline), text: loc.studyMode),
+                ],
+              ),
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -184,6 +201,23 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                     _buildStudyModeTab(),
                   ],
                 ),
+      floatingActionButton: _isLoading
+          ? null
+          : FloatingActionButton(
+              onPressed: () async {
+                final created = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreateCustomCardScreen(courseTitle: widget.courseTitle),
+                  ),
+                );
+                if (created == true) {
+                  _loadCustomCards();
+                }
+              },
+              backgroundColor: AppColors.primary,
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
     );
   }
 
@@ -276,9 +310,18 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                           style: TextStyle(color: AppColors.secondary, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.delete_outline, color: AppColors.error, size: 20),
-                        onPressed: () => _deleteCard(card['id'] as int),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
+                            onPressed: () => _editCard(card),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline, color: AppColors.error, size: 20),
+                            onPressed: () => _deleteCard(card['id'] as int),
+                          ),
+                        ],
                       ),
                     ],
                   ),
