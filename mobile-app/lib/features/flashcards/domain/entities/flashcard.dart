@@ -9,6 +9,7 @@ class Flashcard extends Equatable {
   final String answerText;
   final String? imageUrl;
   final String? audioUrl;
+  final List<String>? options;
   final CardProgress progress;
 
   const Flashcard({
@@ -19,6 +20,7 @@ class Flashcard extends Equatable {
     required this.answerText,
     this.imageUrl,
     this.audioUrl,
+    this.options,
     required this.progress,
   });
 
@@ -30,6 +32,7 @@ class Flashcard extends Equatable {
     String? answerText,
     String? imageUrl,
     String? audioUrl,
+    List<String>? options,
     CardProgress? progress,
   }) {
     return Flashcard(
@@ -40,6 +43,7 @@ class Flashcard extends Equatable {
       answerText: answerText ?? this.answerText,
       imageUrl: imageUrl ?? this.imageUrl,
       audioUrl: audioUrl ?? this.audioUrl,
+      options: options ?? this.options,
       progress: progress ?? this.progress,
     );
   }
@@ -53,6 +57,7 @@ class Flashcard extends Equatable {
         answerText,
         imageUrl,
         audioUrl,
+        options,
         progress,
       ];
 }

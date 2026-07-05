@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -88,6 +89,17 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       }
 
       if (included) {
+        List<String>? optionsList;
+        final optionsStr = cardMap['options'] as String?;
+        if (optionsStr != null && optionsStr.isNotEmpty) {
+          try {
+            final parsed = jsonDecode(optionsStr);
+            if (parsed is List) {
+              optionsList = parsed.map((e) => e.toString()).toList();
+            }
+          } catch (_) {}
+        }
+
         reviewQueue.add(
           Flashcard(
             id: cardMap['id'] as String,
@@ -95,8 +107,9 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
             cardNumber: cardNum,
             questionText: cardMap['question_text'] as String,
             answerText: cardMap['answer_text'] as String,
-            imageUrl: cardMap['image_url'] as String?,
-            audioUrl: cardMap['audio_url'] as String?,
+            imageUrl: (cardMap['image_name'] ?? cardMap['image_url']) as String?,
+            audioUrl: (cardMap['audio_name'] ?? cardMap['audio_url']) as String?,
+            options: optionsList,
             progress: progress,
           ),
         );
@@ -404,14 +417,26 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
           );
 
     final cardMap = cardMaps.first;
+    List<String>? optionsList;
+    final optionsStr = cardMap['options'] as String?;
+    if (optionsStr != null && optionsStr.isNotEmpty) {
+      try {
+        final parsed = jsonDecode(optionsStr);
+        if (parsed is List) {
+          optionsList = parsed.map((e) => e.toString()).toList();
+        }
+      } catch (_) {}
+    }
+
     return Flashcard(
       id: cardMap['id'] as String,
       courseId: courseId,
       cardNumber: cardNumber,
       questionText: cardMap['question_text'] as String,
       answerText: cardMap['answer_text'] as String,
-      imageUrl: cardMap['image_url'] as String?,
-      audioUrl: cardMap['audio_url'] as String?,
+      imageUrl: (cardMap['image_name'] ?? cardMap['image_url']) as String?,
+      audioUrl: (cardMap['audio_name'] ?? cardMap['audio_url']) as String?,
+      options: optionsList,
       progress: progress,
     );
   }
@@ -507,6 +532,17 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
                 isSynced: false,
               );
 
+        List<String>? optionsList;
+        final optionsStr = cardMap['options'] as String?;
+        if (optionsStr != null && optionsStr.isNotEmpty) {
+          try {
+            final parsed = jsonDecode(optionsStr);
+            if (parsed is List) {
+              optionsList = parsed.map((e) => e.toString()).toList();
+            }
+          } catch (_) {}
+        }
+
         favoritesList.add(
           Flashcard(
             id: cardMap['id'] as String,
@@ -514,8 +550,9 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
             cardNumber: cardNum,
             questionText: cardMap['question_text'] as String,
             answerText: cardMap['answer_text'] as String,
-            imageUrl: cardMap['image_url'] as String?,
-            audioUrl: cardMap['audio_url'] as String?,
+            imageUrl: (cardMap['image_name'] ?? cardMap['image_url']) as String?,
+            audioUrl: (cardMap['audio_name'] ?? cardMap['audio_url']) as String?,
+            options: optionsList,
             progress: progress,
           ),
         );
@@ -641,6 +678,17 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
         );
       }
 
+      List<String>? optionsList;
+      final optionsStr = cardMap['options'] as String?;
+      if (optionsStr != null && optionsStr.isNotEmpty) {
+        try {
+          final parsed = jsonDecode(optionsStr);
+          if (parsed is List) {
+            optionsList = parsed.map((e) => e.toString()).toList();
+          }
+        } catch (_) {}
+      }
+
       cards.add(
         Flashcard(
           id: cardMap['id'] as String,
@@ -648,8 +696,9 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
           cardNumber: cardNum,
           questionText: cardMap['question_text'] as String,
           answerText: cardMap['answer_text'] as String,
-          imageUrl: cardMap['image_url'] as String?,
-          audioUrl: cardMap['audio_url'] as String?,
+          imageUrl: (cardMap['image_name'] ?? cardMap['image_url']) as String?,
+          audioUrl: (cardMap['audio_name'] ?? cardMap['audio_url']) as String?,
+          options: optionsList,
           progress: progress,
         ),
       );

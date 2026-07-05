@@ -159,6 +159,8 @@ def compile_course(source_dir: str, output_dir: str, schema_path: str, key_str: 
         a_text = card.get('answer_text', '')
         image_name = card.get('image_name')
         audio_name = card.get('audio_name')
+        options = card.get('options')
+        options_json = json.dumps(options) if options else None
 
         card_id = f"{manifest.get('course_id')}_{card_num}"
 
@@ -185,8 +187,8 @@ def compile_course(source_dir: str, output_dir: str, schema_path: str, key_str: 
                 print(f"Warning: Audio file not found: {src_aud_path}")
 
         cursor.execute("""
-            INSERT INTO cards (id, course_id, card_number, question_text, answer_text, image_name, audio_name)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO cards (id, course_id, card_number, question_text, answer_text, image_name, audio_name, options)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             card_id,
             manifest.get('course_id'),
@@ -194,7 +196,8 @@ def compile_course(source_dir: str, output_dir: str, schema_path: str, key_str: 
             q_text,
             a_text,
             encrypted_image_name,
-            encrypted_audio_name
+            encrypted_audio_name,
+            options_json
         ))
 
     # 6. Write to metadata table

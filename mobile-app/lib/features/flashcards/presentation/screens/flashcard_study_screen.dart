@@ -40,6 +40,11 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
   String? _documentsPath;
   double _fontScale = 1.0;
 
+  // MCQ and Spaced repetition prompting state tracking
+  int? _lastCardNumber;
+  int? _selectedOptionIndex;
+  int? _lastPromptedCardNumber;
+
   @override
   void initState() {
     super.initState();
@@ -140,7 +145,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
     );
   }
 
-  void _showReportDialog(BuildContext context, FlashcardBloc bloc) {
+  void _showReportDialog(BuildContext context, FlashcardBloc bloc, Flashcard card) {
     final loc = AppLocalizations.of(context);
     final controller = TextEditingController();
     showDialog(
@@ -168,9 +173,16 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             onPressed: () {
-              if (controller.text.trim().isNotEmpty) {
+              final message = controller.text.trim();
+              if (message.isNotEmpty) {
                 Navigator.pop(dialogCtx);
-                bloc.add(SubmitReport(controller.text.trim()));
+                final stage = card.progress.currentBox;
+                final cardNum = card.cardNumber;
+                final fullReportText = "Course: ${widget.courseTitle}\n"
+                    "Card Number: $cardNum\n"
+                    "Stage: $stage\n\n"
+                    "Report Text: $message";
+                bloc.add(SubmitReport(fullReportText));
               }
             },
             child: Text(loc.submit, style: const TextStyle(color: Colors.white)),
@@ -180,7 +192,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
     );
   }
 
-  void _showJumpWarningDialog(BuildContext context, FlashcardBloc bloc, int cardNumber) {
+  void _showResetConfirmDialog(BuildContext context, Flashcard card) {
     final loc = AppLocalizations.of(context);
     showDialog(
       context: context,
@@ -199,25 +211,26 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           ],
         ),
         content: Text(
-          loc.jumpWarningMsg,
+          'This card is currently in Spaced Repetition stage ${card.progress.currentBox}. '
+          'Do you want to reset its progress to Stage 1?\n\n'
+          '• Yes: Reset progress to Stage 1 and show the card.\n'
+          '• No: Keep current progress and show the card.',
           style: TextStyle(color: AppColors.textSecondary, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(dialogCtx);
-              // Discard jump/navigation request and clear warning
-              bloc.add(ClearJumpWarning());
             },
-            child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text('No'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () {
               Navigator.pop(dialogCtx);
-              bloc.add(JumpToCardNumber(cardNumber, forceReset: true));
+              context.read<FlashcardBloc>().add(ResetCardProgressEvent(card.cardNumber));
             },
-            child: Text(loc.resetAndJump, style: const TextStyle(color: Colors.white)),
+            child: const Text('Yes', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -301,8 +314,23 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                   SnackBar(content: Text(state.reportMessage!), backgroundColor: AppColors.primary),
                 );
               }
-              if (state.jumpWarningCardNumber != null) {
-                _showJumpWarningDialog(context, context.read<FlashcardBloc>(), state.jumpWarningCardNumber!);
+
+              final card = state.currentCard;
+              if (card != null) {
+                if (_lastCardNumber != card.cardNumber) {
+                  _lastCardNumber = card.cardNumber;
+                  _selectedOptionIndex = null;
+                }
+
+                final currentBox = card.progress.currentBox;
+                if (currentBox >= 2 && currentBox <= 5) {
+                  if (_lastPromptedCardNumber != card.cardNumber) {
+                    _lastPromptedCardNumber = card.cardNumber;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _showResetConfirmDialog(context, card);
+                    });
+                  }
+                }
               }
 
               // Update flip animation controller based on state
@@ -388,13 +416,15 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Text(
-                              '${loc.cardPrefix}${card.cardNumber}',
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                            IconButton(
+                              constraints: const BoxConstraints(),
+                              padding: EdgeInsets.zero,
+                              icon: Icon(
+                                state.isFavorited ? Icons.star : Icons.star_border,
+                                color: state.isFavorited ? AppColors.box2 : AppColors.textSecondary,
+                                size: 20,
                               ),
+                              onPressed: () => context.read<FlashcardBloc>().add(ToggleFavorite()),
                             ),
                             const SizedBox(width: 12),
                             Container(
@@ -421,15 +451,20 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                               ),
                             ),
                             const Spacer(),
-                            IconButton(
-                              constraints: const BoxConstraints(),
-                              padding: EdgeInsets.zero,
-                              icon: Icon(
-                                state.isFavorited ? Icons.star : Icons.star_border,
-                                color: state.isFavorited ? AppColors.box2 : AppColors.textSecondary,
-                                size: 20,
+                            GestureDetector(
+                              onTap: () => _showJumpDialog(context, context.read<FlashcardBloc>()),
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: Text(
+                                  '${loc.cardPrefix}${card.cardNumber}',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
                               ),
-                              onPressed: () => context.read<FlashcardBloc>().add(ToggleFavorite()),
                             ),
                           ],
                         ),
@@ -452,6 +487,11 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                             child: GestureDetector(
                               onTap: () {
                                 context.read<FlashcardBloc>().add(FlipFlashcard());
+                              },
+                              onHorizontalDragEnd: (details) {
+                                if (details.primaryVelocity != null && details.primaryVelocity!.abs() > 300) {
+                                  context.read<FlashcardBloc>().add(FlipFlashcard());
+                                }
                               },
                               child: AnimatedBuilder(
                                 animation: _flipController,
@@ -487,73 +527,72 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                     ),
                   ),
 
-                  // 3. Back Action buttons (Know / Don't Know & Report) - Rendered only when card is flipped/revealed
-                  if (state.isFlipped)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12, top: 4),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.error,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  onPressed: () {
-                                    context.read<FlashcardBloc>().add(const SubmitReview(isCorrect: false));
-                                  },
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.close, color: Colors.white),
-                                      const SizedBox(width: 8),
-                                      Text(loc.dontKnow, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
+                  // 3. Persistent Action buttons (Know / Don't Know & Report)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12, top: 4),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.error,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: () {
+                                  context.read<FlashcardBloc>().add(const SubmitReview(isCorrect: false));
+                                },
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.close, color: Colors.white),
+                                    const SizedBox(width: 8),
+                                    Text(loc.dontKnow, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.courseDownloaded,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  onPressed: () {
-                                    context.read<FlashcardBloc>().add(const SubmitReview(isCorrect: true));
-                                  },
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.check, color: Colors.white),
-                                      const SizedBox(width: 8),
-                                      Text(loc.iKnowIt, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.textSecondary,
-                              side: BorderSide(color: AppColors.border),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                             ),
-                            onPressed: () => _showReportDialog(context, context.read<FlashcardBloc>()),
-                            icon: const Icon(Icons.flag_outlined, size: 16),
-                            label: Text(loc.submitReport),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.courseDownloaded,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: () {
+                                  context.read<FlashcardBloc>().add(const SubmitReview(isCorrect: true));
+                                },
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.check, color: Colors.white),
+                                    const SizedBox(width: 8),
+                                    Text(loc.iKnowIt, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textSecondary,
+                            side: BorderSide(color: AppColors.border),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                           ),
-                        ],
-                      ),
+                          onPressed: () => _showReportDialog(context, context.read<FlashcardBloc>(), card),
+                          icon: const Icon(Icons.flag_outlined, size: 16),
+                          label: Text(loc.submitReport),
+                        ),
+                      ],
                     ),
+                  ),
 
                   // 4. Fixed Footer
                   Container(
@@ -564,47 +603,11 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                     ),
                     child: SafeArea(
                       top: false,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Card metadata and direct jump trigger
-                          GestureDetector(
-                            onTap: () => _showJumpDialog(context, context.read<FlashcardBloc>()),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: AppColors.background.withOpacity(0.5),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    '${loc.cardPrefix}${card.cardNumber}',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '(${state.currentIndex + 1}/${state.queue.length})',
-                                    style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          // Favorites toggle
-                          IconButton(
-                            icon: Icon(
-                              state.isFavorited ? Icons.star : Icons.star_border,
-                              color: state.isFavorited ? AppColors.box2 : AppColors.textSecondary,
-                            ),
-                            onPressed: () => context.read<FlashcardBloc>().add(ToggleFavorite()),
-                          ),
-                        ],
+                      child: Center(
+                        child: Text(
+                          '${state.currentIndex + 1} / ${state.queue.length}',
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ),
@@ -688,15 +691,64 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
               Expanded(
                 child: Center(
                   child: SingleChildScrollView(
-                    child: Text(
-                      isFront ? card.questionText : card.answerText,
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 20 * _fontScale,
-                        height: 1.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isFront ? card.questionText : card.answerText,
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 20 * _fontScale,
+                            height: 1.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        if (isFront && card.options != null && card.options!.isNotEmpty) ...[
+                          const SizedBox(height: 20),
+                          GestureDetector(
+                            onTap: () {}, // Intercept taps to prevent flipping the card
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: card.options!.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final text = entry.value;
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.03),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: _selectedOptionIndex == index
+                                          ? AppColors.primary
+                                          : AppColors.border,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: RadioListTile<int>(
+                                    title: Text(
+                                      text,
+                                      style: TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 15 * _fontScale,
+                                      ),
+                                    ),
+                                    value: index,
+                                    groupValue: _selectedOptionIndex,
+                                    activeColor: AppColors.primary,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _selectedOptionIndex = val;
+                                      });
+                                    },
+                                    controlAffinity: ListTileControlAffinity.trailing,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ),

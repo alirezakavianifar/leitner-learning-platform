@@ -66,3 +66,11 @@ class PrevCard extends FlashcardEvent {
 }
 
 class ClearJumpWarning extends FlashcardEvent {}
+
+class ResetCardProgressEvent extends FlashcardEvent {
+  final int cardNumber;
+  const ResetCardProgressEvent(this.cardNumber);
+
+  @override
+  List<Object?> get props => [cardNumber];
+}

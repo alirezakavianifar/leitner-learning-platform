@@ -1005,7 +1005,7 @@ Implement all Leitner logic, progression timings, and custom reset behaviors, em
 ### Leitner Business Rules & Reset Logic
 * **Incorrect Review Reset:** If a card is answered incorrectly during review, reset it back to Box 1 immediately.
 * **Rule A (Due-Date Overdue Reset):** If a card is due on a given day and the user does NOT review it on that day, the card's progress resets, and it is returned to Box 1.
-* **Universal Leitner Reset on View (Boxes 2-5):** If a user views any card (except Finished Cards) currently in active Leitner boxes 2-5 outside its scheduled review time (e.g., from the Favorites screen, search results, direct card number jump, or manual browsing via side arrows), the app must prompt the user with a confirmation dialog: "This card is inside the Leitner stages. If displayed, it will return to stage 1. Are you sure you want to display it?" Upon confirmation, the card is displayed and its progress resets to Box 1 immediately.
+* **Universal Leitner Reset on View (Boxes 2-5):** If a user views any card (except Finished Cards) currently in active Leitner boxes 2-5 outside its scheduled review time (e.g., from the Favorites screen, search results, direct card number jump, or manual browsing via side arrows), the app must prompt the user with a confirmation dialog asking if they want to reset it to Box 1. If confirmed, the card is displayed and its progress resets to Box 1. If not confirmed, the card is still displayed, but its progress remains unchanged.
 * **Only Due Cards Restriction:** Normal study navigation within a course must prevent users from freely browsing or viewing cards in intermediate Leitner boxes (Boxes 2–5). When opening a course directly for study, the queue must only contain Box 1 cards and Finished Cards (Box 6); cards currently in Boxes 2–5 must not be displayed in the direct course study queue, as they can only be reviewed on their exact scheduled day via the dedicated "Today's reviews" (کارت های امروز) interface.
 
 ### Engine Event Emission
@@ -1053,9 +1053,9 @@ Implement learning experience and guided onboarding/tutorials.
 
 ### Flashcard UI & Layout
 * **Specific Presentation Layout:**
-  - **Fixed Header:** Displays course title at the top, card number at the bottom-right of the title, current Leitner box color indicator, and favorite star toggle.
-  - **Rotating Center Card:** Flippable front-and-back container supporting text, image, audio, and multiple-choice options. Flips on touch to show the answer, and flips back on another touch. The center card is flanked on the left and right sides of the screen by navigation arrows to browse cards (since the card container does not fill the screen width).
-  - **Fixed Footer:** Displays the "Know" (بلدم) button on the right, the "Don't Know" (بلد نیستم) button on the left, and the "Report Issue" button positioned below the two study buttons.
+  - **Fixed Header:** Displays course title at the top. On the bottom-right, the card number is displayed and can be tapped to show a direct jump input dialog. The favorite star toggle and the current Leitner box color indicator are displayed on the left.
+  - **Rotating Center Card:** Flippable front-and-back container supporting text, image, audio, and multiple-choice options (four-option selectable list on the front, correct option/explanation on the back). Flips on touch or horizontal swipe gestures. The center card is flanked on the left and right sides of the screen by navigation arrows.
+  - **Fixed Footer:** Displays the "Know" (بلدم) button on the right (moves card to next stage), the "Don't Know" (بلد نیستم) button on the left (resets card to stage 1), and the "Report Issue" button positioned below. These buttons are persistently visible (regardless of whether the card is flipped or not).
 * **Only Due Cards Restriction:** Standard browsing through card list or using next/prev navigation arrows must restrict access to Box 2-5 cards. If accessed, it triggers the Universal Reset on View warning.
 * **Conditional UI Rendering:** If a flashcard has no image, audio, or options (such as multiple choice or custom layout sections), those respective sections must be hidden completely and not reserve or render any blank/empty space in the layout.
 
@@ -1072,7 +1072,7 @@ Implement learning experience and guided onboarding/tutorials.
   * User Mobile Number
   * Course ID / title
   * Card number
-  * Report text
+  * Report text (with card address: course title, card number, and current stage formatted inside the text)
   * Timestamp
 
 ### Card Navigation & Direct Access

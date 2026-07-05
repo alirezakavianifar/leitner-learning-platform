@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS cards (
     answer_text TEXT NOT NULL,
     image_name TEXT,
     audio_name TEXT,
+    options TEXT,
     FOREIGN KEY (course_id) REFERENCES course(id) ON DELETE CASCADE
 );
 

@@ -17,6 +17,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
     on<NextCard>(_onNextCard);
     on<PrevCard>(_onPrevCard);
     on<ClearJumpWarning>(_onClearJumpWarning);
+    on<ResetCardProgressEvent>(_onResetCardProgress);
   }
 
   Future<void> _onLoadFlashcardQueue(
@@ -148,48 +149,31 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           return;
         }
 
-        final currentBox = card.progress.currentBox;
+        final updatedQueue = List<Flashcard>.from(currentState.queue);
+        final index = updatedQueue.indexWhere((c) => c.cardNumber == card.cardNumber);
+        int finalIndex;
 
-        // Active Leitner box warning requirement (Boxes 2–5)
-        if (currentBox >= 2 && currentBox <= 5 && !event.forceReset) {
-          emit(currentState.copyWith(
-            jumpWarningCardNumber: event.cardNumber,
-            jumpTargetCard: card,
-          ));
+        if (index != -1) {
+          finalIndex = index;
         } else {
-          // If in boxes 2-5 and reset was confirmed, or if it is in box 1 or box 6 (Finished)
-          if (currentBox >= 2 && currentBox <= 5 && event.forceReset) {
-            await flashcardRepository.resetCardProgress(
-              courseId: currentState.courseId,
-              cardNumber: event.cardNumber,
-              reason: 'JUMP',
-            );
-          }
-
-          final updatedCard = await flashcardRepository.getCardByNumber(
-            currentState.courseId,
-            event.cardNumber,
-          );
-
-          if (updatedCard != null) {
-            final updatedQueue = List<Flashcard>.from(currentState.queue);
-            updatedQueue.removeWhere((c) => c.cardNumber == updatedCard.cardNumber);
-            updatedQueue.insert(currentState.currentIndex, updatedCard);
-
-            final isFav = await flashcardRepository.isFavorite(
-              courseId: currentState.courseId,
-              cardNumber: updatedCard.cardNumber,
-            );
-
-            emit(currentState.copyWith(
-              queue: updatedQueue,
-              isFlipped: false,
-              isFavorited: isFav,
-              jumpWarningCardNumber: null,
-              jumpTargetCard: null,
-            ));
-          }
+          updatedQueue.removeWhere((c) => c.cardNumber == card.cardNumber);
+          updatedQueue.insert(currentState.currentIndex, card);
+          finalIndex = currentState.currentIndex;
         }
+
+        final isFav = await flashcardRepository.isFavorite(
+          courseId: currentState.courseId,
+          cardNumber: card.cardNumber,
+        );
+
+        emit(currentState.copyWith(
+          queue: updatedQueue,
+          currentIndex: finalIndex,
+          isFlipped: false,
+          isFavorited: isFav,
+          jumpWarningCardNumber: null,
+          jumpTargetCard: null,
+        ));
       } catch (e) {
         emit(currentState.copyWith(error: 'Failed to jump to card: ${e.toString()}'));
       }
@@ -235,42 +219,18 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
       final nextIndex = currentState.currentIndex + 1;
       if (nextIndex < currentState.queue.length) {
         final card = currentState.queue[nextIndex];
-        final currentBox = card.progress.currentBox;
+        final isFav = await flashcardRepository.isFavorite(
+          courseId: currentState.courseId,
+          cardNumber: card.cardNumber,
+        );
 
-        if (currentBox >= 2 && currentBox <= 5 && !event.forceReset) {
-          emit(currentState.copyWith(
-            jumpWarningCardNumber: card.cardNumber,
-            jumpTargetCard: card,
-          ));
-        } else {
-          if (currentBox >= 2 && currentBox <= 5 && event.forceReset) {
-            await flashcardRepository.resetCardProgress(
-              courseId: currentState.courseId,
-              cardNumber: card.cardNumber,
-              reason: 'BROWSE',
-            );
-            final updatedCard = await flashcardRepository.getCardByNumber(
-              currentState.courseId,
-              card.cardNumber,
-            );
-            if (updatedCard != null) {
-              currentState.queue[nextIndex] = updatedCard;
-            }
-          }
-
-          final isFav = await flashcardRepository.isFavorite(
-            courseId: currentState.courseId,
-            cardNumber: currentState.queue[nextIndex].cardNumber,
-          );
-
-          emit(currentState.copyWith(
-            currentIndex: nextIndex,
-            isFlipped: false,
-            isFavorited: isFav,
-            jumpWarningCardNumber: null,
-            jumpTargetCard: null,
-          ));
-        }
+        emit(currentState.copyWith(
+          currentIndex: nextIndex,
+          isFlipped: false,
+          isFavorited: isFav,
+          jumpWarningCardNumber: null,
+          jumpTargetCard: null,
+        ));
       }
     }
   }
@@ -284,42 +244,18 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
       final prevIndex = currentState.currentIndex - 1;
       if (prevIndex >= 0) {
         final card = currentState.queue[prevIndex];
-        final currentBox = card.progress.currentBox;
+        final isFav = await flashcardRepository.isFavorite(
+          courseId: currentState.courseId,
+          cardNumber: card.cardNumber,
+        );
 
-        if (currentBox >= 2 && currentBox <= 5 && !event.forceReset) {
-          emit(currentState.copyWith(
-            jumpWarningCardNumber: card.cardNumber,
-            jumpTargetCard: card,
-          ));
-        } else {
-          if (currentBox >= 2 && currentBox <= 5 && event.forceReset) {
-            await flashcardRepository.resetCardProgress(
-              courseId: currentState.courseId,
-              cardNumber: card.cardNumber,
-              reason: 'BROWSE',
-            );
-            final updatedCard = await flashcardRepository.getCardByNumber(
-              currentState.courseId,
-              card.cardNumber,
-            );
-            if (updatedCard != null) {
-              currentState.queue[prevIndex] = updatedCard;
-            }
-          }
-
-          final isFav = await flashcardRepository.isFavorite(
-            courseId: currentState.courseId,
-            cardNumber: currentState.queue[prevIndex].cardNumber,
-          );
-
-          emit(currentState.copyWith(
-            currentIndex: prevIndex,
-            isFlipped: false,
-            isFavorited: isFav,
-            jumpWarningCardNumber: null,
-            jumpTargetCard: null,
-          ));
-        }
+        emit(currentState.copyWith(
+          currentIndex: prevIndex,
+          isFlipped: false,
+          isFavorited: isFav,
+          jumpWarningCardNumber: null,
+          jumpTargetCard: null,
+        ));
       }
     }
   }
@@ -331,6 +267,48 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
     final currentState = state;
     if (currentState is FlashcardQueueLoaded) {
       emit(currentState.copyWith());
+    }
+  }
+
+  Future<void> _onResetCardProgress(
+    ResetCardProgressEvent event,
+    Emitter<FlashcardState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is FlashcardQueueLoaded) {
+      try {
+        await flashcardRepository.resetCardProgress(
+          courseId: currentState.courseId,
+          cardNumber: event.cardNumber,
+          reason: 'JUMP',
+        );
+
+        final newQueue = await flashcardRepository.getReviewQueue(
+          currentState.courseId,
+          isTodayReview: currentState.isTodayReview,
+        );
+
+        final newIndex = newQueue.indexWhere((c) => c.cardNumber == event.cardNumber);
+        final finalIndex = newIndex != -1 ? newIndex : (currentState.currentIndex < newQueue.length ? currentState.currentIndex : 0);
+
+        final isFav = finalIndex < newQueue.length
+            ? await flashcardRepository.isFavorite(
+                courseId: currentState.courseId,
+                cardNumber: newQueue[finalIndex].cardNumber,
+              )
+            : false;
+
+        emit(currentState.copyWith(
+          queue: newQueue,
+          currentIndex: finalIndex,
+          isFlipped: false,
+          isFavorited: isFav,
+          jumpWarningCardNumber: null,
+          jumpTargetCard: null,
+        ));
+      } catch (e) {
+        emit(currentState.copyWith(error: 'Failed to reset progress: ${e.toString()}'));
+      }
     }
   }
 }
