@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
@@ -32,23 +33,96 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
   int _currentIndex = 0;
   late final List<Widget> _tabs;
 
+  final GlobalKey<NavigatorState> _dashboardNavigatorKey = GlobalKey<NavigatorState>();
+  final GlobalKey<NavigatorState> _reviewNavigatorKey = GlobalKey<NavigatorState>();
+  final GlobalKey<NavigatorState> _coursesNavigatorKey = GlobalKey<NavigatorState>();
+
+  late final List<NavigatorObserver> _observers;
+
+  NavigatorState? _getCurrentNavigator() {
+    switch (_currentIndex) {
+      case 0:
+        return _dashboardNavigatorKey.currentState;
+      case 1:
+        return _reviewNavigatorKey.currentState;
+      case 2:
+        return _coursesNavigatorKey.currentState;
+      default:
+        return null;
+    }
+  }
+
+  bool _shouldShowRootAppBar() {
+    final navigator = _getCurrentNavigator();
+    if (navigator == null) return true;
+    return !navigator.canPop();
+  }
+
+  void _pushNested(Widget screen) {
+    final navigator = _getCurrentNavigator();
+    if (navigator != null) {
+      navigator.push(
+        MaterialPageRoute(builder: (_) => screen),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => screen),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    
+    _observers = [
+      _NestedNavigatorObserver(() {
+        if (mounted) setState(() {});
+      }),
+      _NestedNavigatorObserver(() {
+        if (mounted) setState(() {});
+      }),
+      _NestedNavigatorObserver(() {
+        if (mounted) setState(() {});
+      }),
+    ];
+
     _tabs = [
-      DashboardScreen(
-        onTabChange: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+      Navigator(
+        key: _dashboardNavigatorKey,
+        observers: [_observers[0]],
+        onGenerateRoute: (settings) => MaterialPageRoute(
+          builder: (context) => DashboardScreen(
+            onTabChange: (index) {
+              if (mounted) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              }
+            },
+          ),
+        ),
       ),
-      const ReviewTab(),
-      BlocProvider<CoursesBloc>(
-        create: (_) => di.sl<CoursesBloc>(),
-        child: const CoursesScreen(),
+      Navigator(
+        key: _reviewNavigatorKey,
+        observers: [_observers[1]],
+        onGenerateRoute: (settings) => MaterialPageRoute(
+          builder: (context) => const ReviewTab(),
+        ),
+      ),
+      Navigator(
+        key: _coursesNavigatorKey,
+        observers: [_observers[2]],
+        onGenerateRoute: (settings) => MaterialPageRoute(
+          builder: (context) => BlocProvider<CoursesBloc>(
+            create: (_) => di.sl<CoursesBloc>(),
+            child: const CoursesScreen(),
+          ),
+        ),
       ),
     ];
+
     // Auto-trigger onboarding tutorial on first app startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       OnboardingTour.showIfNeeded(context);
@@ -122,97 +196,115 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
           );
         }
       },
-      child: Scaffold(
-        key: _scaffoldKey,
-        drawer: _buildDrawer(context),
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          leadingWidth: 68,
-          leading: Padding(
-            padding: const EdgeInsetsDirectional.only(start: 16.0, top: 8.0, bottom: 8.0),
-            child: InkWell(
-              onTap: () => _scaffoldKey.currentState?.openDrawer(),
-              borderRadius: BorderRadius.circular(12),
+      child: PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) async {
+          if (didPop) return;
+          final navigator = _getCurrentNavigator();
+          if (navigator != null) {
+            final handled = await navigator.maybePop();
+            if (handled) return;
+          }
+          if (_currentIndex != 0) {
+            setState(() {
+              _currentIndex = 0;
+            });
+          } else {
+            // Minimize or pop from platform system navigator
+            await SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+          }
+        },
+        child: Scaffold(
+          key: _scaffoldKey,
+          drawer: _buildDrawer(context),
+          appBar: _shouldShowRootAppBar()
+              ? AppBar(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  automaticallyImplyLeading: false,
+                  leadingWidth: 68,
+                  leading: Padding(
+                    padding: const EdgeInsetsDirectional.only(start: 16.0, top: 8.0, bottom: 8.0),
+                    child: InkWell(
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.menu, color: Colors.white, size: 22),
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    _currentIndex == 0
+                        ? loc.home
+                        : _currentIndex == 1
+                            ? loc.review
+                            : loc.courses,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  actions: [
+                    if (_currentIndex == 2)
+                      IconButton(
+                        icon: Icon(Icons.search, color: AppColors.primary),
+                        tooltip: 'Search',
+                        onPressed: () {
+                          _pushNested(const CourseSearchScreen());
+                        },
+                      ),
+                  ],
+                )
+              : null,
+          body: IndexedStack(
+            index: _currentIndex,
+            children: _tabs,
+          ),
+          extendBody: true, // Enables transparent/blur bottom navigation styling
+          bottomNavigationBar: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
               child: Container(
+                height: 64,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.menu, color: Colors.white, size: 22),
-              ),
-            ),
-          ),
-          title: Text(
-            _currentIndex == 0
-                ? loc.home
-                : _currentIndex == 1
-                    ? loc.review
-                    : loc.courses,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          actions: [
-            if (_currentIndex == 2)
-              IconButton(
-                icon: Icon(Icons.search, color: AppColors.primary),
-                tooltip: 'Search',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CourseSearchScreen()),
-                  );
-                },
-              ),
-          ],
-        ),
-        body: IndexedStack(
-          index: _currentIndex,
-          children: _tabs,
-        ),
-        extendBody: true, // Enables transparent/blur bottom navigation styling
-        bottomNavigationBar: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-            child: Container(
-              height: 64,
-              decoration: BoxDecoration(
-                color: AppColors.background.withOpacity(0.8),
-                border: Border(
-                  top: BorderSide(color: AppColors.border, width: 1),
-                ),
-              ),
-              child: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                onTap: (index) {
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                },
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                selectedItemColor: AppColors.primary,
-                unselectedItemColor: AppColors.textSecondary,
-                items: [
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.home_outlined),
-                    activeIcon: const Icon(Icons.home),
-                    label: loc.home,
+                  color: AppColors.background.withOpacity(0.8),
+                  border: Border(
+                    top: BorderSide(color: AppColors.border, width: 1),
                   ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.rate_review_outlined),
-                    activeIcon: const Icon(Icons.rate_review),
-                    label: loc.review,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.library_books_outlined),
-                    activeIcon: const Icon(Icons.library_books),
-                    label: loc.courses,
-                  ),
-                ],
+                ),
+                child: BottomNavigationBar(
+                  currentIndex: _currentIndex,
+                  onTap: (index) {
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  },
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  selectedItemColor: AppColors.primary,
+                  unselectedItemColor: AppColors.textSecondary,
+                  items: [
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.home_outlined),
+                      activeIcon: const Icon(Icons.home),
+                      label: loc.home,
+                    ),
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.rate_review_outlined),
+                      activeIcon: const Icon(Icons.rate_review),
+                      label: loc.review,
+                    ),
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.library_books_outlined),
+                      activeIcon: const Icon(Icons.library_books),
+                      label: loc.courses,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -491,10 +583,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                   title: loc.statistics,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const StatisticsScreen()),
-                    );
+                    _pushNested(const StatisticsScreen());
                   },
                 ),
                 _buildDrawerItem(
@@ -503,10 +592,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                   title: loc.notifications,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-                    );
+                    _pushNested(const NotificationsScreen());
                   },
                 ),
                 _buildDrawerItem(
@@ -515,10 +601,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                   title: loc.support,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SupportScreen()),
-                    );
+                    _pushNested(const SupportScreen());
                   },
                 ),
                 _buildDrawerItem(
@@ -527,10 +610,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                   title: loc.settings,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                    );
+                    _pushNested(const SettingsScreen());
                   },
                 ),
                 const Padding(
@@ -590,6 +670,23 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
       ),
       onTap: onTap,
     );
+  }
+}
+
+class _NestedNavigatorObserver extends NavigatorObserver {
+  final VoidCallback onRouteChanged;
+  _NestedNavigatorObserver(this.onRouteChanged);
+
+  @override
+  void didPush(Route route, Route? previousRoute) {
+    super.didPush(route, previousRoute);
+    WidgetsBinding.instance.addPostFrameCallback((_) => onRouteChanged());
+  }
+
+  @override
+  void didPop(Route route, Route? previousRoute) {
+    super.didPop(route, previousRoute);
+    WidgetsBinding.instance.addPostFrameCallback((_) => onRouteChanged());
   }
 }
 

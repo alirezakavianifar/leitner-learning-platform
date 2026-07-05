@@ -889,10 +889,11 @@ Build application shell enforcing feature-based clean architecture, dependency i
 * Set up a DI container (e.g., GetIt) to register abstract service/repository interfaces and inject their concrete/mock implementations.
 
 ### Navigation
-* Global Bottom Navigation bar visible on all primary application screens, containing persistent navigation to:
-  1. Home (takes user back to the Main Home Dashboard screen)
-  2. Review (takes user directly to the Today's Cards list screen)
-  3. Courses (takes user to the Courses catalog screen)
+* **Persistent Bottom Navigation Bar & Nested Routing:**
+  - Wrap each primary tab (Dashboard, Review, Courses) in a nested `Navigator` widget to keep the Bottom Navigation Bar persistently visible and active across all application screens, including sub-screens.
+  - Implement observers to dynamically manage the root `AppBar` visibility, preventing double-app-bar stacking on detail views.
+  - Intercept hardware/system back button gestures via `PopScope` to pop active inner routes first, revert to the Home tab when empty, and delegate exit calls to the system only from the root Home tab screen.
+  - Integrate Sidebar Drawer destinations (Statistics, Notifications, Support, Settings) and search flows directly onto the active tab nested navigator stack using helper utilities.
 * **Home Dashboard Layout & Clean Grid**:
   - **Main Feature Grid**: Displays a cleaned-up grid consisting solely of 6 core study modules: Today's Cards (کارت‌های امروز), Favorite Cards (کارت‌های منتخب), Finished Cards (کارت‌های پایان یافته), My Courses (دوره‌های من), Courses List (لیست دوره‌ها), and Create Card (ایجاد کارت جدید).
   - **Glossy 3D Asset Icons**: Mapped each of the 6 core modules to custom generated, glossy 3D graphic icon assets instead of flat system vectors.
