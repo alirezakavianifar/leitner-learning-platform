@@ -46,85 +46,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   void _onCardTap(Flashcard card) async {
-    final loc = AppLocalizations.of(context);
-    final currentBox = card.progress.currentBox;
-
-    // Rule B (Favorites View Reset): Prompt if card is in Boxes 2–5
-    if (currentBox >= 2 && currentBox <= 5) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogCtx) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.border),
-          ),
-          title: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: AppColors.box1),
-              const SizedBox(width: 8),
-              Text(loc.resetProgressQuestion, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Text(
-            loc.jumpWarningMsg,
-            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              onPressed: () async {
-                Navigator.pop(dialogCtx);
-                setState(() => _isLoading = true);
-                
-                // Reset card progress locally
-                await _repository.resetCardProgress(
-                  courseId: widget.courseId,
-                  cardNumber: card.cardNumber,
-                  reason: 'FAVORITES',
-                );
-
-                // Reload and navigate
-                await _loadFavorites();
-                if (!mounted) return;
-                
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => FlashcardStudyScreen(
-                      courseId: widget.courseId,
-                      courseTitle: widget.courseTitle,
-                      initialCardNumber: card.cardNumber,
-                    ),
-                  ),
-                );
-                
-                _loadFavorites();
-              },
-              child: Text(loc.proceed, style: const TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      );
-    } else {
-      // In Box 1 or Box 6 (Finished) - No warning or reset required
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => FlashcardStudyScreen(
-            courseId: widget.courseId,
-            courseTitle: widget.courseTitle,
-            initialCardNumber: card.cardNumber,
-          ),
-        ),
-      );
-      _loadFavorites();
-    }
+    await Navigator.push(
+      context,
+      FlashcardStudyScreen.route(
+        courseId: widget.courseId,
+        courseTitle: widget.courseTitle,
+        initialCardNumber: card.cardNumber,
+      ),
+    );
+    _loadFavorites();
   }
 
   Color _getBoxColor(int box) {

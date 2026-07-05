@@ -1053,9 +1053,11 @@ Implement learning experience and guided onboarding/tutorials.
 
 ### Flashcard UI & Layout
 * **Specific Presentation Layout:**
-  - **Fixed Header:** Displays course title at the top. On the bottom-right, the card number is displayed and can be tapped to show a direct jump input dialog. The favorite star toggle and the current Leitner box color indicator are displayed on the left.
-  - **Rotating Center Card:** Flippable front-and-back container supporting text, image, audio, and multiple-choice options (four-option selectable list on the front, correct option/explanation on the back). Flips on touch or horizontal swipe gestures. The center card is flanked on the left and right sides of the screen by navigation arrows.
-  - **Fixed Footer:** Displays the "Know" (بلدم) button on the right (moves card to next stage), the "Don't Know" (بلد نیستم) button on the left (resets card to stage 1), and the "Report Issue" button positioned below. These buttons are persistently visible (regardless of whether the card is flipped or not).
+  - **Overlay Backdrop Dialog:** The flashcard screen is displayed as a floating overlay card centered on a semi-transparent, dimmed backdrop. Tapping the backdrop closes/dismisses the flashcard study overlay, returning to the previous screen (which remains visible in the background).
+  - **Fixed Header:** Displays course title at the top of the card. On the bottom-right of this header, the card number is displayed and can be tapped to show a direct jump input dialog. The favorite star toggle and the current Leitner box color indicator are displayed on the left.
+  - **Rotating Center Card:** Flippable front-and-back container supporting text, image, audio, and multiple-choice options (four-option selectable list on the front, correct option/explanation on the back). Flips on touch or horizontal swipe gestures.
+  - **Flanking Navigation Arrows:** The overlay dialog is flanked on the left and right sides of the screen by navigation arrows to browse cards, floating directly on the dimmed background.
+  - **Fixed Footer:** Displays the "Know" (بلدم) button on the right (moves card to next stage), the "Don't Know" (بلد نیستم) button on the left (resets card to stage 1), and the "Report Issue" button positioned below. These buttons are persistently visible (regardless of whether the card is flipped or not) inside the main card frame.
 * **Only Due Cards Restriction:** Standard browsing through card list or using next/prev navigation arrows must restrict access to Box 2-5 cards. If accessed, it triggers the Universal Reset on View warning.
 * **Conditional UI Rendering:** If a flashcard has no image, audio, or options (such as multiple choice or custom layout sections), those respective sections must be hidden completely and not reserve or render any blank/empty space in the layout.
 

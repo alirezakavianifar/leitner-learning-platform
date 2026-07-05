@@ -463,18 +463,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   _buildGridCard(
                     title: loc.reviewToday,
-                    icon: Icons.today,
+                    imageAsset: 'assets/images/today_cards.png',
                     badgeCount: _dueCount,
                     badgeColor: AppColors.error,
-                    iconColor: AppColors.primary,
                     onTap: () => widget.onTabChange(1),
                   ),
                   _buildGridCard(
+                    title: loc.favorites,
+                    imageAsset: 'assets/images/favorite_cards.png',
+                    onTap: _showFavoritesSelectDialog,
+                  ),
+                  _buildGridCard(
                     title: loc.finishedCards,
-                    icon: Icons.verified,
+                    imageAsset: 'assets/images/finished_cards.png',
                     badgeCount: _finishedCount,
                     badgeColor: const Color(0xFFFFD700),
-                    iconColor: const Color(0xFFFFD700),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -483,21 +486,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                   _buildGridCard(
+                    title: loc.myCourses,
+                    imageAsset: 'assets/images/my_courses.png',
+                    onTap: () => widget.onTabChange(2),
+                  ),
+                  _buildGridCard(
+                    title: loc.courses,
+                    imageAsset: 'assets/images/courses_list.png',
+                    onTap: () => widget.onTabChange(2),
+                  ),
+                  _buildGridCard(
                     title: loc.customCards,
-                    icon: Icons.add_card,
-                    iconColor: AppColors.secondary,
+                    imageAsset: 'assets/images/create_card.png',
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const CustomCardsScreen()),
                       ).then((_) => _loadStats());
                     },
-                  ),
-                  _buildGridCard(
-                    title: loc.favorites,
-                    icon: Icons.star,
-                    iconColor: AppColors.box2,
-                    onTap: _showFavoritesSelectDialog,
                   ),
                   _buildGridCard(
                     title: loc.statistics,
@@ -558,10 +564,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildGridCard({
     required String title,
-    required IconData icon,
+    IconData? icon,
+    String? imageAsset,
     int? badgeCount,
     Color? badgeColor,
-    required Color iconColor,
+    Color? iconColor,
     required VoidCallback onTap,
   }) {
     return Card(
@@ -583,7 +590,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(icon, size: 28, color: iconColor),
+                    if (imageAsset != null)
+                      Image.asset(
+                        imageAsset,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.contain,
+                      )
+                    else if (icon != null)
+                      Icon(icon, size: 28, color: iconColor ?? AppColors.primary),
                     const SizedBox(height: 12),
                     Text(
                       title,

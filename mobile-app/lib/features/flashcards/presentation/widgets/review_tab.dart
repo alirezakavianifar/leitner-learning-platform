@@ -207,12 +207,10 @@ class _ReviewTabState extends State<ReviewTab> {
                         onPressed: () async {
                           await Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => FlashcardStudyScreen(
-                                courseId: course.id,
-                                courseTitle: course.title,
-                                isTodayReview: true,
-                              ),
+                            FlashcardStudyScreen.route(
+                              courseId: course.id,
+                              courseTitle: course.title,
+                              isTodayReview: true,
                             ),
                           );
                           _loadData();

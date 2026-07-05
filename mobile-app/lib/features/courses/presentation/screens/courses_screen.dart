@@ -526,12 +526,10 @@ class _CoursesScreenState extends State<CoursesScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => FlashcardStudyScreen(
-                courseId: course.id,
-                courseTitle: course.title,
-                isTodayReview: false,
-              ),
+            FlashcardStudyScreen.route(
+              courseId: course.id,
+              courseTitle: course.title,
+              isTodayReview: false,
             ),
           );
         },

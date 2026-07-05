@@ -131,74 +131,18 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
     });
   }
 
-  void _handleCardTap(Flashcard card) async {
-    final currentBox = card.progress.currentBox;
-
-    if (currentBox >= 2 && currentBox <= 5) {
-      // Safety confirmation dialog
-      final confirm = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogCtx) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.border),
-          ),
-          title: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: AppColors.box1),
-              SizedBox(width: 8),
-              Text(
-                'Safety Confirmation',
-                style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          content: Text(
-            'Card #${card.cardNumber} is currently in Leitner Box $currentBox. '
-            'Viewing it directly will reset its learning progress back to Box 1.\n\n'
-            'Do you want to proceed?',
-            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx, false),
-              child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              onPressed: () => Navigator.pop(dialogCtx, true),
-              child: const Text('Reset & Open', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      );
-
-      if (confirm == true) {
-        // Reset card progress
-        await _flashcardRepository.resetCardProgress(
-          courseId: card.courseId,
-          cardNumber: card.cardNumber,
-          reason: 'JUMP',
-        );
-        _navigateToStudyScreen(card);
-      }
-    } else {
-      _navigateToStudyScreen(card);
-    }
+  void _handleCardTap(Flashcard card) {
+    _navigateToStudyScreen(card);
   }
 
   void _navigateToStudyScreen(Flashcard card) {
     final course = _allCourses.firstWhere((c) => c.id == card.courseId);
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => FlashcardStudyScreen(
-          courseId: card.courseId,
-          courseTitle: course.title,
-          initialCardNumber: card.cardNumber,
-        ),
+      FlashcardStudyScreen.route(
+        courseId: card.courseId,
+        courseTitle: course.title,
+        initialCardNumber: card.cardNumber,
       ),
     ).then((_) {
       // Refresh status after return
