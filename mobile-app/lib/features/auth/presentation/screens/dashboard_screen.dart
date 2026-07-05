@@ -11,7 +11,7 @@ import 'package:mobile_app/injection_container.dart' as di;
 import 'settings_screen.dart';
 import 'statistics_screen.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/finished_cards_screen.dart';
-import 'package:mobile_app/features/flashcards/presentation/screens/custom_cards_screen.dart';
+import 'package:mobile_app/features/flashcards/presentation/screens/custom_courses_screen.dart';
 import 'support_screen.dart';
 import 'package:mobile_app/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:mobile_app/features/notifications/domain/entities/banner.dart' as entity;
@@ -454,7 +454,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const CustomCardsScreen()),
+                        MaterialPageRoute(builder: (_) => const CustomCoursesScreen()),
                       ).then((_) => _loadStats());
                     },
                   ),

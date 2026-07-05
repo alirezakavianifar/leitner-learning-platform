@@ -10,7 +10,8 @@ import 'package:mobile_app/injection_container.dart' as di;
 import 'create_custom_card_screen.dart';
 
 class CustomCardsScreen extends StatefulWidget {
-  const CustomCardsScreen({Key? key}) : super(key: key);
+  final String courseTitle;
+  const CustomCardsScreen({Key? key, required this.courseTitle}) : super(key: key);
 
   @override
   State<CustomCardsScreen> createState() => _CustomCardsScreenState();
@@ -49,7 +50,12 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
     setState(() => _isLoading = true);
     try {
       final db = await _databaseHelper.localDatabase;
-      final results = await db.query('user_created_cards', orderBy: 'id DESC');
+      final results = await db.query(
+        'user_created_cards',
+        where: 'course_title = ?',
+        whereArgs: [widget.courseTitle],
+        orderBy: 'id DESC',
+      );
       final prefs = di.sl<SharedPreferences>();
       setState(() {
         _customCards = results;
@@ -137,7 +143,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          loc.customCards,
+          widget.courseTitle,
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -146,7 +152,9 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
             onPressed: () async {
               final created = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const CreateCustomCardScreen()),
+                MaterialPageRoute(
+                  builder: (_) => CreateCustomCardScreen(courseTitle: widget.courseTitle),
+                ),
               );
               if (created == true) {
                 _loadCustomCards();
@@ -199,7 +207,6 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
               style: TextStyle(color: AppColors.textSecondary, height: 1.4),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -209,7 +216,9 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
               onPressed: () async {
                 final created = await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CreateCustomCardScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => CreateCustomCardScreen(courseTitle: widget.courseTitle),
+                  ),
                 );
                 if (created == true) {
                   _loadCustomCards();
@@ -239,56 +248,66 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(color: AppColors.border),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(6),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              setState(() {
+                _studyIndex = index;
+                _showAnswer = false;
+              });
+              _tabController.animateTo(1); // Switch to Study Mode tab
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          card['course_title'] as String? ?? 'Custom Card',
+                          style: TextStyle(color: AppColors.secondary, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                      child: Text(
-                        card['course_title'] as String? ?? 'Custom Card',
-                        style: TextStyle(color: AppColors.secondary, fontSize: 11, fontWeight: FontWeight.bold),
+                      IconButton(
+                        icon: Icon(Icons.delete_outline, color: AppColors.error, size: 20),
+                        onPressed: () => _deleteCard(card['id'] as int),
                       ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete_outline, color: AppColors.error, size: 20),
-                      onPressed: () => _deleteCard(card['id'] as int),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text('QUESTION', style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  if (imgPath != null && File(imgPath).existsSync()) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          File(imgPath),
+                          height: 120,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 10),
-                Text('QUESTION', style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                if (imgPath != null && File(imgPath).existsSync()) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
-                        File(imgPath),
-                        height: 120,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
+                  Text(card['question_text'] as String, style: TextStyle(color: AppColors.textPrimary, fontSize: 15)),
+                  const SizedBox(height: 12),
+                  Divider(color: AppColors.border, height: 1),
+                  const SizedBox(height: 12),
+                  Text('ANSWER', style: TextStyle(color: AppColors.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Text(card['answer_text'] as String, style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
                 ],
-                Text(card['question_text'] as String, style: TextStyle(color: AppColors.textPrimary, fontSize: 15)),
-                const SizedBox(height: 12),
-                Divider(color: AppColors.border, height: 1),
-                const SizedBox(height: 12),
-                Text('ANSWER', style: TextStyle(color: AppColors.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                Text(card['answer_text'] as String, style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-              ],
+              ),
             ),
           ),
         );

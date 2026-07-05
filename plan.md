@@ -1059,7 +1059,7 @@ Implement learning experience and guided onboarding/tutorials.
 * **Specific Presentation Layout:**
   - **Overlay Backdrop Dialog:** The flashcard screen is displayed as a floating overlay card centered on a semi-transparent, dimmed backdrop. Tapping the backdrop closes/dismisses the flashcard study overlay, returning to the previous screen (which remains visible in the background).
   - **Fixed Header:** Displays course title at the top of the card. On the bottom-right of this header, the card number is displayed and can be tapped to show a direct jump input dialog. The favorite star toggle and the current Leitner box color indicator are displayed on the left.
-  - **Rotating Center Card:** Flippable front-and-back container supporting text, image, audio, and multiple-choice options (four-option selectable list on the front, correct option/explanation on the back). Flips on touch or horizontal swipe gestures.
+  - **Rotating Center Card:** Flippable front-and-back container supporting text, image, audio, and multiple-choice options (four-option selectable list on the front, correct option/explanation on the back). Flips on touch or horizontal swipe gestures. To avoid text clipping when images or large MCQ choice lists are displayed, the rotating container is allocated a height of `470`, using optimized margins (`8` vertical) and padding (`16` all around) to maximize text area visibility.
   - **Flanking Navigation Arrows:** The overlay dialog is flanked on the left and right sides of the screen by navigation arrows to browse cards, floating directly on the dimmed background.
   - **Fixed Footer:** Displays the "Know" (بلدم) button on the right (moves card to next stage), the "Don't Know" (بلد نیستم) button on the left (resets card to stage 1), and the "Report Issue" button positioned below. These buttons are persistently visible (regardless of whether the card is flipped or not) inside the main card frame.
 * **Only Due Cards Restriction:** Standard browsing through card list or using next/prev navigation arrows must restrict access to Box 2-5 cards. If accessed, it triggers the Universal Reset on View warning.
@@ -1156,6 +1156,8 @@ Implement secondary learning modules, local-only backup systems, and payment pro
 * **Device-Only Storage:** User-created cards are stored strictly locally on the device (protecting user privacy) and are not synchronized to the server database.
 * **Support Backup & Restore:** Local backup/restore functionality must be provided so users can preserve their user-created cards and progress after app reinstallation.
 * **Card Creation Schema & Input Fields:** The card creation interface must allow the user to select or create a course, and input: Course Title, Question, Options (for multiple choice), and Answer.
+* **Custom Courses Workflow (Sequential Navigation):** Enforce a workflow where the user first creates a custom course (deck) and then adds cards specifically to that course. Custom courses are listed in a folder-like screen supporting creation and confirmation-guarded cascading deletion of the course and its cards.
+* **Direct Study & Card Opening:** Tapping on a card inside the custom cards list must open that card directly in the study mode tab.
 
 ### Unified Payment Provider Integration
 * Implement platform-specific payment options (Google Play, Cafe Bazaar, Myket, Direct Payment Gateway) using the unified `PaymentProvider` interface to handle purchases and course activation.

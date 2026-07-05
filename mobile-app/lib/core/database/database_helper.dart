@@ -81,7 +81,7 @@ class DatabaseHelper {
     // Using standard sqflite for maximum compatibility across test and local compilation setups:
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -113,6 +113,15 @@ class DatabaseHelper {
         options TEXT,
         image_path TEXT,
         audio_path TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    // B2. user_created_courses
+    await db.execute('''
+      CREATE TABLE user_created_courses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL UNIQUE,
         created_at TEXT NOT NULL
       )
     ''');
@@ -196,6 +205,37 @@ class DatabaseHelper {
     if (oldVersion < 3) {
       try {
         await db.execute('ALTER TABLE user_created_cards ADD COLUMN options TEXT');
+      } catch (_) {}
+    }
+    if (oldVersion < 4) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS user_created_courses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL UNIQUE,
+          created_at TEXT NOT NULL
+        )
+      ''');
+      // Migrate existing custom course titles from user_created_cards
+      try {
+        final List<Map<String, dynamic>> existingCards = await db.query(
+          'user_created_cards',
+          columns: ['course_title'],
+          distinct: true,
+        );
+        final nowIso = DateTime.now().toUtc().toIso8601String();
+        for (final row in existingCards) {
+          final title = row['course_title'] as String?;
+          if (title != null && title.trim().isNotEmpty) {
+            await db.insert(
+              'user_created_courses',
+              {
+                'title': title.trim(),
+                'created_at': nowIso,
+              },
+              conflictAlgorithm: ConflictAlgorithm.ignore,
+            );
+          }
+        }
       } catch (_) {}
     }
   }

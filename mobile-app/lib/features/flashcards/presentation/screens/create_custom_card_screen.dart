@@ -11,7 +11,8 @@ import 'package:mobile_app/core/database/database_helper.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
 class CreateCustomCardScreen extends StatefulWidget {
-  const CreateCustomCardScreen({Key? key}) : super(key: key);
+  final String courseTitle;
+  const CreateCustomCardScreen({Key? key, required this.courseTitle}) : super(key: key);
 
   @override
   State<CreateCustomCardScreen> createState() => _CreateCustomCardScreenState();
@@ -21,7 +22,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
   final _formKey = GlobalKey<FormState>();
   final _questionController = TextEditingController();
   final _answerController = TextEditingController();
-  final _titleController = TextEditingController(text: 'My Custom Cards');
+  late final TextEditingController _titleController;
   final _optionsController = TextEditingController();
   
   bool _isSaving = false;
@@ -34,6 +35,12 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
   final ImagePicker _picker = ImagePicker();
   final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _audioPlayer = AudioPlayer();
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.courseTitle);
+  }
 
   @override
   void dispose() {
@@ -190,14 +197,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_titleController.text == 'My Custom Cards' || _titleController.text == 'کارت‌های اختصاصی من') {
-      final isFa = Localizations.localeOf(context).languageCode == 'fa';
-      _titleController.text = isFa ? 'کارت‌های اختصاصی من' : 'My Custom Cards';
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -208,7 +208,6 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
         ? 'ذخیره‌سازی فقط روی دستگاه: این کارت برای حفظ حریم خصوصی شما صرفاً به صورت محلی روی دستگاهتان ذخیره می‌شود.'
         : 'Device-Only Storage: This card is stored strictly locally on your device to protect your privacy.';
     final tCourseCategory = isFa ? 'دسته‌بندی / عنوان دوره' : 'Course Category / Title';
-    final tCategoryRequired = isFa ? 'ورود دسته‌بندی الزامی است' : 'Category is required';
     final tQuestionText = isFa ? 'متن سوال' : 'Question Text';
     final tQuestionRequired = isFa ? 'ورود سوال الزامی است' : 'Question is required';
     final tAnswerText = isFa ? 'متن پاسخ' : 'Answer Text';
@@ -271,23 +270,16 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
               // Title
               TextFormField(
                 controller: _titleController,
-                style: TextStyle(color: AppColors.textPrimary),
+                enabled: false,
+                style: TextStyle(color: AppColors.textPrimary.withOpacity(0.6)),
                 decoration: InputDecoration(
                   labelText: tCourseCategory,
                   labelStyle: TextStyle(color: AppColors.textSecondary),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.border),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.primary),
+                  disabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.border.withOpacity(0.5)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return tCategoryRequired;
-                  return null;
-                },
               ),
               const SizedBox(height: 20),
 

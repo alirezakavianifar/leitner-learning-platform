@@ -555,7 +555,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
 
                                   // 2. Rotating Center Card Content
                                   Container(
-                                    height: 420,
+                                    height: 470,
                                     child: GestureDetector(
                                       onTap: () {
                                         context.read<FlashcardBloc>().add(FlipFlashcard());
@@ -703,8 +703,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
       children: [
         Container(
           width: double.infinity,
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          padding: const EdgeInsets.all(24),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(24),
@@ -730,7 +730,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                   fontSize: 12,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               // Conditional image rendering (Front only, or both if needed)
               if (isFront && card.imageUrl != null && card.imageUrl!.trim().isNotEmpty && _documentsPath != null) ...[
                 FutureBuilder<String>(
@@ -738,12 +738,12 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                   builder: (context, snapshot) {
                     if (snapshot.hasData && File(snapshot.data!).existsSync()) {
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 20.0),
+                        padding: const EdgeInsets.only(bottom: 12.0),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: Image.file(
                             File(snapshot.data!),
-                            height: 180,
+                            height: 160,
                             width: double.infinity,
                             fit: BoxFit.contain,
                           ),
@@ -839,7 +839,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
         ),
         IgnorePointer(
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Center(
               child: Transform.rotate(
                 angle: -0.4,
