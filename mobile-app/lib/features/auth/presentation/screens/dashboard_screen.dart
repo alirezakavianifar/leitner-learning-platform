@@ -22,11 +22,17 @@ import 'package:mobile_app/features/flashcards/presentation/screens/favorites_sc
 class DashboardScreen extends StatefulWidget {
   final Function(int) onTabChange;
   final ValueNotifier<int>? coursesTabNotifier;
+  final Key? todayReviewsKey;
+  final Key? myCoursesKey;
+  final Key? createCardKey;
 
   const DashboardScreen({
     Key? key,
     required this.onTabChange,
     this.coursesTabNotifier,
+    this.todayReviewsKey,
+    this.myCoursesKey,
+    this.createCardKey,
   }) : super(key: key);
 
   @override
@@ -417,6 +423,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 childAspectRatio: 1.15,
                 children: [
                   _buildGridCard(
+                    key: widget.todayReviewsKey,
                     title: loc.reviewToday,
                     imageAsset: 'assets/images/today_cards.png',
                     badgeCount: _dueCount,
@@ -441,6 +448,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                   _buildGridCard(
+                    key: widget.myCoursesKey,
                     title: loc.myCourses,
                     imageAsset: 'assets/images/my_courses.png',
                     onTap: () {
@@ -457,6 +465,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                   _buildGridCard(
+                    key: widget.createCardKey,
                     title: loc.customCards,
                     imageAsset: 'assets/images/create_card.png',
                     onTap: () {
@@ -478,6 +487,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildGridCard({
+    Key? key,
     required String title,
     IconData? icon,
     String? imageAsset,
@@ -487,6 +497,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required VoidCallback onTap,
   }) {
     return Card(
+      key: key,
       color: AppColors.surface.withOpacity(0.6),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),

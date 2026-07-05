@@ -1092,19 +1092,13 @@ Implement learning experience and guided onboarding/tutorials.
 * Courses visual borders: Green border for downloaded, yellow border for not purchased/not downloaded. Course card displays title, card count, paid/free status, and the colored border.
 
 ### Onboarding & Guided Tutorials
-* **First-Run Onboarding Walkthrough:** A step-by-step guided tutorial sequence covering all core application interfaces and features in the exact sequence defined in the PDF:
-  1. Courses screen overview
-  2. Search workflow walkthrough
-  3. Flashcard interface & layouts
-  4. "Know" button functionality
-  5. "Don't Know" button functionality
-  6. Create Card workflow
-  7. Finished Cards view
-  8. Favorites section
-  9. My Courses screen
-  10. Flashcard Reports flow
-  11. Today's Cards overview
-  12. Statistics and color-coded status charts
+* **Interactive Highlighting Guided Onboarding Tour:** An interactive, step-by-step guided tutorial overlay directly within the application interface that highlights key components using custom transparent cutouts on a dimmed backdrop. The tutorial highlights the following items:
+  1. **Sidebar Menu Button:** Access to settings, statistics, notifications, and support.
+  2. **Today's Reviews:** Main card stack scheduled for review.
+  3. **My Courses:** Purchased and downloaded course packages.
+  4. **Create Custom Card:** Local card creation interface.
+  5. **Bottom Navigation Bar:** Persistent navigation between Home, Review, and Courses tabs.
+* **Auto-Trigger & On-Demand Replay:** The tutorial runs automatically upon first launch after profile registration and can be replayed on-demand via the Help Guide in the Sidebar Menu.
 * **Leitner System Tutorial:** Visual explanation of box progression and Leitner learning logic.
 * **Color Guide Tutorial:** Dynamic guide explaining what different box/card colors mean and their status.
 * **Help Menu Triggers:** A Help section in the menu exposing three explicit buttons to trigger on-demand: the App Walkthrough Guide, the Leitner Method Guide, and the Color Status Guide.

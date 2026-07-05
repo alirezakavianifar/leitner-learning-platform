@@ -13,6 +13,7 @@ import 'package:mobile_app/features/flashcards/presentation/widgets/review_tab.d
 import 'package:mobile_app/features/flashcards/presentation/widgets/onboarding_tour.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 import 'package:mobile_app/features/courses/presentation/screens/course_search_screen.dart';
+import 'package:mobile_app/features/flashcards/presentation/widgets/interactive_tour_overlay.dart';
 import 'otp_request_screen.dart';
 import 'dashboard_screen.dart';
 import 'settings_screen.dart';
@@ -25,10 +26,10 @@ class HomeHubScreen extends StatefulWidget {
   const HomeHubScreen({Key? key}) : super(key: key);
 
   @override
-  State<HomeHubScreen> createState() => _HomeHubScreenState();
+  State<HomeHubScreen> createState() => HomeHubScreenState();
 }
 
-class _HomeHubScreenState extends State<HomeHubScreen> {
+class HomeHubScreenState extends State<HomeHubScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentIndex = 0;
   late final List<Widget> _tabs;
@@ -38,6 +39,14 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
   final GlobalKey<NavigatorState> _coursesNavigatorKey = GlobalKey<NavigatorState>();
 
   final ValueNotifier<int> _coursesTabNotifier = ValueNotifier<int>(0);
+
+  final GlobalKey _menuKey = GlobalKey();
+  final GlobalKey _bottomNavKey = GlobalKey();
+  final GlobalKey _todayReviewsKey = GlobalKey();
+  final GlobalKey _myCoursesKey = GlobalKey();
+  final GlobalKey _createCardKey = GlobalKey();
+
+  OverlayEntry? _tourOverlayEntry;
 
   late final List<NavigatorObserver> _observers;
 
@@ -74,6 +83,55 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
     }
   }
 
+  void startInteractiveTour() {
+    _tourOverlayEntry?.remove();
+    _tourOverlayEntry = OverlayEntry(
+      builder: (context) => InteractiveTourOverlay(
+        steps: [
+          TourStep(
+            targetKey: _menuKey,
+            title: 'Sidebar Menu',
+            description: 'Tap this purple button to access settings, statistics, notifications, and support guides.',
+          ),
+          TourStep(
+            targetKey: _todayReviewsKey,
+            title: 'Today\'s Cards',
+            description: 'Check how many cards are scheduled for review today. Reviewing consistently prevents cards from resetting back to Box 1!',
+          ),
+          TourStep(
+            targetKey: _myCoursesKey,
+            title: 'My Courses',
+            description: 'Tap here to see exclusively your purchased and downloaded offline course packages.',
+          ),
+          TourStep(
+            targetKey: _createCardKey,
+            title: 'Create Custom Card',
+            description: 'Create your own custom flashcards and manage custom decks. Decks are stored 100% locally on your device for absolute privacy.',
+          ),
+          TourStep(
+            targetKey: _bottomNavKey,
+            title: 'Bottom Navigation Bar',
+            description: 'Use the persistent bottom navigation bar to switch between the Home Dashboard, Review lists, and the Courses Catalog quickly from any screen.',
+          ),
+        ],
+        onComplete: () {
+          _tourOverlayEntry?.remove();
+          _tourOverlayEntry = null;
+          final prefs = di.sl<SharedPreferences>();
+          prefs.setBool('first_run_completed', true);
+        },
+        onSkip: () {
+          _tourOverlayEntry?.remove();
+          _tourOverlayEntry = null;
+          final prefs = di.sl<SharedPreferences>();
+          prefs.setBool('first_run_completed', true);
+        },
+      ),
+    );
+
+    Overlay.of(context).insert(_tourOverlayEntry!);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -104,6 +162,9 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
               }
             },
             coursesTabNotifier: _coursesTabNotifier,
+            todayReviewsKey: _todayReviewsKey,
+            myCoursesKey: _myCoursesKey,
+            createCardKey: _createCardKey,
           ),
         ),
       ),
@@ -127,13 +188,21 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
     ];
 
     // Auto-trigger onboarding tutorial on first app startup
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      OnboardingTour.showIfNeeded(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final prefs = di.sl<SharedPreferences>();
+      final completed = prefs.getBool('first_run_completed') ?? false;
+      if (!completed) {
+        await Future.delayed(const Duration(milliseconds: 600));
+        if (mounted) {
+          startInteractiveTour();
+        }
+      }
     });
   }
 
   @override
   void dispose() {
+    _tourOverlayEntry?.remove();
     _coursesTabNotifier.dispose();
     super.dispose();
   }
@@ -235,6 +304,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                   leading: Padding(
                     padding: const EdgeInsetsDirectional.only(start: 16.0, top: 8.0, bottom: 8.0),
                     child: InkWell(
+                      key: _menuKey,
                       onTap: () => _scaffoldKey.currentState?.openDrawer(),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
@@ -286,6 +356,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                   ),
                 ),
                 child: BottomNavigationBar(
+                  key: _bottomNavKey,
                   currentIndex: _currentIndex,
                   onTap: (index) {
                     setState(() {
