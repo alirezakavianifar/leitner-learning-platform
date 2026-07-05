@@ -671,7 +671,7 @@ Design:
 
 Create:
 
-* Color system
+* Color system: The application defaults to Light Mode at launch, employing a cool-toned soft lavender-gray background color (`Color(0xFFF3F4F9)`) for the application background, pure white (`Color(0xFFFFFFFF)`) card surfaces with soft drop shadows, and dark purple-indigo text tones. Dark Mode is aligned to a rich deep indigo/purple backdrop (`Color(0xFF181837)` background and `Color(0xFF22224E)` surface) matching the study overlay screen color scheme.
 * Leitner box colors
 * Component library
 

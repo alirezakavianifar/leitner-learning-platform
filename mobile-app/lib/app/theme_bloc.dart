@@ -22,9 +22,9 @@ class ThemeState {
 class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
   final SharedPreferences _sharedPreferences;
 
-  ThemeBloc(this._sharedPreferences) : super(ThemeState(ThemeMode.dark, AppTheme.darkTheme)) {
+  ThemeBloc(this._sharedPreferences) : super(ThemeState(ThemeMode.light, AppTheme.lightTheme)) {
     on<LoadThemeEvent>((event, emit) {
-      final isLight = _sharedPreferences.getBool('theme_is_light') ?? false;
+      final isLight = _sharedPreferences.getBool('theme_is_light') ?? true;
       final mode = isLight ? ThemeMode.light : ThemeMode.dark;
       AppColors.setTheme(!isLight);
       emit(ThemeState(mode, isLight ? AppTheme.lightTheme : AppTheme.darkTheme));
