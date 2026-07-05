@@ -21,10 +21,12 @@ import 'package:mobile_app/features/flashcards/presentation/screens/favorites_sc
 
 class DashboardScreen extends StatefulWidget {
   final Function(int) onTabChange;
+  final ValueNotifier<int>? coursesTabNotifier;
 
   const DashboardScreen({
     Key? key,
     required this.onTabChange,
+    this.coursesTabNotifier,
   }) : super(key: key);
 
   @override
@@ -441,12 +443,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildGridCard(
                     title: loc.myCourses,
                     imageAsset: 'assets/images/my_courses.png',
-                    onTap: () => widget.onTabChange(2),
+                    onTap: () {
+                      widget.coursesTabNotifier?.value = 1;
+                      widget.onTabChange(2);
+                    },
                   ),
                   _buildGridCard(
                     title: loc.courses,
                     imageAsset: 'assets/images/courses_list.png',
-                    onTap: () => widget.onTabChange(2),
+                    onTap: () {
+                      widget.coursesTabNotifier?.value = 0;
+                      widget.onTabChange(2);
+                    },
                   ),
                   _buildGridCard(
                     title: loc.customCards,

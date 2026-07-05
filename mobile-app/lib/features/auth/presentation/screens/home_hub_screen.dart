@@ -37,6 +37,8 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
   final GlobalKey<NavigatorState> _reviewNavigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<NavigatorState> _coursesNavigatorKey = GlobalKey<NavigatorState>();
 
+  final ValueNotifier<int> _coursesTabNotifier = ValueNotifier<int>(0);
+
   late final List<NavigatorObserver> _observers;
 
   NavigatorState? _getCurrentNavigator() {
@@ -101,6 +103,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                 });
               }
             },
+            coursesTabNotifier: _coursesTabNotifier,
           ),
         ),
       ),
@@ -117,7 +120,7 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
         onGenerateRoute: (settings) => MaterialPageRoute(
           builder: (context) => BlocProvider<CoursesBloc>(
             create: (_) => di.sl<CoursesBloc>(),
-            child: const CoursesScreen(),
+            child: CoursesScreen(tabNotifier: _coursesTabNotifier),
           ),
         ),
       ),
@@ -127,6 +130,12 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       OnboardingTour.showIfNeeded(context);
     });
+  }
+
+  @override
+  void dispose() {
+    _coursesTabNotifier.dispose();
+    super.dispose();
   }
 
   void _showLogoutConfirmation(BuildContext context) {

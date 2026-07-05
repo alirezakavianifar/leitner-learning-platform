@@ -12,20 +12,37 @@ import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_st
 
 
 class CoursesScreen extends StatefulWidget {
-  const CoursesScreen({Key? key}) : super(key: key);
+  final ValueNotifier<int>? tabNotifier;
+  const CoursesScreen({Key? key, this.tabNotifier}) : super(key: key);
 
   @override
   State<CoursesScreen> createState() => _CoursesScreenState();
 }
 
 class _CoursesScreenState extends State<CoursesScreen> {
-  int _selectedTab = 0; // 0 for Catalog, 1 for My Courses
+  late int _selectedTab;
 
   @override
   void initState() {
     super.initState();
+    _selectedTab = widget.tabNotifier?.value ?? 0;
+    widget.tabNotifier?.addListener(_handleTabNotifierChange);
     // Load courses on entry
     context.read<CoursesBloc>().add(LoadCoursesEvent());
+  }
+
+  void _handleTabNotifierChange() {
+    if (mounted && widget.tabNotifier != null) {
+      setState(() {
+        _selectedTab = widget.tabNotifier!.value;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.tabNotifier?.removeListener(_handleTabNotifierChange);
+    super.dispose();
   }
 
   /// Sorts courses: Downloaded courses go to the top, then purchased, then unpaid.

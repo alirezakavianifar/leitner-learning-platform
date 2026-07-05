@@ -460,202 +460,204 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                             const SizedBox(width: 4),
 
                             // Center Card Frame
-                            Container(
-                              width: 320,
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(24),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.35),
-                                    blurRadius: 18,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // 1. Header (Inside the Card)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          widget.courseTitle,
-                                          style: TextStyle(
-                                            color: AppColors.textPrimary,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
+                            Expanded(
+                              child: Container(
+                                constraints: const BoxConstraints(maxWidth: 320),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(24),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.35),
+                                      blurRadius: 18,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // 1. Header (Inside the Card)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            widget.courseTitle,
+                                            style: TextStyle(
+                                              color: AppColors.textPrimary,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
                                           ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              IconButton(
+                                                constraints: const BoxConstraints(),
+                                                padding: EdgeInsets.zero,
+                                                icon: Icon(
+                                                  state.isFavorited ? Icons.star : Icons.star_border,
+                                                  color: state.isFavorited ? AppColors.box2 : AppColors.textSecondary,
+                                                  size: 20,
+                                                ),
+                                                onPressed: () => context.read<FlashcardBloc>().add(ToggleFavorite()),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: boxColor.withOpacity(0.15),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  border: Border.all(color: boxColor.withOpacity(0.4), width: 1),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Container(
+                                                      width: 6,
+                                                      height: 6,
+                                                      decoration: BoxDecoration(color: boxColor, shape: BoxShape.circle),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      _getBoxName(context, currentBox),
+                                                      style: TextStyle(color: boxColor, fontWeight: FontWeight.bold, fontSize: 11),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const Spacer(),
+                                              GestureDetector(
+                                                onTap: () => _showJumpDialog(context, context.read<FlashcardBloc>()),
+                                                child: MouseRegion(
+                                                  cursor: SystemMouseCursors.click,
+                                                  child: Text(
+                                                    '${loc.cardPrefix}${card.cardNumber}',
+                                                    style: TextStyle(
+                                                      color: AppColors.primary,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 13,
+                                                      decoration: TextDecoration.underline,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Divider(height: 1, thickness: 1),
+
+                                    // 2. Rotating Center Card Content
+                                    Container(
+                                      height: 470,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          context.read<FlashcardBloc>().add(FlipFlashcard());
+                                        },
+                                        onHorizontalDragEnd: (details) {
+                                          if (details.primaryVelocity != null && details.primaryVelocity!.abs() > 300) {
+                                            context.read<FlashcardBloc>().add(FlipFlashcard());
+                                          }
+                                        },
+                                        child: AnimatedBuilder(
+                                          animation: _flipController,
+                                          builder: (context, child) {
+                                            final angle = _flipController.value * pi;
+                                            final isBack = angle > pi / 2;
+
+                                            return Transform(
+                                              transform: Matrix4.identity()
+                                                ..setEntry(3, 2, 0.001)
+                                                ..rotateY(angle),
+                                              alignment: Alignment.center,
+                                              child: isBack
+                                                  ? Transform(
+                                                      transform: Matrix4.identity()..rotateY(pi),
+                                                      alignment: Alignment.center,
+                                                      child: _buildCardFace(card, isFront: false),
+                                                    )
+                                                  : _buildCardFace(card, isFront: true),
+                                            );
+                                          },
                                         ),
-                                        const SizedBox(height: 8),
+                                      ),
+                                    ),
+
+                                    const Divider(height: 1, thickness: 1),
+                                    const SizedBox(height: 12),
+
+                                    // 3. Persistent Action buttons inside the Card
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
                                         Row(
                                           children: [
-                                            IconButton(
-                                              constraints: const BoxConstraints(),
-                                              padding: EdgeInsets.zero,
-                                              icon: Icon(
-                                                state.isFavorited ? Icons.star : Icons.star_border,
-                                                color: state.isFavorited ? AppColors.box2 : AppColors.textSecondary,
-                                                size: 20,
+                                            Expanded(
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: AppColors.error,
+                                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                ),
+                                                onPressed: () {
+                                                  context.read<FlashcardBloc>().add(const SubmitReview(isCorrect: false));
+                                                },
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    const Icon(Icons.close, color: Colors.white, size: 18),
+                                                    const SizedBox(width: 6),
+                                                    Text(loc.dontKnow, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                                  ],
+                                                ),
                                               ),
-                                              onPressed: () => context.read<FlashcardBloc>().add(ToggleFavorite()),
                                             ),
                                             const SizedBox(width: 12),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: boxColor.withOpacity(0.15),
-                                                borderRadius: BorderRadius.circular(6),
-                                                border: Border.all(color: boxColor.withOpacity(0.4), width: 1),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Container(
-                                                    width: 6,
-                                                    height: 6,
-                                                    decoration: BoxDecoration(color: boxColor, shape: BoxShape.circle),
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    _getBoxName(context, currentBox),
-                                                    style: TextStyle(color: boxColor, fontWeight: FontWeight.bold, fontSize: 11),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const Spacer(),
-                                            GestureDetector(
-                                              onTap: () => _showJumpDialog(context, context.read<FlashcardBloc>()),
-                                              child: MouseRegion(
-                                                cursor: SystemMouseCursors.click,
-                                                child: Text(
-                                                  '${loc.cardPrefix}${card.cardNumber}',
-                                                  style: TextStyle(
-                                                    color: AppColors.primary,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 13,
-                                                    decoration: TextDecoration.underline,
-                                                  ),
+                                            Expanded(
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: AppColors.courseDownloaded,
+                                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                ),
+                                                onPressed: () {
+                                                  context.read<FlashcardBloc>().add(const SubmitReview(isCorrect: true));
+                                                },
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    const Icon(Icons.check, color: Colors.white, size: 18),
+                                                    const SizedBox(width: 6),
+                                                    Text(loc.iKnowIt, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                                  ],
                                                 ),
                                               ),
                                             ),
                                           ],
                                         ),
+                                        const SizedBox(height: 8),
+                                        OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.textSecondary,
+                                            side: BorderSide(color: AppColors.border),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                          ),
+                                          onPressed: () => _showReportDialog(context, context.read<FlashcardBloc>(), card),
+                                          icon: const Icon(Icons.flag_outlined, size: 14),
+                                          label: Text(loc.submitReport, style: const TextStyle(fontSize: 12)),
+                                        ),
                                       ],
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Divider(height: 1, thickness: 1),
-
-                                  // 2. Rotating Center Card Content
-                                  Container(
-                                    height: 470,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        context.read<FlashcardBloc>().add(FlipFlashcard());
-                                      },
-                                      onHorizontalDragEnd: (details) {
-                                        if (details.primaryVelocity != null && details.primaryVelocity!.abs() > 300) {
-                                          context.read<FlashcardBloc>().add(FlipFlashcard());
-                                        }
-                                      },
-                                      child: AnimatedBuilder(
-                                        animation: _flipController,
-                                        builder: (context, child) {
-                                          final angle = _flipController.value * pi;
-                                          final isBack = angle > pi / 2;
-
-                                          return Transform(
-                                            transform: Matrix4.identity()
-                                              ..setEntry(3, 2, 0.001)
-                                              ..rotateY(angle),
-                                            alignment: Alignment.center,
-                                            child: isBack
-                                                ? Transform(
-                                                    transform: Matrix4.identity()..rotateY(pi),
-                                                    alignment: Alignment.center,
-                                                    child: _buildCardFace(card, isFront: false),
-                                                  )
-                                                : _buildCardFace(card, isFront: true),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-
-                                  const Divider(height: 1, thickness: 1),
-                                  const SizedBox(height: 12),
-
-                                  // 3. Persistent Action buttons inside the Card
-                                  Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: AppColors.error,
-                                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                              ),
-                                              onPressed: () {
-                                                context.read<FlashcardBloc>().add(const SubmitReview(isCorrect: false));
-                                              },
-                                              child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  const Icon(Icons.close, color: Colors.white, size: 18),
-                                                  const SizedBox(width: 6),
-                                                  Text(loc.dontKnow, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: AppColors.courseDownloaded,
-                                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                              ),
-                                              onPressed: () {
-                                                context.read<FlashcardBloc>().add(const SubmitReview(isCorrect: true));
-                                              },
-                                              child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  const Icon(Icons.check, color: Colors.white, size: 18),
-                                                  const SizedBox(width: 6),
-                                                  Text(loc.iKnowIt, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      OutlinedButton.icon(
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: AppColors.textSecondary,
-                                          side: BorderSide(color: AppColors.border),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                        ),
-                                        onPressed: () => _showReportDialog(context, context.read<FlashcardBloc>(), card),
-                                        icon: const Icon(Icons.flag_outlined, size: 14),
-                                        label: Text(loc.submitReport, style: const TextStyle(fontSize: 12)),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                             const SizedBox(width: 4),
