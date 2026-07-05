@@ -458,53 +458,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ).then((_) => _loadStats());
                     },
                   ),
-                  _buildGridCard(
-                    title: loc.statistics,
-                    icon: Icons.bar_chart,
-                    iconColor: AppColors.box3,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const StatisticsScreen()),
-                      );
-                    },
-                  ),
-                  _buildGridCard(
-                    title: loc.settings,
-                    icon: Icons.settings,
-                    iconColor: AppColors.textSecondary,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                      ).then((_) {
-                        _loadProfile();
-                        _loadStats();
-                      });
-                    },
-                  ),
-                  _buildGridCard(
-                    title: loc.notifications,
-                    icon: Icons.notifications,
-                    iconColor: AppColors.box4,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-                      );
-                    },
-                  ),
-                  _buildGridCard(
-                    title: loc.support,
-                    icon: Icons.contact_support,
-                    iconColor: AppColors.box5,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SupportScreen()),
-                      );
-                    },
-                  ),
+
                 ],
               ),
               const SizedBox(height: 80),

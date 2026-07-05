@@ -893,6 +893,10 @@ Build application shell enforcing feature-based clean architecture, dependency i
   1. Home (takes user back to the Main Home Dashboard screen)
   2. Review (takes user directly to the Today's Cards list screen)
   3. Courses (takes user to the Courses catalog screen)
+* **Home Dashboard Layout & Clean Grid**:
+  - **Main Feature Grid**: Displays a cleaned-up grid consisting solely of 6 core study modules: Today's Cards (کارت‌های امروز), Favorite Cards (کارت‌های منتخب), Finished Cards (کارت‌های پایان یافته), My Courses (دوره‌های من), Courses List (لیست دوره‌ها), and Create Card (ایجاد کارت جدید).
+  - **Glossy 3D Asset Icons**: Mapped each of the 6 core modules to custom generated, glossy 3D graphic icon assets instead of flat system vectors.
+  - **Sidebar Drawer Navigation (Application Menu)**: Integrated a custom side drawer accessible via a purple rounded menu button in the leading section of the app header. Secondary modules (Statistics, Notifications, Support, Settings, Help Guides, and Logout confirmation) are placed inside this Drawer to keep the primary dashboard space decluttered.
 
 ### Client Event Bus
 * Setup a central client-side event bus.

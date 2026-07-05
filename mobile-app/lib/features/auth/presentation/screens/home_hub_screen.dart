@@ -14,6 +14,11 @@ import 'package:mobile_app/injection_container.dart' as di;
 import 'package:mobile_app/features/courses/presentation/screens/course_search_screen.dart';
 import 'otp_request_screen.dart';
 import 'dashboard_screen.dart';
+import 'settings_screen.dart';
+import 'statistics_screen.dart';
+import 'support_screen.dart';
+import 'package:mobile_app/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeHubScreen extends StatefulWidget {
   const HomeHubScreen({Key? key}) : super(key: key);
@@ -23,6 +28,7 @@ class HomeHubScreen extends StatefulWidget {
 }
 
 class _HomeHubScreenState extends State<HomeHubScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentIndex = 0;
   late final List<Widget> _tabs;
 
@@ -117,13 +123,36 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
         }
       },
       child: Scaffold(
+        key: _scaffoldKey,
+        drawer: _buildDrawer(context),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
+          automaticallyImplyLeading: false,
+          leadingWidth: 68,
+          leading: Padding(
+            padding: const EdgeInsetsDirectional.only(start: 16.0, top: 8.0, bottom: 8.0),
+            child: InkWell(
+              onTap: () => _scaffoldKey.currentState?.openDrawer(),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.menu, color: Colors.white, size: 22),
+              ),
+            ),
+          ),
           title: Text(
-            loc.leitnerLearning,
+            _currentIndex == 0
+                ? loc.home
+                : _currentIndex == 1
+                    ? loc.review
+                    : loc.courses,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
                 ),
           ),
           actions: [
@@ -138,16 +167,6 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
                   );
                 },
               ),
-            IconButton(
-              icon: Icon(Icons.help_outline, color: AppColors.primary),
-              tooltip: 'Help Guide',
-              onPressed: () => _showHelpSelectionDialog(context),
-            ),
-            IconButton(
-              icon: Icon(Icons.logout, color: AppColors.error),
-              tooltip: loc.logout,
-              onPressed: () => _showLogoutConfirmation(context),
-            ),
           ],
         ),
         body: IndexedStack(
@@ -396,6 +415,180 @@ class _HomeHubScreenState extends State<HomeHubScreen> {
           Text(label, style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
         ],
       ),
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final prefs = di.sl<SharedPreferences>();
+    final username = prefs.getString('user_username') ?? 'User';
+    final educationalField = prefs.getString('user_educational_field') ?? 'General';
+    final educationalLevel = prefs.getString('user_educational_level') ?? 'Learner';
+
+    return Drawer(
+      backgroundColor: AppColors.background,
+      child: Column(
+        children: [
+          // Drawer Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.only(top: 60, bottom: 24, left: 20, right: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.primary.withOpacity(0.7)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  child: const Icon(Icons.person, size: 32, color: Colors.white),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        username,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$educationalField • $educationalLevel',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Drawer items
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: [
+                _buildDrawerItem(
+                  icon: Icons.bar_chart,
+                  iconColor: AppColors.box3,
+                  title: loc.statistics,
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.notifications,
+                  iconColor: AppColors.box4,
+                  title: loc.notifications,
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.contact_support,
+                  iconColor: AppColors.box5,
+                  title: loc.support,
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SupportScreen()),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.settings,
+                  iconColor: AppColors.textSecondary,
+                  title: loc.settings,
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    );
+                  },
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Divider(),
+                ),
+                _buildDrawerItem(
+                  icon: Icons.help_outline,
+                  iconColor: AppColors.primary,
+                  title: 'راهنمای برنامه (Help Guide)',
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    _showHelpSelectionDialog(context);
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // Logout button at bottom
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: _buildDrawerItem(
+              icon: Icons.logout,
+              iconColor: AppColors.error,
+              title: loc.logout,
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                _showLogoutConfirmation(context);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: iconColor),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      trailing: Icon(Icons.chevron_right, color: AppColors.border, size: 18),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      onTap: onTap,
     );
   }
 }
