@@ -84,34 +84,35 @@ class HomeHubScreenState extends State<HomeHubScreen> {
   }
 
   void startInteractiveTour() {
+    final loc = AppLocalizations.of(context);
     _tourOverlayEntry?.remove();
     _tourOverlayEntry = OverlayEntry(
       builder: (context) => InteractiveTourOverlay(
         steps: [
           TourStep(
             targetKey: _menuKey,
-            title: 'Sidebar Menu',
-            description: 'Tap this purple button to access settings, statistics, notifications, and support guides.',
+            title: loc.translate('tour_menu_title'),
+            description: loc.translate('tour_menu_desc'),
           ),
           TourStep(
             targetKey: _todayReviewsKey,
-            title: 'Today\'s Cards',
-            description: 'Check how many cards are scheduled for review today. Reviewing consistently prevents cards from resetting back to Box 1!',
+            title: loc.translate('tour_today_title'),
+            description: loc.translate('tour_today_desc'),
           ),
           TourStep(
             targetKey: _myCoursesKey,
-            title: 'My Courses',
-            description: 'Tap here to see exclusively your purchased and downloaded offline course packages.',
+            title: loc.translate('tour_my_courses_title'),
+            description: loc.translate('tour_my_courses_desc'),
           ),
           TourStep(
             targetKey: _createCardKey,
-            title: 'Create Custom Card',
-            description: 'Create your own custom flashcards and manage custom decks. Decks are stored 100% locally on your device for absolute privacy.',
+            title: loc.translate('tour_create_card_title'),
+            description: loc.translate('tour_create_card_desc'),
           ),
           TourStep(
             targetKey: _bottomNavKey,
-            title: 'Bottom Navigation Bar',
-            description: 'Use the persistent bottom navigation bar to switch between the Home Dashboard, Review lists, and the Courses Catalog quickly from any screen.',
+            title: loc.translate('tour_bottom_nav_title'),
+            description: loc.translate('tour_bottom_nav_desc'),
           ),
         ],
         onComplete: () {

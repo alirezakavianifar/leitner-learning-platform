@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 
 class TourStep {
   final GlobalKey targetKey;
@@ -73,6 +74,7 @@ class _InteractiveTourOverlayState extends State<InteractiveTourOverlay> with Si
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final size = MediaQuery.of(context).size;
     final targetRect = _getTargetRect();
     final currentStep = widget.steps[_currentStepIdx];
@@ -196,7 +198,7 @@ class _InteractiveTourOverlayState extends State<InteractiveTourOverlay> with Si
                         GestureDetector(
                           onTap: widget.onSkip,
                           child: Text(
-                            'Skip',
+                            loc.translate('tour_skip'),
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12,
@@ -229,7 +231,7 @@ class _InteractiveTourOverlayState extends State<InteractiveTourOverlay> with Si
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.textSecondary,
                           ),
-                          child: const Text('Back'),
+                          child: Text(loc.translate('tour_back')),
                         ),
 
                         // Center: Page Indicators
@@ -261,7 +263,9 @@ class _InteractiveTourOverlayState extends State<InteractiveTourOverlay> with Si
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           ),
                           child: Text(
-                            _currentStepIdx == widget.steps.length - 1 ? 'Done' : 'Next',
+                            _currentStepIdx == widget.steps.length - 1
+                                ? loc.translate('tour_done')
+                                : loc.translate('tour_next'),
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
