@@ -252,7 +252,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           await _loadBanners(force: true);
         },
         child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
