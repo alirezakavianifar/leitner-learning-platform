@@ -22,6 +22,9 @@ class AppLocalizations {
       'enter_code_sent_to': 'Enter the 5-digit code sent to',
       'verify_and_continue': 'Verify & Continue',
       'resend_code': 'Resend Code',
+      'enter_code_validation_error': 'Please enter the 5-digit verification code',
+      'resend_code_in': 'Resend code in',
+      'seconds': 'seconds',
       'terms_conditions': 'Terms & Conditions',
       'accept_terms_prompt': 'Please read and accept the terms to proceed.',
       'accept_and_continue': 'I Accept & Continue',
@@ -194,6 +197,9 @@ class AppLocalizations {
       'enter_code_sent_to': 'کد ۵ رقمی ارسال شده به شماره زیر را وارد کنید:',
       'verify_and_continue': 'تایید و ادامه',
       'resend_code': 'ارسال مجدد کد',
+      'enter_code_validation_error': 'لطفاً کد تأیید ۵ رقمی را وارد کنید',
+      'resend_code_in': 'ارسال مجدد کد پس از',
+      'seconds': 'ثانیه',
       'terms_conditions': 'قوانین و مقررات',
       'accept_terms_prompt': 'لطفا جهت ادامه، قوانین و مقررات را مطالعه و تایید کنید.',
       'accept_and_continue': 'مطالعه کردم و می‌پذیرم',
@@ -371,6 +377,9 @@ class AppLocalizations {
   String get enterCodeSentTo => translate('enter_code_sent_to');
   String get verifyAndContinue => translate('verify_and_continue');
   String get resendCode => translate('resend_code');
+  String get enterCodeValidationError => translate('enter_code_validation_error');
+  String get resendCodeIn => translate('resend_code_in');
+  String get seconds => translate('seconds');
   String get termsConditions => translate('terms_conditions');
   String get acceptTermsPrompt => translate('accept_terms_prompt');
   String get acceptAndContinue => translate('accept_and_continue');

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/database/database_helper.dart';
-import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 import 'custom_cards_screen.dart';
+import 'create_custom_card_screen.dart';
 
 class CustomCoursesScreen extends StatefulWidget {
   const CustomCoursesScreen({Key? key}) : super(key: key);
@@ -350,6 +350,18 @@ class _CustomCoursesScreenState extends State<CustomCoursesScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.add_circle_outline, color: AppColors.primary, size: 20),
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CreateCustomCardScreen(courseTitle: title),
+                        ),
+                      );
+                      _loadCourses();
+                    },
                   ),
                   IconButton(
                     icon: Icon(Icons.delete_outline, color: AppColors.error, size: 20),

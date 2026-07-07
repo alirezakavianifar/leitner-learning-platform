@@ -9,6 +9,7 @@ import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
 import 'terms_acceptance_screen.dart';
 import 'profile_completion_screen.dart';
 import 'home_hub_screen.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String mobileNumber;
@@ -73,6 +74,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -137,7 +139,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Verify Number',
+                      loc.verifyPhone,
                       style: textTheme.displayMedium?.copyWith(
                         color: AppColors.primary,
                       ),
@@ -145,7 +147,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'We have sent a verification code to\n${widget.mobileNumber}',
+                      '${loc.enterCodeSentTo}\n${widget.mobileNumber}',
                       style: textTheme.bodyLarge,
                       textAlign: TextAlign.center,
                     ),
@@ -173,7 +175,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.trim().length != 5) {
-                          return 'Please enter the 5-digit verification code';
+                          return loc.enterCodeValidationError;
                         }
                         return null;
                       },
@@ -189,7 +191,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                 Navigator.pop(context);
                               },
                               child: Text(
-                                'Resend Code',
+                                loc.resendCode,
                                 style: TextStyle(
                                   color: AppColors.secondary,
                                   fontWeight: FontWeight.bold,
@@ -198,7 +200,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               ),
                             )
                           : Text(
-                              'Resend code in $_secondsRemaining seconds',
+                              '${loc.resendCodeIn} $_secondsRemaining ${loc.seconds}',
                               style: textTheme.bodyMedium?.copyWith(
                                 color: AppColors.textSecondary,
                               ),
@@ -226,7 +228,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               ),
                             )
                           : Text(
-                              'Verify and Proceed',
+                              loc.verifyAndContinue,
                               style: textTheme.titleLarge?.copyWith(
                                 color: Colors.white,
                                 fontSize: 16,

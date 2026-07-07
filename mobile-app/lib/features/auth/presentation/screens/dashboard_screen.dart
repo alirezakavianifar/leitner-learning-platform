@@ -3,21 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
-import 'package:mobile_app/core/usecase/usecase.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
-import 'package:mobile_app/features/courses/domain/repositories/courses_repository.dart';
-import 'package:mobile_app/features/courses/domain/entities/course.dart';
 import 'package:mobile_app/injection_container.dart' as di;
-import 'settings_screen.dart';
-import 'statistics_screen.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/finished_cards_screen.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/custom_courses_screen.dart';
-import 'support_screen.dart';
-import 'package:mobile_app/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:mobile_app/features/notifications/domain/entities/banner.dart' as entity;
 import 'package:mobile_app/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:mobile_app/features/flashcards/presentation/screens/favorites_screen.dart';
+import 'package:mobile_app/features/flashcards/presentation/screens/favorites_courses_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int) onTabChange;
@@ -41,7 +34,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   late FlashcardRepository _flashcardRepository;
-  late CoursesRepository _coursesRepository;
   late NotificationsRepository _notificationsRepository;
   
   int _dueCount = 0;
@@ -81,7 +73,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _flashcardRepository = di.sl<FlashcardRepository>();
-    _coursesRepository = di.sl<CoursesRepository>();
     _notificationsRepository = di.sl<NotificationsRepository>();
     _pageController = PageController(initialPage: 0);
     _loadProfile();
@@ -173,69 +164,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _showFavoritesSelectDialog() async {
-    final loc = AppLocalizations.of(context);
-    final either = await _coursesRepository.getCourses();
-    either.fold(
-      (failure) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failure.message), backgroundColor: AppColors.error));
-      },
-      (data) {
-        final downloaded = data.$1.where((c) => c.isDownloaded).toList();
-        if (downloaded.isEmpty) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              backgroundColor: AppColors.surface,
-              title: Text(loc.favorites, style: TextStyle(color: AppColors.textPrimary)),
-              content: Text(loc.noDownloadedCourses, style: TextStyle(color: AppColors.textSecondary)),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.confirm)),
-              ],
-            ),
-          );
-          return;
-        }
-
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              backgroundColor: AppColors.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: AppColors.border),
-              ),
-              title: Text(loc.selectCourse, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: downloaded.length,
-                  itemBuilder: (context, idx) {
-                    final course = downloaded[idx];
-                    return ListTile(
-                      title: Text(course.title, style: TextStyle(color: AppColors.textPrimary)),
-                      trailing: Icon(Icons.chevron_right, color: AppColors.primary),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => FavoritesScreen(courseId: course.id, courseTitle: course.title),
-                          ),
-                        ).then((_) => _loadStats());
-                      },
-                    );
-                  },
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -432,7 +360,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildGridCard(
                     title: loc.favorites,
                     imageAsset: 'assets/images/favorite_cards.png',
-                    onTap: _showFavoritesSelectDialog,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const FavoritesCoursesScreen()),
+                      ).then((_) => _loadStats());
+                    },
                   ),
                   _buildGridCard(
                     title: loc.finishedCards,

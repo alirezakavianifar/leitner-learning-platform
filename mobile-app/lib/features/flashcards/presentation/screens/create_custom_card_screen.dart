@@ -9,6 +9,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/database/database_helper.dart';
 import 'package:mobile_app/injection_container.dart' as di;
+import 'package:sqflite/sqflite.dart';
 
 class CreateCustomCardScreen extends StatefulWidget {
   final String courseTitle;
@@ -37,10 +38,18 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
   final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
+  List<String> _courses = [];
+  String? _selectedCourse;
+  bool _isCreatingNewCourse = false;
+  final _newCourseController = TextEditingController();
+  late DatabaseHelper _databaseHelper;
+
   @override
   void initState() {
     super.initState();
+    _databaseHelper = di.sl<DatabaseHelper>();
     _titleController = TextEditingController(text: widget.courseTitle);
+    _loadCourses();
     if (widget.cardToEdit != null) {
       _questionController.text = widget.cardToEdit!['question_text'] as String? ?? '';
       _answerController.text = widget.cardToEdit!['answer_text'] as String? ?? '';
@@ -62,12 +71,34 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
     }
   }
 
+  Future<void> _loadCourses() async {
+    try {
+      final db = await _databaseHelper.localDatabase;
+      final results = await db.query('user_created_courses', columns: ['title']);
+      final titles = results.map((row) => row['title'] as String).toList();
+      setState(() {
+        _courses = titles;
+        
+        final initialTitle = widget.cardToEdit != null 
+            ? (widget.cardToEdit!['course_title'] as String? ?? widget.courseTitle)
+            : widget.courseTitle;
+
+        if (initialTitle.isNotEmpty && !_courses.contains(initialTitle)) {
+          _courses.add(initialTitle);
+        }
+        
+        _selectedCourse = initialTitle.isNotEmpty ? initialTitle : (_courses.isNotEmpty ? _courses.first : null);
+      });
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
     _questionController.dispose();
     _answerController.dispose();
     _titleController.dispose();
     _optionsController.dispose();
+    _newCourseController.dispose();
     _recorder.dispose();
     _audioPlayer.dispose();
     super.dispose();
@@ -216,11 +247,25 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
         optionsJson = jsonEncode(optionsList);
       }
       
+      String finalCourseTitle = _selectedCourse ?? 'My Custom Cards';
+      if (_isCreatingNewCourse) {
+        finalCourseTitle = _newCourseController.text.trim();
+        // Insert new course to database
+        await db.insert(
+          'user_created_courses',
+          {
+            'title': finalCourseTitle,
+            'created_at': DateTime.now().toUtc().toIso8601String(),
+          },
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
+
       if (widget.cardToEdit != null) {
         await db.update(
           'user_created_cards',
           {
-            'course_title': _titleController.text.trim(),
+            'course_title': finalCourseTitle,
             'question_text': _questionController.text.trim(),
             'answer_text': _answerController.text.trim(),
             'options': optionsJson,
@@ -232,7 +277,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
         );
       } else {
         await db.insert('user_created_cards', {
-          'course_title': _titleController.text.trim(),
+          'course_title': finalCourseTitle,
           'question_text': _questionController.text.trim(),
           'answer_text': _answerController.text.trim(),
           'options': optionsJson,
@@ -340,20 +385,72 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Title
-              TextFormField(
-                controller: _titleController,
-                enabled: false,
-                style: TextStyle(color: AppColors.textPrimary.withOpacity(0.6)),
+              // Title/Course Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedCourse,
+                dropdownColor: AppColors.surface,
+                style: TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   labelText: tCourseCategory,
                   labelStyle: TextStyle(color: AppColors.textSecondary),
-                  disabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.border.withOpacity(0.5)),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.primary),
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
+                items: [
+                  ..._courses.map((c) => DropdownMenuItem(
+                        value: c,
+                        child: Text(c, style: TextStyle(color: AppColors.textPrimary)),
+                      )),
+                  DropdownMenuItem(
+                    value: '__NEW_COURSE__',
+                    child: Text(
+                      isFa ? '+ ایجاد دوره جدید...' : '+ Create New Course...',
+                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+                onChanged: (val) {
+                  setState(() {
+                    _selectedCourse = val;
+                    _isCreatingNewCourse = (val == '__NEW_COURSE__');
+                  });
+                },
+                validator: (val) {
+                  if (val == null) return isFa ? 'انتخاب دوره الزامی است' : 'Course is required';
+                  return null;
+                },
               ),
+              if (_isCreatingNewCourse) ...[
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _newCourseController,
+                  style: TextStyle(color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    labelText: isFa ? 'عنوان دوره جدید' : 'New Course Title',
+                    labelStyle: TextStyle(color: AppColors.textSecondary),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.primary),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  validator: (val) {
+                    if (_isCreatingNewCourse && (val == null || val.trim().isEmpty)) {
+                      return isFa ? 'عنوان دوره نمی‌تواند خالی باشد' : 'Course title cannot be empty';
+                    }
+                    return null;
+                  },
+                ),
+              ],
               const SizedBox(height: 20),
 
               // Question
