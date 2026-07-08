@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'package:mobile_app/core/error/exceptions.dart';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/core/usecase/usecase.dart';
@@ -72,6 +74,12 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, User>> getProfile() async {
     try {
       final profile = await remoteDataSource.getProfile();
+      await localDataSource.cacheUserProfile(
+        username: profile.username,
+        interests: profile.interests,
+        educationalField: profile.educationalField,
+        educationalLevel: profile.educationalLevel,
+      );
       return Right(profile);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message, errorCode: e.errorCode));
@@ -94,8 +102,22 @@ class AuthRepositoryImpl implements AuthRepository {
         interests: interests,
         educationalField: educationalField,
         educationalLevel: educationalLevel,
-        profilePicture: profilePicture,
       );
+
+      await localDataSource.cacheUserProfile(
+        username: profile.username,
+        interests: profile.interests,
+        educationalField: profile.educationalField,
+        educationalLevel: profile.educationalLevel,
+      );
+
+      if (profilePicture != null) {
+        final appDir = await getApplicationDocumentsDirectory();
+        final fileName = 'profile_avatar_${DateTime.now().millisecondsSinceEpoch}${p.extension(profilePicture.path)}';
+        final savedFile = await profilePicture.copy(p.join(appDir.path, fileName));
+        await localDataSource.cacheAvatarPath(savedFile.path);
+      }
+
       return Right(profile);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message, errorCode: e.errorCode));

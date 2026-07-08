@@ -139,21 +139,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (state is AuthenticatedState) {
             setState(() {
               _isSavingProfile = false;
+              _pickedImage = null; // clear pending state
             });
-            final user = state.user;
-            final prefs = di.sl<SharedPreferences>();
-            prefs.setString('user_username', user.username);
-            if (user.interests != null) prefs.setString('user_interests', user.interests!);
-            prefs.setString('user_educational_field', user.educationalField ?? 'General');
-            prefs.setString('user_educational_level', user.educationalLevel ?? 'Student');
-            // Save the local avatar path if a new image was picked
-            if (_pickedImage != null) {
-              prefs.setString('user_avatar_path', _pickedImage!.path);
-              setState(() {
-                _savedAvatarPath = _pickedImage!.path;
-                _pickedImage = null; // clear pending state
-              });
-            }
+            _loadProfile(); // Reload updated profile values & persistent avatar path from SharedPreferences
+            
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(loc.saveProfile),
