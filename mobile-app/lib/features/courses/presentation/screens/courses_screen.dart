@@ -141,6 +141,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 }
               },
               builder: (context, state) {
+                final loc = AppLocalizations.of(context);
                 if (state is CoursesLoading) {
                   return Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
@@ -166,14 +167,14 @@ class _CoursesScreenState extends State<CoursesScreen> {
                         Icon(Icons.error_outline, size: 48, color: AppColors.error),
                         const SizedBox(height: 16),
                         Text(
-                          'Failed to load courses catalog.',
+                          loc.translate('failed_load_catalog'),
                           style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
                         ),
                         const SizedBox(height: 12),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
                           onPressed: () => context.read<CoursesBloc>().add(LoadCoursesEvent()),
-                          child: const Text('Try Again'),
+                          child: Text(loc.retry),
                         ),
                       ],
                     ),
@@ -204,13 +205,13 @@ class _CoursesScreenState extends State<CoursesScreen> {
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: const Color(0xFFFF9800).withOpacity(0.5)),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(Icons.wifi_off, color: Color(0xFFFF9800)),
-                                SizedBox(width: 12),
+                                const Icon(Icons.wifi_off, color: Color(0xFFFF9800)),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    'Internet connection unavailable; course catalog update not performed.',
+                                    loc.translate('offline_catalog_warning'),
                                     style: TextStyle(
                                       color: Color(0xFFFFB74D),
                                       fontSize: 13,
@@ -227,8 +228,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
                           child: Center(
                             child: Text(
                               _selectedTab == 1
-                                  ? 'No downloaded courses available.'
-                                  : 'No courses available.',
+                                  ? loc.translate('no_downloaded_courses_avail')
+                                  : loc.translate('no_courses_avail'),
                               style: TextStyle(color: AppColors.textSecondary),
                             ),
                           ),
@@ -260,6 +261,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   void _purchaseCourse(Course course) async {
     final config = sl<AppConfig>();
+    final loc = AppLocalizations.of(context);
 
     if (config.isPremium) {
       // Show payment selector modal sheet
@@ -278,7 +280,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Select Payment Method',
+                    loc.translate('select_payment_method'),
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 18,
@@ -289,22 +291,22 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   const SizedBox(height: 20),
                   ListTile(
                     leading: Icon(Icons.payment, color: AppColors.primary),
-                    title: Text('Direct Gateway (ZarinPal)', style: TextStyle(color: AppColors.textPrimary)),
+                    title: Text(loc.translate('zarinpal_gateway'), style: TextStyle(color: AppColors.textPrimary)),
                     onTap: () => _processPurchase(course, sl<DirectPaymentProvider>()),
                   ),
                   ListTile(
                     leading: Icon(Icons.store, color: AppColors.secondary),
-                    title: Text('Cafe Bazaar Billing', style: TextStyle(color: AppColors.textPrimary)),
+                    title: Text(loc.translate('bazaar_billing'), style: TextStyle(color: AppColors.textPrimary)),
                     onTap: () => _processPurchase(course, sl<BazaarPaymentProvider>()),
                   ),
                   ListTile(
                     leading: Icon(Icons.shopping_bag_outlined, color: AppColors.secondary),
-                    title: Text('Myket Billing', style: TextStyle(color: AppColors.textPrimary)),
+                    title: Text(loc.translate('myket_billing'), style: TextStyle(color: AppColors.textPrimary)),
                     onTap: () => _processPurchase(course, sl<MyketPaymentProvider>()),
                   ),
                   ListTile(
                     leading: const Icon(Icons.shop_two, color: Colors.blue),
-                    title: Text('Google Play IAP', style: TextStyle(color: AppColors.textPrimary)),
+                    title: Text(loc.translate('google_play_iap'), style: TextStyle(color: AppColors.textPrimary)),
                     onTap: () => _processPurchase(course, sl<GooglePlayPaymentProvider>()),
                   ),
                 ],
@@ -321,24 +323,24 @@ class _CoursesScreenState extends State<CoursesScreen> {
           return AlertDialog(
             backgroundColor: AppColors.surface,
             title: Text(
-              'Purchase Course',
+              loc.translate('purchase_course_title'),
               style: TextStyle(color: AppColors.textPrimary),
             ),
             content: Text(
-              'In-App Purchases are not supported in this edition.\n\nPlease visit our official website to purchase courses and unlock premium content.',
+              loc.translate('iap_not_supported_desc'),
               style: TextStyle(color: AppColors.textSecondary),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
                 onPressed: () {
                   Navigator.pop(context);
                 },
-                child: const Text('Visit Website'),
+                child: Text(loc.translate('visit_website')),
               ),
             ],
           );
@@ -348,6 +350,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
   }
 
   void _processPurchase(Course course, PaymentProvider provider) async {
+    final loc = AppLocalizations.of(context);
     Navigator.pop(context); // Close bottom sheet
     
     // Show progress loading
@@ -366,7 +369,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Course "${course.title}" unlocked successfully!'),
+          content: Text(loc.translate('course_unlocked_success').replaceAll('{title}', course.title)),
           backgroundColor: AppColors.courseDownloaded,
         ),
       );
@@ -375,7 +378,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Purchase transaction failed. Please try again.'),
+          content: Text(loc.translate('purchase_failed')),
           backgroundColor: AppColors.error,
         ),
       );

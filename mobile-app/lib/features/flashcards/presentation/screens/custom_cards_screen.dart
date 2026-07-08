@@ -72,18 +72,20 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
   }
 
   Future<void> _deleteCard(int id) async {
+    final loc = AppLocalizations.of(context);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text('Delete Custom Card', style: TextStyle(color: AppColors.textPrimary)),
-        content: Text('Are you sure you want to delete this card? This action cannot be undone.', style: TextStyle(color: AppColors.textSecondary)),
+        title: Text(loc.translate('delete_custom_card_title'), style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(loc.translate('delete_custom_card_confirm'), style: TextStyle(color: AppColors.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(loc.cancel)),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(isFa ? 'حذف' : 'Delete'),
           ),
         ],
       ),
@@ -106,7 +108,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
       await db.delete('user_created_cards', where: 'id = ?', whereArgs: [id]);
       _loadCustomCards();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Card deleted.'), backgroundColor: AppColors.error),
+        SnackBar(content: Text(loc.translate('card_deleted')), backgroundColor: AppColors.error),
       );
     }
   }
@@ -268,6 +270,8 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
   }
 
   Widget _buildCardsListTab() {
+    final loc = AppLocalizations.of(context);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     return ListView.builder(
       padding: const EdgeInsets.all(16.0),
       itemCount: _customCards.length,
@@ -326,7 +330,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text('QUESTION', style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold)),
+                  Text(loc.questionLabel.toUpperCase(), style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   if (imgPath != null && File(imgPath).existsSync()) ...[
                     Padding(
@@ -346,7 +350,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                   const SizedBox(height: 12),
                   Divider(color: AppColors.border, height: 1),
                   const SizedBox(height: 12),
-                  Text('ANSWER', style: TextStyle(color: AppColors.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                  Text(loc.answerLabel.toUpperCase(), style: TextStyle(color: AppColors.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   Text(card['answer_text'] as String, style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
                 ],
@@ -359,6 +363,8 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
   }
 
   Widget _buildStudyModeTab() {
+    final loc = AppLocalizations.of(context);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     final card = _customCards[_studyIndex];
     final imgPath = card['image_path'] as String?;
     final audPath = card['audio_path'] as String?;
@@ -375,7 +381,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                 style: TextStyle(color: AppColors.textSecondary),
               ),
               Text(
-                'Card ${_studyIndex + 1}/${_customCards.length}',
+                isFa ? 'کارت ${_studyIndex + 1} از ${_customCards.length}' : 'Card ${_studyIndex + 1}/${_customCards.length}',
                 style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
               ),
             ],
@@ -414,7 +420,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            _showAnswer ? 'ANSWER' : 'QUESTION',
+                            _showAnswer ? loc.answerLabel.toUpperCase() : loc.questionLabel.toUpperCase(),
                             style: TextStyle(
                               color: _showAnswer ? AppColors.secondary : AppColors.primary,
                               fontWeight: FontWeight.bold,
@@ -485,7 +491,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                           const SizedBox(height: 16),
                           Icon(Icons.touch_app, size: 16, color: AppColors.textSecondary),
                           const SizedBox(height: 4),
-                          Text('Tap card to flip', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                          Text(loc.tapCardToFlip, style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
                         ],
                       ),
                     ),

@@ -70,54 +70,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _exportBackup() async {
+    final loc = AppLocalizations.of(context);
     final password = _passwordController.text;
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('Password must be at least 6 characters.'), backgroundColor: AppColors.error),
+        SnackBar(content: Text(loc.translate('password_length_warning')), backgroundColor: AppColors.error),
       );
       return;
     }
 
     try {
+      final loc = AppLocalizations.of(context);
       final path = await _backupService.exportBackup(password);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Backup exported successfully: ${p.basename(path)}'),
+          content: Text(loc.translate('backup_success_msg').replaceAll('{filename}', p.basename(path))),
           backgroundColor: AppColors.secondary,
         ),
       );
       _passwordController.clear();
       _loadBackupFiles();
     } catch (e) {
+      final loc = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Backup failed: $e'), backgroundColor: AppColors.error),
+        SnackBar(content: Text(loc.translate('backup_failed_msg').replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
       );
     }
   }
 
   Future<void> _restoreBackup(String filePath) async {
+    final loc = AppLocalizations.of(context);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     final password = await showDialog<String>(
       context: context,
       builder: (context) {
         final controller = TextEditingController();
         return AlertDialog(
           backgroundColor: AppColors.surface,
-          title: Text('Enter Backup Password', style: TextStyle(color: AppColors.textPrimary)),
+          title: Text(loc.translate('enter_backup_password'), style: TextStyle(color: AppColors.textPrimary)),
           content: TextField(
             controller: controller,
             obscureText: true,
             style: TextStyle(color: AppColors.textPrimary),
             decoration: InputDecoration(
-              hintText: 'Enter password used during export',
+              hintText: isFa ? 'رمز عبور صادر شده را وارد کنید' : 'Enter password used during export',
               hintStyle: TextStyle(color: AppColors.textSecondary),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.cancel)),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
               onPressed: () => Navigator.pop(context, controller.text),
-              child: const Text('Restore'),
+              child: Text(loc.translate('restore_db')),
             ),
           ],
         );
@@ -125,34 +130,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (password == null || password.isEmpty) return;
-
     try {
       final success = await _backupService.importBackup(filePath, password);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Local database restored successfully!'), backgroundColor: AppColors.secondary),
+          SnackBar(content: Text(loc.translate('database_restored_success')), backgroundColor: AppColors.secondary),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Restore failed: ${e.toString()}'), backgroundColor: AppColors.error),
+        SnackBar(content: Text(loc.translate('restore_failed_msg').replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
       );
     }
   }
 
   Future<void> _deleteBackup(String filePath) async {
+    final loc = AppLocalizations.of(context);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text('Delete Backup', style: TextStyle(color: AppColors.textPrimary)),
-        content: Text('Are you sure you want to delete this backup file?', style: TextStyle(color: AppColors.textSecondary)),
+        title: Text(loc.translate('delete_backup_title'), style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(loc.translate('delete_backup_confirm'), style: TextStyle(color: AppColors.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(loc.cancel)),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(isFa ? 'حذف' : 'Delete'),
           ),
         ],
       ),

@@ -420,6 +420,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
   }
 
   void _showHelpSelectionDialog(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (dialogCtx) {
@@ -430,7 +431,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
             side: BorderSide(color: AppColors.border),
           ),
           title: Text(
-            'راهنمای برنامه (Help Guide)',
+            loc.translate('help_guide_title'),
             style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
             textAlign: TextAlign.center,
           ),
@@ -450,7 +451,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   OnboardingTour.showIfNeeded(context, force: true);
                 },
                 icon: const Icon(Icons.school),
-                label: const Text('آموزش ابتدای برنامه (Walkthrough)'),
+                label: Text(loc.translate('walkthrough_btn')),
               ),
               const SizedBox(height: 12),
               // Button 2: Leitner Method
@@ -466,7 +467,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   _showLeitnerMethodDialog(context);
                 },
                 icon: const Icon(Icons.explore),
-                label: const Text('آموزش روش لایتنر (Leitner Method)'),
+                label: Text(loc.translate('leitner_btn')),
               ),
               const SizedBox(height: 12),
               // Button 3: Color Status
@@ -482,7 +483,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   _showColorStatusDialog(context);
                 },
                 icon: const Icon(Icons.palette),
-                label: const Text('راهنمای رنگ‌ها (Color Status Guide)'),
+                label: Text(loc.translate('color_guide_btn')),
               ),
             ],
           ),
@@ -492,6 +493,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
   }
 
   void _showLeitnerMethodDialog(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (dialogCtx) {
@@ -502,7 +504,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
             side: BorderSide(color: AppColors.border),
           ),
           title: Text(
-            'روش جعبه لایتنر (Leitner Method)',
+            loc.translate('leitner_method_title'),
             style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
             textAlign: TextAlign.center,
           ),
@@ -511,24 +513,24 @@ class HomeHubScreenState extends State<HomeHubScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'روش لایتنر یک روش علمی برای انتقال اطلاعات به حافظه بلندمدت بر اساس فواصل مرور است:',
+                  loc.translate('leitner_desc'),
                   style: TextStyle(color: AppColors.textPrimary, fontSize: 13, height: 1.4),
                   textAlign: TextAlign.right,
                 ),
                 const SizedBox(height: 12),
-                _buildLeitnerStep(context, 'خانه اول (Box 1)', 'کارت های جدید و اشتباه شده. مرور روزانه.'),
-                _buildLeitnerStep(context, 'خانه دوم (Box 2)', 'کارت هایی که بلد بودید. مرور هر ۲ روز.'),
-                _buildLeitnerStep(context, 'خانه سوم (Box 3)', 'کارت های تایید شده قبلی. مرور هر ۴ روز.'),
-                _buildLeitnerStep(context, 'خانه چهارم (Box 4)', 'مرور هر ۸ روز.'),
-                _buildLeitnerStep(context, 'خانه پنجم (Box 5)', 'مرور هر ۱۶ روز.'),
-                _buildLeitnerStep(context, 'خانه ششم (Finished)', 'اتمام یادگیری کارت و آرشیو شدن آن.'),
+                _buildLeitnerStep(context, loc.translate('leitner_step_1_title'), loc.translate('leitner_step_1_desc')),
+                _buildLeitnerStep(context, loc.translate('leitner_step_2_title'), loc.translate('leitner_step_2_desc')),
+                _buildLeitnerStep(context, loc.translate('leitner_step_3_title'), loc.translate('leitner_step_3_desc')),
+                _buildLeitnerStep(context, loc.translate('leitner_step_4_title'), loc.translate('leitner_step_4_desc')),
+                _buildLeitnerStep(context, loc.translate('leitner_step_5_title'), loc.translate('leitner_step_5_desc')),
+                _buildLeitnerStep(context, loc.translate('leitner_step_6_title'), loc.translate('leitner_step_6_desc')),
                 const SizedBox(height: 12),
                 Text(
-                  'قوانین پیشرفت:',
+                  loc.translate('progress_rules_title'),
                   style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
                 Text(
-                  '- پاسخ صحیح (بلدم): کارت یک خانه به جلو میرود.\n- پاسخ غلط (بلد نیستم): کارت بلافاصله به خانه اول (Box 1) برمی‌گردد و تمام مراحل از اول آغاز می‌شود.',
+                  loc.translate('progress_rules_desc'),
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4),
                 ),
               ],
@@ -537,7 +539,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('بستن (Close)'),
+              child: Text(loc.translate('close_btn')),
             ),
           ],
         );
@@ -559,6 +561,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
   }
 
   void _showColorStatusDialog(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (dialogCtx) {
@@ -569,25 +572,25 @@ class HomeHubScreenState extends State<HomeHubScreen> {
             side: BorderSide(color: AppColors.border),
           ),
           title: Text(
-            'راهنمای رنگ وضعیت خانه‌ها (Color Guide)',
+            loc.translate('color_guide_title'),
             style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
             textAlign: TextAlign.center,
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildColorStatusRow('خانه اول (Box 1)', AppColors.box1),
-              _buildColorStatusRow('خانه دوم (Box 2)', AppColors.box2),
-              _buildColorStatusRow('خانه سوم (Box 3)', AppColors.box3),
-              _buildColorStatusRow('خانه چهارم (Box 4)', AppColors.box4),
-              _buildColorStatusRow('خانه پنجم (Box 5)', AppColors.box5),
-              _buildColorStatusRow('کارت‌های تمام شده (Finished)', AppColors.finished),
+              _buildColorStatusRow(loc.box1, AppColors.box1),
+              _buildColorStatusRow(loc.box2, AppColors.box2),
+              _buildColorStatusRow(loc.box3, AppColors.box3),
+              _buildColorStatusRow(loc.box4, AppColors.box4),
+              _buildColorStatusRow(loc.box5, AppColors.box5),
+              _buildColorStatusRow(loc.finished, AppColors.finished),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('بستن (Close)'),
+              child: Text(loc.translate('close_btn')),
             ),
           ],
         );
@@ -620,8 +623,10 @@ class HomeHubScreenState extends State<HomeHubScreen> {
     final loc = AppLocalizations.of(context);
     final prefs = di.sl<SharedPreferences>();
     final username = prefs.getString('user_username') ?? 'User';
-    final educationalField = prefs.getString('user_educational_field') ?? 'General';
-    final educationalLevel = prefs.getString('user_educational_level') ?? 'Student';
+    final rawField = prefs.getString('user_educational_field') ?? 'General';
+    final rawLevel = prefs.getString('user_educational_level') ?? 'Student';
+    final educationalField = loc.translate(rawField);
+    final educationalLevel = loc.translate(rawLevel);
     final avatarPath = prefs.getString('user_avatar_path');
     final avatarImage = avatarPath != null ? FileImage(File(avatarPath)) : null;
 
@@ -758,7 +763,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                 _buildDrawerItem(
                   icon: Icons.help_outline,
                   iconColor: AppColors.primary,
-                  title: 'راهنمای برنامه (Help Guide)',
+                  title: loc.translate('help_guide_title'),
                   onTap: () {
                     Navigator.pop(context); // Close drawer
                     _showHelpSelectionDialog(context);

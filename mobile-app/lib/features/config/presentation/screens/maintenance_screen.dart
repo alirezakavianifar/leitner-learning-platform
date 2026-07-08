@@ -3,12 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_event.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 
 class MaintenanceScreen extends StatelessWidget {
   const MaintenanceScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -34,7 +36,7 @@ class MaintenanceScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
                 Text(
-                  'Scheduled Maintenance',
+                  loc.scheduledMaintenance,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
                         color: AppColors.textPrimary,
@@ -44,7 +46,7 @@ class MaintenanceScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'We are currently performing scheduled system updates to improve your learning experience. Please try again shortly.',
+                  loc.maintenanceMsg,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: AppColors.textSecondary,
@@ -65,7 +67,7 @@ class MaintenanceScreen extends StatelessWidget {
                   },
                   icon: Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
                   label: Text(
-                    'Check Again',
+                    loc.translate('check_again'),
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.bold,

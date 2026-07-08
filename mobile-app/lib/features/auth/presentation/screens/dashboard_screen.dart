@@ -236,7 +236,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     children: [
                                       Icon(Icons.broken_image, color: AppColors.textSecondary, size: 36),
                                       SizedBox(height: 8),
-                                      Text('Failed to load banner', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                                      Text(loc.failedLoadBanner, style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
                                     ],
                                   ),
                                 );

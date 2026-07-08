@@ -121,9 +121,10 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
         await _audioPlayer.stop();
         await _audioPlayer.play(DeviceFileSource(audioFilePath));
       } catch (_) {
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to play card audio file.'),
+            content: Text(loc.translate('play_audio_failed')),
             backgroundColor: AppColors.error,
           ),
         );
@@ -238,10 +239,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           ],
         ),
         content: Text(
-          'This card is currently in Spaced Repetition stage ${card.progress.currentBox}. '
-          'Do you want to reset its progress to Stage 1?\n\n'
-          '• Yes: Reset progress to Stage 1 and show the card.\n'
-          '• No: Keep current progress and show the card.',
+          loc.translate('reset_progress_desc').replaceAll('{box}', card.progress.currentBox.toString()),
           style: TextStyle(color: AppColors.textSecondary, height: 1.4),
         ),
         actions: [
@@ -249,7 +247,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
             onPressed: () {
               Navigator.pop(dialogCtx);
             },
-            child: const Text('No'),
+            child: Text(loc.translate('no_label')),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
@@ -257,7 +255,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
               Navigator.pop(dialogCtx);
               context.read<FlashcardBloc>().add(ResetCardProgressEvent(card.cardNumber));
             },
-            child: const Text('Yes', style: TextStyle(color: Colors.white)),
+            child: Text(loc.translate('yes_label'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

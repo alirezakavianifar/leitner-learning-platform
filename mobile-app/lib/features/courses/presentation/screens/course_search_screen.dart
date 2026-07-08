@@ -7,6 +7,7 @@ import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
 import 'package:mobile_app/injection_container.dart' as di;
+import 'package:mobile_app/core/localization/app_localizations.dart';
 
 class CourseSearchScreen extends StatefulWidget {
   const CourseSearchScreen({super.key});
@@ -152,6 +153,8 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -162,7 +165,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Typo-Tolerant Search',
+          loc.translate('typo_search_title'),
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
@@ -182,7 +185,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                     children: [
                       const SizedBox(height: 12),
                       Text(
-                        'Step 1: Select Courses',
+                        loc.translate('step_select_courses'),
                         style: TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 14,
@@ -216,7 +219,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                         child: _filteredCourses.isEmpty
                             ? Center(
                                 child: Text(
-                                  'No downloaded courses found.',
+                                  loc.translate('no_downloaded_courses_found'),
                                   style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                                 ),
                               )
@@ -268,7 +271,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Step 2: Search Cards Inside Selection',
+                        loc.translate('step_search_cards'),
                         style: TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 14,
@@ -283,8 +286,8 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                         enabled: _selectedCourseIds.isNotEmpty,
                         decoration: InputDecoration(
                           hintText: _selectedCourseIds.isEmpty
-                              ? 'Please select one or more courses first'
-                              : 'Search card contents or numbers...',
+                              ? loc.translate('select_courses_first')
+                              : loc.translate('search_cards_hint'),
                           prefixIcon: Icon(Icons.search, color: AppColors.textSecondary),
                           suffixIcon: _cardController.text.isNotEmpty
                               ? IconButton(
@@ -306,21 +309,21 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                             : _selectedCourseIds.isEmpty
                                 ? Center(
                                     child: Text(
-                                      'Select courses above to begin searching.',
+                                      loc.translate('select_courses_begin'),
                                       style: TextStyle(color: AppColors.textSecondary),
                                     ),
                                   )
                                 : _cardController.text.trim().isEmpty
                                     ? Center(
                                         child: Text(
-                                          'Type keywords or card number to show results.',
+                                          loc.translate('type_to_search'),
                                           style: TextStyle(color: AppColors.textSecondary),
                                         ),
                                       )
                                     : _filteredCards.isEmpty
                                         ? Center(
                                             child: Text(
-                                              'No matching cards found.',
+                                              loc.translate('no_matching_cards'),
                                               style: TextStyle(color: AppColors.textSecondary),
                                             ),
                                           )
@@ -346,7 +349,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                                   title: Row(
                                                     children: [
                                                       Text(
-                                                        'Card #${card.cardNumber}',
+                                                        isFa ? 'کارت شماره ${card.cardNumber}' : 'Card #${card.cardNumber}',
                                                         style: TextStyle(
                                                           color: AppColors.textPrimary,
                                                           fontWeight: FontWeight.bold,
@@ -361,7 +364,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                                           border: Border.all(color: statusColor.withOpacity(0.4)),
                                                         ),
                                                         child: Text(
-                                                          card.progress.currentBox == 6 ? 'Finished' : 'Box ${card.progress.currentBox}',
+                                                          card.progress.currentBox == 6 ? loc.translate('finished_box') : '${loc.translate('box_label_prefix')}${card.progress.currentBox}',
                                                           style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold),
                                                         ),
                                                       ),
@@ -379,7 +382,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                                       ),
                                                       const SizedBox(height: 4),
                                                       Text(
-                                                        'Course: ${course.title}',
+                                                        '${loc.translate('course_label_prefix')}${course.title}',
                                                         style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600),
                                                       ),
                                                     ],

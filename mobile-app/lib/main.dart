@@ -121,7 +121,7 @@ class AppGate extends StatelessWidget {
                   CircularProgressIndicator(color: AppColors.primary),
                   SizedBox(height: 16),
                   Text(
-                    'Checking Configuration...',
+                    AppLocalizations.of(context).translate('checking_config'),
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
                 ],
@@ -179,7 +179,7 @@ class AuthGate extends StatelessWidget {
                 CircularProgressIndicator(color: AppColors.primary),
                 SizedBox(height: 16),
                 Text(
-                  'Loading Platform...',
+                  AppLocalizations.of(context).translate('loading_platform'),
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
               ],

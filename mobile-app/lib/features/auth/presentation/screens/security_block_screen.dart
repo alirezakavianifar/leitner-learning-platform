@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/localization/app_localizations.dart';
 
 class SecurityBlockScreen extends StatelessWidget {
   const SecurityBlockScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -22,7 +24,7 @@ class SecurityBlockScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'Security Block',
+                loc.securityAlert,
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
                       color: AppColors.textPrimary,
                     ),
@@ -30,7 +32,7 @@ class SecurityBlockScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'For security and content protection reasons, the Leitner Learning Platform cannot be run on rooted or jailbroken devices.\n\nPlease use a secure, non-rooted device to access your courses and learning progress.',
+                loc.translate('security_block_desc'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppColors.textSecondary,
