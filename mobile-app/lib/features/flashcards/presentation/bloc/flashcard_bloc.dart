@@ -87,15 +87,21 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           return;
         }
 
-        // After reviewing, we stay at index 0 (which is the next due card)
+        // Adjust index to the next card, or the last card in new queue if index is out of bounds
+        int nextIndex = currentState.currentIndex;
+        if (nextIndex >= newQueue.length) {
+          nextIndex = newQueue.length - 1;
+        }
+
+        final nextCard = newQueue[nextIndex];
         final isFav = await flashcardRepository.isFavorite(
           courseId: currentState.courseId,
-          cardNumber: newQueue[0].cardNumber,
+          cardNumber: nextCard.cardNumber,
         );
 
         emit(currentState.copyWith(
           queue: newQueue,
-          currentIndex: 0,
+          currentIndex: nextIndex,
           isFlipped: false,
           isFavorited: isFav,
         ));
