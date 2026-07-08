@@ -81,11 +81,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (image != null) {
+    final picker = ImagePicker();
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
+    final picked = await showModalBottomSheet<XFile?>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.photo_library, color: AppColors.primary),
+              title: Text(isFa ? 'انتخاب از گالری' : 'Choose from Gallery',
+                  style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () async {
+                final img = await picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 80,
+                  maxWidth: 512,
+                  maxHeight: 512,
+                );
+                Navigator.pop(ctx, img);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.camera_alt, color: AppColors.secondary),
+              title: Text(isFa ? 'عکس‌برداری با دوربین' : 'Take a Photo',
+                  style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () async {
+                final img = await picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 80,
+                  maxWidth: 512,
+                  maxHeight: 512,
+                );
+                Navigator.pop(ctx, img);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) {
+      final file = File(picked.path);
+      final sizeBytes = await file.length();
+      if (sizeBytes > 3 * 1024 * 1024) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isFa ? 'حجم تصویر باید کمتر از ۳ مگابایت باشد.' : 'Image size must be less than 3MB.',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
       setState(() {
-        _pickedImage = File(image.path);
+        _pickedImage = file;
       });
     }
   }

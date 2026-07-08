@@ -94,7 +94,12 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               title: Text(isFa ? 'انتخاب از گالری' : 'Choose from Gallery',
                   style: TextStyle(color: AppColors.textPrimary)),
               onTap: () async {
-                final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+                final img = await picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 80,
+                  maxWidth: 512,
+                  maxHeight: 512,
+                );
                 Navigator.pop(ctx, img);
               },
             ),
@@ -103,7 +108,12 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               title: Text(isFa ? 'عکس‌برداری با دوربین' : 'Take a Photo',
                   style: TextStyle(color: AppColors.textPrimary)),
               onTap: () async {
-                final img = await picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+                final img = await picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 80,
+                  maxWidth: 512,
+                  maxHeight: 512,
+                );
                 Navigator.pop(ctx, img);
               },
             ),
@@ -112,7 +122,20 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
       ),
     );
     if (picked != null) {
-      setState(() => _pickedImage = File(picked.path));
+      final file = File(picked.path);
+      final sizeBytes = await file.length();
+      if (sizeBytes > 3 * 1024 * 1024) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isFa ? 'حجم تصویر باید کمتر از ۳ مگابایت باشد.' : 'Image size must be less than 3MB.',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      setState(() => _pickedImage = file);
     }
   }
 
