@@ -24,6 +24,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<FileSystemEntity> _backupFiles = [];
   bool _isLoadingBackups = true;
 
+  final List<Map<String, dynamic>> _premiumPalettes = const [
+    {
+      'name_en': 'Purple Indigo',
+      'name_fa': 'ارغوانی بنفش',
+      'primary': 0xFF6B4EE6,
+      'secondary': 0xFF09E5C3,
+    },
+    {
+      'name_en': 'Emerald Ocean',
+      'name_fa': 'سبز زمردی',
+      'primary': 0xFF00A86B,
+      'secondary': 0xFF00E5FF,
+    },
+    {
+      'name_en': 'Classic Tech',
+      'name_fa': 'آبی کلاسیک',
+      'primary': 0xFF1A9CFF,
+      'secondary': 0xFF00F5D4,
+    },
+    {
+      'name_en': 'Crimson Rose',
+      'name_fa': 'سرخ گل‌بهی',
+      'primary': 0xFFF43F5E,
+      'secondary': 0xFFFF7A1A,
+    },
+    {
+      'name_en': 'Midnight Royal',
+      'name_fa': 'پوسته سلطنتی',
+      'primary': 0xFF3F51B5,
+      'secondary': 0xFFE040FB,
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -329,6 +362,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+                      Divider(color: AppColors.primary.withOpacity(0.2)),
+                      const SizedBox(height: 12),
+                      Text(
+                        isFa ? 'رنگ تم برنامه' : 'Accent Color Theme',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 54,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: _premiumPalettes.map((palette) {
+                            final isSelected = AppColors.primary.value == palette['primary'];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: GestureDetector(
+                                onTap: () {
+                                  context.read<ThemeBloc>().add(
+                                    ChangePrimaryColorEvent(
+                                      primaryColorHex: palette['primary'],
+                                      secondaryColorHex: palette['secondary'],
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Color(palette['primary']),
+                                        Color(palette['secondary']),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? AppColors.textPrimary
+                                          : Colors.transparent,
+                                      width: 3,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Color(palette['primary']).withOpacity(0.3),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: isSelected
+                                      ? Icon(
+                                          Icons.check,
+                                          color: Colors.white,
+                                          shadows: [
+                                            Shadow(
+                                              blurRadius: 3,
+                                              color: Colors.black.withOpacity(0.5),
+                                              offset: const Offset(0, 1),
+                                            ),
+                                          ],
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
                       ),
                     ],
                   ),
