@@ -118,9 +118,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               (route) => false,
             );
           } else if (state is AuthErrorState) {
+            String errorMessage = state.message;
+            if (state.errorCode != null) {
+              final key = state.errorCode!.toLowerCase();
+              final translated = loc.translate(key);
+              if (translated != key) {
+                errorMessage = translated;
+              }
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(errorMessage),
                 backgroundColor: AppColors.error,
               ),
             );

@@ -911,6 +911,7 @@ Build application shell enforcing feature-based clean architecture, dependency i
 
 ### Authentication Screens
 * **Mandatory Rules Screen:** Mandatory Terms & Rules acceptance step after OTP verification and before profile completion.
+* **Persian Localization:** Fully localized Sign Up, OTP request/verification, terms acceptance, and profile completion screens.
 
 ---
 
@@ -920,9 +921,9 @@ Build application shell enforcing feature-based clean architecture, dependency i
 
 Users can:
 
-* Login & OTP verification
-* Accept Terms & Rules
-* Setup profile (username, interests, educational field, educational level selected from predefined lists; mobile number is locked/read-only)
+* Login & OTP verification (Fully localized in English and Persian)
+* Accept Terms & Rules (Fully localized in English and Persian)
+* Setup profile (username, interests, educational field, educational level selected from predefined lists; mobile number is locked/read-only) (Fully localized in English and Persian)
 * Enter app
 
 ---

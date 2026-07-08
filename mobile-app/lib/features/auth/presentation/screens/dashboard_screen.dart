@@ -11,6 +11,7 @@ import 'package:mobile_app/features/notifications/domain/entities/banner.dart' a
 import 'package:mobile_app/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/favorites_courses_screen.dart';
+import 'package:mobile_app/core/utils/scroll_physics.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int) onTabChange;
@@ -180,6 +181,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           await _loadBanners(force: true);
         },
         child: SingleChildScrollView(
+          physics: const ScrollOnlyWhenNeededPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

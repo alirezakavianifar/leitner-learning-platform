@@ -186,6 +186,16 @@ class AppLocalizations {
       'tour_back': 'Back',
       'tour_next': 'Next',
       'tour_done': 'Done',
+      'please_enter_mobile_number': 'Please enter your mobile number',
+      'enter_valid_iranian_mobile': 'Enter a valid Iranian mobile number',
+      'refresh_captcha': 'Refresh CAPTCHA',
+      'please_enter_captcha': 'Please enter the CAPTCHA answer',
+      'please_enter_username': 'Please enter your username',
+      'invalid_mobile_number': 'The provided mobile number is invalid.',
+      'invalid_captcha': 'The CAPTCHA verification failed.',
+      'sms_send_failed': 'Failed to dispatch verification code.',
+      'invalid_otp': 'The verification code is incorrect or expired.',
+      'invalid_input': 'Mobile number and OTP code are required.',
     },
     'fa': {
       'app_title': 'سامانه لایتنر',
@@ -361,6 +371,16 @@ class AppLocalizations {
       'tour_back': 'قبلی',
       'tour_next': 'بعدی',
       'tour_done': 'پایان',
+      'please_enter_mobile_number': 'لطفاً شماره موبایل خود را وارد کنید',
+      'enter_valid_iranian_mobile': 'یک شماره موبایل معتبر وارد کنید',
+      'refresh_captcha': 'بارگذاری مجدد کد امنیتی',
+      'please_enter_captcha': 'لطفاً پاسخ کد امنیتی را وارد کنید',
+      'please_enter_username': 'لطفاً نام کاربری خود را وارد کنید',
+      'invalid_mobile_number': 'شماره موبایل وارد شده نامعتبر است.',
+      'invalid_captcha': 'پاسخ کد امنیتی نادرست است.',
+      'sms_send_failed': 'خطا در ارسال کد تأیید. لطفاً مجدداً تلاش کنید.',
+      'invalid_otp': 'کد تأیید وارد شده نادرست یا منقضی شده است.',
+      'invalid_input': 'شماره موبایل و کد تأیید الزامی هستند.',
     },
   };
 
@@ -537,6 +557,16 @@ class AppLocalizations {
   String get createFirstCard => translate('create_first_card');
   String get allCards => translate('all_cards');
   String get studyMode => translate('study_mode');
+  String get pleaseEnterMobileNumber => translate('please_enter_mobile_number');
+  String get enterValidIranianMobile => translate('enter_valid_iranian_mobile');
+  String get refreshCaptcha => translate('refresh_captcha');
+  String get pleaseEnterCaptcha => translate('please_enter_captcha');
+  String get pleaseEnterUsername => translate('please_enter_username');
+  String get invalidMobileNumber => translate('invalid_mobile_number');
+  String get invalidCaptcha => translate('invalid_captcha');
+  String get smsSendFailed => translate('sms_send_failed');
+  String get invalidOtp => translate('invalid_otp');
+  String get invalidInput => translate('invalid_input');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

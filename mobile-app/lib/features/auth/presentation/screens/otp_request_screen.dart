@@ -80,9 +80,17 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
               }
             });
           } else if (state is AuthErrorState) {
+            String errorMessage = state.message;
+            if (state.errorCode != null) {
+              final key = state.errorCode!.toLowerCase();
+              final translated = loc.translate(key);
+              if (translated != key) {
+                errorMessage = translated;
+              }
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(errorMessage),
                 backgroundColor: AppColors.error,
               ),
             );
@@ -157,12 +165,12 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your mobile number';
+                            return loc.pleaseEnterMobileNumber;
                           }
                           // Validate basic format matching Iranian mobile patterns
                           final clean = value.replaceAll(' ', '');
                           if (!RegExp(r'^(\+98|0)?9\d{9}$').hasMatch(clean)) {
-                            return 'Enter a valid Iranian mobile number';
+                            return loc.enterValidIranianMobile;
                           }
                           return null;
                         },
@@ -204,7 +212,7 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                                   const SizedBox(width: 12),
                                   IconButton(
                                     icon: Icon(Icons.refresh, color: AppColors.secondary),
-                                    tooltip: 'Refresh CAPTCHA',
+                                    tooltip: loc.refreshCaptcha,
                                     onPressed: isLoading
                                         ? null
                                         : () {
@@ -225,7 +233,7 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                                 ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return loc.captchaAnswer;
+                                    return loc.pleaseEnterCaptcha;
                                   }
                                   return null;
                                 },
