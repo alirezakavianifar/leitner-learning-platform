@@ -8,12 +8,7 @@ import 'package:mobile_app/app/theme_bloc.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/core/localization/locale_bloc.dart';
 import 'package:mobile_app/core/services/backup_service.dart';
-import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
-import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:mobile_app/injection_container.dart' as di;
-import 'about_us_screen.dart';
-import 'rules_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -25,67 +20,27 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late OfflineBackupService _backupService;
   final _passwordController = TextEditingController();
-  final _usernameController = TextEditingController();
-  
-  String _mobileNumber = '';
-  String? _interests;
-  String _educationalField = 'General';
-  String _educationalLevel = 'Learner';
   double _fontScale = 1.0;
-
-  final List<Map<String, String>> _interestsOptions = const [
-    {'en': 'Foreign Languages', 'fa': 'زبان‌های خارجی'},
-    {'en': 'Basic Sciences', 'fa': 'علوم پایه'},
-    {'en': 'Information Technology', 'fa': 'فناوری اطلاعات'},
-    {'en': 'Exams & Academics', 'fa': 'کنکور و تحصیلات'},
-    {'en': 'General & Misc', 'fa': 'عمومی و متفرقه'},
-  ];
-
-  final List<Map<String, String>> _fieldOptions = const [
-    {'en': 'Technical & Engineering', 'fa': 'فنی و مهندسی'},
-    {'en': 'Humanities', 'fa': 'علوم انسانی'},
-    {'en': 'Medical Sciences', 'fa': 'علوم پزشکی'},
-    {'en': 'Basic Sciences', 'fa': 'علوم پایه'},
-    {'en': 'Art', 'fa': 'هنر'},
-    {'en': 'General', 'fa': 'عمومی'},
-  ];
-
-  final List<Map<String, String>> _levelOptions = const [
-    {'en': 'Student', 'fa': 'دانش‌آموز'},
-    {'en': 'High School Diploma', 'fa': 'دیپلم'},
-    {'en': 'Associate Degree', 'fa': 'کاردانی'},
-    {'en': 'Bachelor\'s', 'fa': 'کارشناسی'},
-    {'en': 'Master\'s', 'fa': 'کارشناسی ارشد'},
-    {'en': 'PhD & Above', 'fa': 'دکتری و بالاتر'},
-  ];
-
   List<FileSystemEntity> _backupFiles = [];
   bool _isLoadingBackups = true;
-  bool _isSavingProfile = false;
 
   @override
   void initState() {
     super.initState();
     _backupService = di.sl<OfflineBackupService>();
-    _loadProfile();
+    _loadSettings();
     _loadBackupFiles();
   }
 
   @override
   void dispose() {
     _passwordController.dispose();
-    _usernameController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadProfile() async {
+  Future<void> _loadSettings() async {
     final prefs = di.sl<SharedPreferences>();
     setState(() {
-      _usernameController.text = prefs.getString('user_username') ?? '';
-      _mobileNumber = prefs.getString('user_mobile_number') ?? '';
-      _interests = prefs.getString('user_interests');
-      _educationalField = prefs.getString('user_educational_field') ?? 'General';
-      _educationalLevel = prefs.getString('user_educational_level') ?? 'Learner';
       _fontScale = prefs.getDouble('flashcard_font_scale') ?? 1.0;
     });
   }
@@ -96,18 +51,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _fontScale = scale;
     });
-  }
-
-  Future<void> _saveProfile() async {
-    setState(() => _isSavingProfile = true);
-    context.read<AuthBloc>().add(
-          UpdateProfileEvent(
-            username: _usernameController.text.trim(),
-            interests: _interests,
-            educationalField: _educationalField,
-            educationalLevel: _educationalLevel,
-          ),
-        );
   }
 
   Future<void> _loadBackupFiles() async {
@@ -130,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final password = _passwordController.text;
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password must be at least 6 characters.'), backgroundColor: AppColors.error),
+        SnackBar(content: const Text('Password must be at least 6 characters.'), backgroundColor: AppColors.error),
       );
       return;
     }
@@ -187,9 +130,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final success = await _backupService.importBackup(filePath, password);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Local database restored successfully!'), backgroundColor: AppColors.secondary),
+          SnackBar(content: const Text('Local database restored successfully!'), backgroundColor: AppColors.secondary),
         );
-        _loadProfile();
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -222,60 +164,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _showLogoutConfirmation() {
-    final loc = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.border),
-          ),
-          title: Text(
-            loc.logout,
-            style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
-          ),
-          content: Text(
-            loc.logoutConfirm,
-            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFF333E56).withOpacity(0.4),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text(loc.cancel, style: TextStyle(color: AppColors.textPrimary)),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pop(dialogContext); // Close modal
-                context.read<AuthBloc>().add(LogoutEvent()); // Trigger logout
-                Navigator.pop(context); // Close settings screen
-              },
-              child: Text(loc.confirm, style: const TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
@@ -295,39 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
-      body: BlocListener<AuthBloc, AuthState>(
-        listener: (context, state) {
-          if (state is AuthenticatedState) {
-            setState(() {
-              _isSavingProfile = false;
-            });
-            // Update local fields from updated user model
-            final user = state.user;
-            final prefs = di.sl<SharedPreferences>();
-            prefs.setString('user_username', user.username);
-            if (user.interests != null) prefs.setString('user_interests', user.interests!);
-            prefs.setString('user_educational_field', user.educationalField ?? 'General');
-            prefs.setString('user_educational_level', user.educationalLevel ?? 'Learner');
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(loc.saveProfile),
-                backgroundColor: AppColors.secondary,
-              ),
-            );
-          } else if (state is AuthErrorState) {
-            setState(() {
-              _isSavingProfile = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
-          }
-        },
-        child: SingleChildScrollView(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -475,7 +331,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Section 0.2: Font Size Adjustment Card
+            // Section 0.2: Font Scaling Card
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -488,12 +344,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.format_size, color: AppColors.primary),
+                      Icon(Icons.text_fields, color: AppColors.primary),
                       const SizedBox(width: 10),
                       Text(
-                        Localizations.localeOf(context).languageCode == 'fa'
-                            ? 'اندازه قلم فلش‌کارت‌ها'
-                            : 'Flashcard Font Size',
+                        isFa ? 'اندازه قلم فلش‌کارت‌ها' : 'Flashcard Font Size',
                         style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -503,15 +357,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Expanded(
                         child: ChoiceChip(
-                          label: Center(
-                            child: Text(
-                              Localizations.localeOf(context).languageCode == 'fa' ? 'کوچک' : 'Small',
-                              style: TextStyle(
-                                color: _fontScale == 0.85 ? Colors.white : AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          label: Center(child: Text(isFa ? 'کوچک' : 'Small', style: TextStyle(color: _fontScale == 0.85 ? Colors.white : AppColors.textPrimary, fontWeight: FontWeight.bold))),
                           selected: _fontScale == 0.85,
                           selectedColor: AppColors.primary,
                           backgroundColor: AppColors.background,
@@ -523,15 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: ChoiceChip(
-                          label: Center(
-                            child: Text(
-                              Localizations.localeOf(context).languageCode == 'fa' ? 'معمولی' : 'Medium',
-                              style: TextStyle(
-                                color: _fontScale == 1.0 ? Colors.white : AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          label: Center(child: Text(isFa ? 'معمولی' : 'Normal', style: TextStyle(color: _fontScale == 1.0 ? Colors.white : AppColors.textPrimary, fontWeight: FontWeight.bold))),
                           selected: _fontScale == 1.0,
                           selectedColor: AppColors.primary,
                           backgroundColor: AppColors.background,
@@ -543,15 +381,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: ChoiceChip(
-                          label: Center(
-                            child: Text(
-                              Localizations.localeOf(context).languageCode == 'fa' ? 'بزرگ' : 'Large',
-                              style: TextStyle(
-                                color: _fontScale == 1.25 ? Colors.white : AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          label: Center(child: Text(isFa ? 'بزرگ' : 'Large', style: TextStyle(color: _fontScale == 1.25 ? Colors.white : AppColors.textPrimary, fontWeight: FontWeight.bold))),
                           selected: _fontScale == 1.25,
                           selectedColor: AppColors.primary,
                           backgroundColor: AppColors.background,
@@ -566,190 +396,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Section 1: Profile Editing
-            Text(
-              loc.profileDetails,
-              style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _usernameController,
-              style: TextStyle(color: AppColors.textPrimary),
-              decoration: InputDecoration(
-                labelText: loc.username,
-                labelStyle: TextStyle(color: AppColors.textSecondary),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.border),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.primary),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Mobile Number (Locked / Read-Only)
-            TextFormField(
-              key: ValueKey(_mobileNumber),
-              initialValue: _mobileNumber,
-              enabled: false,
-              style: TextStyle(color: AppColors.textSecondary),
-              decoration: InputDecoration(
-                labelText: loc.mobileReadonly,
-                labelStyle: TextStyle(color: AppColors.textSecondary),
-                disabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.border.withOpacity(0.3)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Interests Dropdown
-            DropdownButtonFormField<String>(
-              value: _interests,
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
-              dropdownColor: AppColors.surface,
-              decoration: InputDecoration(
-                labelText: loc.interests,
-                labelStyle: TextStyle(color: AppColors.textSecondary),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.border),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.primary),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              items: _interestsOptions.map((opt) {
-                return DropdownMenuItem<String>(
-                  value: opt['en'],
-                  child: Text(isFa ? opt['fa']! : opt['en']!),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _interests = value;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            // Educational Field Dropdown
-            DropdownButtonFormField<String>(
-              value: _educationalField,
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
-              dropdownColor: AppColors.surface,
-              decoration: InputDecoration(
-                labelText: loc.educationalField,
-                labelStyle: TextStyle(color: AppColors.textSecondary),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.border),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.primary),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              items: _fieldOptions.map((opt) {
-                return DropdownMenuItem<String>(
-                  value: opt['en'],
-                  child: Text(isFa ? opt['fa']! : opt['en']!),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _educationalField = value ?? 'General';
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            // Educational Level Dropdown
-            DropdownButtonFormField<String>(
-              value: _educationalLevel,
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
-              dropdownColor: AppColors.surface,
-              decoration: InputDecoration(
-                labelText: loc.educationalLevel,
-                labelStyle: TextStyle(color: AppColors.textSecondary),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.border),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.primary),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              items: _levelOptions.map((opt) {
-                return DropdownMenuItem<String>(
-                  value: opt['en'],
-                  child: Text(isFa ? opt['fa']! : opt['en']!),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _educationalLevel = value ?? 'Learner';
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: _isSavingProfile ? null : _saveProfile,
-              child: _isSavingProfile
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text(loc.updateProfile, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 24),
-
-            // Section 1.5: Information & Guidelines
-            Text(
-              isFa ? 'راهنما و اطلاعات برنامه' : 'Information & Rules',
-              style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              color: AppColors.surface.withOpacity(0.4),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: AppColors.border),
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: Icon(Icons.description_outlined, color: AppColors.secondary),
-                    title: Text(isFa ? 'قوانین و مقررات لایتنر' : 'Leitner Learning Rules', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
-                    trailing: Icon(Icons.chevron_right, color: AppColors.textSecondary),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const RulesScreen()),
-                      );
-                    },
-                  ),
-                  const Divider(color: Color(0xFF333E56), height: 1),
-                  ListTile(
-                    leading: Icon(Icons.info_outline, color: AppColors.secondary),
-                    title: Text(isFa ? 'درباره ما' : 'About Us', style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
-                    trailing: Icon(Icons.chevron_right, color: AppColors.textSecondary),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AboutUsScreen()),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
 
             // Section 2: Backup & Restore
             Text(
@@ -846,25 +492,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           );
                         },
                       ),
-            const SizedBox(height: 40),
-
-            // Section 3: Logout
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error.withOpacity(0.15),
-                foregroundColor: AppColors.error,
-                side: BorderSide(color: AppColors.error, width: 1.5),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: _showLogoutConfirmation,
-              icon: const Icon(Icons.logout),
-              label: Text(loc.logoutAccount, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 48),
           ],
         ),
-      ),
       ),
     );
   }

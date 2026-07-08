@@ -98,6 +98,7 @@ class AppLocalizations {
       'no_downloaded_courses_desc': 'Go to the Courses tab to download packages and start studying offline.',
       'profile_details': 'Profile Details',
       'update_profile': 'Update Profile',
+      'about_us': 'About Us',
       'offline_backup_restore': 'Offline Backup & Restore',
       'backup_desc': 'Protect your database! Backups export your progress, custom cards, and favorites to an encrypted file.',
       'backup_encryption_password': 'Backup Encryption Password',
@@ -289,6 +290,7 @@ class AppLocalizations {
       'no_downloaded_courses_desc': 'جهت دانلود پکیج‌ها و مطالعه آفلاین به تب دوره‌ها مراجعه کنید.',
       'profile_details': 'اطلاعات پروفایل',
       'update_profile': 'به‌روزرسانی پروفایل',
+      'about_us': 'درباره ما',
       'offline_backup_restore': 'پشتیبان‌گیری و بازیابی آفلاین',
       'backup_desc': 'از اطلاعات خود محافظت کنید! فایل پشتیبان شامل پیشرفت مطالعه، کارت‌های اختصاصی و نشان‌شده‌ها می‌باشد.',
       'backup_encryption_password': 'رمز عبور رمزنگاری فایل پشتیبان',
@@ -585,6 +587,7 @@ class AppLocalizations {
   String get tourFinishedDesc => translate('tour_finished_desc');
   String get tourCatalogTitle => translate('tour_catalog_title');
   String get tourCatalogDesc => translate('tour_catalog_desc');
+  String get aboutUs => translate('about_us');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

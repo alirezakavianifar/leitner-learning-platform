@@ -17,6 +17,9 @@ import 'package:mobile_app/features/flashcards/presentation/widgets/interactive_
 import 'otp_request_screen.dart';
 import 'dashboard_screen.dart';
 import 'settings_screen.dart';
+import 'profile_screen.dart';
+import 'rules_screen.dart';
+import 'about_us_screen.dart';
 import 'statistics_screen.dart';
 import 'support_screen.dart';
 import 'package:mobile_app/features/notifications/presentation/screens/notifications_screen.dart';
@@ -680,6 +683,15 @@ class HomeHubScreenState extends State<HomeHubScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
                 _buildDrawerItem(
+                  icon: Icons.person,
+                  iconColor: AppColors.primary,
+                  title: loc.profileDetails,
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    _pushNested(const ProfileScreen());
+                  },
+                ),
+                _buildDrawerItem(
                   icon: Icons.bar_chart,
                   iconColor: AppColors.box3,
                   title: loc.statistics,
@@ -695,6 +707,24 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   onTap: () {
                     Navigator.pop(context); // Close drawer
                     _pushNested(const NotificationsScreen());
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.description,
+                  iconColor: AppColors.box2,
+                  title: loc.termsConditions,
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    _pushNested(const RulesScreen());
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.info,
+                  iconColor: AppColors.secondary,
+                  title: loc.aboutUs,
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    _pushNested(const AboutUsScreen());
                   },
                 ),
                 _buildDrawerItem(
