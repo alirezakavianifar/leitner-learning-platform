@@ -3,6 +3,7 @@ import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/courses/domain/entities/course.dart';
 import 'package:mobile_app/features/courses/domain/repositories/courses_repository.dart';
+import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
 import 'favorites_screen.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
@@ -15,7 +16,9 @@ class FavoritesCoursesScreen extends StatefulWidget {
 
 class _FavoritesCoursesScreenState extends State<FavoritesCoursesScreen> {
   late CoursesRepository _coursesRepository;
+  late FlashcardRepository _flashcardRepository;
   List<Course> _downloadedCourses = [];
+  Map<String, int> _favoriteCounts = {};
   bool _isLoading = true;
   bool _isError = false;
 
@@ -23,6 +26,7 @@ class _FavoritesCoursesScreenState extends State<FavoritesCoursesScreen> {
   void initState() {
     super.initState();
     _coursesRepository = di.sl<CoursesRepository>();
+    _flashcardRepository = di.sl<FlashcardRepository>();
     _loadCourses();
   }
 
@@ -42,10 +46,27 @@ class _FavoritesCoursesScreenState extends State<FavoritesCoursesScreen> {
           });
         }
       },
-      (data) {
+      (data) async {
+        final downloaded = data.$1.where((c) => c.isDownloaded).toList();
+        final Map<String, int> favoriteCounts = {};
+        final List<Course> coursesWithFavorites = [];
+
+        for (final course in downloaded) {
+          try {
+            final favorites = await _flashcardRepository.getFavoriteCards(course.id);
+            if (favorites.isNotEmpty) {
+              coursesWithFavorites.add(course);
+              favoriteCounts[course.id] = favorites.length;
+            }
+          } catch (_) {
+            // ignore
+          }
+        }
+
         if (mounted) {
           setState(() {
-            _downloadedCourses = data.$1.where((c) => c.isDownloaded).toList();
+            _downloadedCourses = coursesWithFavorites;
+            _favoriteCounts = favoriteCounts;
             _isLoading = false;
           });
         }
@@ -94,7 +115,8 @@ class _FavoritesCoursesScreenState extends State<FavoritesCoursesScreen> {
                         itemCount: _downloadedCourses.length,
                         itemBuilder: (context, index) {
                           final course = _downloadedCourses[index];
-                          final countText = isFa ? '${course.cardCount} کارت' : '${course.cardCount} cards';
+                          final favCount = _favoriteCounts[course.id] ?? 0;
+                          final countText = isFa ? '$favCount کارت' : '$favCount cards';
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 16),
