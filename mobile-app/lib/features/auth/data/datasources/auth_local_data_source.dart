@@ -47,6 +47,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Future<void> clearCache() async {
     await storageService.deleteSecure('jwt_token');
     await storageService.deleteSecure('refresh_token');
+    await sharedPreferences.remove('terms_accepted');
     await sharedPreferences.remove('user_username');
     await sharedPreferences.remove('user_interests');
     await sharedPreferences.remove('user_educational_field');

@@ -66,7 +66,10 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   void initState() {
     super.initState();
     _phoneController = TextEditingController(text: widget.mobileNumber);
-    _usernameController.text = 'Student_${widget.mobileNumber.substring(widget.mobileNumber.length - 4)}';
+    final suffix = widget.mobileNumber.length >= 4
+        ? widget.mobileNumber.substring(widget.mobileNumber.length - 4)
+        : widget.mobileNumber;
+    _usernameController.text = 'Student_$suffix';
   }
 
   @override
