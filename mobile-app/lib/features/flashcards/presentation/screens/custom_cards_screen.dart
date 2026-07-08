@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,7 +18,7 @@ class CustomCardsScreen extends StatefulWidget {
   State<CustomCardsScreen> createState() => _CustomCardsScreenState();
 }
 
-class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTickerProviderStateMixin {
+class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProviderStateMixin {
   late DatabaseHelper _databaseHelper;
   List<Map<String, dynamic>> _customCards = [];
   bool _isLoading = true;
@@ -26,6 +27,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
   int _studyIndex = 0;
   bool _showAnswer = false;
   late TabController _tabController;
+  late AnimationController _flipController;
   
   double _fontScale = 1.0;
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -36,12 +38,17 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
     super.initState();
     _databaseHelper = di.sl<DatabaseHelper>();
     _tabController = TabController(length: 2, vsync: this);
+    _flipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
     _loadCustomCards();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _flipController.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -203,23 +210,6 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                     _buildStudyModeTab(),
                   ],
                 ),
-      floatingActionButton: _isLoading
-          ? null
-          : FloatingActionButton(
-              onPressed: () async {
-                final created = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CreateCustomCardScreen(courseTitle: widget.courseTitle),
-                  ),
-                );
-                if (created == true) {
-                  _loadCustomCards();
-                }
-              },
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
     );
   }
 
@@ -362,6 +352,108 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
     );
   }
 
+  Widget _buildCardFace(Map<String, dynamic> card, String? imgPath, String? audPath, {required bool isFront}) {
+    final loc = AppLocalizations.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isFront ? AppColors.primary : AppColors.secondary,
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              isFront ? loc.questionLabel.toUpperCase() : loc.answerLabel.toUpperCase(),
+              style: TextStyle(
+                color: isFront ? AppColors.primary : AppColors.secondary,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // Display attached card image if present
+            if (imgPath != null && File(imgPath).existsSync()) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    File(imgPath),
+                    height: 140,
+                    width: double.infinity,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ],
+            
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isFront
+                            ? card['question_text'] as String
+                            : card['answer_text'] as String,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 20 * _fontScale,
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (isFront && card['options'] != null && (card['options'] as String).isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        ..._buildCustomCardOptions(card['options'] as String),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            
+            // Audio control buttons
+            if (audPath != null && File(audPath).existsSync()) ...[
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: Icon(_isPlayingCustom ? Icons.pause : Icons.volume_up, color: AppColors.primary, size: 24),
+                  onPressed: () => _playCustomAudio(audPath),
+                ),
+              ),
+            ],
+            
+            const SizedBox(height: 16),
+            Icon(Icons.touch_app, size: 16, color: AppColors.textSecondary),
+            const SizedBox(height: 4),
+            Text(loc.tapCardToFlip, style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStudyModeTab() {
     final loc = AppLocalizations.of(context);
     final isFa = Localizations.localeOf(context).languageCode == 'fa';
@@ -391,110 +483,37 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
             child: Center(
               child: GestureDetector(
                 onTap: () {
+                  if (_showAnswer) {
+                    _flipController.reverse();
+                  } else {
+                    _flipController.forward();
+                  }
                   setState(() {
                     _showAnswer = !_showAnswer;
                   });
                 },
                 child: AspectRatio(
                   aspectRatio: 3 / 4,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: _showAnswer ? AppColors.secondary : AppColors.primary,
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _showAnswer ? loc.answerLabel.toUpperCase() : loc.questionLabel.toUpperCase(),
-                            style: TextStyle(
-                              color: _showAnswer ? AppColors.secondary : AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          
-                          // Display attached card image if present
-                          if (imgPath != null && File(imgPath).existsSync()) ...[
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(
-                                  File(imgPath),
-                                  height: 140,
-                                  width: double.infinity,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                          ],
-                          
-                          Expanded(
-                            child: Center(
-                              child: SingleChildScrollView(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      _showAnswer
-                                          ? card['answer_text'] as String
-                                          : card['question_text'] as String,
-                                      style: TextStyle(
-                                        color: AppColors.textPrimary,
-                                        fontSize: 20 * _fontScale,
-                                        height: 1.5,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    if (!_showAnswer && card['options'] != null && (card['options'] as String).isNotEmpty) ...[
-                                      const SizedBox(height: 16),
-                                      ..._buildCustomCardOptions(card['options'] as String),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          
-                          // Audio control buttons
-                          if (audPath != null && File(audPath).existsSync()) ...[
-                            const SizedBox(height: 12),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                icon: Icon(_isPlayingCustom ? Icons.pause : Icons.volume_up, color: AppColors.primary, size: 24),
-                                onPressed: () => _playCustomAudio(audPath),
-                              ),
-                            ),
-                          ],
-                          
-                          const SizedBox(height: 16),
-                          Icon(Icons.touch_app, size: 16, color: AppColors.textSecondary),
-                          const SizedBox(height: 4),
-                          Text(loc.tapCardToFlip, style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-                        ],
-                      ),
-                    ),
+                  child: AnimatedBuilder(
+                    animation: _flipController,
+                    builder: (context, child) {
+                      final angle = _flipController.value * pi;
+                      final isBack = angle > pi / 2;
+
+                      return Transform(
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, 0.001)
+                          ..rotateY(angle),
+                        alignment: Alignment.center,
+                        child: isBack
+                            ? Transform(
+                                transform: Matrix4.identity()..rotateY(pi),
+                                alignment: Alignment.center,
+                                child: _buildCardFace(card, imgPath, audPath, isFront: false),
+                              )
+                            : _buildCardFace(card, imgPath, audPath, isFront: true),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -508,6 +527,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                 icon: Icon(Icons.arrow_back_ios, color: AppColors.primary),
                 onPressed: () {
                   _audioPlayer.stop();
+                  _flipController.reset();
                   setState(() {
                     _isPlayingCustom = false;
                     _showAnswer = false;
@@ -520,6 +540,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with SingleTicker
                 icon: Icon(Icons.arrow_forward_ios, color: AppColors.primary),
                 onPressed: () {
                   _audioPlayer.stop();
+                  _flipController.reset();
                   setState(() {
                     _isPlayingCustom = false;
                     _showAnswer = false;

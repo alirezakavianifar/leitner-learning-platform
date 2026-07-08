@@ -232,13 +232,6 @@ class _CustomCoursesScreenState extends State<CustomCoursesScreen> {
           : _customCourses.isEmpty
               ? _buildEmptyState()
               : _buildCoursesList(),
-      floatingActionButton: _isLoading
-          ? null
-          : FloatingActionButton(
-              onPressed: _createCourse,
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
     );
   }
 
