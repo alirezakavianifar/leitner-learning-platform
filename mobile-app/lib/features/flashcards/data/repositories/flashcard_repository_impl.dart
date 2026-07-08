@@ -82,7 +82,6 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       if (isTodayReview) {
         included = progress.currentBox >= 1 &&
             progress.currentBox <= 5 &&
-            (progress.currentBox >= 2 || progress.hasEnteredLeitner) &&
             progress.nextReviewDue != null &&
             progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1)));
       } else {
@@ -604,9 +603,8 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
 
     final List<Map<String, dynamic>> results = await localDb.rawQuery('''
       SELECT COUNT(*) as count FROM client_progress
-      WHERE (current_box = 1 AND has_entered_leitner = 1 AND next_review_due <= ?)
-         OR (current_box >= 2 AND current_box <= 5 AND next_review_due <= ?)
-    ''', [nowUtc, nowUtc]);
+      WHERE current_box >= 1 AND current_box <= 5 AND next_review_due <= ?
+    ''', [nowUtc]);
 
     if (results.isEmpty) return 0;
     return Sqflite.firstIntValue(results) ?? 0;

@@ -711,12 +711,12 @@ void main() {
       // Act 2: Today's review session (isTodayReview = true)
       final queueToday = await repository.getReviewQueue(courseId, isTodayReview: true);
 
-      // Assert 2: today session should contain Card 2 (Box 2 due today) and Card 4 (Box 1 due today, having entered Leitner)
-      // but NOT Card 1 (Box 1, has not entered Leitner) and NOT Card 3 (Box 6)
-      expect(queueToday.length, 2);
+      // Assert 2: today session should contain Card 1 (Box 1), Card 2 (Box 2 due today) and Card 4 (Box 1 due today, having entered Leitner)
+      // but NOT Card 3 (Box 6)
+      expect(queueToday.length, 3);
+      expect(queueToday.any((c) => c.cardNumber == 1), isTrue);
       expect(queueToday.any((c) => c.cardNumber == 2), isTrue);
       expect(queueToday.any((c) => c.cardNumber == 4), isTrue);
-      expect(queueToday.any((c) => c.cardNumber == 1), isFalse);
       expect(queueToday.any((c) => c.cardNumber == 3), isFalse);
     });
   });

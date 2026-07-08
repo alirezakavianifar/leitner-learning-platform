@@ -231,7 +231,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                   final isSelected = _selectedCourseIds.contains(course.id);
 
                                   return GestureDetector(
-                                    onLongPress: () => _onCourseSelectionChanged(course.id, !isSelected),
+                                    onTap: () => _onCourseSelectionChanged(course.id, !isSelected),
                                     child: Container(
                                       margin: const EdgeInsets.only(right: 12, top: 4, bottom: 8),
                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
