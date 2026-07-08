@@ -731,29 +731,6 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                 ),
               ),
               const SizedBox(height: 16),
-              // Conditional image rendering (Front only, or both if needed)
-              if (isFront && card.imageUrl != null && card.imageUrl!.trim().isNotEmpty && _documentsPath != null) ...[
-                FutureBuilder<String>(
-                  future: Future.value(p.join(_documentsPath!, 'courses', widget.courseId, 'images', card.imageUrl!)),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && File(snapshot.data!).existsSync()) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.file(
-                            File(snapshot.data!),
-                            height: 160,
-                            width: double.infinity,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-              ],
               // Main text
               Expanded(
                 child: Center(
@@ -771,6 +748,30 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                           ),
                           textAlign: TextAlign.center,
                         ),
+                        // Conditional image rendering (Front only, or both if needed)
+                        if (isFront && card.imageUrl != null && card.imageUrl!.trim().isNotEmpty && _documentsPath != null) ...[
+                          const SizedBox(height: 16),
+                          FutureBuilder<String>(
+                            future: Future.value(p.join(_documentsPath!, 'courses', widget.courseId, 'images', card.imageUrl!)),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData && File(snapshot.data!).existsSync()) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12.0),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Image.file(
+                                      File(snapshot.data!),
+                                      height: 160,
+                                      width: double.infinity,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                        ],
                         if (isFront && card.options != null && card.options!.isNotEmpty) ...[
                           const SizedBox(height: 20),
                           GestureDetector(
