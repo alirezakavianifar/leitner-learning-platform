@@ -43,7 +43,10 @@ class HomeHubScreenState extends State<HomeHubScreen> {
   final GlobalKey _menuKey = GlobalKey();
   final GlobalKey _bottomNavKey = GlobalKey();
   final GlobalKey _todayReviewsKey = GlobalKey();
+  final GlobalKey _favoritesKey = GlobalKey();
+  final GlobalKey _finishedCardsKey = GlobalKey();
   final GlobalKey _myCoursesKey = GlobalKey();
+  final GlobalKey _coursesListKey = GlobalKey();
   final GlobalKey _createCardKey = GlobalKey();
 
   OverlayEntry? _tourOverlayEntry;
@@ -100,9 +103,24 @@ class HomeHubScreenState extends State<HomeHubScreen> {
             description: loc.translate('tour_today_desc'),
           ),
           TourStep(
+            targetKey: _favoritesKey,
+            title: loc.translate('tour_favorites_title'),
+            description: loc.translate('tour_favorites_desc'),
+          ),
+          TourStep(
+            targetKey: _finishedCardsKey,
+            title: loc.translate('tour_finished_title'),
+            description: loc.translate('tour_finished_desc'),
+          ),
+          TourStep(
             targetKey: _myCoursesKey,
             title: loc.translate('tour_my_courses_title'),
             description: loc.translate('tour_my_courses_desc'),
+          ),
+          TourStep(
+            targetKey: _coursesListKey,
+            title: loc.translate('tour_catalog_title'),
+            description: loc.translate('tour_catalog_desc'),
           ),
           TourStep(
             targetKey: _createCardKey,
@@ -164,7 +182,10 @@ class HomeHubScreenState extends State<HomeHubScreen> {
             },
             coursesTabNotifier: _coursesTabNotifier,
             todayReviewsKey: _todayReviewsKey,
+            favoritesKey: _favoritesKey,
+            finishedCardsKey: _finishedCardsKey,
             myCoursesKey: _myCoursesKey,
+            coursesListKey: _coursesListKey,
             createCardKey: _createCardKey,
           ),
         ),

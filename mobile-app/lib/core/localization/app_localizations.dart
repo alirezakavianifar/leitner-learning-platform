@@ -186,6 +186,12 @@ class AppLocalizations {
       'tour_back': 'Back',
       'tour_next': 'Next',
       'tour_done': 'Done',
+      'tour_favorites_title': 'Favorite Cards',
+      'tour_favorites_desc': 'Access your marked or bookmarked flashcards here for quick lookup and revision.',
+      'tour_finished_title': 'Finished Cards',
+      'tour_finished_desc': 'View all the flashcards you have fully mastered and graduated through all 5 Leitner boxes.',
+      'tour_catalog_title': 'Courses Catalog',
+      'tour_catalog_desc': 'Browse the complete catalog of available courses. You can download and study them offline.',
       'please_enter_mobile_number': 'Please enter your mobile number',
       'enter_valid_iranian_mobile': 'Enter a valid Iranian mobile number',
       'refresh_captcha': 'Refresh CAPTCHA',
@@ -371,6 +377,12 @@ class AppLocalizations {
       'tour_back': 'قبلی',
       'tour_next': 'بعدی',
       'tour_done': 'پایان',
+      'tour_favorites_title': 'کارت‌های نشان‌شده',
+      'tour_favorites_desc': 'برای دسترسی سریع و مرور آسان، فلش‌کارت‌های نشان‌شده یا بوکمارک خود را در اینجا مشاهده کنید.',
+      'tour_finished_title': 'کارت‌های پایان‌یافته',
+      'tour_finished_desc': 'تمام فلش‌کارت‌هایی که کاملاً یاد گرفته‌اید و از هر ۵ جعبه لایتنر با موفقیت عبور کرده‌اند را در اینجا ببینید.',
+      'tour_catalog_title': 'کاتالوگ دوره‌ها',
+      'tour_catalog_desc': 'کاتالوگ کامل دوره‌های موجود را بررسی کنید. می‌توانید آن‌ها را دانلود کرده و به صورت آفلاین مطالعه کنید.',
       'please_enter_mobile_number': 'لطفاً شماره موبایل خود را وارد کنید',
       'enter_valid_iranian_mobile': 'یک شماره موبایل معتبر وارد کنید',
       'refresh_captcha': 'بارگذاری مجدد کد امنیتی',
@@ -567,6 +579,12 @@ class AppLocalizations {
   String get smsSendFailed => translate('sms_send_failed');
   String get invalidOtp => translate('invalid_otp');
   String get invalidInput => translate('invalid_input');
+  String get tourFavoritesTitle => translate('tour_favorites_title');
+  String get tourFavoritesDesc => translate('tour_favorites_desc');
+  String get tourFinishedTitle => translate('tour_finished_title');
+  String get tourFinishedDesc => translate('tour_finished_desc');
+  String get tourCatalogTitle => translate('tour_catalog_title');
+  String get tourCatalogDesc => translate('tour_catalog_desc');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

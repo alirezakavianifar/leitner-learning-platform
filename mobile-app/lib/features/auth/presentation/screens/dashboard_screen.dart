@@ -17,7 +17,10 @@ class DashboardScreen extends StatefulWidget {
   final Function(int) onTabChange;
   final ValueNotifier<int>? coursesTabNotifier;
   final Key? todayReviewsKey;
+  final Key? favoritesKey;
+  final Key? finishedCardsKey;
   final Key? myCoursesKey;
+  final Key? coursesListKey;
   final Key? createCardKey;
 
   const DashboardScreen({
@@ -25,7 +28,10 @@ class DashboardScreen extends StatefulWidget {
     required this.onTabChange,
     this.coursesTabNotifier,
     this.todayReviewsKey,
+    this.favoritesKey,
+    this.finishedCardsKey,
     this.myCoursesKey,
+    this.coursesListKey,
     this.createCardKey,
   }) : super(key: key);
 
@@ -360,6 +366,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onTap: () => widget.onTabChange(1),
                   ),
                   _buildGridCard(
+                    key: widget.favoritesKey,
                     title: loc.favorites,
                     imageAsset: 'assets/images/favorite_cards.png',
                     onTap: () {
@@ -370,6 +377,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                   _buildGridCard(
+                    key: widget.finishedCardsKey,
                     title: loc.finishedCards,
                     imageAsset: 'assets/images/finished_cards.png',
                     badgeCount: _finishedCount,
@@ -391,6 +399,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                   _buildGridCard(
+                    key: widget.coursesListKey,
                     title: loc.courses,
                     imageAsset: 'assets/images/courses_list.png',
                     onTap: () {
