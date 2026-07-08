@@ -196,7 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               // Banner Carousel
               SizedBox(
-                height: 140,
+                height: 125,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: PageView.builder(
@@ -317,7 +317,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               // Page indicators
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -336,7 +336,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
 
               Text(
                 loc.quickHub,
@@ -346,7 +346,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
 
               // Feature Grid
               GridView.count(
@@ -355,7 +355,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 1.15,
+                childAspectRatio: 1.35,
                 children: [
                   _buildGridCard(
                     key: widget.todayReviewsKey,
@@ -421,7 +421,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 ],
               ),
-              const SizedBox(height: 80),
+              const SizedBox(height: 64),
             ],
           ),
         ),
