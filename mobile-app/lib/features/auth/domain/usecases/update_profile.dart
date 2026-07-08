@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/core/usecase/usecase.dart';
@@ -16,6 +17,7 @@ class UpdateProfile implements UseCase<Either<Failure, User>, UpdateProfileParam
       interests: params.interests,
       educationalField: params.educationalField,
       educationalLevel: params.educationalLevel,
+      profilePicture: params.profilePicture,
     );
   }
 }
@@ -25,14 +27,17 @@ class UpdateProfileParams extends Equatable {
   final String? interests;
   final String? educationalField;
   final String? educationalLevel;
+  final File? profilePicture;
 
   const UpdateProfileParams({
     required this.username,
     this.interests,
     this.educationalField,
     this.educationalLevel,
+    this.profilePicture,
   });
 
   @override
-  List<Object?> get props => [username, interests, educationalField, educationalLevel];
+  List<Object?> get props => [username, interests, educationalField, educationalLevel, profilePicture];
 }
+

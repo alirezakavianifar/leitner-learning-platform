@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -620,7 +621,9 @@ class HomeHubScreenState extends State<HomeHubScreen> {
     final prefs = di.sl<SharedPreferences>();
     final username = prefs.getString('user_username') ?? 'User';
     final educationalField = prefs.getString('user_educational_field') ?? 'General';
-    final educationalLevel = prefs.getString('user_educational_level') ?? 'Learner';
+    final educationalLevel = prefs.getString('user_educational_level') ?? 'Student';
+    final avatarPath = prefs.getString('user_avatar_path');
+    final avatarImage = avatarPath != null ? FileImage(File(avatarPath)) : null;
 
     return Drawer(
       backgroundColor: AppColors.background,
@@ -646,7 +649,10 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                 CircleAvatar(
                   radius: 28,
                   backgroundColor: Colors.white.withOpacity(0.2),
-                  child: const Icon(Icons.person, size: 32, color: Colors.white),
+                  backgroundImage: avatarImage,
+                  child: avatarImage == null
+                      ? const Icon(Icons.person, size: 32, color: Colors.white)
+                      : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(

@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
@@ -20,8 +22,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _mobileNumber = '';
   String? _interests;
   String _educationalField = 'General';
-  String _educationalLevel = 'Learner';
+  String _educationalLevel = 'Student'; // fixed: was 'Learner' which is not in the list
   bool _isSavingProfile = false;
+  File? _pickedImage;
+  String? _savedAvatarPath; // local file path of previously saved avatar
 
   final List<Map<String, String>> _interestsOptions = const [
     {'en': 'Foreign Languages', 'fa': 'زبان‌های خارجی'},
@@ -68,8 +72,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _mobileNumber = prefs.getString('user_mobile_number') ?? '';
       _interests = prefs.getString('user_interests');
       _educationalField = prefs.getString('user_educational_field') ?? 'General';
-      _educationalLevel = prefs.getString('user_educational_level') ?? 'Learner';
+      // Ensure the loaded level is actually in the options list to avoid assertion error
+      final savedLevel = prefs.getString('user_educational_level') ?? 'Student';
+      const validLevels = ['Student', 'High School Diploma', 'Associate Degree', "Bachelor's", "Master's", 'PhD & Above'];
+      _educationalLevel = validLevels.contains(savedLevel) ? savedLevel : 'Student';
+      _savedAvatarPath = prefs.getString('user_avatar_path');
     });
+  }
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (image != null) {
+      setState(() {
+        _pickedImage = File(image.path);
+      });
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -92,6 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             interests: _interests,
             educationalField: _educationalField,
             educationalLevel: _educationalLevel,
+            profilePicture: _pickedImage,
           ),
         );
   }
@@ -126,8 +145,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             prefs.setString('user_username', user.username);
             if (user.interests != null) prefs.setString('user_interests', user.interests!);
             prefs.setString('user_educational_field', user.educationalField ?? 'General');
-            prefs.setString('user_educational_level', user.educationalLevel ?? 'Learner');
-            
+            prefs.setString('user_educational_level', user.educationalLevel ?? 'Student');
+            // Save the local avatar path if a new image was picked
+            if (_pickedImage != null) {
+              prefs.setString('user_avatar_path', _pickedImage!.path);
+              setState(() {
+                _savedAvatarPath = _pickedImage!.path;
+                _pickedImage = null; // clear pending state
+              });
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(loc.saveProfile),
@@ -151,6 +177,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // ─── Avatar Section ─────────────────────────────────────────
+              Center(
+                child: GestureDetector(
+                  onTap: _isSavingProfile ? null : _pickImage,
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      CircleAvatar(
+                        radius: 54,
+                        backgroundColor: AppColors.surface,
+                        backgroundImage: _pickedImage != null
+                            ? FileImage(_pickedImage!) as ImageProvider
+                            : (_savedAvatarPath != null
+                                ? FileImage(File(_savedAvatarPath!))
+                                : null),
+                        child: (_pickedImage == null && _savedAvatarPath == null)
+                            ? Icon(Icons.person, size: 54, color: AppColors.textSecondary)
+                            : null,
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.background, width: 2),
+                        ),
+                        child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               Text(
                 loc.profileDetails,
                 style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold),

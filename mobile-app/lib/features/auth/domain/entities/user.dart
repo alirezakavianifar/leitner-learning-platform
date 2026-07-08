@@ -8,6 +8,7 @@ class User extends Equatable {
   final String? interests;
   final String? educationalField;
   final String? educationalLevel;
+  final String? profilePictureUrl;
   final DateTime createdAt;
 
   const User({
@@ -17,6 +18,7 @@ class User extends Equatable {
     this.interests,
     this.educationalField,
     this.educationalLevel,
+    this.profilePictureUrl,
     required this.createdAt,
   });
 
@@ -28,6 +30,8 @@ class User extends Equatable {
         interests,
         educationalField,
         educationalLevel,
+        profilePictureUrl,
         createdAt,
       ];
 }
+

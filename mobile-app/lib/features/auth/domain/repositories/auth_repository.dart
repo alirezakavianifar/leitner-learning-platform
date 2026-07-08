@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/core/usecase/usecase.dart';
 import 'package:mobile_app/features/auth/domain/entities/user.dart';
@@ -29,6 +30,7 @@ abstract class AuthRepository {
     String? interests,
     String? educationalField,
     String? educationalLevel,
+    File? profilePicture,
   });
 
   /// Checks if terms & rules have been accepted locally.

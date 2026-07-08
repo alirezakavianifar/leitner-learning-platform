@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:mobile_app/core/error/exceptions.dart';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/core/usecase/usecase.dart';
@@ -85,6 +86,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String? interests,
     String? educationalField,
     String? educationalLevel,
+    File? profilePicture,
   }) async {
     try {
       final profile = await remoteDataSource.updateProfile(
@@ -92,6 +94,7 @@ class AuthRepositoryImpl implements AuthRepository {
         interests: interests,
         educationalField: educationalField,
         educationalLevel: educationalLevel,
+        profilePicture: profilePicture,
       );
       return Right(profile);
     } on ServerException catch (e) {

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:mobile_app/core/error/exceptions.dart';
 import 'package:mobile_app/features/auth/data/models/user_model.dart';
@@ -19,6 +20,7 @@ abstract class AuthRemoteDataSource {
     String? interests,
     String? educationalField,
     String? educationalLevel,
+    File? profilePicture,
   });
 }
 
@@ -109,14 +111,38 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String? interests,
     String? educationalField,
     String? educationalLevel,
+    File? profilePicture,
   }) async {
     try {
-      final response = await dio.put('/user/profile', data: {
-        'username': username,
-        'interests': interests,
-        'educational_field': educationalField,
-        'educational_level': educationalLevel,
-      });
+      final dynamic payload;
+      final Map<String, String> headers = {};
+
+      if (profilePicture != null) {
+        payload = FormData.fromMap({
+          'username': username,
+          if (interests != null) 'interests': interests,
+          if (educationalField != null) 'educational_field': educationalField,
+          if (educationalLevel != null) 'educational_level': educationalLevel,
+          'profile_picture': await MultipartFile.fromFile(
+            profilePicture.path,
+            filename: profilePicture.path.split('/').last,
+          ),
+        });
+        headers['Content-Type'] = 'multipart/form-data';
+      } else {
+        payload = {
+          'username': username,
+          'interests': interests,
+          'educational_field': educationalField,
+          'educational_level': educationalLevel,
+        };
+      }
+
+      final response = await dio.put(
+        '/user/profile',
+        data: payload,
+        options: profilePicture != null ? Options(headers: headers) : null,
+      );
       if (response.statusCode == 200) {
         final data = response.data;
         return UserModel.fromJson(data['profile']);

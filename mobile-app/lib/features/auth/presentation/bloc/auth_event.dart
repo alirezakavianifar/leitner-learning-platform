@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:equatable/equatable.dart';
 
 abstract class AuthEvent extends Equatable {
@@ -62,16 +63,18 @@ class UpdateProfileEvent extends AuthEvent {
   final String? interests;
   final String? educationalField;
   final String? educationalLevel;
+  final File? profilePicture;
 
   const UpdateProfileEvent({
     required this.username,
     this.interests,
     this.educationalField,
     this.educationalLevel,
+    this.profilePicture,
   });
 
   @override
-  List<Object?> get props => [username, interests, educationalField, educationalLevel];
+  List<Object?> get props => [username, interests, educationalField, educationalLevel, profilePicture];
 }
 
 /// Triggered at app startup to check existing credentials & Terms state.

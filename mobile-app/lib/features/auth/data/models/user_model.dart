@@ -8,6 +8,7 @@ class UserModel extends User {
     String? interests,
     String? educationalField,
     String? educationalLevel,
+    String? profilePictureUrl,
     required DateTime createdAt,
   }) : super(
           id: id,
@@ -16,6 +17,7 @@ class UserModel extends User {
           interests: interests,
           educationalField: educationalField,
           educationalLevel: educationalLevel,
+          profilePictureUrl: profilePictureUrl,
           createdAt: createdAt,
         );
 
@@ -27,6 +29,7 @@ class UserModel extends User {
       interests: json['interests'] as String?,
       educationalField: json['educational_field'] as String?,
       educationalLevel: json['educational_level'] as String?,
+      profilePictureUrl: json['profile_picture_url'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -39,7 +42,9 @@ class UserModel extends User {
       'interests': interests,
       'educational_field': educationalField,
       'educational_level': educationalLevel,
+      'profile_picture_url': profilePictureUrl,
       'created_at': createdAt.toIso8601String(),
     };
   }
 }
+

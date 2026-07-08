@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
@@ -25,13 +27,14 @@ class ProfileCompletionScreen extends StatefulWidget {
 
 class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   late final TextEditingController _phoneController;
   final _usernameController = TextEditingController();
 
   String? _selectedInterest;
   String? _selectedField = 'General';
   String? _selectedLevel = 'Student';
+  File? _pickedImage;
 
   final List<Map<String, String>> _interestsOptions = const [
     {'en': 'Foreign Languages', 'fa': 'زبان‌های خارجی'},
@@ -63,7 +66,6 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
   void initState() {
     super.initState();
     _phoneController = TextEditingController(text: widget.mobileNumber);
-    // Seed default username
     _usernameController.text = 'Student_${widget.mobileNumber.substring(widget.mobileNumber.length - 4)}';
   }
 
@@ -74,6 +76,46 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
+    final picked = await showModalBottomSheet<XFile?>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.photo_library, color: AppColors.primary),
+              title: Text(isFa ? 'انتخاب از گالری' : 'Choose from Gallery',
+                  style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () async {
+                final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+                Navigator.pop(ctx, img);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.camera_alt, color: AppColors.secondary),
+              title: Text(isFa ? 'عکس‌برداری با دوربین' : 'Take a Photo',
+                  style: TextStyle(color: AppColors.textPrimary)),
+              onTap: () async {
+                final img = await picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+                Navigator.pop(ctx, img);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) {
+      setState(() => _pickedImage = File(picked.path));
+    }
+  }
+
   void _submit() {
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
@@ -82,6 +124,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               interests: _selectedInterest,
               educationalField: _selectedField,
               educationalLevel: _selectedLevel,
+              profilePicture: _pickedImage,
             ),
           );
     }
@@ -145,12 +188,44 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                         style: textTheme.bodyLarge,
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 32),
+
+                      // ─── Avatar Picker ───────────────────────────────────
+                      Center(
+                        child: GestureDetector(
+                          onTap: isLoading ? null : _pickImage,
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              CircleAvatar(
+                                radius: 54,
+                                backgroundColor: AppColors.surface,
+                                backgroundImage: _pickedImage != null
+                                    ? FileImage(_pickedImage!) as ImageProvider
+                                    : null,
+                                child: _pickedImage == null
+                                    ? Icon(Icons.person, size: 54, color: AppColors.textSecondary)
+                                    : null,
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppColors.background, width: 2),
+                                ),
+                                child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 28),
 
                       // Read-only Phone Number
                       TextFormField(
                         controller: _phoneController,
-                        enabled: false, // Strictly locked/read-only
+                        enabled: false,
                         style: TextStyle(color: AppColors.textPrimary.withOpacity(0.6)),
                         decoration: InputDecoration(
                           labelText: loc.mobileReadonly,

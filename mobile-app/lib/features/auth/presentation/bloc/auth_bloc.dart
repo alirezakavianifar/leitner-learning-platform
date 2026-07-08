@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/usecase/usecase.dart';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/features/auth/domain/entities/user.dart';
+import 'package:mobile_app/features/auth/data/datasources/auth_local_data_source.dart';
 import '../../domain/usecases/get_captcha.dart';
 import '../../domain/usecases/request_otp.dart';
 import '../../domain/usecases/verify_otp.dart';
@@ -22,6 +23,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AcceptTerms acceptTermsUseCase;
   final CheckTermsAccepted checkTermsAcceptedUseCase;
   final Logout logoutUseCase;
+  final AuthLocalDataSource localDataSource;
 
   AuthBloc({
     required this.getCaptchaUseCase,
@@ -32,6 +34,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.acceptTermsUseCase,
     required this.checkTermsAcceptedUseCase,
     required this.logoutUseCase,
+    required this.localDataSource,
   }) : super(AuthInitialState()) {
     on<CheckAuthStatusEvent>(_onCheckAuthStatus);
     on<LoadCaptchaEvent>(_onLoadCaptcha);
@@ -165,12 +168,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         interests: event.interests,
         educationalField: event.educationalField,
         educationalLevel: event.educationalLevel,
+        profilePicture: event.profilePicture,
       ),
     );
 
-    result.fold(
-      (failure) => emit(AuthErrorState(message: failure.message)),
-      (user) => emit(AuthenticatedState(user: user, token: '')),
+    await result.fold(
+      (failure) async => emit(AuthErrorState(message: failure.message)),
+      (user) async {
+        // Preserve the existing cached JWT token — do NOT wipe it
+        final cachedToken = await localDataSource.getCachedToken() ?? '';
+        emit(AuthenticatedState(user: user, token: cachedToken));
+      },
     );
   }
 

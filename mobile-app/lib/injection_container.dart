@@ -213,6 +213,7 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
       acceptTermsUseCase: sl(),
       checkTermsAcceptedUseCase: sl(),
       logoutUseCase: sl(),
+      localDataSource: sl(),
     ),
   );
 
