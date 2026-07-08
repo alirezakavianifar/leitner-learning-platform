@@ -164,6 +164,8 @@ class AppLocalizations {
       'message_required': 'Message content is required',
       'submit_ticket': 'Submit Ticket',
       'support_submitted_msg': 'Support ticket submitted successfully! We will contact you soon.',
+      'report_submitted_success': 'Flashcard report submitted successfully.',
+      'report_submitted_failure': 'Failed to submit report. Please check your network connection.',
       'notification_center': 'Notification Center',
       'failed_load_notifications': 'Failed to load system notifications.',
       'no_notifications_found': 'No notifications found.',
@@ -444,6 +446,8 @@ class AppLocalizations {
       'message_required': 'ورود متن پیام الزامی است',
       'submit_ticket': 'ارسال تیکت',
       'support_submitted_msg': 'تیکت پشتیبانی با موفقیت ثبت شد. به‌زودی با شما تماس خواهیم گرفت.',
+      'report_submitted_success': 'گزارش خطا با موفقیت ثبت شد.',
+      'report_submitted_failure': 'خطا در ثبت گزارش. لطفاً اتصال اینترنت خود را بررسی کنید.',
       'notification_center': 'مرکز اعلان‌ها',
       'failed_load_notifications': 'خطا در دریافت اعلان‌های سیستم.',
       'no_notifications_found': 'هیچ اعلانی یافت نشد.',
@@ -736,6 +740,8 @@ class AppLocalizations {
   String get messageRequired => translate('message_required');
   String get submitTicket => translate('submit_ticket');
   String get supportSubmittedMsg => translate('support_submitted_msg');
+  String get reportSubmittedSuccess => translate('report_submitted_success');
+  String get reportSubmittedFailure => translate('report_submitted_failure');
 
   String get notificationCenter => translate('notification_center');
   String get failedLoadNotifications => translate('failed_load_notifications');

@@ -205,12 +205,12 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
 
         emit(currentState.copyWith(
           isSubmittingReport: false,
-          reportMessage: 'Flashcard report submitted successfully.',
+          reportMessage: 'report_submitted_success',
         ));
       } catch (e) {
         emit(currentState.copyWith(
           isSubmittingReport: false,
-          reportMessage: 'Failed to submit report. Please check your network connection.',
+          reportMessage: 'report_submitted_failure',
         ));
       }
     }

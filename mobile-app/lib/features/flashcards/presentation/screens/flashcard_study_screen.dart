@@ -324,7 +324,10 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
               }
               if (state.reportMessage != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(state.reportMessage!), backgroundColor: AppColors.primary),
+                  SnackBar(
+                    content: Text(AppLocalizations.of(context).translate(state.reportMessage!)),
+                    backgroundColor: AppColors.primary,
+                  ),
                 );
               }
 
