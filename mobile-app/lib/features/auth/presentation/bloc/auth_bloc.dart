@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/usecase/usecase.dart';
 import 'package:mobile_app/core/error/failures.dart';
+import 'package:mobile_app/features/auth/domain/entities/user.dart';
 import '../../domain/usecases/get_captcha.dart';
 import '../../domain/usecases/request_otp.dart';
 import '../../domain/usecases/verify_otp.dart';
@@ -60,7 +61,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (user) async {
         if (!termsAccepted) {
           emit(TermsPendingState(mobileNumber: user.mobileNumber, token: '', refreshToken: ''));
-        } else if (user.username.startsWith('User_')) {
+        } else if (_isProfileIncomplete(user)) {
           emit(ProfilePendingState(mobileNumber: user.mobileNumber, token: '', refreshToken: ''));
         } else {
           emit(AuthenticatedState(user: user, token: ''));
@@ -115,14 +116,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
         if (!termsAccepted) {
           emit(TermsPendingState(mobileNumber: event.mobileNumber, token: token, refreshToken: refreshToken));
-        } else if (userStatus == 'NEW_USER' || userStatus == 'PROFILE_PENDING') {
-          emit(ProfilePendingState(mobileNumber: event.mobileNumber, token: token, refreshToken: refreshToken));
         } else {
-          // Fetch complete profile and authenticate
+          // Fetch complete profile to check if it's incomplete
           final profileRes = await getProfileUseCase(NoParams());
-          profileRes.fold(
-            (failure) => emit(AuthErrorState(message: failure.message)),
-            (user) => emit(AuthenticatedState(user: user, token: token)),
+          await profileRes.fold(
+            (failure) async => emit(AuthErrorState(message: failure.message)),
+            (user) async {
+              if (userStatus == 'NEW_USER' || userStatus == 'PROFILE_PENDING' || _isProfileIncomplete(user)) {
+                emit(ProfilePendingState(mobileNumber: event.mobileNumber, token: token, refreshToken: refreshToken));
+              } else {
+                emit(AuthenticatedState(user: user, token: token));
+              }
+            },
           );
         }
       },
@@ -141,7 +146,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         profileRes.fold(
           (failure) => emit(AuthErrorState(message: failure.message)),
           (user) {
-            if (user.username.startsWith('User_')) {
+            if (_isProfileIncomplete(user)) {
               emit(ProfilePendingState(mobileNumber: user.mobileNumber, token: event.token, refreshToken: event.refreshToken));
             } else {
               emit(AuthenticatedState(user: user, token: event.token));
@@ -173,5 +178,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoadingState());
     await logoutUseCase(NoParams());
     emit(UnauthenticatedState());
+  }
+
+  bool _isProfileIncomplete(User user) {
+    return user.username.startsWith('User_') ||
+           user.interests == null || user.interests!.isEmpty ||
+           user.educationalField == null || user.educationalField!.isEmpty ||
+           user.educationalLevel == null || user.educationalLevel!.isEmpty;
   }
 }
