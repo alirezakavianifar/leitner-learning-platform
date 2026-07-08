@@ -71,6 +71,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
           nextReviewDue: now,
           lastTrigger: null,
           isSynced: false,
+          hasEnteredLeitner: false,
         );
       }
 
@@ -79,11 +80,11 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       // 2. In Direct Course Study: Box 1 + Box 6 (Finished) only. Boxes 2-5 are hidden.
       final bool included;
       if (isTodayReview) {
-        included = progress.currentBox == 1 ||
-            (progress.currentBox >= 2 &&
-                progress.currentBox <= 5 &&
-                progress.nextReviewDue != null &&
-                progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1))));
+        included = progress.currentBox >= 1 &&
+            progress.currentBox <= 5 &&
+            (progress.currentBox >= 2 || progress.hasEnteredLeitner) &&
+            progress.nextReviewDue != null &&
+            progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1)));
       } else {
         included = progress.currentBox == 1 || progress.currentBox == 6;
       }
@@ -144,6 +145,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
         nextReviewDue: now,
         lastTrigger: null,
         isSynced: false,
+        hasEnteredLeitner: false,
       );
       await localDb.insert(
         'client_progress',
@@ -210,6 +212,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       nextReviewDue: newNextReviewDue,
       lastTrigger: trigger,
       isSynced: false,
+      hasEnteredLeitner: currentProgress.hasEnteredLeitner || isCorrect,
     );
 
     await localDb.update(
@@ -250,6 +253,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       nextReviewDue: now,
       lastTrigger: trigger,
       isSynced: false,
+      hasEnteredLeitner: false,
     );
 
     await localDb.update(
@@ -293,6 +297,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
         nextReviewDue: now,
         lastTrigger: 'OVERDUE_RESET',
         isSynced: false,
+        hasEnteredLeitner: currentProgress.hasEnteredLeitner,
       );
 
       await localDb.update(
@@ -414,6 +419,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
             nextReviewDue: DateTime.now(),
             lastTrigger: null,
             isSynced: false,
+            hasEnteredLeitner: false,
           );
 
     final cardMap = cardMaps.first;
@@ -530,6 +536,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
                 nextReviewDue: DateTime.now(),
                 lastTrigger: null,
                 isSynced: false,
+                hasEnteredLeitner: false,
               );
 
         List<String>? optionsList;
@@ -597,9 +604,9 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
 
     final List<Map<String, dynamic>> results = await localDb.rawQuery('''
       SELECT COUNT(*) as count FROM client_progress
-      WHERE current_box = 1
+      WHERE (current_box = 1 AND has_entered_leitner = 1 AND next_review_due <= ?)
          OR (current_box >= 2 AND current_box <= 5 AND next_review_due <= ?)
-    ''', [nowUtc]);
+    ''', [nowUtc, nowUtc]);
 
     if (results.isEmpty) return 0;
     return Sqflite.firstIntValue(results) ?? 0;
@@ -675,6 +682,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
           nextReviewDue: now,
           lastTrigger: null,
           isSynced: false,
+          hasEnteredLeitner: false,
         );
       }
 

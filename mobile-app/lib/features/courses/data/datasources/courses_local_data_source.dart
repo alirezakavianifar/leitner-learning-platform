@@ -154,6 +154,7 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
             'last_reviewed_at': null,
             'next_review_due': nowIso,
             'is_synced': 0,
+            'has_entered_leitner': 0,
           },
           conflictAlgorithm: ConflictAlgorithm.ignore,
         );

@@ -10,6 +10,7 @@ class CardProgressModel extends CardProgress {
     super.nextReviewDue,
     super.lastTrigger,
     required super.isSynced,
+    required super.hasEnteredLeitner,
   });
 
   factory CardProgressModel.fromMap(Map<String, dynamic> map) {
@@ -26,6 +27,7 @@ class CardProgressModel extends CardProgress {
           : null,
       lastTrigger: map['last_trigger'] as String?,
       isSynced: (map['is_synced'] as int) == 1,
+      hasEnteredLeitner: (map['has_entered_leitner'] as int? ?? 0) == 1,
     );
   }
 
@@ -39,6 +41,7 @@ class CardProgressModel extends CardProgress {
       'next_review_due': nextReviewDue?.toUtc().toIso8601String(),
       'last_trigger': lastTrigger,
       'is_synced': isSynced ? 1 : 0,
+      'has_entered_leitner': hasEnteredLeitner ? 1 : 0,
     };
   }
 }

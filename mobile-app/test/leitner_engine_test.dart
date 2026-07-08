@@ -320,6 +320,7 @@ void main() {
       expect(progress.lastTrigger, 'REVIEW_CORRECT');
       expect(progress.isSynced, false);
       expect(progress.nextReviewDue!.difference(progress.lastReviewedAt!).inDays, 3);
+      expect(progress.hasEnteredLeitner, isTrue);
       expect(reviewEvent, isNotNull);
       expect(reviewEvent!.box, 2);
     });
@@ -344,6 +345,7 @@ void main() {
       expect(progress.lastTrigger, 'REVIEW_CORRECT');
       expect(progress.isSynced, false);
       expect(progress.nextReviewDue!.difference(progress.lastReviewedAt!).inDays, 3);
+      expect(progress.hasEnteredLeitner, isTrue);
       expect(reviewEvent, isNotNull);
       expect(reviewEvent!.box, 2);
     });
@@ -490,6 +492,7 @@ void main() {
         'next_review_due': yesterday.toIso8601String(),
         'last_trigger': 'REVIEW_CORRECT',
         'is_synced': 1,
+        'has_entered_leitner': 1,
       });
 
       DueDateOverdueReset? overdueEvent;
@@ -504,6 +507,7 @@ void main() {
       expect(progress.currentBox, 1);
       expect(progress.lastTrigger, 'OVERDUE_RESET');
       expect(progress.isSynced, false);
+      expect(progress.hasEnteredLeitner, isTrue);
       expect(overdueEvent, isNotNull);
       expect(overdueEvent!.cardNumber, 1);
     });
@@ -543,6 +547,7 @@ void main() {
         'next_review_due': DateTime.now().toIso8601String(),
         'last_trigger': 'REVIEW_CORRECT',
         'is_synced': 1,
+        'has_entered_leitner': 1,
       });
 
       LeitnerProgressReset? resetEvent;
@@ -556,6 +561,7 @@ void main() {
       final progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
       expect(progress.currentBox, 1);
       expect(progress.lastTrigger, 'FAVORITES_RESET');
+      expect(progress.hasEnteredLeitner, isFalse);
       expect(resetEvent, isNotNull);
       expect(resetEvent!.reason, 'FAVORITES_RESET');
     });
@@ -572,6 +578,7 @@ void main() {
         'next_review_due': DateTime.now().toIso8601String(),
         'last_trigger': 'REVIEW_CORRECT',
         'is_synced': 1,
+        'has_entered_leitner': 1,
       });
 
       LeitnerProgressReset? resetEvent;
@@ -585,6 +592,7 @@ void main() {
       final progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
       expect(progress.currentBox, 1);
       expect(progress.lastTrigger, 'JUMP_RESET');
+      expect(progress.hasEnteredLeitner, isFalse);
       expect(resetEvent, isNotNull);
       expect(resetEvent!.reason, 'JUMP_RESET');
     });
@@ -614,6 +622,7 @@ void main() {
         'next_review_due': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
         'last_trigger': 'REVIEW_CORRECT',
         'is_synced': 1,
+        'has_entered_leitner': 1,
       });
       // Card 3: Box 2, due tomorrow (NOT Due)
       localDb.tables['client_progress']!.add({
@@ -638,7 +647,7 @@ void main() {
 
     test('Review queue: conditional session filtering for Box 2-5 due today', () async {
       // Setup progress in local DB
-      // Card 1: Box 1 (Due)
+      // Card 1: Box 1 (Due, but has NOT entered Leitner yet)
       localDb.tables['client_progress']!.add({
         'id': '${courseId}_1',
         'course_id': courseId,
@@ -659,6 +668,7 @@ void main() {
         'next_review_due': DateTime.now().subtract(const Duration(minutes: 5)).toIso8601String(),
         'last_trigger': 'REVIEW_CORRECT',
         'is_synced': 1,
+        'has_entered_leitner': 1,
       });
       // Card 3: Box 6 (Finished)
       localDb.tables['client_progress']!.add({
@@ -670,24 +680,43 @@ void main() {
         'next_review_due': null,
         'last_trigger': 'REVIEW_CORRECT',
         'is_synced': 1,
+        'has_entered_leitner': 1,
+      });
+      // Card 4: Box 1, has entered Leitner, due today (Should be included in Today's Reviews)
+      courseDb.tables['cards']!.add(
+        {'id': 'c4', 'course_id': courseId, 'card_number': 4, 'question_text': 'Q4', 'answer_text': 'A4'}
+      );
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_4',
+        'course_id': courseId,
+        'card_number': 4,
+        'current_box': 1,
+        'last_reviewed_at': DateTime.now().subtract(const Duration(hours: 24)).toIso8601String(),
+        'next_review_due': DateTime.now().subtract(const Duration(minutes: 5)).toIso8601String(),
+        'last_trigger': 'REVIEW_INCORRECT',
+        'is_synced': 1,
+        'has_entered_leitner': 1,
       });
 
       // Act 1: Direct study session (isTodayReview = false)
       final queueDirect = await repository.getReviewQueue(courseId, isTodayReview: false);
 
-      // Assert 1: direct session should contain Card 1 (Box 1) and Card 3 (Box 6), but NOT Card 2 (Box 2)
-      expect(queueDirect.length, 2);
+      // Assert 1: direct session should contain Card 1 (Box 1), Card 3 (Box 6), and Card 4 (Box 1), but NOT Card 2 (Box 2)
+      expect(queueDirect.length, 3);
       expect(queueDirect.any((c) => c.cardNumber == 1), isTrue);
       expect(queueDirect.any((c) => c.cardNumber == 3), isTrue);
+      expect(queueDirect.any((c) => c.cardNumber == 4), isTrue);
       expect(queueDirect.any((c) => c.cardNumber == 2), isFalse);
 
       // Act 2: Today's review session (isTodayReview = true)
       final queueToday = await repository.getReviewQueue(courseId, isTodayReview: true);
 
-      // Assert 2: today session should contain Card 1 (Box 1) and Card 2 (Box 2 due today), but NOT Card 3 (Box 6)
+      // Assert 2: today session should contain Card 2 (Box 2 due today) and Card 4 (Box 1 due today, having entered Leitner)
+      // but NOT Card 1 (Box 1, has not entered Leitner) and NOT Card 3 (Box 6)
       expect(queueToday.length, 2);
-      expect(queueToday.any((c) => c.cardNumber == 1), isTrue);
       expect(queueToday.any((c) => c.cardNumber == 2), isTrue);
+      expect(queueToday.any((c) => c.cardNumber == 4), isTrue);
+      expect(queueToday.any((c) => c.cardNumber == 1), isFalse);
       expect(queueToday.any((c) => c.cardNumber == 3), isFalse);
     });
   });

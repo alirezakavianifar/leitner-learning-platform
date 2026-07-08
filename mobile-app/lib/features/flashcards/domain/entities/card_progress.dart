@@ -9,6 +9,7 @@ class CardProgress extends Equatable {
   final DateTime? nextReviewDue;
   final String? lastTrigger;
   final bool isSynced;
+  final bool hasEnteredLeitner;
 
   const CardProgress({
     required this.id,
@@ -19,6 +20,7 @@ class CardProgress extends Equatable {
     this.nextReviewDue,
     this.lastTrigger,
     required this.isSynced,
+    required this.hasEnteredLeitner,
   });
 
   CardProgress copyWith({
@@ -30,6 +32,7 @@ class CardProgress extends Equatable {
     DateTime? nextReviewDue,
     String? lastTrigger,
     bool? isSynced,
+    bool? hasEnteredLeitner,
   }) {
     return CardProgress(
       id: id ?? this.id,
@@ -40,6 +43,7 @@ class CardProgress extends Equatable {
       nextReviewDue: nextReviewDue ?? this.nextReviewDue,
       lastTrigger: lastTrigger ?? this.lastTrigger,
       isSynced: isSynced ?? this.isSynced,
+      hasEnteredLeitner: hasEnteredLeitner ?? this.hasEnteredLeitner,
     );
   }
 
@@ -53,5 +57,6 @@ class CardProgress extends Equatable {
         nextReviewDue,
         lastTrigger,
         isSynced,
+        hasEnteredLeitner,
       ];
 }

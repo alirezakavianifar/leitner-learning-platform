@@ -87,9 +87,9 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           return;
         }
 
-        // Adjust index to the next card, or the last card in new queue if index is out of bounds
-        int nextIndex = currentState.currentIndex;
-        if (nextIndex >= newQueue.length) {
+        // Adjust index to the next card in sequence by card number, or the last card in new queue if out of bounds
+        int nextIndex = newQueue.indexWhere((c) => c.cardNumber > currentCard.cardNumber);
+        if (nextIndex == -1) {
           nextIndex = newQueue.length - 1;
         }
 

@@ -81,7 +81,7 @@ class DatabaseHelper {
     // Using standard sqflite for maximum compatibility across test and local compilation setups:
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -98,7 +98,8 @@ class DatabaseHelper {
         last_reviewed_at TEXT,
         next_review_due TEXT,
         last_trigger TEXT,
-        is_synced INTEGER NOT NULL DEFAULT 0
+        is_synced INTEGER NOT NULL DEFAULT 0,
+        has_entered_leitner INTEGER NOT NULL DEFAULT 0
       )
     ''');
     await db.execute('CREATE INDEX idx_progress_due ON client_progress(course_id, next_review_due)');
@@ -236,6 +237,11 @@ class DatabaseHelper {
             );
           }
         }
+      } catch (_) {}
+    }
+    if (oldVersion < 5) {
+      try {
+        await db.execute('ALTER TABLE client_progress ADD COLUMN has_entered_leitner INTEGER NOT NULL DEFAULT 0');
       } catch (_) {}
     }
   }
