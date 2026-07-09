@@ -665,7 +665,7 @@ void main() {
         'card_number': 2,
         'current_box': 2,
         'last_reviewed_at': DateTime.now().subtract(const Duration(hours: 48)).toIso8601String(),
-        'next_review_due': DateTime.now().subtract(const Duration(minutes: 5)).toIso8601String(),
+        'next_review_due': DateTime.now().toIso8601String(),
         'last_trigger': 'REVIEW_CORRECT',
         'is_synced': 1,
         'has_entered_leitner': 1,
@@ -692,7 +692,7 @@ void main() {
         'card_number': 4,
         'current_box': 1,
         'last_reviewed_at': DateTime.now().subtract(const Duration(hours: 24)).toIso8601String(),
-        'next_review_due': DateTime.now().subtract(const Duration(minutes: 5)).toIso8601String(),
+        'next_review_due': DateTime.now().toIso8601String(),
         'last_trigger': 'REVIEW_INCORRECT',
         'is_synced': 1,
         'has_entered_leitner': 1,
@@ -711,13 +711,9 @@ void main() {
       // Act 2: Today's review session (isTodayReview = true)
       final queueToday = await repository.getReviewQueue(courseId, isTodayReview: true);
 
-      // Assert 2: today session should contain Card 1 (Box 1), Card 2 (Box 2 due today) and Card 4 (Box 1 due today, having entered Leitner)
-      // but NOT Card 3 (Box 6)
-      expect(queueToday.length, 3);
-      expect(queueToday.any((c) => c.cardNumber == 1), isTrue);
-      expect(queueToday.any((c) => c.cardNumber == 2), isTrue);
-      expect(queueToday.any((c) => c.cardNumber == 4), isTrue);
-      expect(queueToday.any((c) => c.cardNumber == 3), isFalse);
+      // Assert 2: today session should contain only Card 2 (Box 2 due today)
+      expect(queueToday.length, 1);
+      expect(queueToday.first.cardNumber, 2);
     });
   });
 

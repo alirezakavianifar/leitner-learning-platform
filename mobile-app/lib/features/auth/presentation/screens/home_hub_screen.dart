@@ -90,6 +90,13 @@ class HomeHubScreenState extends State<HomeHubScreen> {
     }
   }
 
+  void _pushGlobal(Widget screen) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => screen),
+    );
+  }
+
   void startInteractiveTour() {
     final loc = AppLocalizations.of(context);
     _tourOverlayEntry?.remove();
@@ -706,7 +713,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   title: loc.profileDetails,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    _pushNested(const ProfileScreen());
+                    _pushGlobal(const ProfileScreen());
                   },
                 ),
                 _buildDrawerItem(
@@ -715,7 +722,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   title: loc.statistics,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    _pushNested(const StatisticsScreen());
+                    _pushGlobal(const StatisticsScreen());
                   },
                 ),
                 _buildDrawerItem(
@@ -724,7 +731,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   title: loc.notifications,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    _pushNested(const NotificationsScreen());
+                    _pushGlobal(const NotificationsScreen());
                   },
                 ),
                 _buildDrawerItem(
@@ -733,7 +740,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   title: loc.termsConditions,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    _pushNested(const RulesScreen());
+                    _pushGlobal(const RulesScreen());
                   },
                 ),
                 _buildDrawerItem(
@@ -742,7 +749,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   title: loc.aboutUs,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    _pushNested(const AboutUsScreen());
+                    _pushGlobal(const AboutUsScreen());
                   },
                 ),
                 _buildDrawerItem(
@@ -751,7 +758,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   title: loc.support,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    _pushNested(const SupportScreen());
+                    _pushGlobal(const SupportScreen());
                   },
                 ),
                 _buildDrawerItem(
@@ -760,7 +767,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   title: loc.settings,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    _pushNested(const SettingsScreen());
+                    _pushGlobal(const SettingsScreen());
                   },
                 ),
                 const Padding(

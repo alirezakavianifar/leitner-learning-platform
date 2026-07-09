@@ -173,52 +173,28 @@ class _ReviewTabState extends State<ReviewTab> {
                   const SizedBox(height: 16),
                   const Divider(color: Color(0xFF333E56), height: 1),
                   const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // View Favorites button
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.box2,
-                          side: BorderSide(color: AppColors.box2),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => FavoritesScreen(
-                                courseId: course.id,
-                                courseTitle: course.title,
-                              ),
-                            ),
-                          );
-                          _loadData();
-                        },
-                        icon: const Icon(Icons.star, size: 16),
-                        label: Text(loc.favorites),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      // Start Study loop button
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            FlashcardStudyScreen.route(
-                              courseId: course.id,
-                              courseTitle: course.title,
-                              isTodayReview: true,
-                            ),
-                          );
-                          _loadData();
-                        },
-                        icon: const Icon(Icons.play_arrow, color: Colors.white, size: 16),
-                        label: Text(loc.startStudy, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          FlashcardStudyScreen.route(
+                            courseId: course.id,
+                            courseTitle: course.title,
+                            isTodayReview: true,
+                          ),
+                        );
+                        _loadData();
+                      },
+                      icon: const Icon(Icons.play_arrow, color: Colors.white, size: 16),
+                      label: Text(loc.startStudy, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ],
               ),

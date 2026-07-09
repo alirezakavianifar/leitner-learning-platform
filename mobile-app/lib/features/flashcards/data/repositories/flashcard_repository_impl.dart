@@ -80,7 +80,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       // 2. In Direct Course Study: Box 1 + Box 6 (Finished) only. Boxes 2-5 are hidden.
       final bool included;
       if (isTodayReview) {
-        included = progress.currentBox >= 1 &&
+        included = progress.currentBox >= 2 &&
             progress.currentBox <= 5 &&
             progress.nextReviewDue != null &&
             progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1)));
