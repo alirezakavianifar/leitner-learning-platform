@@ -527,12 +527,22 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   Widget _buildActionButton(Course course, bool isDownloading) {
     final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     if (course.isDownloaded) {
       return ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        backgroundColor: AppColors.courseDownloaded.withOpacity(0.15),
-        foregroundColor: AppColors.courseDownloaded,
-        side: BorderSide(color: AppColors.courseDownloaded, width: 1),
+        backgroundColor: isDark 
+            ? const Color(0xFF1B5E20).withOpacity(0.3) 
+            : const Color(0xFFE8F5E9),
+        foregroundColor: isDark 
+            ? const Color(0xFF81C784) 
+            : const Color(0xFF2E7D32),
+        side: BorderSide(
+          color: isDark ? const Color(0xFF2E7D32) : const Color(0xFF81C784), 
+          width: 1,
+        ),
+        elevation: 0,
       ).build(
         context,
         child: Row(
@@ -576,6 +586,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
         style: ElevatedButton.styleFrom(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
         ),
         onPressed: () {
           context.read<CoursesBloc>().add(DownloadCourseEvent(courseId: course.id));
@@ -596,7 +607,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
       style: ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         backgroundColor: AppColors.secondary,
-        foregroundColor: AppColors.background,
+        foregroundColor: const Color(0xFF181837),
       ),
       onPressed: () {
         _purchaseCourse(course);
