@@ -385,9 +385,16 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   key: _bottomNavKey,
                   currentIndex: _currentIndex,
                   onTap: (index) {
-                    setState(() {
-                      _currentIndex = index;
-                    });
+                    if (_currentIndex == index) {
+                      final navigator = _getCurrentNavigator();
+                      if (navigator != null && navigator.canPop()) {
+                        navigator.popUntil((route) => route.isFirst);
+                      }
+                    } else {
+                      setState(() {
+                        _currentIndex = index;
+                      });
+                    }
                   },
                   backgroundColor: Colors.transparent,
                   elevation: 0,
