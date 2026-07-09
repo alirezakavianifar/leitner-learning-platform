@@ -75,15 +75,29 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final profile = await remoteDataSource.getProfile();
       await localDataSource.cacheUserProfile(
+        id: profile.id,
         username: profile.username,
+        mobileNumber: profile.mobileNumber,
         interests: profile.interests,
         educationalField: profile.educationalField,
         educationalLevel: profile.educationalLevel,
+        createdAt: profile.createdAt,
+        profilePictureUrl: profile.profilePictureUrl,
       );
       return Right(profile);
     } on ServerException catch (e) {
+      if (e.errorCode != 'UNAUTHORIZED' && e.errorCode != 'INVALID_TOKEN' && e.errorCode != 'SESSION_EXPIRED') {
+        final cached = await localDataSource.getCachedUser();
+        if (cached != null) {
+          return Right(cached);
+        }
+      }
       return Left(ServerFailure(e.message, errorCode: e.errorCode));
     } catch (e) {
+      final cached = await localDataSource.getCachedUser();
+      if (cached != null) {
+        return Right(cached);
+      }
       return Left(ServerFailure(e.toString()));
     }
   }
@@ -105,10 +119,14 @@ class AuthRepositoryImpl implements AuthRepository {
       );
 
       await localDataSource.cacheUserProfile(
+        id: profile.id,
         username: profile.username,
+        mobileNumber: profile.mobileNumber,
         interests: profile.interests,
         educationalField: profile.educationalField,
         educationalLevel: profile.educationalLevel,
+        createdAt: profile.createdAt,
+        profilePictureUrl: profile.profilePictureUrl,
       );
 
       if (profilePicture != null) {

@@ -111,7 +111,7 @@ class _FavoritesCoursesScreenState extends State<FavoritesCoursesScreen> {
                       backgroundColor: AppColors.surface,
                       onRefresh: _loadCourses,
                       child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                        padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 12.0, bottom: 80.0),
                         itemCount: _downloadedCourses.length,
                         itemBuilder: (context, index) {
                           final course = _downloadedCourses[index];
