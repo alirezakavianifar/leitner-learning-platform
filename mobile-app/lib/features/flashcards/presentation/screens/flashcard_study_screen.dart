@@ -246,6 +246,11 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           TextButton(
             onPressed: () {
               Navigator.pop(dialogCtx);
+              if (_lastCardNumber == null) {
+                Navigator.pop(context);
+              } else {
+                context.read<FlashcardBloc>().add(ClearJumpWarning());
+              }
             },
             child: Text(loc.translate('no_label')),
           ),
@@ -306,10 +311,11 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
     return BlocProvider<FlashcardBloc>(
       create: (_) {
         final bloc = di.sl<FlashcardBloc>()
-          ..add(LoadFlashcardQueue(widget.courseId, isTodayReview: widget.isTodayReview));
-        if (widget.initialCardNumber != null) {
-          bloc.add(JumpToCardNumber(widget.initialCardNumber!, forceReset: true));
-        }
+          ..add(LoadFlashcardQueue(
+            widget.courseId,
+            isTodayReview: widget.isTodayReview,
+            initialCardNumber: widget.initialCardNumber,
+          ));
         return bloc;
       },
       child: Scaffold(
@@ -331,21 +337,20 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                 );
               }
 
+              if (state.jumpWarningCardNumber != null && state.jumpTargetCard != null) {
+                if (_lastPromptedCardNumber != state.jumpWarningCardNumber) {
+                  _lastPromptedCardNumber = state.jumpWarningCardNumber;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _showResetConfirmDialog(context, state.jumpTargetCard!);
+                  });
+                }
+              }
+
               final card = state.currentCard;
-              if (card != null) {
+              if (card != null && state.jumpWarningCardNumber == null) {
                 if (_lastCardNumber != card.cardNumber) {
                   _lastCardNumber = card.cardNumber;
                   _selectedOptionIndex = null;
-                }
-
-                final currentBox = card.progress.currentBox;
-                if (currentBox >= 2 && currentBox <= 5) {
-                  if (_lastPromptedCardNumber != card.cardNumber) {
-                    _lastPromptedCardNumber = card.cardNumber;
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _showResetConfirmDialog(context, card);
-                    });
-                  }
                 }
               }
 

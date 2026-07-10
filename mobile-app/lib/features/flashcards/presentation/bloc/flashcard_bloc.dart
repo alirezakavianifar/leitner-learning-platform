@@ -30,20 +30,56 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         event.courseId,
         isTodayReview: event.isTodayReview,
       );
-      if (queue.isEmpty) {
+
+      int finalIndex = 0;
+      List<Flashcard> finalQueue = List<Flashcard>.from(queue);
+      Flashcard? initialCard;
+
+      if (event.initialCardNumber != null) {
+        initialCard = await flashcardRepository.getCardByNumber(
+          event.courseId,
+          event.initialCardNumber!,
+        );
+        if (initialCard != null) {
+          final index = finalQueue.indexWhere((c) => c.cardNumber == initialCard!.cardNumber);
+          if (index != -1) {
+            finalIndex = index;
+          } else {
+            finalQueue.insert(0, initialCard);
+            finalIndex = 0;
+          }
+        }
+      }
+
+      if (finalQueue.isEmpty) {
         emit(FlashcardFinished(event.courseId));
         return;
       }
 
+      final currentCard = finalQueue[finalIndex];
       final isFav = await flashcardRepository.isFavorite(
         courseId: event.courseId,
-        cardNumber: queue[0].cardNumber,
+        cardNumber: currentCard.cardNumber,
       );
+
+      final box = currentCard.progress.currentBox;
+      if (box >= 2 && box <= 5) {
+        emit(FlashcardQueueLoaded(
+          courseId: event.courseId,
+          queue: finalQueue,
+          currentIndex: finalIndex,
+          isTodayReview: event.isTodayReview,
+          isFavorited: isFav,
+          jumpWarningCardNumber: currentCard.cardNumber,
+          jumpTargetCard: currentCard,
+        ));
+        return;
+      }
 
       emit(FlashcardQueueLoaded(
         courseId: event.courseId,
-        queue: queue,
-        currentIndex: 0,
+        queue: finalQueue,
+        currentIndex: finalIndex,
         isTodayReview: event.isTodayReview,
         isFavorited: isFav,
       ));
@@ -152,6 +188,15 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
 
         if (card == null) {
           emit(currentState.copyWith(error: 'Card number ${event.cardNumber} not found in this course.'));
+          return;
+        }
+
+        final box = card.progress.currentBox;
+        if (box >= 2 && box <= 5 && !event.forceReset) {
+          emit(currentState.copyWith(
+            jumpWarningCardNumber: card.cardNumber,
+            jumpTargetCard: card,
+          ));
           return;
         }
 
@@ -272,7 +317,10 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
   ) {
     final currentState = state;
     if (currentState is FlashcardQueueLoaded) {
-      emit(currentState.copyWith());
+      emit(currentState.copyWith(
+        jumpWarningCardNumber: null,
+        jumpTargetCard: null,
+      ));
     }
   }
 
@@ -294,18 +342,39 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           isTodayReview: currentState.isTodayReview,
         );
 
-        final newIndex = newQueue.indexWhere((c) => c.cardNumber == event.cardNumber);
-        final finalIndex = newIndex != -1 ? newIndex : (currentState.currentIndex < newQueue.length ? currentState.currentIndex : 0);
+        final card = await flashcardRepository.getCardByNumber(
+          currentState.courseId,
+          event.cardNumber,
+        );
 
-        final isFav = finalIndex < newQueue.length
+        final updatedQueue = List<Flashcard>.from(newQueue);
+        final index = updatedQueue.indexWhere((c) => c.cardNumber == event.cardNumber);
+        int finalIndex;
+
+        if (index != -1) {
+          finalIndex = index;
+          if (card != null) {
+            updatedQueue[index] = card;
+          }
+        } else {
+          if (card != null) {
+            final insertIdx = currentState.currentIndex < updatedQueue.length ? currentState.currentIndex : 0;
+            updatedQueue.insert(insertIdx, card);
+            finalIndex = insertIdx;
+          } else {
+            finalIndex = 0;
+          }
+        }
+
+        final isFav = finalIndex < updatedQueue.length
             ? await flashcardRepository.isFavorite(
                 courseId: currentState.courseId,
-                cardNumber: newQueue[finalIndex].cardNumber,
+                cardNumber: updatedQueue[finalIndex].cardNumber,
               )
             : false;
 
         emit(currentState.copyWith(
-          queue: newQueue,
+          queue: updatedQueue,
           currentIndex: finalIndex,
           isFlipped: false,
           isFavorited: isFav,
