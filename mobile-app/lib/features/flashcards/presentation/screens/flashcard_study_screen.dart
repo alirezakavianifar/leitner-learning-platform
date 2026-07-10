@@ -452,6 +452,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                           children: [
                             // Left navigation arrow floating on backdrop
                             IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                               icon: Icon(
                                 Icons.arrow_back_ios_new,
                                 size: 28,
@@ -468,7 +470,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                             // Center Card Frame
                             Expanded(
                               child: Container(
-                                constraints: const BoxConstraints(maxWidth: 320),
+                                constraints: const BoxConstraints(maxWidth: 420),
                                 decoration: BoxDecoration(
                                   color: AppColors.surface,
                                   borderRadius: BorderRadius.circular(24),
@@ -670,6 +672,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
 
                             // Right navigation arrow floating on backdrop
                             IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                               icon: Icon(
                                 Icons.arrow_forward_ios,
                                 size: 28,
@@ -711,7 +715,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
       children: [
         Container(
           width: double.infinity,
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
             color: AppColors.surface,

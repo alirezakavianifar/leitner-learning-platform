@@ -358,6 +358,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 childAspectRatio: 1.35,
                 children: [
                   _buildGridCard(
+                    key: widget.coursesListKey,
+                    title: loc.courses,
+                    imageAsset: 'assets/images/courses_list.png',
+                    onTap: () {
+                      widget.coursesTabNotifier?.value = 0;
+                      widget.onTabChange(2);
+                    },
+                  ),
+                  _buildGridCard(
                     key: widget.todayReviewsKey,
                     title: loc.reviewToday,
                     imageAsset: 'assets/images/today_cards.png',
@@ -366,13 +375,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onTap: () => widget.onTabChange(1),
                   ),
                   _buildGridCard(
-                    key: widget.favoritesKey,
-                    title: loc.favorites,
-                    imageAsset: 'assets/images/favorite_cards.png',
+                    key: widget.myCoursesKey,
+                    title: loc.myCourses,
+                    imageAsset: 'assets/images/my_courses.png',
+                    onTap: () {
+                      widget.coursesTabNotifier?.value = 1;
+                      widget.onTabChange(2);
+                    },
+                  ),
+                  _buildGridCard(
+                    key: widget.createCardKey,
+                    title: loc.customCards,
+                    imageAsset: 'assets/images/create_card.png',
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const FavoritesCoursesScreen()),
+                        MaterialPageRoute(builder: (_) => const CustomCoursesScreen()),
                       ).then((_) => _loadStats());
                     },
                   ),
@@ -390,31 +408,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                   _buildGridCard(
-                    key: widget.myCoursesKey,
-                    title: loc.myCourses,
-                    imageAsset: 'assets/images/my_courses.png',
-                    onTap: () {
-                      widget.coursesTabNotifier?.value = 1;
-                      widget.onTabChange(2);
-                    },
-                  ),
-                  _buildGridCard(
-                    key: widget.coursesListKey,
-                    title: loc.courses,
-                    imageAsset: 'assets/images/courses_list.png',
-                    onTap: () {
-                      widget.coursesTabNotifier?.value = 0;
-                      widget.onTabChange(2);
-                    },
-                  ),
-                  _buildGridCard(
-                    key: widget.createCardKey,
-                    title: loc.customCards,
-                    imageAsset: 'assets/images/create_card.png',
+                    key: widget.favoritesKey,
+                    title: loc.favorites,
+                    imageAsset: 'assets/images/favorite_cards.png',
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const CustomCoursesScreen()),
+                        MaterialPageRoute(builder: (_) => const FavoritesCoursesScreen()),
                       ).then((_) => _loadStats());
                     },
                   ),
