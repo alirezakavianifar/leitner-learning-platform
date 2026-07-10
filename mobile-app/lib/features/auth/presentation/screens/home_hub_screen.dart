@@ -144,17 +144,17 @@ class HomeHubScreenState extends State<HomeHubScreen> {
             description: loc.translate('tour_bottom_nav_desc'),
           ),
         ],
-        onComplete: () {
+        onComplete: () async {
           _tourOverlayEntry?.remove();
           _tourOverlayEntry = null;
           final prefs = di.sl<SharedPreferences>();
-          prefs.setBool('first_run_completed', true);
+          await prefs.setBool('first_run_completed', true);
         },
-        onSkip: () {
+        onSkip: () async {
           _tourOverlayEntry?.remove();
           _tourOverlayEntry = null;
           final prefs = di.sl<SharedPreferences>();
-          prefs.setBool('first_run_completed', true);
+          await prefs.setBool('first_run_completed', true);
         },
       ),
     );

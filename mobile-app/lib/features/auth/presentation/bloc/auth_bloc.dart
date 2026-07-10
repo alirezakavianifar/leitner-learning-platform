@@ -52,25 +52,69 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final termsRes = await checkTermsAcceptedUseCase(NoParams());
     final bool termsAccepted = termsRes.fold((_) => false, (accepted) => accepted);
 
-    // Fetch profile (which verifies if token exists and is valid)
-    final profileRes = await getProfileUseCase(NoParams());
-    
-    await profileRes.fold(
-      (failure) async {
-        // Clear cached credentials on auth error/invalid token
+    // Read cached token and user profile
+    final token = await localDataSource.getCachedToken();
+    final cachedUser = await localDataSource.getCachedUser();
+
+    if (token != null && token.isNotEmpty && cachedUser != null) {
+      if (!termsAccepted) {
+        emit(TermsPendingState(mobileNumber: cachedUser.mobileNumber, token: token, refreshToken: ''));
+      } else if (_isProfileIncomplete(cachedUser)) {
+        emit(ProfilePendingState(mobileNumber: cachedUser.mobileNumber, token: token, refreshToken: ''));
+      } else {
+        emit(AuthenticatedState(user: cachedUser, token: token));
+      }
+
+      // Verify/refresh user profile from server in the background
+      final profileRes = await getProfileUseCase(NoParams());
+      await profileRes.fold(
+        (failure) async {
+          // Only log out on actual authorization failures (e.g. 401 Unauthorized / Token Expired)
+          if (failure is ServerFailure &&
+              (failure.errorCode == 'UNAUTHORIZED' ||
+               failure.errorCode == 'INVALID_TOKEN' ||
+               failure.errorCode == 'SESSION_EXPIRED')) {
+            await logoutUseCase(NoParams());
+            emit(UnauthenticatedState());
+          }
+        },
+        (user) async {
+          // Update state with fresh user profile
+          if (!termsAccepted) {
+            emit(TermsPendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: ''));
+          } else if (_isProfileIncomplete(user)) {
+            emit(ProfilePendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: ''));
+          } else {
+            emit(AuthenticatedState(user: user, token: token));
+          }
+        },
+      );
+    } else {
+      // If token is missing, they are definitely unauthenticated
+      if (token == null || token.isEmpty) {
         await logoutUseCase(NoParams());
         emit(UnauthenticatedState());
-      },
-      (user) async {
-        if (!termsAccepted) {
-          emit(TermsPendingState(mobileNumber: user.mobileNumber, token: '', refreshToken: ''));
-        } else if (_isProfileIncomplete(user)) {
-          emit(ProfilePendingState(mobileNumber: user.mobileNumber, token: '', refreshToken: ''));
-        } else {
-          emit(AuthenticatedState(user: user, token: ''));
-        }
-      },
-    );
+        return;
+      }
+
+      // If token exists but cached user is missing, fetch from server
+      final profileRes = await getProfileUseCase(NoParams());
+      await profileRes.fold(
+        (failure) async {
+          await logoutUseCase(NoParams());
+          emit(UnauthenticatedState());
+        },
+        (user) async {
+          if (!termsAccepted) {
+            emit(TermsPendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: ''));
+          } else if (_isProfileIncomplete(user)) {
+            emit(ProfilePendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: ''));
+          } else {
+            emit(AuthenticatedState(user: user, token: token));
+          }
+        },
+      );
+    }
   }
 
   Future<void> _onLoadCaptcha(LoadCaptchaEvent event, Emitter<AuthState> emit) async {
