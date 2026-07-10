@@ -77,6 +77,31 @@ class FakeDatabase implements Database {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> rawQuery(String sql, [List<Object?>? arguments]) async {
+    if (sql.contains('SELECT COUNT(*) as count FROM client_progress')) {
+      var list = tables['client_progress'] ?? [];
+      if (sql.contains('current_box >= 2') || sql.contains('current_box >= 1')) {
+        final nowUtcStr = arguments![0] as String;
+        final nowUtc = DateTime.parse(nowUtcStr);
+        final isOldQuery = sql.contains('current_box >= 1');
+        final minBox = isOldQuery ? 1 : 2;
+        final count = list.where((row) {
+          final box = row['current_box'] as int;
+          if (box < minBox || box > 5) return false;
+          if (row['next_review_due'] == null) return false;
+          final due = DateTime.parse(row['next_review_due'] as String);
+          return due.isBefore(nowUtc) || due.isAtSameMomentAs(nowUtc);
+        }).length;
+        return [{'count': count}];
+      } else if (sql.contains('current_box = 6')) {
+        final count = list.where((row) => row['current_box'] == 6).length;
+        return [{'count': count}];
+      }
+    }
+    throw UnimplementedError('rawQuery not fully mocked for: $sql');
+  }
+
+  @override
   Future<int> insert(
     String table,
     Map<String, Object?> values, {
@@ -714,6 +739,64 @@ void main() {
       // Assert 2: today session should contain only Card 2 (Box 2 due today)
       expect(queueToday.length, 1);
       expect(queueToday.first.cardNumber, 2);
+    });
+
+    test('Global due count: should only count due cards in boxes 2-5, and exclude Box 1 and Box 6', () async {
+      // Setup progress in local DB
+      // Card 1: Box 1 (Due/overdue, but should be excluded from active Leitner count)
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_1',
+        'course_id': courseId,
+        'card_number': 1,
+        'current_box': 1,
+        'last_reviewed_at': null,
+        'next_review_due': DateTime.now().subtract(const Duration(hours: 5)).toIso8601String(),
+        'last_trigger': null,
+        'is_synced': 0,
+      });
+
+      // Card 2: Box 2 (Due/overdue, should be counted)
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_2',
+        'course_id': courseId,
+        'card_number': 2,
+        'current_box': 2,
+        'last_reviewed_at': DateTime.now().subtract(const Duration(days: 4)).toIso8601String(),
+        'next_review_due': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
+        'last_trigger': 'REVIEW_CORRECT',
+        'is_synced': 1,
+      });
+
+      // Card 3: Box 3 (Not due, should be excluded)
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_3',
+        'course_id': courseId,
+        'card_number': 3,
+        'current_box': 3,
+        'last_reviewed_at': DateTime.now().toIso8601String(),
+        'next_review_due': DateTime.now().add(const Duration(days: 2)).toIso8601String(),
+        'last_trigger': 'REVIEW_CORRECT',
+        'is_synced': 1,
+      });
+
+      // Card 4: Box 6 (Finished, should be excluded)
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_4',
+        'course_id': courseId,
+        'card_number': 4,
+        'current_box': 6,
+        'last_reviewed_at': DateTime.now().toIso8601String(),
+        'next_review_due': null,
+        'last_trigger': 'REVIEW_CORRECT',
+        'is_synced': 1,
+      });
+
+      // Act
+      final dueCount = await repository.getGlobalDueCount();
+
+      // Assert
+      // Only Card 2 (Box 2, due) should be counted.
+      expect(dueCount, 1);
     });
   });
 

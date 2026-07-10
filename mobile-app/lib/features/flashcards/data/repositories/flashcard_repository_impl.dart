@@ -603,7 +603,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
 
     final List<Map<String, dynamic>> results = await localDb.rawQuery('''
       SELECT COUNT(*) as count FROM client_progress
-      WHERE current_box >= 1 AND current_box <= 5 AND next_review_due <= ?
+      WHERE current_box >= 2 AND current_box <= 5 AND next_review_due <= ?
     ''', [nowUtc]);
 
     if (results.isEmpty) return 0;
