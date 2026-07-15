@@ -200,8 +200,14 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
         if (newBox == 3) days = 7;
         if (newBox == 4) days = 16;
         if (newBox == 5) days = 31;
-        if (newBox == 6) days = 0; // Box 6 is due immediately for review to move to Finished
-        newNextReviewDue = now.add(Duration(days: days));
+        
+        if (newBox == 6) {
+          newNextReviewDue = now; // Box 6 is due immediately for review to move to Finished
+        } else {
+          final startOfToday = DateTime(now.year, now.month, now.day);
+          newNextReviewDue = startOfToday.add(Duration(days: days));
+        }
+        
         eventBus.fire(CardReviewed(
           courseId: courseId,
           cardNumber: cardNumber,

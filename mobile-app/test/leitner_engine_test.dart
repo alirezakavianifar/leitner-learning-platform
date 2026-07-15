@@ -344,7 +344,9 @@ void main() {
       expect(progress.currentBox, 2);
       expect(progress.lastTrigger, 'REVIEW_CORRECT');
       expect(progress.isSynced, false);
-      expect(progress.nextReviewDue!.difference(progress.lastReviewedAt!).inDays, 3);
+      final localReviewed = progress.lastReviewedAt!.toLocal();
+      final expectedDueDate = DateTime(localReviewed.year, localReviewed.month, localReviewed.day).add(const Duration(days: 3)).toUtc();
+      expect(progress.nextReviewDue, expectedDueDate);
       expect(progress.hasEnteredLeitner, isTrue);
       expect(reviewEvent, isNotNull);
       expect(reviewEvent!.box, 2);
@@ -369,7 +371,9 @@ void main() {
       expect(progress.currentBox, 2);
       expect(progress.lastTrigger, 'REVIEW_CORRECT');
       expect(progress.isSynced, false);
-      expect(progress.nextReviewDue!.difference(progress.lastReviewedAt!).inDays, 3);
+      final localReviewed = progress.lastReviewedAt!.toLocal();
+      final expectedDueDate = DateTime(localReviewed.year, localReviewed.month, localReviewed.day).add(const Duration(days: 3)).toUtc();
+      expect(progress.nextReviewDue, expectedDueDate);
       expect(progress.hasEnteredLeitner, isTrue);
       expect(reviewEvent, isNotNull);
       expect(reviewEvent!.box, 2);
@@ -395,7 +399,9 @@ void main() {
       // Assert
       final progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
       expect(progress.currentBox, 5);
-      expect(progress.nextReviewDue!.difference(progress.lastReviewedAt!).inDays, 31);
+      final localReviewed = progress.lastReviewedAt!.toLocal();
+      final expectedDueDate = DateTime(localReviewed.year, localReviewed.month, localReviewed.day).add(const Duration(days: 31)).toUtc();
+      expect(progress.nextReviewDue, expectedDueDate);
       expect(progress.isSynced, false);
     });
 
