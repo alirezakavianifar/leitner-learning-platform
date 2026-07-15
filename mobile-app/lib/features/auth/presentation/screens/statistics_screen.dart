@@ -344,18 +344,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               ),
             ),
           const SizedBox(height: 10),
-          // Mini breakdown counts
+          // Mini breakdown: count + percentage per Leitner stage (Rule 17)
           Wrap(
             spacing: 12,
             runSpacing: 4,
             children: [
-              _buildMiniBoxTag(loc.b1Mini, stats[1] ?? 0, AppColors.box1),
-              _buildMiniBoxTag(loc.b2Mini, stats[2] ?? 0, AppColors.box2),
-              _buildMiniBoxTag(loc.b3Mini, stats[3] ?? 0, AppColors.box3),
-              _buildMiniBoxTag(loc.b4Mini, stats[4] ?? 0, AppColors.box4),
-              _buildMiniBoxTag(loc.b5Mini, stats[5] ?? 0, AppColors.box5),
-              _buildMiniBoxTag(loc.b6Mini, stats[6] ?? 0, AppColors.box6),
-              _buildMiniBoxTag(loc.finMini, stats[7] ?? 0, AppColors.finished),
+              _buildMiniBoxTag(loc.b1Mini, stats[1] ?? 0, AppColors.box1, sumCards),
+              _buildMiniBoxTag(loc.b2Mini, stats[2] ?? 0, AppColors.box2, sumCards),
+              _buildMiniBoxTag(loc.b3Mini, stats[3] ?? 0, AppColors.box3, sumCards),
+              _buildMiniBoxTag(loc.b4Mini, stats[4] ?? 0, AppColors.box4, sumCards),
+              _buildMiniBoxTag(loc.b5Mini, stats[5] ?? 0, AppColors.box5, sumCards),
+              _buildMiniBoxTag(loc.b6Mini, stats[6] ?? 0, AppColors.box6, sumCards),
+              _buildMiniBoxTag(loc.finMini, stats[7] ?? 0, AppColors.finished, sumCards),
             ],
           ),
         ],
@@ -363,7 +363,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     );
   }
 
-  Widget _buildMiniBoxTag(String label, int count, Color color) {
+  Widget _buildMiniBoxTag(String label, int count, Color color, int totalCards) {
+    final pct = totalCards > 0 ? (count / totalCards * 100) : 0.0;
+    final pctStr = pct == 0 ? '0%' : '${pct.toStringAsFixed(1)}%';
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -373,7 +375,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text('$label: $count', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+        Text(
+          '$label: $count ($pctStr)',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+        ),
       ],
     );
   }

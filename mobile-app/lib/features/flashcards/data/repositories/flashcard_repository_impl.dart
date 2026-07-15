@@ -179,6 +179,21 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
           finishedAt: now,
         ));
       } else {
+        // Rule 5 & 8: Promotion for Boxes 2–5 is only valid if the card is reviewed on its
+        // scheduled day. Box 1 is always eligible (first success enters Leitner immediately).
+        // Box 6 is always eligible (it becomes due immediately after being promoted into it).
+        if (currentProgress.currentBox >= 2 && currentProgress.currentBox <= 5) {
+          final dueDate = currentProgress.nextReviewDue;
+          if (dueDate != null) {
+            final dueDateLocal = DateTime(dueDate.toLocal().year, dueDate.toLocal().month, dueDate.toLocal().day);
+            final todayLocal = DateTime(now.year, now.month, now.day);
+            if (dueDateLocal.isAfter(todayLocal)) {
+              // Card is not due today — silently abort promotion to enforce the Leitner schedule.
+              return;
+            }
+          }
+        }
+
         newBox = currentProgress.currentBox + 1;
         int days = 0;
         if (newBox == 2) days = 3;
@@ -243,7 +258,8 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     if (maps.isEmpty) return;
 
     final currentProgress = CardProgressModel.fromMap(maps.first);
-    if (currentProgress.currentBox == 1) return; // already in Box 1
+    // Guard: do not reset Box 1 (already there) or Box 7 (Finished Cards are excluded from Leitner resets)
+    if (currentProgress.currentBox == 1 || currentProgress.currentBox == 7) return;
 
     final now = DateTime.now();
     final trigger = reason.toUpperCase() == 'FAVORITES' ? 'FAVORITES_RESET' : 'JUMP_RESET';
