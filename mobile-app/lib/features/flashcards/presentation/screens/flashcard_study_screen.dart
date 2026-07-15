@@ -317,6 +317,102 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
     }
   }
 
+  Widget _buildWarningView(BuildContext context, Flashcard card) {
+    final loc = AppLocalizations.of(context);
+    return Container(
+      color: Colors.black.withOpacity(0.55),
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Container(
+            width: 320,
+            padding: const EdgeInsets.all(24.0),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.box1.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.warning_amber_rounded, color: AppColors.box1, size: 48),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  loc.translate('warning'),
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  loc.translate('reset_progress_desc').replaceAll('{box}', card.progress.currentBox.toString()),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.textSecondary,
+                          side: BorderSide(color: AppColors.border),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          if (_lastCardNumber == null) {
+                            Navigator.pop(context);
+                          } else {
+                            context.read<FlashcardBloc>().add(ClearJumpWarning());
+                          }
+                        },
+                        child: Text(loc.translate('no_label'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.error,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          context.read<FlashcardBloc>().add(ResetCardProgressEvent(
+                            card.cardNumber,
+                            reason: widget.isFromFavorites ? 'FAVORITES' : 'JUMP',
+                          ));
+                        },
+                        child: Text(loc.translate('yes_label'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider<FlashcardBloc>(
@@ -346,15 +442,6 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                     backgroundColor: AppColors.primary,
                   ),
                 );
-              }
-
-              if (state.jumpWarningCardNumber != null && state.jumpTargetCard != null) {
-                if (_lastPromptedCardNumber != state.jumpWarningCardNumber) {
-                  _lastPromptedCardNumber = state.jumpWarningCardNumber;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _showResetConfirmDialog(context, state.jumpTargetCard!);
-                  });
-                }
               }
 
               final card = state.currentCard;
@@ -436,6 +523,10 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
             }
 
             if (state is FlashcardQueueLoaded) {
+              if (state.jumpWarningCardNumber != null && state.jumpTargetCard != null) {
+                return _buildWarningView(context, state.jumpTargetCard!);
+              }
+
               final card = state.currentCard;
               if (card == null) return const SizedBox.shrink();
 

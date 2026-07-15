@@ -339,7 +339,8 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                               if (card.progress.currentBox == 3) statusColor = AppColors.box3;
                                               if (card.progress.currentBox == 4) statusColor = AppColors.box4;
                                               if (card.progress.currentBox == 5) statusColor = AppColors.box5;
-                                              if (card.progress.currentBox == 6) statusColor = AppColors.finished;
+                                              if (card.progress.currentBox == 6) statusColor = AppColors.box6;
+                                              if (card.progress.currentBox == 7) statusColor = AppColors.finished;
 
                                               return Card(
                                                 margin: const EdgeInsets.only(bottom: 12),
@@ -364,7 +365,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                                           border: Border.all(color: statusColor.withOpacity(0.4)),
                                                         ),
                                                         child: Text(
-                                                          card.progress.currentBox == 6 ? loc.translate('finished_box') : '${loc.translate('box_label_prefix')}${card.progress.currentBox}',
+                                                          card.progress.currentBox == 7 ? loc.translate('finished_box') : '${loc.translate('box_label_prefix')}${card.progress.currentBox}',
                                                           style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold),
                                                         ),
                                                       ),
