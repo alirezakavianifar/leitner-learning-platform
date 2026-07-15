@@ -4,7 +4,8 @@
 # =============================================================================
 
 param (
-    [string]$Flavor = "premium"
+    [string]$Flavor = "premium",
+    [string]$TargetUrl = "http://45.94.215.188"
 )
 
 $ErrorActionPreference = "Stop"
@@ -50,88 +51,103 @@ if ($Flavor -ne "premium" -and $Flavor -ne "store") {
     exit 1
 }
 
-# 1. Verify Backend is running
-Write-Step "Checking if backend is running on port 5217..."
-$backendRunning = $false
-try {
-    $r = Invoke-WebRequest -Uri "$BACKEND_URL/api/v1/config/features" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
-    if ($r.StatusCode -lt 500) {
-        $backendRunning = $true
-        Write-Ok "Backend is online and responding at $BACKEND_URL"
+$apiBaseUrl = ""
+
+if (-not [string]::IsNullOrWhiteSpace($TargetUrl)) {
+    $apiBaseUrl = $TargetUrl.Trim()
+    if (-not ($apiBaseUrl.StartsWith("http://") -or $apiBaseUrl.StartsWith("https://"))) {
+        $apiBaseUrl = "http://$apiBaseUrl"
     }
-} catch {
-    Write-Host "  [WARNING] Backend was not detected on port 5217." -ForegroundColor Yellow
-}
-
-if (-not $backendRunning) {
-    Write-Host "  Please ensure your backend is running before proceeding." -ForegroundColor Yellow
-    $ans = Read-Host "  Do you want to continue anyway? (y/n)"
-    if ($ans.Trim().ToLower() -ne "y") {
-        Write-Host "  Build cancelled." -ForegroundColor Red
-        exit 0
+    if ($apiBaseUrl.EndsWith("/")) {
+        $apiBaseUrl = $apiBaseUrl.Substring(0, $apiBaseUrl.Length - 1)
     }
-}
-
-# 2. Check/Start Ngrok
-Write-Step "Checking if Ngrok is running..."
-$ngrokUrl = $null
-
-# Check if ngrok is already running and has tunnels
-try {
-    $tunnels = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -TimeoutSec 2 -ErrorAction SilentlyContinue
-    if ($tunnels.tunnels) {
-        $ngrokUrl = $tunnels.tunnels[0].public_url
-        Write-Ok "Detected active Ngrok tunnel: $ngrokUrl"
+    if (-not $apiBaseUrl.EndsWith("/api/v1")) {
+        $apiBaseUrl = "$apiBaseUrl/api/v1"
     }
-} catch {}
+    Write-Info "Targeting custom specified backend endpoint: $apiBaseUrl"
+} else {
+    # 1. Verify Backend is running
+    Write-Step "Checking if backend is running on port 5217..."
+    $backendRunning = $false
+    try {
+        $r = Invoke-WebRequest -Uri "$BACKEND_URL/api/v1/config/features" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
+        if ($r.StatusCode -lt 500) {
+            $backendRunning = $true
+            Write-Ok "Backend is online and responding at $BACKEND_URL"
+        }
+    } catch {
+        Write-Host "  [WARNING] Backend was not detected on port 5217." -ForegroundColor Yellow
+    }
 
-if ($null -eq $ngrokUrl) {
-    # Verify ngrok command exists
-    if (-not (Get-Command ngrok -ErrorAction SilentlyContinue)) {
-        Write-Err "'ngrok' was not found in your system PATH."
-        Write-Host "  Please install ngrok or run it manually and pass the URL." -ForegroundColor Yellow
-        $ngrokUrl = Read-Host "  Or manually enter your active Ngrok/dev URL (or press Enter for default dev local loopback)"
-    } else {
-        Write-Step "Starting Ngrok tunnel in background for port 5217..."
-        Start-Process ngrok -ArgumentList "http 5217" -WindowStyle Hidden
-        
-        Write-Step "Waiting for Ngrok tunnel to establish..."
-        $attempts = 0
-        $maxAttempts = 6
-        while ($attempts -lt $maxAttempts) {
-            Start-Sleep -Seconds 2
-            try {
-                $tunnels = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -TimeoutSec 2
-                if ($tunnels.tunnels) {
-                    $ngrokUrl = $tunnels.tunnels[0].public_url
-                    Write-Ok "Ngrok tunnel established successfully!"
-                    break
-                }
-            } catch {}
-            $attempts++
+    if (-not $backendRunning) {
+        Write-Host "  Please ensure your backend is running before proceeding." -ForegroundColor Yellow
+        $ans = Read-Host "  Do you want to continue anyway? (y/n)"
+        if ($ans.Trim().ToLower() -ne "y") {
+            Write-Host "  Build cancelled." -ForegroundColor Red
+            exit 0
         }
     }
-}
 
-# 3. Resolve API URL
-$apiBaseUrl = ""
-if ([string]::IsNullOrWhiteSpace($ngrokUrl)) {
-    $apiBaseUrl = "http://10.0.2.2:5217/api/v1"
-    Write-Info "Using default Android emulator loopback: $apiBaseUrl"
-} else {
-    $ngrokUrl = $ngrokUrl.Trim()
-    if (-not ($ngrokUrl.StartsWith("http://") -or $ngrokUrl.StartsWith("https://"))) {
-        $ngrokUrl = "https://$ngrokUrl"
+    # 2. Check/Start Ngrok
+    Write-Step "Checking if Ngrok is running..."
+    $ngrokUrl = $null
+
+    # Check if ngrok is already running and has tunnels
+    try {
+        $tunnels = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -TimeoutSec 2 -ErrorAction SilentlyContinue
+        if ($tunnels.tunnels) {
+            $ngrokUrl = $tunnels.tunnels[0].public_url
+            Write-Ok "Detected active Ngrok tunnel: $ngrokUrl"
+        }
+    } catch {}
+
+    if ($null -eq $ngrokUrl) {
+        # Verify ngrok command exists
+        if (-not (Get-Command ngrok -ErrorAction SilentlyContinue)) {
+            Write-Err "'ngrok' was not found in your system PATH."
+            Write-Host "  Please install ngrok or run it manually and pass the URL." -ForegroundColor Yellow
+            $ngrokUrl = Read-Host "  Or manually enter your active Ngrok/dev URL (or press Enter for default dev local loopback)"
+        } else {
+            Write-Step "Starting Ngrok tunnel in background for port 5217..."
+            Start-Process ngrok -ArgumentList "http 5217" -WindowStyle Hidden
+            
+            Write-Step "Waiting for Ngrok tunnel to establish..."
+            $attempts = 0
+            $maxAttempts = 6
+            while ($attempts -lt $maxAttempts) {
+                Start-Sleep -Seconds 2
+                try {
+                    $tunnels = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -TimeoutSec 2
+                    if ($tunnels.tunnels) {
+                        $ngrokUrl = $tunnels.tunnels[0].public_url
+                        Write-Ok "Ngrok tunnel established successfully!"
+                        break
+                    }
+                } catch {}
+                $attempts++
+            }
+        }
     }
-    if ($ngrokUrl.EndsWith("/")) {
-        $ngrokUrl = $ngrokUrl.Substring(0, $ngrokUrl.Length - 1)
-    }
-    if (-not $ngrokUrl.EndsWith("/api/v1")) {
-        $apiBaseUrl = "$ngrokUrl/api/v1"
+
+    # 3. Resolve API URL
+    if ([string]::IsNullOrWhiteSpace($ngrokUrl)) {
+        $apiBaseUrl = "http://10.0.2.2:5217/api/v1"
+        Write-Info "Using default Android emulator loopback: $apiBaseUrl"
     } else {
-        $apiBaseUrl = $ngrokUrl
+        $ngrokUrl = $ngrokUrl.Trim()
+        if (-not ($ngrokUrl.StartsWith("http://") -or $ngrokUrl.StartsWith("https://"))) {
+            $ngrokUrl = "https://$ngrokUrl"
+        }
+        if ($ngrokUrl.EndsWith("/")) {
+            $ngrokUrl = $ngrokUrl.Substring(0, $ngrokUrl.Length - 1)
+        }
+        if (-not $ngrokUrl.EndsWith("/api/v1")) {
+            $apiBaseUrl = "$ngrokUrl/api/v1"
+        } else {
+            $apiBaseUrl = $ngrokUrl
+        }
+        Write-Info "Targeting backend endpoint: $apiBaseUrl"
     }
-    Write-Info "Targeting backend endpoint: $apiBaseUrl"
 }
 
 Write-Step "Navigating to mobile application directory..."

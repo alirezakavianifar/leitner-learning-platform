@@ -63,7 +63,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
       );
 
       final box = currentCard.progress.currentBox;
-      if (box >= 2 && box <= 5) {
+      if (box >= 2 && box <= 6) {
         emit(FlashcardQueueLoaded(
           courseId: event.courseId,
           queue: finalQueue,
@@ -192,7 +192,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         }
 
         final box = card.progress.currentBox;
-        if (box >= 2 && box <= 5 && !event.forceReset) {
+        if (box >= 2 && box <= 6 && !event.forceReset) {
           emit(currentState.copyWith(
             jumpWarningCardNumber: card.cardNumber,
             jumpTargetCard: card,
@@ -334,7 +334,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         await flashcardRepository.resetCardProgress(
           courseId: currentState.courseId,
           cardNumber: event.cardNumber,
-          reason: 'JUMP',
+          reason: event.reason,
         );
 
         final newQueue = await flashcardRepository.getReviewQueue(

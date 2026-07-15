@@ -76,16 +76,20 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       }
 
       // Progression filter:
-      // 1. In Today's Reviews: Box 1 (always due) + Box 2-5 (if nextReviewDue <= now).
-      // 2. In Direct Course Study: Box 1 + Box 6 (Finished) only. Boxes 2-5 are hidden.
+      // 1. In Today's Reviews: Box 2-6 (if nextReviewDue <= now). Box 1 is NOT included (only enters Leitner on success).
+      // 2. In Direct Course Study: Box 1 + Box 2-6 (if due today) are shown. Non-due Box 2-6 and Finished Cards (Box 7) are hidden.
       final bool included;
       if (isTodayReview) {
         included = progress.currentBox >= 2 &&
-            progress.currentBox <= 5 &&
+            progress.currentBox <= 6 &&
             progress.nextReviewDue != null &&
             progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1)));
       } else {
-        included = progress.currentBox == 1 || progress.currentBox == 6;
+        included = progress.currentBox == 1 ||
+            (progress.currentBox >= 2 &&
+                progress.currentBox <= 6 &&
+                progress.nextReviewDue != null &&
+                progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1))));
       }
 
       if (included) {
@@ -160,14 +164,14 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     String? trigger;
 
     if (isCorrect) {
-      if (currentProgress.currentBox == 6) {
+      if (currentProgress.currentBox == 7) {
         // Finished cards remain finished, no action
         return;
       }
 
       trigger = 'REVIEW_CORRECT';
-      if (currentProgress.currentBox == 5) {
-        newBox = 6;
+      if (currentProgress.currentBox == 6) {
+        newBox = 7;
         newNextReviewDue = null;
         eventBus.fire(CardFinished(
           courseId: courseId,
@@ -181,6 +185,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
         if (newBox == 3) days = 7;
         if (newBox == 4) days = 16;
         if (newBox == 5) days = 31;
+        if (newBox == 6) days = 0; // Box 6 is due immediately for review to move to Finished
         newNextReviewDue = now.add(Duration(days: days));
         eventBus.fire(CardReviewed(
           courseId: courseId,
@@ -277,10 +282,10 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     final startOfTodayLocal = DateTime(now.year, now.month, now.day);
     final startOfTodayUtcStr = startOfTodayLocal.toUtc().toIso8601String();
 
-    // Query active Leitner cards (Boxes 2-5) whose nextReviewDue is strictly before the start of today local time
+    // Query active Leitner cards (Boxes 2-6) whose nextReviewDue is strictly before the start of today local time
     final List<Map<String, dynamic>> overdueMaps = await localDb.query(
       'client_progress',
-      where: 'course_id = ? AND current_box >= 2 AND current_box <= 5 AND next_review_due < ?',
+      where: 'course_id = ? AND current_box >= 2 AND current_box <= 6 AND next_review_due < ?',
       whereArgs: [courseId, startOfTodayUtcStr],
     );
 
@@ -372,7 +377,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       groupBy: 'current_box',
     );
 
-    final stats = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0};
+    final stats = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
     for (final map in maps) {
       final box = map['current_box'] as int;
       final count = map['count'] as int;
@@ -603,7 +608,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
 
     final List<Map<String, dynamic>> results = await localDb.rawQuery('''
       SELECT COUNT(*) as count FROM client_progress
-      WHERE current_box >= 2 AND current_box <= 5 AND next_review_due <= ?
+      WHERE current_box >= 2 AND current_box <= 6 AND next_review_due <= ?
     ''', [nowUtc]);
 
     if (results.isEmpty) return 0;
@@ -615,7 +620,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     final localDb = await databaseHelper.localDatabase;
     final List<Map<String, dynamic>> results = await localDb.rawQuery('''
       SELECT COUNT(*) as count FROM client_progress
-      WHERE current_box = 6
+      WHERE current_box = 7
     ''');
     return Sqflite.firstIntValue(results) ?? 0;
   }
@@ -625,7 +630,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     final localDb = await databaseHelper.localDatabase;
     final List<Map<String, dynamic>> progressMaps = await localDb.query(
       'client_progress',
-      where: 'current_box = 6',
+      where: 'current_box = 7',
     );
 
     final List<Flashcard> finishedList = [];

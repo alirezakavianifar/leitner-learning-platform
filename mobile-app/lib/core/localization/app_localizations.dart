@@ -77,6 +77,7 @@ class AppLocalizations {
       'box_3': 'Box 3',
       'box_4': 'Box 4',
       'box_5': 'Box 5',
+      'box_6': 'Box 6',
       'finished': 'Finished',
       'language': 'Language / زبان',
       'persian': 'فارسی (Persian)',
@@ -137,6 +138,7 @@ class AppLocalizations {
       'box_3_green': 'Box 3 (Green)',
       'box_4_blue': 'Box 4 (Blue)',
       'box_5_purple': 'Box 5 (Purple)',
+      'box_6_gold': 'Box 6 (Gold)',
       'finished_gold': 'Finished (Gold)',
       'cards_unit': 'cards',
       'b1_mini': 'B1',
@@ -144,6 +146,7 @@ class AppLocalizations {
       'b3_mini': 'B3',
       'b4_mini': 'B4',
       'b5_mini': 'B5',
+      'b6_mini': 'B6',
       'fin_mini': 'Fin',
       'no_downloaded_courses_stats': 'No downloaded courses found. Please download courses to see statistics.',
       'card_retained_msg': 'Card retained in Finished pool.',
@@ -359,6 +362,7 @@ class AppLocalizations {
       'box_3': 'جعبه ۳',
       'box_4': 'جعبه ۴',
       'box_5': 'جعبه ۵',
+      'box_6': 'جعبه ۶',
       'finished': 'پایان یافته',
       'language': 'زبان برنامه / Language',
       'persian': 'فارسی (Persian)',
@@ -419,6 +423,7 @@ class AppLocalizations {
       'box_3_green': 'جعبه ۳ (سبز)',
       'box_4_blue': 'جعبه ۴ (آبی)',
       'box_5_purple': 'جعبه ۵ (بنفش)',
+      'box_6_gold': 'جعبه ۶ (طلایی)',
       'finished_gold': 'پایان یافته (طلایی)',
       'cards_unit': 'کارت',
       'b1_mini': 'ج۱',
@@ -426,6 +431,7 @@ class AppLocalizations {
       'b3_mini': 'ج۳',
       'b4_mini': 'ج۴',
       'b5_mini': 'ج۵',
+      'b6_mini': 'ج۶',
       'fin_mini': 'پایان',
       'no_downloaded_courses_stats': 'هیچ دوره دانلود شده‌ای یافت نشد. لطفا جهت مشاهده آمار، ابتدا دوره دانلود کنید.',
       'card_retained_msg': 'کارت در دسته تثبیت‌شده‌ها باقی ماند.',
@@ -646,6 +652,7 @@ class AppLocalizations {
   String get box3 => translate('box_3');
   String get box4 => translate('box_4');
   String get box5 => translate('box_5');
+  String get box6 => translate('box_6');
   String get finished => translate('finished');
   String get language => translate('language');
   String get persian => translate('persian');
@@ -711,6 +718,7 @@ class AppLocalizations {
   String get box3Green => translate('box_3_green');
   String get box4Blue => translate('box_4_blue');
   String get box5Purple => translate('box_5_purple');
+  String get box6Gold => translate('box_6_gold');
   String get finishedGold => translate('finished_gold');
   String get cardsUnit => translate('cards_unit');
   String get b1Mini => translate('b1_mini');
@@ -718,6 +726,7 @@ class AppLocalizations {
   String get b3Mini => translate('b3_mini');
   String get b4Mini => translate('b4_mini');
   String get b5Mini => translate('b5_mini');
+  String get b6Mini => translate('b6_mini');
   String get finMini => translate('fin_mini');
   String get noDownloadedCoursesStats => translate('no_downloaded_courses_stats');
 

@@ -21,6 +21,7 @@ class FlashcardStudyScreen extends StatefulWidget {
   final String courseTitle;
   final int? initialCardNumber;
   final bool isTodayReview;
+  final bool isFromFavorites;
 
   const FlashcardStudyScreen({
     Key? key,
@@ -28,6 +29,7 @@ class FlashcardStudyScreen extends StatefulWidget {
     required this.courseTitle,
     this.initialCardNumber,
     this.isTodayReview = false,
+    this.isFromFavorites = false,
   }) : super(key: key);
 
   static Route route({
@@ -35,6 +37,7 @@ class FlashcardStudyScreen extends StatefulWidget {
     required String courseTitle,
     bool isTodayReview = false,
     int? initialCardNumber,
+    bool isFromFavorites = false,
   }) {
     return PageRouteBuilder(
       opaque: false,
@@ -46,6 +49,7 @@ class FlashcardStudyScreen extends StatefulWidget {
           courseTitle: courseTitle,
           isTodayReview: isTodayReview,
           initialCardNumber: initialCardNumber,
+          isFromFavorites: isFromFavorites,
         );
       },
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -258,7 +262,10 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () {
               Navigator.pop(dialogCtx);
-              context.read<FlashcardBloc>().add(ResetCardProgressEvent(card.cardNumber));
+              context.read<FlashcardBloc>().add(ResetCardProgressEvent(
+                card.cardNumber,
+                reason: widget.isFromFavorites ? 'FAVORITES' : 'JUMP',
+              ));
             },
             child: Text(loc.translate('yes_label'), style: const TextStyle(color: Colors.white)),
           ),
@@ -280,6 +287,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
       case 5:
         return AppColors.box5;
       case 6:
+        return AppColors.box6;
+      case 7:
         return AppColors.finished;
       default:
         return AppColors.primary;
@@ -300,6 +309,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
       case 5:
         return loc.box5;
       case 6:
+        return loc.box6;
+      case 7:
         return loc.finished;
       default:
         return '${loc.box1} $box';

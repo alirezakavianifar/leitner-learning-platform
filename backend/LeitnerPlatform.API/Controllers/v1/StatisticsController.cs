@@ -129,7 +129,7 @@ namespace LeitnerPlatform.API.Controllers.v1
 
                     if (trigger == "REVIEW_CORRECT")
                     {
-                        if (delta.CurrentBox == 6)
+                        if (delta.CurrentBox == 7)
                         {
                             await _eventBus.PublishAsync(new CardFinishedEvent(userId, delta.CourseId, delta.CardNumber, eventTime));
                         }

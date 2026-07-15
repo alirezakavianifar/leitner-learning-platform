@@ -26,7 +26,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   // Global metrics
   int _totalCourses = 0;
   int _totalCards = 0;
-  Map<int, int> _globalBoxCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0};
+  Map<int, int> _globalBoxCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
 
   @override
   void initState() {
@@ -54,7 +54,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       (data) async {
         final downloaded = data.$1.where((c) => c.isDownloaded).toList();
         final Map<String, Map<int, int>> statsMap = {};
-        final Map<int, int> globalCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0};
+        final Map<int, int> globalCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
         int sumCards = 0;
 
         for (final course in downloaded) {
@@ -62,7 +62,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           statsMap[course.id] = stats;
 
           // Sum box counts
-          for (int box = 1; box <= 6; box++) {
+          for (int box = 1; box <= 7; box++) {
             final count = stats[box] ?? 0;
             globalCounts[box] = (globalCounts[box] ?? 0) + count;
             sumCards += count;
@@ -242,7 +242,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     if (_globalBoxCounts[3]! > 0) Expanded(flex: _globalBoxCounts[3]!, child: Container(color: AppColors.box3)),
                     if (_globalBoxCounts[4]! > 0) Expanded(flex: _globalBoxCounts[4]!, child: Container(color: AppColors.box4)),
                     if (_globalBoxCounts[5]! > 0) Expanded(flex: _globalBoxCounts[5]!, child: Container(color: AppColors.box5)),
-                    if (_globalBoxCounts[6]! > 0) Expanded(flex: _globalBoxCounts[6]!, child: Container(color: AppColors.finished)),
+                    if (_globalBoxCounts[6]! > 0) Expanded(flex: _globalBoxCounts[6]!, child: Container(color: AppColors.box6)),
+                    if (_globalBoxCounts[7]! > 0) Expanded(flex: _globalBoxCounts[7]!, child: Container(color: AppColors.finished)),
                   ],
                 ),
               ),
@@ -254,7 +255,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           _buildDistributionRow(loc.box3Green, _globalBoxCounts[3] ?? 0, AppColors.box3, loc),
           _buildDistributionRow(loc.box4Blue, _globalBoxCounts[4] ?? 0, AppColors.box4, loc),
           _buildDistributionRow(loc.box5Purple, _globalBoxCounts[5] ?? 0, AppColors.box5, loc),
-          _buildDistributionRow(loc.finishedGold, _globalBoxCounts[6] ?? 0, AppColors.finished, loc),
+          _buildDistributionRow(loc.box6Gold, _globalBoxCounts[6] ?? 0, AppColors.box6, loc),
+          _buildDistributionRow(loc.finishedGold, _globalBoxCounts[7] ?? 0, AppColors.finished, loc),
         ],
       ),
     );
@@ -288,9 +290,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Widget _buildCourseStatsCard(Course course, AppLocalizations loc) {
-    final stats = _courseStats[course.id] ?? {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0};
+    final stats = _courseStats[course.id] ?? {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
     final sumCards = stats.values.fold(0, (sum, val) => sum + val);
-
+ 
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
@@ -335,7 +337,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     if (stats[3]! > 0) Expanded(flex: stats[3]!, child: Container(color: AppColors.box3)),
                     if (stats[4]! > 0) Expanded(flex: stats[4]!, child: Container(color: AppColors.box4)),
                     if (stats[5]! > 0) Expanded(flex: stats[5]!, child: Container(color: AppColors.box5)),
-                    if (stats[6]! > 0) Expanded(flex: stats[6]!, child: Container(color: AppColors.finished)),
+                    if (stats[6]! > 0) Expanded(flex: stats[6]!, child: Container(color: AppColors.box6)),
+                    if (stats[7]! > 0) Expanded(flex: stats[7]!, child: Container(color: AppColors.finished)),
                   ],
                 ),
               ),
@@ -351,7 +354,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               _buildMiniBoxTag(loc.b3Mini, stats[3] ?? 0, AppColors.box3),
               _buildMiniBoxTag(loc.b4Mini, stats[4] ?? 0, AppColors.box4),
               _buildMiniBoxTag(loc.b5Mini, stats[5] ?? 0, AppColors.box5),
-              _buildMiniBoxTag(loc.finMini, stats[6] ?? 0, AppColors.finished),
+              _buildMiniBoxTag(loc.b6Mini, stats[6] ?? 0, AppColors.box6),
+              _buildMiniBoxTag(loc.finMini, stats[7] ?? 0, AppColors.finished),
             ],
           ),
         ],

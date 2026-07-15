@@ -20,6 +20,7 @@ class AppColors {
   static const Color box3 = Color(0xFF17C964); // Green
   static const Color box4 = Color(0xFF1A9CFF); // Blue
   static const Color box5 = Color(0xFFC333FF); // Purple
+  static const Color box6 = Color(0xFFFFD700); // Gold
   static const Color finished = Color(0xFFFFD700); // Gold
 
   // Course Border Statuses

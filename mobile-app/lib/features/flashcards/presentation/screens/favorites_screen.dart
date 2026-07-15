@@ -52,6 +52,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         courseId: widget.courseId,
         courseTitle: widget.courseTitle,
         initialCardNumber: card.cardNumber,
+        isFromFavorites: true,
       ),
     );
     _loadFavorites();
@@ -70,6 +71,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       case 5:
         return AppColors.box5;
       case 6:
+        return AppColors.box6;
+      case 7:
         return AppColors.finished;
       default:
         return AppColors.primary;
@@ -90,6 +93,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       case 5:
         return loc.box5;
       case 6:
+        return loc.box6;
+      case 7:
         return loc.finished;
       default:
         return '${loc.box1} $box';

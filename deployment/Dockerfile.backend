@@ -9,11 +9,12 @@ COPY ["backend/LeitnerPlatform.Data/LeitnerPlatform.Data.csproj", "backend/Leitn
 COPY ["backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj", "backend/LeitnerPlatform.BackgroundWorker/"]
 
 RUN dotnet restore "backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj"
+RUN dotnet restore "backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj"
 
 # Copy remaining source code and publish
 COPY . .
-WORKDIR "/src/backend/LeitnerPlatform.API"
-RUN dotnet publish "LeitnerPlatform.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Stage 2: Runtime image configuration
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
@@ -26,6 +27,9 @@ RUN apk add --no-cache icu-libs sqlite-libs
 
 # Copy published application
 COPY --from=build /app/publish .
+
+# Copy database migrations
+COPY deployment/db/migrations ./db/migrations
 
 # Run as non-privileged app user for security hardening
 USER $APP_UID
