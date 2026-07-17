@@ -86,7 +86,7 @@ $RemoteCmd = "mkdir -p /opt/leitner-platform; " +
              "unzip -o /tmp/leitner_platform.zip -d /opt/leitner-platform; " +
              "rm -f /tmp/leitner_platform.zip; " +
              "cd /opt/leitner-platform && " +
-             "docker compose -f deployment/docker-compose.yml up -d --build"
+             "docker compose -f deployment/docker-compose.yml --env-file .env up -d --build"
 
 $SshArgs = @(
     "-i", $KeyPath,
@@ -105,5 +105,12 @@ If ($LASTEXITCODE -ne 0) {
 Write-Host "`nDeployment finished. Verifying container status..." -ForegroundColor Green
 $VerifyCmd = "cd /opt/leitner-platform && docker compose -f deployment/docker-compose.yml ps"
 & ssh -i $KeyPath -o StrictHostKeyChecking=no "${ServerUser}@${ServerIP}" $VerifyCmd
+
+# 7. Local Clean-Up
+Write-Host "`nCleaning up local temporary archive..." -ForegroundColor Yellow
+if (Test-Path $ZipPath) {
+    Remove-Item $ZipPath -Force
+    Write-Host "  [OK] Local temporary archive deleted." -ForegroundColor Green
+}
 
 Write-Host "`nAll operations completed successfully! Enjoy your deployed app at http://$ServerIP" -ForegroundColor Cyan

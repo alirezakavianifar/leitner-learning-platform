@@ -214,6 +214,15 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
           </form>
         )}
+        <div style={{ marginTop: '20px', padding: '12px', borderTop: '1px solid rgba(0, 0, 0, 0.08)', fontSize: '12px', color: '#64748b', textAlign: 'center', direction: 'rtl' }}>
+          <strong>جهت بررسی ناظر محترم سامانه پیامکی:</strong>
+          <div style={{ marginTop: '4px' }}>
+            شماره موبایل تست: <code style={{ userSelect: 'all', background: 'rgba(0,0,0,0.05)', padding: '2px 4px', borderRadius: '4px', fontFamily: 'monospace' }}>09120000000</code>
+          </div>
+          <div style={{ marginTop: '2px' }}>
+            کد تایید پیامک (بای‌پس): <code style={{ userSelect: 'all', background: 'rgba(0,0,0,0.05)', padding: '2px 4px', borderRadius: '4px', fontFamily: 'monospace' }}>12345</code>
+          </div>
+        </div>
       </div>
     </div>
   );

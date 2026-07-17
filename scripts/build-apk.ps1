@@ -170,6 +170,9 @@ try {
         Write-Step "Copying generated APK to workspace root..."
         Copy-Item -Path $apkPath -Destination $destPath -Force
         
+        Write-Step "Cleaning up intermediate build files to reclaim disk space..."
+        flutter clean
+        
         Write-Ok "APK built successfully!"
         Write-Host ""
         Write-Host "  Output Location: $destPath" -ForegroundColor Green
