@@ -16,6 +16,17 @@ export const removeToken = () => {
   localStorage.removeItem('admin_token');
 };
 
+const generateUUID = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 // Base Fetch Wrapper with JWT Header and 401 redirect to logout
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
@@ -28,6 +39,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
+
+  // Inject correlation ID
+  const correlationId = generateUUID();
+  headers.set('X-Correlation-ID', correlationId);
 
   const response = await fetch(`${getBaseUrl()}${path}`, {
     ...options,
@@ -42,13 +57,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (!response.ok) {
     let errMsg = 'API Request Failed';
+    let serverCorrelationId = '';
     try {
       const errData = await response.json();
-      errMsg = errData.message || errMsg;
+      errMsg = errData.error || errData.message || errMsg;
+      serverCorrelationId = errData.correlation_id || '';
     } catch {
       // ignore
     }
-    throw new Error(errMsg);
+    const finalCorrelationId = serverCorrelationId || correlationId;
+    throw new Error(`${errMsg} (Correlation ID: ${finalCorrelationId})`);
   }
 
   if (response.status === 204) {

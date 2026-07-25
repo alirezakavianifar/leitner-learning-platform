@@ -13,6 +13,7 @@ Welcome to the Leitner Learning Platform repository. This repository contains th
 *   **[docs/deployment/docker_deployment_guide.md](file:///e:/projects/leitner-learning-platform/docs/deployment/docker_deployment_guide.md)**: Container orchestration, Nginx reverse proxy configuration, environment variable schemas, and Let's Encrypt configurations.
 *   **[docs/course/course_upload_guide.md](file:///e:/projects/leitner-learning-platform/docs/course/course_upload_guide.md)**: Steps to package, encrypt, compile, and upload Leitner courses using the Authoring Kit.
 *   **[docs/deployment/backup_and_recovery_guide.md](file:///e:/projects/leitner-learning-platform/docs/deployment/backup_and_recovery_guide.md)**: Backup schedule policies, S3 replication workflows, and database recovery commands.
+*   **[docs/sms_configuration_guide.md](file:///e:/projects/leitner-learning-platform/docs/sms_configuration_guide.md)**: Detailed reference guide for configuring, toggling, and deploying the SMS/OTP verification system.
 *   **[AGENTS.md](file:///e:/projects/leitner-learning-platform/AGENTS.md)**: Instructions and constraints for autonomous AI coding agents working on this repository.
 
 
@@ -135,6 +136,10 @@ The entire backend infrastructure (Database, Cache, API, Background Worker, and 
     SMS_GATEWAY_API_KEY=your_sms_gateway_api_key
     SMS_SENDER=your_sms_sender_line_number
     SMS_PATTERN_CODE=your_approved_pattern_code
+    ZARINPAL_MERCHANT_ID=167ccd1b-f5d3-407d-85d1-a73c4f2ba3eb
+    ZARINPAL_SANDBOX=false
+    ZARINPAL_CALLBACK_URL=https://rightlearn.ir/api/v1/purchases/zarinpal/callback
+
     ```
 
 #### Running the Stack
@@ -148,6 +153,20 @@ This commands builds the backend and admin panel containers and boots the follow
 *   **Backend API (.NET 8)** listening on host port `8080`.
 *   **Web Admin Panel** served on host port `3000`.
 *   **Background Worker (Hangfire)** processing background synchronization and database cleanup jobs in the background.
+
+#### Automated Deployment Script (deploy-to-server.ps1)
+You can automate the packaging, upload, and deployment of local source files to the remote server using the provided PowerShell script. It supports configuring the SMS state (ON/OFF) dynamically during deployment:
+
+```powershell
+# Deploy with SMS ON (Default)
+powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1
+
+# Deploy with SMS ON (Explicit)
+powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms ON
+
+# Deploy with SMS OFF (Disables live SMS sending and falls back to logging OTP codes to container logs)
+powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms OFF
+```
 
 ---
 

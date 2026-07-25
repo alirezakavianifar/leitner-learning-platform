@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb, VoidCallback;
 import 'package:dio/dio.dart';
 import 'package:mobile_app/core/services/storage_service.dart';
+import 'package:mobile_app/core/network/correlation_interceptor.dart';
 
 /// Preconfigured Dio client setup that injects Authorization headers
 /// using the securely stored JWT token when available.
@@ -37,13 +38,13 @@ class DioClient {
       'Accept': 'application/json',
     };
 
+    dio.interceptors.add(CorrelationInterceptor());
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           if (options.path.startsWith('/')) {
             options.path = options.path.substring(1);
           }
-          print('Dio Request: ${options.uri}');
           final token = await storageService.readSecure('jwt_token');
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';

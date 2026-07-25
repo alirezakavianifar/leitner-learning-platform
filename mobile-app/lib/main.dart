@@ -23,6 +23,7 @@ import 'package:mobile_app/features/config/presentation/bloc/config_event.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/features/config/presentation/screens/maintenance_screen.dart';
 import 'injection_container.dart' as di;
+import 'package:mobile_app/core/diagnostics/app_logger.dart';
 
 /// Global navigator key — used by the Dio 401 interceptor to redirect to
 /// the login screen without requiring a BuildContext.
@@ -30,6 +31,27 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main({String flavor = 'store'}) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize structured logging and rotating local file sink
+  await AppLogger().init();
+
+  // Catch uncaught errors bubbled up from the Flutter framework
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    AppLogger().error(
+      'Uncaught Flutter framework error: ${details.exception}',
+      details.exception,
+      details.stack,
+    );
+  };
+
+  // Catch uncaught asynchronous and platform-level exceptions
+  PlatformDispatcher.instance.onError = (error, stack) {
+    AppLogger().error('Uncaught asynchronous platform error', error, stack);
+    return true;
+  };
+
+  AppLogger().info('Starting application. Flavor: $flavor');
   
   if (!kIsWeb && Platform.isWindows) {
     sqfliteFfiInit();

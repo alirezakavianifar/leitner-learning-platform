@@ -292,6 +292,12 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                             child: Text(isFa ? opt['fa']! : opt['en']!),
                           );
                         }).toList(),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return loc.pleaseSelectInterest;
+                          }
+                          return null;
+                        },
                         onChanged: (value) {
                           setState(() {
                             _selectedInterest = value;
@@ -315,6 +321,12 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                             child: Text(isFa ? opt['fa']! : opt['en']!),
                           );
                         }).toList(),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return loc.pleaseSelectField;
+                          }
+                          return null;
+                        },
                         onChanged: (value) {
                           setState(() {
                             _selectedField = value;
@@ -338,6 +350,12 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                             child: Text(isFa ? opt['fa']! : opt['en']!),
                           );
                         }).toList(),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return loc.pleaseSelectLevel;
+                          }
+                          return null;
+                        },
                         onChanged: (value) {
                           setState(() {
                             _selectedLevel = value;

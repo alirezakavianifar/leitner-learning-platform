@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using LeitnerPlatform.API.Controllers.v1;
@@ -50,7 +52,11 @@ namespace LeitnerPlatform.Tests
             mockEventBus.Setup(eb => eb.PublishAsync(It.IsAny<PurchaseCompletedEvent>()))
                 .Returns(Task.CompletedTask);
 
-            var controller = new PurchaseController(db, mockEventBus.Object);
+            var mockZarinPalService = new Mock<IZarinPalService>();
+            var mockConfig = new Mock<IConfiguration>();
+            var mockLogger = new Mock<ILogger<PurchaseController>>();
+
+            var controller = new PurchaseController(db, mockEventBus.Object, mockZarinPalService.Object, mockConfig.Object, mockLogger.Object);
             var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString())
@@ -85,5 +91,77 @@ namespace LeitnerPlatform.Tests
                 e.Purchase.CourseId == courseId && 
                 e.Purchase.TransactionId == "GPA.1234-5678-9012-34567")), Times.Once);
         }
+
+        [Fact]
+        public async Task PurchaseController_RequestZarinPalPayment_ShouldReturnPaymentUrl()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var userId = Guid.NewGuid();
+            var courseId = Guid.NewGuid();
+
+            var course = new Course
+            {
+                Id = courseId,
+                Title = "Flutter Advanced Masterclass",
+                Price = 50000m,
+                IsPublished = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            await db.Courses.AddAsync(course);
+
+            var user = new User
+            {
+                Id = userId,
+                Username = "09121234567",
+                MobileNumber = "09121234567",
+                CreatedAt = DateTime.UtcNow
+            };
+            await db.Users.AddAsync(user);
+            await db.SaveChangesAsync();
+
+            var mockEventBus = new Mock<IEventBus>();
+            var mockZarinPalService = new Mock<IZarinPalService>();
+            mockZarinPalService.Setup(z => z.RequestPaymentAsync(50000m, It.IsAny<string>(), It.IsAny<string>(), "09121234567", null))
+                .ReturnsAsync(new ZarinPalRequestResponse
+                {
+                    IsSuccess = true,
+                    Code = 100,
+                    Authority = "A00000000000000000000000000000000000",
+                    PaymentUrl = "https://www.zarinpal.com/pg/StartPay/A00000000000000000000000000000000000"
+                });
+
+            var mockConfig = new Mock<IConfiguration>();
+            mockConfig.Setup(c => c["ZarinPal:CallbackUrl"]).Returns("https://api.example.com/callback");
+            var mockLogger = new Mock<ILogger<PurchaseController>>();
+
+            var controller = new PurchaseController(db, mockEventBus.Object, mockZarinPalService.Object, mockConfig.Object, mockLogger.Object);
+            var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString())
+            }, "TestAuth"));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = claimsPrincipal,
+                    Request = { Scheme = "https", Host = new HostString("api.example.com") }
+                }
+            };
+
+            // Act
+            var result = await controller.RequestZarinPalPayment(new ZarinPalPurchaseInput { CourseId = courseId });
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var purchase = await db.Purchases.FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == courseId);
+            Assert.NotNull(purchase);
+            Assert.Equal("PENDING", purchase.Status);
+            Assert.Equal("ZARINPAL", purchase.PaymentProvider);
+            Assert.Equal("A00000000000000000000000000000000000", purchase.TransactionId);
+        }
     }
 }
+
+

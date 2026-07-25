@@ -6,6 +6,11 @@
 # and triggers Docker Compose rebuild and boot.
 # ==============================================================================
 
+param (
+    [ValidateSet("ON", "OFF")]
+    [string]$Sms = "ON"
+)
+
 $ServerIP = "45.94.215.188"
 $ServerUser = "root"
 $KeyPath = "C:\Users\Administrator\.ssh\id_rsa_deploy"
@@ -55,6 +60,32 @@ Function Copy-Source([string]$Src, [string]$Dest) {
 }
 
 Copy-Source $ProjectRoot $StagingFolder
+
+# 2.5 Configure SMS State in .env
+$StagingEnv = Join-Path $StagingFolder ".env"
+if (Test-Path $StagingEnv) {
+    Write-Host "Configuring SMS state to: $Sms" -ForegroundColor Yellow
+    $Content = Get-Content $StagingEnv
+    $NewContent = $Content | ForEach-Object {
+        if ($Sms -eq "OFF") {
+            if ($_ -match "^\s*SMS_GATEWAY_API_KEY\s*=") {
+                "# " + $_.TrimStart()
+            } else {
+                $_
+            }
+        } else { # ON
+            if ($_ -match "^\s*#\s*SMS_GATEWAY_API_KEY\s*=") {
+                $_.Replace("#", "").TrimStart()
+            } else {
+                $_
+            }
+        }
+    }
+    $NewContent | Set-Content $StagingEnv -Force
+    Write-Host "  [OK] SMS configuration updated." -ForegroundColor Green
+} else {
+    Write-Warning ".env file not found in staging folder! SMS state could not be configured."
+}
 
 # 3. Create Zip Archive
 Write-Host "Compressing deployment archive..." -ForegroundColor Yellow

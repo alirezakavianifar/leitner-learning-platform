@@ -18,8 +18,16 @@ using LeitnerPlatform.Core.Interfaces;
 using LeitnerPlatform.Data;
 using LeitnerPlatform.Data.Repositories;
 using LeitnerPlatform.Data.Services;
+using Serilog;
+using LeitnerPlatform.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
 
 // 1. Add Configuration
 var connectionString = builder.Configuration["ConnectionStrings__DefaultConnection"] 
@@ -48,11 +56,11 @@ if (!string.IsNullOrEmpty(redisConn))
     {
         var connectionMultiplexer = ConnectionMultiplexer.Connect(redisConn);
         builder.Services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
-        Console.WriteLine("Redis Connection multiplexer registered successfully.");
+        Log.Information("Redis Connection multiplexer registered successfully.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Warning: Failed to connect to Redis. Caching will use in-memory. Error: {ex.Message}");
+        Log.Warning(ex, "Failed to connect to Redis. Caching will use in-memory.");
     }
 }
 
@@ -67,9 +75,11 @@ builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
 
 // 7. Register Infrastructure Services
 builder.Services.AddHttpClient<ISmsService, SmsService>();
+builder.Services.AddHttpClient<IZarinPalService, ZarinPalService>();
 builder.Services.AddScoped<ICaptchaService, CaptchaService>();
 builder.Services.AddScoped<IBackupService, S3BackupService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+
 
 // 8. Register Channel Event Bus (Singleton & Hosted Processor)
 builder.Services.AddSingleton<IEventBus, ChannelEventBus>();
@@ -158,12 +168,12 @@ var app = builder.Build();
 // 12. Run Database Upgrader/Migrator
 try
 {
-    Console.WriteLine("Executing DatabaseMigrator migrations...");
+    Log.Information("Executing DatabaseMigrator migrations...");
     DatabaseMigrator.Migrate(connectionString);
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"Critical Warning: Database migration failed at startup. EF Core will create schema if database is blank. Error: {ex.Message}");
+    Log.Warning(ex, "Database migration failed at startup. EF Core will create schema if database is blank.");
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<LeitnerDbContext>();
     dbContext.Database.EnsureCreated();
@@ -174,7 +184,7 @@ var eventBus = app.Services.GetRequiredService<IEventBus>();
 
 eventBus.Subscribe<UserRegisteredEvent>(async @event =>
 {
-    Console.WriteLine($"Event Bus received UserRegisteredEvent for {@event.User.MobileNumber}. Triggering S3 Backup...");
+    Log.Information("Event Bus received UserRegisteredEvent for {MobileNumber}. Triggering S3 Backup...", @event.User.MobileNumber);
     using var scope = app.Services.CreateScope();
     var backupService = scope.ServiceProvider.GetRequiredService<IBackupService>();
     await backupService.ReplicateUserAsync(@event.User);
@@ -182,13 +192,17 @@ eventBus.Subscribe<UserRegisteredEvent>(async @event =>
 
 eventBus.Subscribe<PurchaseCompletedEvent>(async @event =>
 {
-    Console.WriteLine($"Event Bus received PurchaseCompletedEvent for user {@event.Purchase.UserId}, Course {@event.Purchase.CourseId}. Triggering S3 Backup...");
+    Log.Information("Event Bus received PurchaseCompletedEvent for user {UserId}, Course {CourseId}. Triggering S3 Backup...", @event.Purchase.UserId, @event.Purchase.CourseId);
     using var scope = app.Services.CreateScope();
     var backupService = scope.ServiceProvider.GetRequiredService<IBackupService>();
     await backupService.ReplicatePurchaseAsync(@event.Purchase);
 });
 
 // 14. Configure request pipeline
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseSerilogRequestLogging();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

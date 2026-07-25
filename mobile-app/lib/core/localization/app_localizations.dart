@@ -203,6 +203,9 @@ class AppLocalizations {
       'refresh_captcha': 'Refresh CAPTCHA',
       'please_enter_captcha': 'Please enter the CAPTCHA answer',
       'please_enter_username': 'Please enter your username',
+      'please_select_interest': 'Please select your interest',
+      'please_select_field': 'Please select your field of study',
+      'please_select_level': 'Please select your educational level',
       'invalid_mobile_number': 'The provided mobile number is invalid.',
       'invalid_captcha': 'The CAPTCHA verification failed.',
       'sms_send_failed': 'Failed to dispatch verification code.',
@@ -488,6 +491,9 @@ class AppLocalizations {
       'refresh_captcha': 'بارگذاری مجدد کد امنیتی',
       'please_enter_captcha': 'لطفاً پاسخ کد امنیتی را وارد کنید',
       'please_enter_username': 'لطفاً نام کاربری خود را وارد کنید',
+      'please_select_interest': 'لطفاً علاقه‌مندی خود را انتخاب کنید',
+      'please_select_field': 'لطفاً رشته تحصیلی خود را انتخاب کنید',
+      'please_select_level': 'لطفاً مقطع تحصیلی خود را انتخاب کنید',
       'invalid_mobile_number': 'شماره موبایل وارد شده نامعتبر است.',
       'invalid_captcha': 'پاسخ کد امنیتی نادرست است.',
       'sms_send_failed': 'خطا در ارسال کد تأیید. لطفاً مجدداً تلاش کنید.',
@@ -767,6 +773,9 @@ class AppLocalizations {
   String get refreshCaptcha => translate('refresh_captcha');
   String get pleaseEnterCaptcha => translate('please_enter_captcha');
   String get pleaseEnterUsername => translate('please_enter_username');
+  String get pleaseSelectInterest => translate('please_select_interest');
+  String get pleaseSelectField => translate('please_select_field');
+  String get pleaseSelectLevel => translate('please_select_level');
   String get invalidMobileNumber => translate('invalid_mobile_number');
   String get invalidCaptcha => translate('invalid_captcha');
   String get smsSendFailed => translate('sms_send_failed');
