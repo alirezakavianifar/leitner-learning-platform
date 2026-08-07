@@ -506,7 +506,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        course.price == 0 ? AppLocalizations.of(context).free : '${course.price.toStringAsFixed(0)} IRR',
+                        _formatPrice(course.price, context),
                         style: TextStyle(
                           color: course.price == 0 ? AppColors.secondary : AppColors.textSecondary,
                           fontSize: 12,
@@ -621,6 +621,17 @@ class _CoursesScreenState extends State<CoursesScreen> {
         ],
       ),
     );
+  }
+
+  String _formatPrice(double price, BuildContext context) {
+    if (price == 0) {
+      return AppLocalizations.of(context).free;
+    }
+    final formattedNumber = price.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+    return '$formattedNumber ${AppLocalizations.of(context).toman}';
   }
 }
 

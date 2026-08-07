@@ -284,7 +284,7 @@ export const UsersView: React.FC = () => {
                           <div style={{ marginRight: '8px' }}>
                             <div style={{ fontWeight: 600, fontSize: '13px' }}>{course.title}</div>
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                              {course.price === 0 ? t('courses.status_free') : `${formatPrice(course.price)} ${t('courses.irr', 'IRR')}`}
+                              {course.price === 0 ? t('courses.status_free') : `${formatPrice(course.price)} ${t('courses.irr', 'Toman')}`}
                             </div>
                           </div>
                           <button

@@ -96,7 +96,7 @@ Once you have generated the compiled `.zip` file (e.g. `course_package.zip`), fo
 4. Fill in the course details:
    * **Course ID**: Must match the ID defined in `manifest.json` exactly.
    * **Title & Description**: Display names for the catalog.
-   * **Price (IRR)**: Set to `0` for free courses.
+   * **Price (Toman)**: Set to `0` for free courses.
    * **Target Audience Metadata**: Category, difficulty.
 5. In the **Course Package File** selector, choose the compiled `.zip` file.
 6. Click **Save & Upload**. The API server will verify the format, extract metadata entries to the server database, and save the zip package securely to the content directory.

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using LeitnerPlatform.API.Controllers.v1;
@@ -211,7 +212,7 @@ namespace LeitnerPlatform.Tests
                 It.IsAny<string>()
             )).Returns(Task.CompletedTask);
 
-            var controller = new AdminController(db, mockEventBus.Object, mockAudit.Object);
+            var controller = new AdminController(db, mockEventBus.Object, mockAudit.Object, Mock.Of<ILogger<AdminController>>());
             var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
             {
                 new Claim(ClaimTypes.Name, "test_admin")
@@ -269,7 +270,7 @@ namespace LeitnerPlatform.Tests
             var mockEventBus = new Mock<IEventBus>();
             var mockAudit = new Mock<IAuditLogService>();
 
-            var controller = new AdminController(db, mockEventBus.Object, mockAudit.Object);
+            var controller = new AdminController(db, mockEventBus.Object, mockAudit.Object, Mock.Of<ILogger<AdminController>>());
             var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
             {
                 new Claim(ClaimTypes.Name, "test_admin")

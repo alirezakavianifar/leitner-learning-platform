@@ -15,57 +15,23 @@ $ServerIP = "45.94.215.188"
 $ServerUser = "root"
 $KeyPath = "C:\Users\Administrator\.ssh\id_rsa_deploy"
 $Timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$ZipPath = "E:\temp\leitner_platform_$Timestamp.zip"
-$StagingFolder = "E:\temp\leitner_deploy_staging_$Timestamp"
+$TarPath = "E:\temp\leitner_platform_$Timestamp.tar.gz"
 
-# Excluded Directories and Files
-$ExcludeDirs = @('.git', 'node_modules', 'bin', 'obj', '.vs', 'dist', 'TestResults', 'temp', 'mobile-app', 'docs', 'scripts')
-$ExcludeFiles = @('app-premium-release.apk', 'app-premium-release.rar', 'document.PDF', 'screen.png', 'ngrok_test.log')
-
-# Root Project Directory (where this script is launched or where it is located)
+# Root Project Directory
 $ProjectRoot = (Get-Item $PSScriptRoot).Parent.FullName
 
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "Preparing Leitner Platform Deployment to $ServerIP" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 
-# 1. Clean Staging Environment & Old Archives
-Get-ChildItem -Path "E:\temp" -Filter "leitner_platform_*.zip" -ErrorAction SilentlyContinue | ForEach-Object { Try { Remove-Item $_.FullName -Force } Catch {} }
-If (Test-Path $ZipPath) { Remove-Item $ZipPath -Force }
-If (Test-Path $StagingFolder) { Remove-Item $StagingFolder -Recurse -Force }
-New-Item -ItemType Directory -Force -Path $StagingFolder | Out-Null
+# 1. Clean Old Archives
+Get-ChildItem -Path "E:\temp" -Filter "leitner_platform_*" -ErrorAction SilentlyContinue | ForEach-Object { Try { Remove-Item $_.FullName -Recurse -Force } Catch {} }
 
-# 2. Selectively Copy Source Files (Recursive Exclusions)
-Write-Host "Packaging source files (excluding node_modules, build folders, and binaries)..." -ForegroundColor Yellow
-
-Function Copy-Source([string]$Src, [string]$Dest) {
-    Get-ChildItem -Path $Src -File | ForEach-Object {
-        If ($ExcludeFiles -notcontains $_.Name) {
-            $TargetFile = Join-Path $Dest $_.Name
-            $Dir = Split-Path $TargetFile
-            If (-not (Test-Path $Dir)) { New-Item -ItemType Directory -Force -Path $Dir | Out-Null }
-            Try {
-                Copy-Item -Path $_.FullName -Destination $TargetFile -Force -ErrorAction Stop
-            } Catch {
-                Write-Warning "Skipped locked file: $_.FullName"
-            }
-        }
-    }
-    Get-ChildItem -Path $Src -Directory | ForEach-Object {
-        If ($ExcludeDirs -notcontains $_.Name) {
-            $SubDest = Join-Path $Dest $_.Name
-            Copy-Source $_.FullName $SubDest
-        }
-    }
-}
-
-Copy-Source $ProjectRoot $StagingFolder
-
-# 2.5 Configure SMS State in .env
-$StagingEnv = Join-Path $StagingFolder ".env"
-if (Test-Path $StagingEnv) {
+# 2. Configure SMS State in .env
+$EnvFile = Join-Path $ProjectRoot ".env"
+if (Test-Path $EnvFile) {
     Write-Host "Configuring SMS state to: $Sms" -ForegroundColor Yellow
-    $Content = Get-Content $StagingEnv
+    $Content = Get-Content $EnvFile
     $NewContent = $Content | ForEach-Object {
         if ($Sms -eq "OFF") {
             if ($_ -match "^\s*SMS_GATEWAY_API_KEY\s*=") {
@@ -81,28 +47,45 @@ if (Test-Path $StagingEnv) {
             }
         }
     }
-    $NewContent | Set-Content $StagingEnv -Force
+    $NewContent | Set-Content $EnvFile -Force
     Write-Host "  [OK] SMS configuration updated." -ForegroundColor Green
-} else {
-    Write-Warning ".env file not found in staging folder! SMS state could not be configured."
 }
 
-# 3. Create Zip Archive
-Write-Host "Compressing deployment archive..." -ForegroundColor Yellow
-Compress-Archive -Path "$StagingFolder\*" -DestinationPath $ZipPath -Force
-Remove-Item $StagingFolder -Recurse -Force
+# 3. Create Ultra-Compact Tar Archive (<300 KB)
+Write-Host "Compressing minimal source archive..." -ForegroundColor Yellow
+Set-Location $ProjectRoot
+tar -czf $TarPath `
+    --exclude="*.dll" `
+    --exclude="*.pdb" `
+    --exclude="*.exe" `
+    --exclude="*.zip" `
+    --exclude="*.apk" `
+    --exclude="*.rar" `
+    --exclude="bin" `
+    --exclude="obj" `
+    --exclude="node_modules" `
+    --exclude=".git" `
+    --exclude="wwwroot/courses" `
+    --exclude="data" `
+    --exclude="mobile-app" `
+    --exclude="docs" `
+    --exclude="scripts" `
+    --exclude="temp" `
+    backend admin-panel deployment .env
 
-$ArchiveSize = [math]::Round((Get-Item $ZipPath).Length / 1MB, 2)
-Write-Host "Archive created at $ZipPath ($ArchiveSize MB)" -ForegroundColor Green
+$ArchiveSize = [math]::Round((Get-Item $TarPath).Length / 1KB, 2)
+Write-Host "Archive created at $TarPath ($ArchiveSize KB)" -ForegroundColor Green
 
-# 4. Upload Zip to Remote Server via SCP
+# 4. Upload Tar Archive to Remote Server via SCP
 Write-Host "Uploading archive to the server ($ServerIP)..." -ForegroundColor Yellow
 $ScpArgs = @(
     "-i", $KeyPath,
     "-o", "StrictHostKeyChecking=no",
-    $ZipPath,
-    "${ServerUser}@${ServerIP}:/tmp/leitner_platform.zip"
+    "-o", "ConnectTimeout=15",
+    $TarPath,
+    "${ServerUser}@${ServerIP}:/tmp/leitner_platform.tar.gz"
 )
+
 & scp $ScpArgs
 
 If ($LASTEXITCODE -ne 0) {
@@ -114,14 +97,15 @@ Write-Host "Upload completed successfully!" -ForegroundColor Green
 # 5. Extract and Deploy on the Server
 Write-Host "Extracting and building containers on the remote server..." -ForegroundColor Yellow
 $RemoteCmd = "mkdir -p /opt/leitner-platform; " +
-             "unzip -o /tmp/leitner_platform.zip -d /opt/leitner-platform; " +
-             "rm -f /tmp/leitner_platform.zip; " +
+             "tar -xzf /tmp/leitner_platform.tar.gz -C /opt/leitner-platform; " +
+             "rm -f /tmp/leitner_platform.tar.gz; " +
              "cd /opt/leitner-platform && " +
              "docker compose -f deployment/docker-compose.yml --env-file .env up -d --build"
 
 $SshArgs = @(
     "-i", $KeyPath,
     "-o", "StrictHostKeyChecking=no",
+    "-o", "ConnectTimeout=15",
     "${ServerUser}@${ServerIP}",
     $RemoteCmd
 )
@@ -139,8 +123,8 @@ $VerifyCmd = "cd /opt/leitner-platform && docker compose -f deployment/docker-co
 
 # 7. Local Clean-Up
 Write-Host "`nCleaning up local temporary archive..." -ForegroundColor Yellow
-if (Test-Path $ZipPath) {
-    Remove-Item $ZipPath -Force
+if (Test-Path $TarPath) {
+    Remove-Item $TarPath -Force
     Write-Host "  [OK] Local temporary archive deleted." -ForegroundColor Green
 }
 

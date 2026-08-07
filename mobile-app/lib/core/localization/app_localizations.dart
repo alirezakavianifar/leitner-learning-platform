@@ -52,6 +52,7 @@ class AppLocalizations {
       'download_now': 'Download Now',
       'purchase': 'Purchase',
       'free': 'Free',
+      'toman': 'Toman',
       'cards_count': 'Cards',
       'review_today': "Today's Cards",
       'finished_cards': 'Finished Cards',
@@ -340,6 +341,7 @@ class AppLocalizations {
       'download_now': 'دانلود دوره',
       'purchase': 'خرید دوره',
       'free': 'رایگان',
+      'toman': 'تومان',
       'cards_count': 'کارت',
       'review_today': 'کارت‌های امروز',
       'finished_cards': 'کارت‌های پایان یافته',
@@ -633,6 +635,7 @@ class AppLocalizations {
   String get downloadNow => translate('download_now');
   String get purchase => translate('purchase');
   String get free => translate('free');
+  String get toman => translate('toman');
   String get cardsCount => translate('cards_count');
   String get reviewToday => translate('review_today');
   String get finishedCards => translate('finished_cards');

@@ -212,7 +212,7 @@ export const CoursesView: React.FC = () => {
                         {course.price === 0 ? (
                           <span className="badge completed" style={{ fontSize: '10px' }}>{t('courses.status_free')}</span>
                         ) : (
-                          `${formatPrice(course.price)} ${t('courses.irr', 'IRR')}`
+                          `${formatPrice(course.price)} ${t('courses.irr', 'Toman')}`
                         )}
                       </td>
                       <td>
