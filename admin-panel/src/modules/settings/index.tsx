@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
 import type { AdminModule } from '../../types';
+import { useToast } from '../../components/ToastContext';
 
 export const SettingsView: React.FC = () => {
   const { t } = useTranslation();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -87,10 +89,10 @@ export const SettingsView: React.FC = () => {
         { key: 'max_banner_count', value: maxBannerCount.toString() },
       ];
       await api.admin.updateConfig(payload);
-      alert(t('settings.save_success'));
+      toast.showSuccess(t('settings.save_success', 'تنظیمات با موفقیت ذخیره شدند.'));
       loadSettings();
     } catch (err: any) {
-      alert(err.message || t('settings.save_failed', 'Failed to save configuration settings.'));
+      toast.showError(err.message || t('settings.save_failed', 'Failed to save configuration settings.'));
     } finally {
       setSaving(false);
     }

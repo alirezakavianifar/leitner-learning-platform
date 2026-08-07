@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { localizeNumber, formatPrice } from '../../i18n';
 import { api } from '../../services/api';
 import type { Course, AdminModule } from '../../types';
+import { useToast } from '../../components/ToastContext';
 
 export const CoursesView: React.FC = () => {
   const { t } = useTranslation();
+  const toast = useToast();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -32,10 +34,10 @@ export const CoursesView: React.FC = () => {
     try {
       setLoading(true);
       const res = await api.admin.getCourses(search, page, 10);
-      setCourses(res.courses);
-      setTotalPages(Math.ceil(res.total_count / 10) || 1);
-    } catch (err) {
-      console.error('Failed to load courses', err);
+      setCourses(res.courses || []);
+      setTotalPages(Math.ceil((res.total_count || 0) / 10) || 1);
+    } catch (err: any) {
+      toast.showError(err.message || t('courses.alert_save_failed', 'Failed to load courses.'));
     } finally {
       setLoading(false);
     }
@@ -74,11 +76,11 @@ export const CoursesView: React.FC = () => {
         price,
         is_published: isPublished
       });
-      alert(t('courses.alert_save_success', 'Course metadata updated successfully.'));
+      toast.showSuccess(t('courses.alert_save_success', 'Course metadata updated successfully.'));
       setShowEditModal(false);
       loadCourses();
     } catch (err: any) {
-      alert(err.message || t('courses.alert_save_failed', 'Failed to update course.'));
+      toast.showError(err.message || t('courses.alert_save_failed', 'Failed to update course.'));
     }
   };
 
@@ -87,46 +89,50 @@ export const CoursesView: React.FC = () => {
       await api.admin.updateCourse(course.id, {
         is_published: !course.is_published
       });
+      toast.showSuccess(course.is_published ? 'دوره از حالت انتشار خارج شد.' : 'دوره با موفقیت منتشر شد.');
       loadCourses();
     } catch (err: any) {
-      alert(err.message || t('courses.alert_save_failed', 'Failed to toggle publish status.'));
+      toast.showError(err.message || t('courses.alert_save_failed', 'Failed to toggle publish status.'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('courses.confirm_delete', 'Are you sure you want to delete this course and all associated cards? This cannot be undone.'))) {
-      return;
-    }
+    const confirmed = await toast.confirm({
+      title: 'حذف دوره آموزشی',
+      message: t('courses.confirm_delete', 'Are you sure you want to delete this course and all associated cards? This cannot be undone.'),
+      confirmText: 'حذف دوره',
+      cancelText: 'انصراف',
+      type: 'danger',
+    });
+
+    if (!confirmed) return;
 
     try {
       await api.admin.deleteCourse(id);
-      alert(t('courses.alert_delete_success', 'Course deleted successfully.'));
+      toast.showSuccess(t('courses.alert_delete_success', 'Course deleted successfully.'));
       loadCourses();
     } catch (err: any) {
-      alert(err.message || t('courses.alert_delete_failed', 'Failed to delete course.'));
+      toast.showError(err.message || t('courses.alert_delete_failed', 'Failed to delete course.'));
     }
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadFile) {
-      alert(t('courses.alert_select_file', 'Please select a file to upload.'));
+      toast.showWarning(t('courses.alert_select_file', 'Please select a file to upload.'));
       return;
     }
-
-    const formData = new FormData();
-    formData.append('file', uploadFile);
 
     try {
       setUploading(true);
       setUploadProgress(0);
-      await api.admin.uploadCourse(formData, (pct) => setUploadProgress(pct));
-      alert(t('courses.alert_upload_success', 'Course package uploaded and parsed successfully!'));
+      await api.admin.uploadCourse(uploadFile, (pct) => setUploadProgress(pct));
+      toast.showSuccess(t('courses.alert_upload_success', 'Course package uploaded and parsed successfully!'));
       setShowUploadModal(false);
       setUploadFile(null);
       loadCourses();
     } catch (err: any) {
-      alert(err.message || t('courses.alert_upload_failed', 'Failed to upload course package.'));
+      toast.showError(err.message || t('courses.alert_upload_failed', 'Failed to upload course package.'));
     } finally {
       setUploading(false);
       setUploadProgress(null);
@@ -376,7 +382,9 @@ export const CoursesView: React.FC = () => {
                 <button type="submit" className="btn" disabled={uploading}>
                   {uploading
                     ? uploadProgress !== null
-                      ? `درحال آپلود (${uploadProgress}%)...`
+                      ? uploadProgress >= 99
+                        ? 'درحال پردازش روی سرور...'
+                        : `درحال آپلود (${uploadProgress}%)...`
                       : t('login.verifying', 'Processing...')
                     : t('courses.btn_add')}
                 </button>

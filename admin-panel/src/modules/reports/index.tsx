@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { localizeNumber } from '../../i18n';
 import { api } from '../../services/api';
 import type { FlashcardReport, AdminModule } from '../../types';
+import { useToast } from '../../components/ToastContext';
 
 export const ReportsView: React.FC = () => {
   const { t } = useTranslation();
+  const toast = useToast();
   const [reports, setReports] = useState<FlashcardReport[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('PENDING');
   const [loading, setLoading] = useState(true);
@@ -15,8 +17,8 @@ export const ReportsView: React.FC = () => {
       setLoading(true);
       const data = await api.admin.getReports(filterStatus);
       setReports(data);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      toast.showError(err.message || 'خطا در دریافت لیست گزارش‌ها');
     } finally {
       setLoading(false);
     }
@@ -30,11 +32,11 @@ export const ReportsView: React.FC = () => {
     try {
       const res = await api.admin.updateReportStatus(id, newStatus);
       if (res.success) {
-        alert(t('reports.alert_status', { status: newStatus }));
+        toast.showSuccess(`وضعیت گزارش با موفقیت به ${newStatus === 'RESOLVED' ? 'حل شده' : 'بررسی شده'} تغییر یافت.`);
         loadReports();
       }
     } catch (err: any) {
-      alert(err.message || t('reports.alert_failed', 'Failed to update report status.'));
+      toast.showError(err.message || t('reports.alert_failed', 'Failed to update report status.'));
     }
   };
 

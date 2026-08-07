@@ -100,14 +100,14 @@ export const api = {
     },
 
     uploadCourse: async (fileOrFormData: File | FormData, onProgress?: (pct: number) => void) => {
-      const token = getToken();
       const baseUrl = getBaseUrl();
 
       const sendXhr = (url: string, body: FormData, onChunkProgress?: (pct: number) => void) => {
         return new Promise<any>((resolve, reject) => {
+          const activeToken = getToken();
           const xhr = new XMLHttpRequest();
           xhr.open('POST', url, true);
-          if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+          if (activeToken) xhr.setRequestHeader('Authorization', `Bearer ${activeToken}`);
           xhr.setRequestHeader('X-Correlation-ID', generateUUID());
 
           if (xhr.upload && onChunkProgress) {
@@ -162,17 +162,23 @@ export const api = {
         return sendXhr(`${baseUrl}/admin/courses/upload`, formData, onProgress);
       }
 
-      const CHUNK_SIZE = 1 * 1024 * 1024; // 1 MB per chunk
+      const CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB per chunk
       const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
       if (totalChunks <= 1) {
         const formData = new FormData();
         formData.append('file', file);
-        return sendXhr(`${baseUrl}/admin/courses/upload`, formData, onProgress);
+        return sendXhr(`${baseUrl}/admin/courses/upload`, formData, (pct) => {
+          if (onProgress) onProgress(Math.min(99, pct));
+        }).then((res) => {
+          if (onProgress) onProgress(100);
+          return res;
+        });
       }
 
       const uploadId = generateUUID();
       let lastResult: any = null;
+      let maxProgress = 0;
 
       for (let i = 0; i < totalChunks; i++) {
         const start = i * CHUNK_SIZE;
@@ -194,8 +200,11 @@ export const api = {
             attempts++;
             lastResult = await sendXhr(`${baseUrl}/admin/courses/upload-chunk`, formData, (chunkPct) => {
               if (onProgress) {
-                const currentTotalProgress = Math.round(((i + (chunkPct / 100)) / totalChunks) * 100);
-                onProgress(currentTotalProgress);
+                const currentTotalProgress = Math.round(((i + (chunkPct / 100)) / totalChunks) * 99);
+                if (currentTotalProgress > maxProgress) {
+                  maxProgress = currentTotalProgress;
+                  onProgress(maxProgress);
+                }
               }
             });
             success = true;
@@ -206,9 +215,16 @@ export const api = {
         }
 
         if (onProgress) {
-          const overallPct = Math.round(((i + 1) / totalChunks) * 100);
-          onProgress(overallPct);
+          const overallPct = Math.round(((i + 1) / totalChunks) * 99);
+          if (overallPct > maxProgress) {
+            maxProgress = overallPct;
+            onProgress(maxProgress);
+          }
         }
+      }
+
+      if (onProgress) {
+        onProgress(100);
       }
 
       return lastResult;

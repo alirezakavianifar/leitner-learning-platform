@@ -600,7 +600,14 @@ namespace LeitnerPlatform.API.Controllers.v1
             }
 
             var uploadedChunks = Directory.GetFiles(chunkDir, "chunk_*.tmp");
-            if (uploadedChunks.Length < input.TotalChunks)
+            var distinctIndices = uploadedChunks
+                .Select(p => Path.GetFileNameWithoutExtension(p))
+                .Where(n => n.StartsWith("chunk_"))
+                .Select(n => int.TryParse(n.Substring(6), out int idx) ? idx : -1)
+                .Where(idx => idx >= 0 && idx < input.TotalChunks)
+                .ToHashSet();
+
+            if (distinctIndices.Count < input.TotalChunks)
             {
                 return Ok(new { success = true, message = $"Chunk {input.ChunkIndex + 1}/{input.TotalChunks} received.", completed = false });
             }
@@ -684,6 +691,14 @@ namespace LeitnerPlatform.API.Controllers.v1
                         courseId = Guid.Parse("11000000-0000-0000-0000-000000001100");
                         title = "1100 Words You Need to Know";
                         description = "Master 1,100 essential English vocabulary words with sentences, Persian translations, and native audio pronunciations.";
+                        category = "Vocabulary";
+                        difficulty = "Intermediate";
+                    }
+                    else if (fileNameNoExt.Equals("504", StringComparison.OrdinalIgnoreCase))
+                    {
+                        courseId = Guid.Parse("50400000-0000-0000-0000-000000000504");
+                        title = "504 Absolutely Essential Words";
+                        description = "Master 504 essential English vocabulary words with sentences, Persian translations, and native audio pronunciations.";
                         category = "Vocabulary";
                         difficulty = "Intermediate";
                     }

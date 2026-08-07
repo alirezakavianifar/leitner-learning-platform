@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { localizeNumber } from '../../i18n';
 import { api } from '../../services/api';
 import type { Banner, AdminModule } from '../../types';
+import { useToast } from '../../components/ToastContext';
 
 export const BannersView: React.FC = () => {
   const { t } = useTranslation();
+  const toast = useToast();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<any | null>(null);
@@ -30,8 +32,8 @@ export const BannersView: React.FC = () => {
         is_active: b.is_active
       }));
       setBanners(normalized);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      toast.showError(err.message || 'خطا در دریافت لیست بنرها');
     } finally {
       setLoading(false);
     }
@@ -61,32 +63,44 @@ export const BannersView: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!imageUrl.trim()) return;
+    if (!imageUrl.trim()) {
+      toast.showWarning(t('banners.alert_image_url_required', 'Please enter an Image URL.'));
+      return;
+    }
 
     try {
       const targetLink = linkUrl.trim() === '' ? null : linkUrl.trim();
       if (editingItem) {
         await api.admin.updateBanner(editingItem.id, imageUrl, targetLink, displayOrder, isActive);
-        alert(t('banners.alert_save_success', 'Banner updated successfully.'));
+        toast.showSuccess(t('banners.alert_save_success', 'Banner updated successfully.'));
       } else {
         await api.admin.createBanner(imageUrl, targetLink, displayOrder, isActive);
-        alert(t('banners.alert_create_success', 'Banner created successfully.'));
+        toast.showSuccess(t('banners.alert_create_success', 'Banner created successfully.'));
       }
       setShowModal(false);
       loadBanners();
     } catch (err: any) {
-      alert(err.message || t('banners.alert_save_failed', 'Failed to save banner details.'));
+      toast.showError(err.message || t('banners.alert_save_failed', 'Failed to save banner details.'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('banners.confirm_delete', 'Are you sure you want to delete this promotional banner?'))) return;
+    const confirmed = await toast.confirm({
+      title: 'حذف بنر تبلیغاتی',
+      message: t('banners.confirm_delete', 'Are you sure you want to delete this promotional banner?'),
+      confirmText: 'حذف بنر',
+      cancelText: 'انصراف',
+      type: 'danger',
+    });
+
+    if (!confirmed) return;
+
     try {
       await api.admin.deleteBanner(id);
-      alert(t('banners.alert_delete_success', 'Banner deleted.'));
+      toast.showSuccess(t('banners.alert_delete_success', 'Banner deleted.'));
       loadBanners();
     } catch (err: any) {
-      alert(err.message || t('banners.alert_delete_failed', 'Failed to delete banner.'));
+      toast.showError(err.message || t('banners.alert_delete_failed', 'Failed to delete banner.'));
     }
   };
 

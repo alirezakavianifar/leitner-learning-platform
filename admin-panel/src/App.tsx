@@ -4,8 +4,11 @@ import { Header } from './components/Header';
 import { Login } from './components/Login';
 import { modules } from './modules';
 import { getToken, removeToken } from './services/api';
+import { ToastProvider } from './components/ToastContext';
+import { ToastContainer } from './components/ToastContainer';
+import { ConfirmModal } from './components/ConfirmModal';
 
-export const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [token, setTokenState] = useState<string | null>(getToken());
   const [adminUser, setAdminUser] = useState('Administrator');
   const [activeModuleId, setActiveModuleId] = useState('dashboard');
@@ -67,6 +70,16 @@ export const App: React.FC = () => {
         </div>
       </main>
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <ToastProvider>
+      <AppContent />
+      <ToastContainer />
+      <ConfirmModal />
+    </ToastProvider>
   );
 };
 

@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { localizeNumber, formatPrice } from '../../i18n';
 import { api, getBaseUrl } from '../../services/api';
 import type { User, AdminModule } from '../../types';
+import { useToast } from '../../components/ToastContext';
 
 export const UsersView: React.FC = () => {
+  const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -31,13 +33,11 @@ export const UsersView: React.FC = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const data = await api.admin.getUsers(search, page, 10);
-      if (data.success) {
-        setUsers(data.users);
-        setTotalCount(data.total_count);
-      }
-    } catch (err) {
-      console.error(err);
+      const res = await api.admin.getUsers(search, page, 10);
+      setUsers(res.users);
+      setTotalCount(res.total_count);
+    } catch (err: any) {
+      toast.showError(err.message || 'خطا در دریافت لیست کاربران');
     } finally {
       setLoading(false);
     }
@@ -45,42 +45,38 @@ export const UsersView: React.FC = () => {
 
   useEffect(() => {
     loadUsers();
-  }, [page]);
+  }, [page, search]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    loadUsers();
   };
 
   const handleOpenEdit = async (user: User) => {
     try {
-      const userData = await api.admin.getUser(user.id);
-      if (userData.success) {
-        setSelectedUser(userData.user);
-        setPurchases(userData.purchases);
-        
-        // Populate profile form
-        setEditUsername(userData.user.username);
-        setEditInterests(userData.user.interests || '');
-        setEditField(userData.user.educational_field || '');
-        setEditLevel(userData.user.educational_level || '');
-        setEditIsAdmin(userData.user.is_admin);
-        
-        // Fetch all courses to match status
-        const token = localStorage.getItem('admin_token');
-        const res = await fetch(`${getBaseUrl()}/courses`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      const res = await api.admin.getUser(user.id);
+      if (res.success) {
+        setSelectedUser(res.user);
+        setEditUsername(res.user.username || '');
+        setEditInterests(res.user.interests || '');
+        setEditField(res.user.educational_field || '');
+        setEditLevel(res.user.educational_level || '');
+        setEditIsAdmin(res.user.is_admin || false);
+        setPurchases(res.purchases || []);
+
+        const token = localStorage.getItem('leitner_admin_token');
+        const coursesRes = await fetch(`${getBaseUrl()}/admin/courses?page=1&pageSize=100`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-        if (res.ok) {
-          const list = await res.json();
-          setCourses(list);
+        if (coursesRes.ok) {
+          const list = await coursesRes.json();
+          setCourses(list.courses || []);
         }
 
         setShowEditModal(true);
       }
-    } catch (err) {
-      alert('Error fetching user data');
+    } catch (err: any) {
+      toast.showError('خطا در دریافت اطلاعات کاربر');
     }
   };
 
@@ -96,12 +92,12 @@ export const UsersView: React.FC = () => {
         is_admin: editIsAdmin
       });
       if (res.success) {
-        alert('Profile updated successfully.');
+        toast.showSuccess('اطلاعات کاربر با موفقیت بروزرسانی شد.');
         setShowEditModal(false);
         loadUsers();
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to update profile.');
+      toast.showError(err.message || 'خطا در ثبت تغییرات پروفایل.');
     }
   };
 
@@ -116,7 +112,7 @@ export const UsersView: React.FC = () => {
     e.preventDefault();
     if (!selectedUser || !targetCourse) return;
     if (!overrideReason.trim()) {
-      alert('A reason is required for auditing purposes.');
+      toast.showWarning('ثبت دلیل تغییر دسترسی جهت ثبت در سیستم نظارت الزامی است.');
       return;
     }
 
@@ -129,7 +125,7 @@ export const UsersView: React.FC = () => {
       );
 
       if (res.success) {
-        alert(grantState ? 'Course access granted!' : 'Course access revoked!');
+        toast.showSuccess(grantState ? 'دسترسی دوره با موفقیت اعطا شد!' : 'دسترسی دوره با موفقیت لغو شد!');
         setShowToggleModal(false);
         // Reload user details
         const userData = await api.admin.getUser(selectedUser.id);
@@ -138,7 +134,7 @@ export const UsersView: React.FC = () => {
         }
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to toggle course access.');
+      toast.showError(err.message || 'خطا در تغییر دسترسی دوره.');
     }
   };
 

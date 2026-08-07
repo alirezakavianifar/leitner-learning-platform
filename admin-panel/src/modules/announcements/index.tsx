@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { localizeNumber } from '../../i18n';
 import { api } from '../../services/api';
 import type { Announcement, AdminModule } from '../../types';
+import { useToast } from '../../components/ToastContext';
 
 export const AnnouncementsView: React.FC = () => {
   const { t } = useTranslation();
+  const toast = useToast();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<Announcement | null>(null);
@@ -20,8 +22,8 @@ export const AnnouncementsView: React.FC = () => {
       setLoading(true);
       const data = await api.admin.getAnnouncements();
       setAnnouncements(data);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      toast.showError(err.message || 'خطا در دریافت اطلاعیه‌ها');
     } finally {
       setLoading(false);
     }
@@ -47,31 +49,42 @@ export const AnnouncementsView: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
+    if (!title.trim() || !content.trim()) {
+      toast.showWarning('لطفاً عنوان و متن اطلاعیه را وارد نمایید.');
+      return;
+    }
 
     try {
       if (editingItem) {
         await api.admin.updateAnnouncement(editingItem.id, title, content);
-        alert(t('announcements.alert_save_success', 'Announcement updated successfully.'));
+        toast.showSuccess(t('announcements.alert_save_success', 'Announcement updated successfully.'));
       } else {
         await api.admin.createAnnouncement(title, content);
-        alert(t('announcements.alert_create_success', 'Announcement created successfully.'));
+        toast.showSuccess(t('announcements.alert_create_success', 'Announcement created successfully.'));
       }
       setShowModal(false);
       loadAnnouncements();
     } catch (err: any) {
-      alert(err.message || t('announcements.alert_save_failed', 'Failed to save announcement.'));
+      toast.showError(err.message || t('announcements.alert_save_failed', 'Failed to save announcement.'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('announcements.confirm_delete', 'Are you sure you want to delete this announcement?'))) return;
+    const confirmed = await toast.confirm({
+      title: 'حذف اطلاعیه',
+      message: t('announcements.confirm_delete', 'Are you sure you want to delete this announcement?'),
+      confirmText: 'حذف اطلاعیه',
+      cancelText: 'انصراف',
+      type: 'danger',
+    });
+
+    if (!confirmed) return;
     try {
       await api.admin.deleteAnnouncement(id);
-      alert(t('announcements.alert_delete_success', 'Announcement deleted.'));
+      toast.showSuccess(t('announcements.alert_delete_success', 'Announcement deleted.'));
       loadAnnouncements();
     } catch (err: any) {
-      alert(err.message || t('announcements.alert_delete_failed', 'Failed to delete announcement.'));
+      toast.showError(err.message || t('announcements.alert_delete_failed', 'Failed to delete announcement.'));
     }
   };
 
