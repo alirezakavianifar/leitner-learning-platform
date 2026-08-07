@@ -1022,6 +1022,19 @@ function resetSimulationState() {
   }
 }
 
+function switchScreenDirect(screenId, btnEl) {
+  if (btnEl) {
+    document.querySelectorAll('.screen-chip').forEach(c => c.classList.remove('active'));
+    btnEl.classList.add('active');
+  }
+  showScreen(screenId);
+  if (screenId !== 'screen-otp' && screenId !== 'screen-terms' && screenId !== 'screen-profile') {
+    if (bottomNav) bottomNav.style.display = 'flex';
+  } else {
+    if (bottomNav) bottomNav.style.display = 'none';
+  }
+}
+
 // --- Window Lifecycle Hooks ---
 window.addEventListener("DOMContentLoaded", () => {
   // Set default hi-fi theme
@@ -1042,6 +1055,7 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("dash-shortcut-finished").addEventListener("click", () => showScreen("screen-finished-cards"));
   document.getElementById("dash-shortcut-favorites").addEventListener("click", () => showScreen("screen-favorites"));
   
-  // Initial Screen
-  showScreen("screen-otp");
+  // Initial Screen set to Course Catalog
+  showScreen("screen-courses");
+  if (bottomNav) bottomNav.style.display = 'flex';
 });

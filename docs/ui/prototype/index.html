@@ -13,66 +13,7 @@
 
   <div class="prototype-container">
     
-    <!-- 1. Left Side: Master Control Console -->
-    <div class="control-panel">
-      <h2>Simulation Console</h2>
-      <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">
-        Use this control panel to toggle visual themes, simulate network outages, or reset local app state.
-      </p>
-
-      <!-- Theme Switcher -->
-      <div class="control-group">
-        <label>Visual Mode</label>
-        <div class="btn-toggle-group">
-          <button id="toggle-theme-hifi" class="btn-toggle active" onclick="setPrototypeTheme('hifi')">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> High-Fidelity
-          </button>
-          <button id="toggle-theme-wireframe" class="btn-toggle" onclick="setPrototypeTheme('wireframe')">
-            <i class="fa-solid fa-border-all"></i> Wireframe
-          </button>
-        </div>
-      </div>
-
-      <!-- Network Simulator -->
-      <div class="control-group">
-        <label>Network Status</label>
-        <div class="btn-toggle-group">
-          <button id="toggle-net-online" class="btn-toggle active" onclick="setNetworkSimulation('online')">
-            Online
-          </button>
-          <button id="toggle-net-offline" class="btn-toggle" onclick="setNetworkSimulation('offline')">
-            Offline
-          </button>
-        </div>
-        <div style="font-size: 11px; color: var(--text-muted);">
-          Simulate offline behavior: lists cached items and displays a warning banner.
-        </div>
-      </div>
-
-      <!-- Quick Action Utilities -->
-      <div class="control-group">
-        <label>Utility Actions</label>
-        <button class="btn-action" onclick="startGuidedOnboarding()">
-          <span>Restart Guided Tutorial</span>
-          <i class="fa-solid fa-circle-play"></i>
-        </button>
-        <button class="btn-action reset" onclick="resetSimulationState()">
-          <span>Restore Factory Defaults</span>
-          <i class="fa-solid fa-trash-can"></i>
-        </button>
-      </div>
-
-      <div style="font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 12px; line-height: 1.4;">
-        <strong>Features Screen Mapping:</strong><br>
-        • OTP authentication & rules verification.<br>
-        • Dynamic course catalog borders (Green = Downloaded, Yellow = Undownloaded).<br>
-        • Spaced repetition 3D card flips (Know vs. Don't Know updates).<br>
-        • Color-coded statistics distribution chart.<br>
-        • User logout safety confirmation.
-      </div>
-    </div>
-
-    <!-- 2. Right Side: Mobile Viewport Frame Simulator -->
+    <!-- Mobile Viewport Frame Simulator -->
     <div class="simulator-frame">
       
       <!-- Time / Battery Status Bar -->

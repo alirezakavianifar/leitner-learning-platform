@@ -25,12 +25,14 @@ namespace LeitnerPlatform.API.Controllers.v1
         private readonly LeitnerDbContext _context;
         private readonly IEventBus _eventBus;
         private readonly IAuditLogService _auditLogService;
+        private readonly ILogger<AdminController> _logger;
 
-        public AdminController(LeitnerDbContext context, IEventBus eventBus, IAuditLogService auditLogService)
+        public AdminController(LeitnerDbContext context, IEventBus eventBus, IAuditLogService auditLogService, ILogger<AdminController> logger)
         {
             _context = context;
             _eventBus = eventBus;
             _auditLogService = auditLogService;
+            _logger = logger;
         }
 
         // Helper to get active admin username
@@ -555,95 +557,209 @@ namespace LeitnerPlatform.API.Controllers.v1
             }
 
             var tempZipPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
-            var tempExtractDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 
             try
             {
-                // Save zip to temp path
                 using (var stream = new FileStream(tempZipPath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
 
+                return await ProcessZipPackageInternal(tempZipPath, file.FileName);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Failed to save uploaded file: {ex.Message}" });
+            }
+        }
+
+        [HttpPost("courses/upload-chunk")]
+        [RequestSizeLimit(20_000_000)] // 20MB chunk max limit
+        public async Task<IActionResult> UploadCourseChunk([FromForm] ChunkUploadInput input)
+        {
+            if (input.File == null || input.File.Length == 0)
+            {
+                return BadRequest(new { success = false, message = "Chunk file is empty." });
+            }
+
+            if (string.IsNullOrEmpty(input.UploadId))
+            {
+                return BadRequest(new { success = false, message = "UploadId is required." });
+            }
+
+            var chunkDir = Path.Combine(Path.GetTempPath(), "chunks", input.UploadId);
+            if (!Directory.Exists(chunkDir))
+            {
+                Directory.CreateDirectory(chunkDir);
+            }
+
+            var chunkFilePath = Path.Combine(chunkDir, $"chunk_{input.ChunkIndex:D5}.tmp");
+            using (var stream = new FileStream(chunkFilePath, FileMode.Create))
+            {
+                await input.File.CopyToAsync(stream);
+            }
+
+            var uploadedChunks = Directory.GetFiles(chunkDir, "chunk_*.tmp");
+            if (uploadedChunks.Length < input.TotalChunks)
+            {
+                return Ok(new { success = true, message = $"Chunk {input.ChunkIndex + 1}/{input.TotalChunks} received.", completed = false });
+            }
+
+            // Reassemble chunks into single ZIP file
+            Array.Sort(uploadedChunks);
+            var tempZipPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
+            using (var destinationStream = new FileStream(tempZipPath, FileMode.Create))
+            {
+                foreach (var chunkPath in uploadedChunks)
+                {
+                    using (var sourceStream = new FileStream(chunkPath, FileMode.Open, FileAccess.Read))
+                    {
+                        await sourceStream.CopyToAsync(destinationStream);
+                    }
+                }
+            }
+
+            try { Directory.Delete(chunkDir, true); } catch { }
+
+            return await ProcessZipPackageInternal(tempZipPath, input.FileName);
+        }
+
+        private async Task<IActionResult> ProcessZipPackageInternal(string tempZipPath, string originalFileName)
+        {
+            var tempExtractDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            try
+            {
                 // Extract ZIP
                 System.IO.Compression.ZipFile.ExtractToDirectory(tempZipPath, tempExtractDir);
 
-                var manifestPath = Path.Combine(tempExtractDir, "manifest.json");
-                var dbPath = Path.Combine(tempExtractDir, "course.db");
+                // 1. Find manifest.json and SQLite database file (*.db) recursively
+                var manifestFiles = Directory.GetFiles(tempExtractDir, "manifest.json", SearchOption.AllDirectories);
+                var manifestPath = manifestFiles.Length > 0 ? manifestFiles[0] : null;
 
-                if (!System.IO.File.Exists(manifestPath))
+                var dbFiles = Directory.GetFiles(tempExtractDir, "*.db", SearchOption.AllDirectories);
+                if (dbFiles.Length == 0)
                 {
-                    return BadRequest(new { success = false, message = "manifest.json is missing in the package." });
+                    return BadRequest(new { success = false, message = "No SQLite database (.db) file found in the uploaded package." });
                 }
+                var dbPath = dbFiles[0];
 
-                if (!System.IO.File.Exists(dbPath))
-                {
-                    return BadRequest(new { success = false, message = "course.db is missing in the package." });
-                }
-
-                // 1. Read manifest.json
-                var manifestContent = await System.IO.File.ReadAllTextAsync(manifestPath);
-                using var doc = JsonDocument.Parse(manifestContent);
-                var root = doc.RootElement;
-
-                var courseIdStr = root.GetProperty("course_id").GetString();
-                if (!Guid.TryParse(courseIdStr, out var courseId))
-                {
-                    return BadRequest(new { success = false, message = "Invalid course_id in manifest.json." });
-                }
-
-                var title = root.GetProperty("title").GetString() ?? "Untitled Course";
-                
+                Guid courseId;
+                string title;
                 string? description = null;
-                if (root.TryGetProperty("description", out var descProp)) description = descProp.GetString();
-                
                 string? category = null;
-                if (root.TryGetProperty("category", out var catProp)) category = catProp.GetString();
-                
                 string? difficulty = null;
-                if (root.TryGetProperty("difficulty", out var diffProp)) difficulty = diffProp.GetString();
-
                 decimal price = 0;
-                if (root.TryGetProperty("price", out var priceProp)) price = priceProp.GetDecimal();
-
                 int version = 1;
-                if (root.TryGetProperty("version", out var versionProp)) version = versionProp.GetInt32();
-
                 int cardCount = 0;
-                if (root.TryGetProperty("card_count", out var countProp)) cardCount = countProp.GetInt32();
-
                 string? checksum = null;
-                if (root.TryGetProperty("db_checksum_sha256", out var checkProp)) checksum = checkProp.GetString();
 
-                // 2. Read cards from SQLite database using Microsoft.Data.Sqlite
+                if (manifestPath != null && System.IO.File.Exists(manifestPath))
+                {
+                    var manifestContent = await System.IO.File.ReadAllTextAsync(manifestPath);
+                    using var doc = JsonDocument.Parse(manifestContent);
+                    var root = doc.RootElement;
+
+                    var courseIdStr = root.GetProperty("course_id").GetString();
+                    if (!Guid.TryParse(courseIdStr, out courseId))
+                    {
+                        return BadRequest(new { success = false, message = "Invalid course_id in manifest.json." });
+                    }
+
+                    title = root.GetProperty("title").GetString() ?? "Untitled Course";
+                    if (root.TryGetProperty("description", out var descProp)) description = descProp.GetString();
+                    if (root.TryGetProperty("category", out var catProp)) category = catProp.GetString();
+                    if (root.TryGetProperty("difficulty", out var diffProp)) difficulty = diffProp.GetString();
+                    if (root.TryGetProperty("price", out var priceProp)) price = priceProp.GetDecimal();
+                    if (root.TryGetProperty("version", out var versionProp)) version = versionProp.GetInt32();
+                    if (root.TryGetProperty("card_count", out var countProp)) cardCount = countProp.GetInt32();
+                    if (root.TryGetProperty("db_checksum_sha256", out var checkProp)) checksum = checkProp.GetString();
+                }
+                else
+                {
+                    // Fallback metadata generation for packages without manifest.json (e.g. 1100.zip)
+                    var fileNameNoExt = Path.GetFileNameWithoutExtension(originalFileName);
+                    if (fileNameNoExt.Equals("1100", StringComparison.OrdinalIgnoreCase))
+                    {
+                        courseId = Guid.Parse("11000000-0000-0000-0000-000000001100");
+                        title = "1100 Words You Need to Know";
+                        description = "Master 1,100 essential English vocabulary words with sentences, Persian translations, and native audio pronunciations.";
+                        category = "Vocabulary";
+                        difficulty = "Intermediate";
+                    }
+                    else
+                    {
+                        courseId = Guid.NewGuid();
+                        title = fileNameNoExt;
+                        category = "General";
+                        difficulty = "Intermediate";
+                    }
+                }
+
+                // 2. Read cards from SQLite database dynamically supporting various column naming conventions
                 var cardsList = new System.Collections.Generic.List<Card>();
                 using (var sqliteConn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath}"))
                 {
                     await sqliteConn.OpenAsync();
-                    using (var sqliteCmd = new Microsoft.Data.Sqlite.SqliteCommand("SELECT card_number, question_text, answer_text, image_name, audio_name FROM cards", sqliteConn))
-                    {
-                        using (var reader = await sqliteCmd.ExecuteReaderAsync())
-                        {
-                            while (await reader.ReadAsync())
-                            {
-                                var cardNum = reader.GetInt32(0);
-                                var qText = reader.GetString(1);
-                                var aText = reader.GetString(2);
-                                
-                                string? imgName = reader.IsDBNull(3) ? null : reader.GetString(3);
-                                string? audName = reader.IsDBNull(4) ? null : reader.GetString(4);
 
-                                cardsList.Add(new Card
-                                {
-                                    Id = Guid.NewGuid(),
-                                    CourseId = courseId,
-                                    CardNumber = cardNum,
-                                    QuestionText = qText,
-                                    AnswerText = aText,
-                                    ImageUrl = imgName,
-                                    AudioUrl = audName
-                                });
-                            }
+                    // Retrieve column schema
+                    var columns = new System.Collections.Generic.List<string>();
+                    using (var schemaCmd = new Microsoft.Data.Sqlite.SqliteCommand("PRAGMA table_info(cards)", sqliteConn))
+                    using (var reader = await schemaCmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            columns.Add(reader.GetString(1).ToLowerInvariant());
+                        }
+                    }
+
+                    int idxCardNum = columns.IndexOf("card_number");
+                    if (idxCardNum == -1) idxCardNum = columns.IndexOf("number");
+                    if (idxCardNum == -1) idxCardNum = columns.IndexOf("id");
+
+                    int idxQuestion = columns.IndexOf("question_text");
+                    if (idxQuestion == -1) idxQuestion = columns.IndexOf("questions");
+                    if (idxQuestion == -1) idxQuestion = columns.IndexOf("question");
+                    if (idxQuestion == -1) idxQuestion = columns.IndexOf("front");
+
+                    int idxAnswer = columns.IndexOf("answer_text");
+                    if (idxAnswer == -1) idxAnswer = columns.IndexOf("answer");
+                    if (idxAnswer == -1) idxAnswer = columns.IndexOf("answers");
+                    if (idxAnswer == -1) idxAnswer = columns.IndexOf("back");
+
+                    int idxImage = columns.IndexOf("image_name");
+                    if (idxImage == -1) idxImage = columns.IndexOf("front image");
+                    if (idxImage == -1) idxImage = columns.IndexOf("image");
+                    if (idxImage == -1) idxImage = columns.IndexOf("image_url");
+
+                    int idxAudio = columns.IndexOf("audio_name");
+                    if (idxAudio == -1) idxAudio = columns.IndexOf("front voice");
+                    if (idxAudio == -1) idxAudio = columns.IndexOf("audio");
+                    if (idxAudio == -1) idxAudio = columns.IndexOf("audio_url");
+
+                    using (var sqliteCmd = new Microsoft.Data.Sqlite.SqliteCommand("SELECT * FROM cards", sqliteConn))
+                    using (var reader = await sqliteCmd.ExecuteReaderAsync())
+                    {
+                        int rowCounter = 1;
+                        while (await reader.ReadAsync())
+                        {
+                            int cardNum = idxCardNum != -1 && !reader.IsDBNull(idxCardNum) ? Convert.ToInt32(reader.GetValue(idxCardNum)) : rowCounter;
+                            string qText = idxQuestion != -1 && !reader.IsDBNull(idxQuestion) ? reader.GetString(idxQuestion) : "Question";
+                            string aText = idxAnswer != -1 && !reader.IsDBNull(idxAnswer) ? reader.GetString(idxAnswer) : "Answer";
+                            string? imgName = idxImage != -1 && !reader.IsDBNull(idxImage) ? reader.GetString(idxImage) : null;
+                            string? audName = idxAudio != -1 && !reader.IsDBNull(idxAudio) ? reader.GetString(idxAudio) : null;
+
+                            cardsList.Add(new Card
+                            {
+                                Id = Guid.NewGuid(),
+                                CourseId = courseId,
+                                CardNumber = cardNum,
+                                QuestionText = qText,
+                                AnswerText = aText,
+                                ImageUrl = imgName,
+                                AudioUrl = audName
+                            });
+                            rowCounter++;
                         }
                     }
                 }
@@ -656,19 +772,26 @@ namespace LeitnerPlatform.API.Controllers.v1
                 // 3. Save package file to wwwroot/courses/{course_id}.zip
                 var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
                 var coursesDir = Path.Combine(wwwrootPath, "courses");
-                if (!Directory.Exists(coursesDir))
-                {
-                    Directory.CreateDirectory(coursesDir);
-                }
-
-                var targetZipPath = Path.Combine(coursesDir, $"{courseId}.zip");
-                if (System.IO.File.Exists(targetZipPath))
-                {
-                    System.IO.File.Delete(targetZipPath);
-                }
-                System.IO.File.Copy(tempZipPath, targetZipPath);
-
                 var relativeDownloadUrl = $"/courses/{courseId}.zip";
+
+                try
+                {
+                    if (!Directory.Exists(coursesDir))
+                    {
+                        Directory.CreateDirectory(coursesDir);
+                    }
+
+                    var targetZipPath = Path.Combine(coursesDir, $"{courseId}.zip");
+                    if (System.IO.File.Exists(targetZipPath))
+                    {
+                        System.IO.File.Delete(targetZipPath);
+                    }
+                    System.IO.File.Copy(tempZipPath, targetZipPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not copy ZIP archive to wwwroot/courses: {Message}", ex.Message);
+                }
 
                 // 4. Update or Insert in PostgreSQL
                 using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -750,7 +873,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     }
                 }
 
-                return Ok(new { success = true, message = "Course package uploaded and parsed successfully.", course_id = courseId });
+                return Ok(new { success = true, message = "Course package uploaded and parsed successfully.", course_id = courseId, completed = true });
             }
             catch (Exception ex)
             {
@@ -763,7 +886,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     if (System.IO.File.Exists(tempZipPath)) System.IO.File.Delete(tempZipPath);
                     if (Directory.Exists(tempExtractDir)) Directory.Delete(tempExtractDir, true);
                 }
-                catch { /* ignore */ }
+                catch { }
             }
         }
 
@@ -902,6 +1025,15 @@ namespace LeitnerPlatform.API.Controllers.v1
     }
 
     #region Input DTOs
+
+    public class ChunkUploadInput
+    {
+        public IFormFile File { get; set; } = null!;
+        public string UploadId { get; set; } = string.Empty;
+        public int ChunkIndex { get; set; }
+        public int TotalChunks { get; set; }
+        public string FileName { get; set; } = string.Empty;
+    }
 
     public class AdminCourseUpdateInput
     {

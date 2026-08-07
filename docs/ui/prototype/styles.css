@@ -103,19 +103,11 @@ body {
 
 /* Master Control Console Panel */
 .control-panel {
-  flex: 1;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  box-shadow: var(--shadow-main);
-  backdrop-filter: var(--backdrop-blur);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-width: 320px;
-  max-width: 420px;
-  transition: all var(--transition-normal);
+  display: none !important;
+}
+
+.prototype-container {
+  justify-content: center !important;
 }
 
 .control-panel h2 {

@@ -8,27 +8,27 @@ This document provides a comprehensive guide to the SMS/OTP verification system,
 
 The SMS dispatch functionality is located in the C# backend projects:
 
-* **Interface Contract**: 
+* **Interface Contract**:
   [ISmsService.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Core/Interfaces/ISmsService.cs)
   Declares the signature for sending One-Time Passwords (OTPs):
+
   ```csharp
   Task<bool> SendOtpAsync(string mobileNumber, string code);
   ```
-
-* **Service Implementation**: 
+* **Service Implementation**:
   [SmsService.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.Data/Services/SmsService.cs)
   Implements the integration adapters for domestic Iranian SMS gateways:
+
   * **Kavenegar** (Default fallback)
   * **Faraz SMS / IPPanel**
   * **IranPayamak**
-
-* **API Endpoints**: 
+* **API Endpoints**:
   [AuthController.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Controllers/v1/AuthController.cs)
   Handles OTP registration requests at `POST /api/v1/auth/otp/request`. It generates a 5-digit code, caches it in Redis/Memory Cache (valid for 2 minutes), and triggers the SMS send via `_smsService.SendOtpAsync()`.
-
-* **Dependency Injection**: 
+* **Dependency Injection**:
   [Program.cs](file:///e:/projects/leitner-learning-platform/backend/LeitnerPlatform.API/Program.cs)
   Registers the HTTP Client and mapping:
+
   ```csharp
   builder.Services.AddHttpClient<ISmsService, SmsService>();
   ```
@@ -41,14 +41,18 @@ The SMS service switches between live delivery and console log bypass depending 
 
 * **To turn SMS OFF (Console Log Bypass / Local Dev)**:
   Remove, comment out, or clear the `SMS_GATEWAY_API_KEY` environment variable in your configuration (such as the [.env](file:///e:/projects/leitner-learning-platform/.env) file):
+
   ```env
   # SMS_GATEWAY_API_KEY=
   ```
-  If `SMS_GATEWAY_API_KEY` is empty, the `SmsService` skips the HTTP request to the gateway, logs the code to the console/container log, and returns success:
-  > `[SMS Bypass] SMS code for +989xxxxxxxxx is: 12345`
 
+  If `SMS_GATEWAY_API_KEY` is empty, the `SmsService` skips the HTTP request to the gateway, logs the code to the console/container log, and returns success:
+
+  > `[SMS Bypass] SMS code for +989xxxxxxxxx is: 12345`
+  >
 * **To turn SMS ON (Live Delivery)**:
   Define a non-empty, valid key for the SMS gateway in `.env`:
+
   ```env
   SMS_GATEWAY_API_KEY=your_actual_api_key_here
   SMS_PROVIDER=IranPayamak # or Kavenegar / FarazSms
@@ -76,6 +80,7 @@ powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms OFF
 ```
 
 ### Behind the Scenes:
+
 When deploying with `-Sms OFF`, the script parses the staged `.env` file right before compression and comments out the `SMS_GATEWAY_API_KEY` line. When deploying with `-Sms ON`, the script uncomment any existing commented-out instance.
 
 ---

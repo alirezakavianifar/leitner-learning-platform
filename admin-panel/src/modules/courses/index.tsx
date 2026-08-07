@@ -26,6 +26,7 @@ export const CoursesView: React.FC = () => {
   // Upload Fields
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const loadCourses = async () => {
     try {
@@ -118,7 +119,8 @@ export const CoursesView: React.FC = () => {
 
     try {
       setUploading(true);
-      await api.admin.uploadCourse(formData);
+      setUploadProgress(0);
+      await api.admin.uploadCourse(formData, (pct) => setUploadProgress(pct));
       alert(t('courses.alert_upload_success', 'Course package uploaded and parsed successfully!'));
       setShowUploadModal(false);
       setUploadFile(null);
@@ -127,6 +129,7 @@ export const CoursesView: React.FC = () => {
       alert(err.message || t('courses.alert_upload_failed', 'Failed to upload course package.'));
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -371,7 +374,11 @@ export const CoursesView: React.FC = () => {
                   {t('courses.btn_cancel')}
                 </button>
                 <button type="submit" className="btn" disabled={uploading}>
-                  {uploading ? t('login.verifying', 'Processing...') : t('courses.btn_add')}
+                  {uploading
+                    ? uploadProgress !== null
+                      ? `درحال آپلود (${uploadProgress}%)...`
+                      : t('login.verifying', 'Processing...')
+                    : t('courses.btn_add')}
                 </button>
               </div>
             </form>

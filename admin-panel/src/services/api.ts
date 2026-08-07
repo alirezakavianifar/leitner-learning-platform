@@ -99,10 +99,120 @@ export const api = {
       return request<{ success: boolean; total_count: number; courses: any[] }>(`/admin/courses?${params.toString()}`);
     },
 
-    uploadCourse: (formData: FormData) => request<{ success: boolean; message: string; course_id: string }>('/admin/courses/upload', {
-      method: 'POST',
-      body: formData
-    }),
+    uploadCourse: async (fileOrFormData: File | FormData, onProgress?: (pct: number) => void) => {
+      const token = getToken();
+      const baseUrl = getBaseUrl();
+
+      const sendXhr = (url: string, body: FormData, onChunkProgress?: (pct: number) => void) => {
+        return new Promise<any>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', url, true);
+          if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+          xhr.setRequestHeader('X-Correlation-ID', generateUUID());
+
+          if (xhr.upload && onChunkProgress) {
+            xhr.upload.onprogress = (e) => {
+              if (e.lengthComputable) {
+                onChunkProgress(Math.round((e.loaded / e.total) * 100));
+              }
+            };
+          }
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                resolve(JSON.parse(xhr.responseText));
+              } catch {
+                resolve({ success: true, message: 'Uploaded successfully', course_id: '' });
+              }
+            } else {
+              let msg = 'Upload failed';
+              try {
+                const json = JSON.parse(xhr.responseText);
+                msg = json.message || json.error || msg;
+              } catch {
+                if (xhr.status === 408) msg = 'Upload timed out. Please try again.';
+                if (xhr.status === 413) msg = 'File size is too large.';
+              }
+              reject(new Error(msg));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('Network error during upload'));
+          xhr.ontimeout = () => reject(new Error('Upload chunk timed out'));
+          xhr.timeout = 180000; // 3 minutes per 1MB chunk
+
+          xhr.send(body);
+        });
+      };
+
+      let file: File | null = null;
+      if (fileOrFormData instanceof File) {
+        file = fileOrFormData;
+      } else if (fileOrFormData instanceof FormData) {
+        const fileEntry = fileOrFormData.get('file');
+        if (fileEntry instanceof File) {
+          file = fileEntry;
+        }
+      }
+
+      // If we don't have a direct File object, fallback to single form post
+      if (!file) {
+        const formData = fileOrFormData instanceof FormData ? fileOrFormData : new FormData();
+        return sendXhr(`${baseUrl}/admin/courses/upload`, formData, onProgress);
+      }
+
+      const CHUNK_SIZE = 1 * 1024 * 1024; // 1 MB per chunk
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+      if (totalChunks <= 1) {
+        const formData = new FormData();
+        formData.append('file', file);
+        return sendXhr(`${baseUrl}/admin/courses/upload`, formData, onProgress);
+      }
+
+      const uploadId = generateUUID();
+      let lastResult: any = null;
+
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(file.size, start + CHUNK_SIZE);
+        const chunkBlob = file.slice(start, end);
+
+        const formData = new FormData();
+        formData.append('file', chunkBlob, file.name);
+        formData.append('uploadId', uploadId);
+        formData.append('chunkIndex', i.toString());
+        formData.append('totalChunks', totalChunks.toString());
+        formData.append('fileName', file.name);
+
+        let attempts = 0;
+        let success = false;
+
+        while (attempts < 3 && !success) {
+          try {
+            attempts++;
+            lastResult = await sendXhr(`${baseUrl}/admin/courses/upload-chunk`, formData, (chunkPct) => {
+              if (onProgress) {
+                const currentTotalProgress = Math.round(((i + (chunkPct / 100)) / totalChunks) * 100);
+                onProgress(currentTotalProgress);
+              }
+            });
+            success = true;
+          } catch (err) {
+            if (attempts >= 3) throw err;
+            await new Promise((r) => setTimeout(r, 1000));
+          }
+        }
+
+        if (onProgress) {
+          const overallPct = Math.round(((i + 1) / totalChunks) * 100);
+          onProgress(overallPct);
+        }
+      }
+
+      return lastResult;
+    },
 
     updateCourse: (id: string, data: any) => request<{ success: boolean; message: string; course: any }>(`/admin/courses/${id}`, {
       method: 'PUT',
