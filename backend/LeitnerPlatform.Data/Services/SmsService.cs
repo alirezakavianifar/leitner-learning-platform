@@ -18,7 +18,8 @@ namespace LeitnerPlatform.Data.Services
 
         public async Task<bool> SendOtpAsync(string mobileNumber, string code)
         {
-            var apiKey = Environment.GetEnvironmentVariable("SMS_GATEWAY_API_KEY");
+            var rawApiKey = Environment.GetEnvironmentVariable("SMS_GATEWAY_API_KEY");
+            var apiKey = string.IsNullOrWhiteSpace(rawApiKey) ? null : rawApiKey.Trim('\r', '\n', ' ');
             if (string.IsNullOrEmpty(apiKey))
             {
                 // Local dev bypass/fallback: log code to console
@@ -26,15 +27,15 @@ namespace LeitnerPlatform.Data.Services
                 return true;
             }
 
-            var provider = Environment.GetEnvironmentVariable("SMS_PROVIDER") ?? "Kavenegar";
+            var provider = (Environment.GetEnvironmentVariable("SMS_PROVIDER") ?? "Kavenegar").Trim('\r', '\n', ' ');
 
             try
             {
                 if (provider.Equals("FarazSms", StringComparison.OrdinalIgnoreCase) || 
                     provider.Equals("IPPanel", StringComparison.OrdinalIgnoreCase))
                 {
-                    var sender = Environment.GetEnvironmentVariable("SMS_SENDER") ?? "+983000505";
-                    var patternCode = Environment.GetEnvironmentVariable("SMS_PATTERN_CODE") ?? "otp-template";
+                    var sender = (Environment.GetEnvironmentVariable("SMS_SENDER") ?? "+983000505").Trim('\r', '\n', ' ');
+                    var patternCode = (Environment.GetEnvironmentVariable("SMS_PATTERN_CODE") ?? "otp-template").Trim('\r', '\n', ' ');
 
                     var payload = new
                     {
@@ -65,8 +66,8 @@ namespace LeitnerPlatform.Data.Services
                 }
                 else if (provider.Equals("IranPayamak", StringComparison.OrdinalIgnoreCase))
                 {
-                    var sender = Environment.GetEnvironmentVariable("SMS_SENDER") ?? "50002178584000";
-                    var patternCode = Environment.GetEnvironmentVariable("SMS_PATTERN_CODE") ?? "otp-template";
+                    var sender = (Environment.GetEnvironmentVariable("SMS_SENDER") ?? "50002178584000").Trim('\r', '\n', ' ');
+                    var patternCode = (Environment.GetEnvironmentVariable("SMS_PATTERN_CODE") ?? "coHfKHvJK6").Trim('\r', '\n', ' ');
                     var localMobile = mobileNumber.StartsWith("+98") ? "0" + mobileNumber.Substring(3) : mobileNumber;
 
                     var payload = new

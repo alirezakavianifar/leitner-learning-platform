@@ -40,6 +40,8 @@ services:
     depends_on:
       - db
       - redis
+    env_file:
+      - ../.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Server=db;Port=5432;Database=leitner_db;User Id=leitner_admin;Password=${DB_PASSWORD:-leitner_secure_pass_2026};
