@@ -179,6 +179,20 @@ catch (Exception ex)
     dbContext.Database.EnsureCreated();
 }
 
+// 12b. Backfill ChecksumSha256 for any course packages uploaded before this
+// verification feature existed on the server (self-limiting, safe to re-run).
+try
+{
+    using var checksumScope = app.Services.CreateScope();
+    var checksumDbContext = checksumScope.ServiceProvider.GetRequiredService<LeitnerDbContext>();
+    var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+    await ChecksumBackfiller.BackfillMissingChecksumsAsync(checksumDbContext, wwwrootPath, msg => Log.Information(msg));
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Checksum backfill failed at startup.");
+}
+
 // 13. Map Event Bus Subscriptions
 var eventBus = app.Services.GetRequiredService<IEventBus>();
 

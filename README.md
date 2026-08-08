@@ -240,11 +240,15 @@ powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms OFF
            ```powershell
            powershell -ExecutionPolicy Bypass -File ./scripts/start-tunnel.ps1
            ```
-        2. **Build APK:** Compile the premium release APK. (The script will automatically detect and target your active Ngrok URL if it is running):
+        2. **Build APK:** Compile the premium release APK targeting your server IP or active Ngrok URL:
            ```powershell
+           # Target remote server directly (default):
+           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "http://45.94.215.188"
+
+           # Or target local/ngrok backend:
            powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1
            ```
-        The compiled APK will be automatically copied to the repository root as `app-premium-release.apk`.
+        The compiled APK will be automatically copied to the repository root as `app-premium-release.apk`. (Note: The app is configured with `android:usesCleartextTraffic="true"` in `AndroidManifest.xml` to support HTTP endpoints like `http://45.94.215.188`).
 
 
 ---

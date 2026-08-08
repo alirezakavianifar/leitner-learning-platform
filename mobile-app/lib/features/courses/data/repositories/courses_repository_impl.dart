@@ -64,6 +64,9 @@ class CoursesRepositoryImpl implements CoursesRepository {
     if (kIsWeb) {
       return Left(ServerFailure('Offline course downloads are available on mobile and desktop apps.'));
     }
+    // Declared outside the try block so cleanup in the catch clauses below
+    // can still reach the partially-downloaded file, if any.
+    String? tempZipPath;
     try {
       // 1. Fetch download token and url from backend
       final tokenInfo = await remoteDataSource.getDownloadToken(courseId);
@@ -78,8 +81,8 @@ class CoursesRepositoryImpl implements CoursesRepository {
 
       // 2. Download package ZIP file to temp directory
       final tempDir = await getTemporaryDirectory();
-      final tempZipPath = p.join(tempDir.path, 'download_$courseId.zip');
-      
+      tempZipPath = p.join(tempDir.path, 'download_$courseId.zip');
+
       final response = await dio.download(
         downloadUrl,
         tempZipPath,
@@ -97,7 +100,23 @@ class CoursesRepositoryImpl implements CoursesRepository {
         return Left(ServerFailure('Failed to download course archive package.'));
       }
 
-      // 3. Verify checksum (if provided)
+      // 3. Verify the file actually arrived intact before trusting it.
+      // A flaky mobile connection can drop mid-transfer while dio still
+      // reports completion, so we cross-check the on-disk size against the
+      // server-reported Content-Length whenever it is available.
+      final expectedLength = _extractContentLength(response.headers.map);
+      final actualLength = File(tempZipPath).existsSync() ? File(tempZipPath).lengthSync() : 0;
+      if (actualLength == 0 || (expectedLength != null && actualLength != expectedLength)) {
+        try {
+          File(tempZipPath).deleteSync();
+        } catch (_) {}
+        return Left(ServerFailure(
+          'The course download was interrupted before it finished. Please check your connection and try again.',
+          errorCode: 'INCOMPLETE_DOWNLOAD',
+        ));
+      }
+
+      // 4. Verify checksum (if provided)
       if (expectedChecksum != null && expectedChecksum.isNotEmpty) {
         final isVerified = await _verifyChecksum(tempZipPath, expectedChecksum);
         if (!isVerified) {
@@ -108,20 +127,46 @@ class CoursesRepositoryImpl implements CoursesRepository {
         }
       }
 
-      // 4. Save and extract locally (merges progress tables automatically)
-      await localDataSource.saveDownloadedCourse(
-        courseId: courseId,
-        zipFilePath: tempZipPath,
-      );
+      // 5. Save and extract locally (merges progress tables automatically)
+      try {
+        await localDataSource.saveDownloadedCourse(
+          courseId: courseId,
+          zipFilePath: tempZipPath,
+        );
+      } catch (e) {
+        // The package failed to extract/process - most likely a corrupted or
+        // incomplete download. Clean up so a retry starts from a clean slate.
+        try {
+          File(tempZipPath).deleteSync();
+        } catch (_) {}
+        return Left(CacheFailure(
+          'The downloaded course package could not be processed (it may have been corrupted in transit). Please try downloading again.',
+        ));
+      }
 
       return const Right(null);
     } on DioException catch (dioErr) {
+      if (tempZipPath != null) {
+        try {
+          File(tempZipPath).deleteSync();
+        } catch (_) {}
+      }
       final message = dioErr.response?.data?['message'] ?? dioErr.message;
       final errorCode = dioErr.response?.data?['error_code'];
       return Left(ServerFailure(message, errorCode: errorCode));
     } catch (e) {
       return Left(CacheFailure('Failed to process and save course package: ${e.toString()}'));
     }
+  }
+
+  /// Reads the `content-length` response header (case-insensitive), if present.
+  int? _extractContentLength(Map<String, List<String>> headers) {
+    for (final entry in headers.entries) {
+      if (entry.key.toLowerCase() == 'content-length' && entry.value.isNotEmpty) {
+        return int.tryParse(entry.value.first);
+      }
+    }
+    return null;
   }
 
   Future<bool> _verifyChecksum(String filePath, String expectedChecksum) async {

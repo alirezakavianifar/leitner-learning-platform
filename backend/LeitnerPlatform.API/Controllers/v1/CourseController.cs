@@ -117,6 +117,32 @@ namespace LeitnerPlatform.API.Controllers.v1
                 });
             }
 
+            // Guard against courses whose metadata exists (and is published) but whose
+            // package file is missing/not yet uploaded to wwwroot - avoids the client
+            // reaching 100% "download" of a broken/missing file with a confusing error.
+            if (string.IsNullOrEmpty(course.DownloadUrl))
+            {
+                return StatusCode(503, new
+                {
+                    success = false,
+                    error_code = "PACKAGE_NOT_AVAILABLE",
+                    message = "This course's content package is not available yet. Please try again later."
+                });
+            }
+
+            var relativePackagePath = course.DownloadUrl.TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar);
+            var wwwrootPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot");
+            var absolutePackagePath = System.IO.Path.Combine(wwwrootPath, relativePackagePath);
+            if (!System.IO.File.Exists(absolutePackagePath))
+            {
+                return StatusCode(503, new
+                {
+                    success = false,
+                    error_code = "PACKAGE_NOT_AVAILABLE",
+                    message = "This course's content package has not been uploaded yet. Please try again later."
+                });
+            }
+
             var request = HttpContext.Request;
             var absoluteDownloadUrl = $"{request.Scheme}://{request.Host}{course.DownloadUrl}";
             var tempToken = $"temp_sec_token_{Guid.NewGuid().ToString("N").Substring(0, 12)}";

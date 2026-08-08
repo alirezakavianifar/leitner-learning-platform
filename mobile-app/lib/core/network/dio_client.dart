@@ -44,8 +44,8 @@ class DioClient {
         onRequest: (options, handler) async {
           if (options.path.startsWith('http://') || options.path.startsWith('https://')) {
             // Absolute URL provided, leave untouched
-          } else if (options.path.startsWith('/courses/')) {
-            // Static course package URL: resolve to root host origin
+          } else if (options.path.startsWith('/courses/') && options.path.endsWith('.zip')) {
+            // Static course package file: resolve to root host origin (bypasses /api/v1 prefix)
             try {
               final uri = Uri.parse(dio.options.baseUrl);
               final rootOrigin = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
