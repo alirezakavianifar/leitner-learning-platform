@@ -502,9 +502,14 @@ namespace LeitnerPlatform.API.Controllers.v1
         #region Course Management CRUD
 
         [HttpGet("courses")]
-        public async Task<IActionResult> GetCourses([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 15)
+        public async Task<IActionResult> GetCourses([FromQuery] string? search, [FromQuery] bool includeArchived = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 15)
         {
             var query = _context.Courses.AsQueryable();
+
+            if (!includeArchived)
+            {
+                query = query.Where(c => !c.IsArchived);
+            }
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -662,6 +667,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 string? checksum = null;
 
                 bool isPublished = true;
+                bool isCriticalUpdate = false;
 
                 if (manifestPath != null && System.IO.File.Exists(manifestPath))
                 {
@@ -684,6 +690,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     if (root.TryGetProperty("card_count", out var countProp)) cardCount = countProp.GetInt32();
                     if (root.TryGetProperty("db_checksum_sha256", out var checkProp)) checksum = checkProp.GetString();
                     if (root.TryGetProperty("is_published", out var pubProp)) isPublished = pubProp.GetBoolean();
+                    if (root.TryGetProperty("is_critical_update", out var criticalProp)) isCriticalUpdate = criticalProp.GetBoolean();
                 }
                 else
                 {
@@ -714,14 +721,9 @@ namespace LeitnerPlatform.API.Controllers.v1
                     }
                 }
 
-                // Compute SHA256 checksum if not provided in manifest
-                if (string.IsNullOrEmpty(checksum) && System.IO.File.Exists(tempZipPath))
-                {
-                    using var sha256 = System.Security.Cryptography.SHA256.Create();
-                    using var stream = System.IO.File.OpenRead(tempZipPath);
-                    var hashBytes = await sha256.ComputeHashAsync(stream);
-                    checksum = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-                }
+                // Note: the manifest's "db_checksum_sha256" (if present) describes the checksum of the
+                // authored course.db, not of the distributable package. The checksum actually verified by
+                // the mobile client is always computed below, from the exact ZIP bytes it will download.
 
                 // 2. Read cards from SQLite database dynamically supporting various column naming conventions
                 var cardsList = new System.Collections.Generic.List<Card>();
@@ -796,10 +798,17 @@ namespace LeitnerPlatform.API.Controllers.v1
                     cardCount = cardsList.Count;
                 }
 
-                // 3. Save package file to wwwroot/courses/{course_id}.zip
+                // 3. Build a mobile-compatible package and save it to wwwroot/courses/{course_id}.zip.
+                // We never store the raw uploaded ZIP verbatim: legacy/author packages (e.g. 504.zip) nest
+                // the .db file inside a subfolder, use non-standard column names, and keep media in
+                // arbitrarily named folders (e.g. "pronunciation/"). The mobile client strictly requires a
+                // root-level "course.db" (matching docs/course/course_db_specification.md) plus flattened
+                // "images/"/"audio/" folders, or it fails to process the download entirely.
                 var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
                 var coursesDir = Path.Combine(wwwrootPath, "courses");
                 var relativeDownloadUrl = $"/courses/{courseId}.zip";
+                var builtZipPath = await BuildCompliantCoursePackageZipAsync(
+                    tempExtractDir, courseId, title, description, category, difficulty, price, version, cardsList);
 
                 try
                 {
@@ -813,11 +822,21 @@ namespace LeitnerPlatform.API.Controllers.v1
                     {
                         System.IO.File.Delete(targetZipPath);
                     }
-                    System.IO.File.Copy(tempZipPath, targetZipPath);
+                    System.IO.File.Copy(builtZipPath, targetZipPath);
+
+                    // The checksum returned to clients must match the exact bytes they will download & hash.
+                    using var sha256 = System.Security.Cryptography.SHA256.Create();
+                    using var checksumStream = System.IO.File.OpenRead(targetZipPath);
+                    var hashBytes = await sha256.ComputeHashAsync(checksumStream);
+                    checksum = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Could not copy ZIP archive to wwwroot/courses: {Message}", ex.Message);
+                    _logger.LogWarning(ex, "Could not save built course package to wwwroot/courses: {Message}", ex.Message);
+                }
+                finally
+                {
+                    try { if (System.IO.File.Exists(builtZipPath)) System.IO.File.Delete(builtZipPath); } catch { }
                 }
 
                 // 4. Update or Insert in PostgreSQL
@@ -840,6 +859,12 @@ namespace LeitnerPlatform.API.Controllers.v1
                             existingCourse.DownloadUrl = relativeDownloadUrl;
                             existingCourse.CardCount = cardCount;
                             existingCourse.IsPublished = isPublished;
+                            existingCourse.IsCriticalUpdate = isCriticalUpdate;
+                            existingCourse.UpdatedAt = DateTime.UtcNow;
+                            // Re-uploading a package is an explicit admin action to bring the
+                            // course back into circulation, so reverse any prior archive state.
+                            existingCourse.IsArchived = false;
+                            existingCourse.ArchivedAt = null;
 
                             _context.Entry(existingCourse).State = EntityState.Modified;
 
@@ -875,7 +900,9 @@ namespace LeitnerPlatform.API.Controllers.v1
                                 ChecksumSha256 = checksum,
                                 DownloadUrl = relativeDownloadUrl,
                                 CardCount = cardCount,
-                                CreatedAt = DateTime.UtcNow
+                                IsCriticalUpdate = isCriticalUpdate,
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow
                             };
 
                             await _context.Courses.AddAsync(newCourse);
@@ -918,6 +945,136 @@ namespace LeitnerPlatform.API.Controllers.v1
             }
         }
 
+        /// <summary>
+        /// Builds a mobile-client-compatible course package from whatever layout the author uploaded.
+        /// Produces a ZIP containing a root-level "course.db" (schema per
+        /// docs/course/course_db_specification.md) plus flattened "images/" and "audio/" folders,
+        /// regardless of how the source package nested its .db file or media assets.
+        /// </summary>
+        private async Task<string> BuildCompliantCoursePackageZipAsync(
+            string sourceExtractDir,
+            Guid courseId,
+            string title,
+            string? description,
+            string? category,
+            string? difficulty,
+            decimal price,
+            int version,
+            System.Collections.Generic.List<Card> cardsList)
+        {
+            var buildDir = Path.Combine(Path.GetTempPath(), $"pkg_{Guid.NewGuid()}");
+            var imagesDir = Path.Combine(buildDir, "images");
+            var audioDir = Path.Combine(buildDir, "audio");
+            Directory.CreateDirectory(imagesDir);
+            Directory.CreateDirectory(audioDir);
+
+            // Index every non-db, non-manifest file from the source package by filename so legacy
+            // packages with nested/renamed media folders (e.g. "pronunciation/word.mp3") still resolve.
+            var mediaIndex = Directory.GetFiles(sourceExtractDir, "*.*", SearchOption.AllDirectories)
+                .Where(f => !f.EndsWith(".db", StringComparison.OrdinalIgnoreCase)
+                         && !Path.GetFileName(f).Equals("manifest.json", StringComparison.OrdinalIgnoreCase))
+                .GroupBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            foreach (var card in cardsList)
+            {
+                if (!string.IsNullOrEmpty(card.ImageUrl) && mediaIndex.TryGetValue(card.ImageUrl, out var imgSrc))
+                {
+                    var dest = Path.Combine(imagesDir, Path.GetFileName(card.ImageUrl));
+                    if (!System.IO.File.Exists(dest)) System.IO.File.Copy(imgSrc, dest);
+                }
+                if (!string.IsNullOrEmpty(card.AudioUrl) && mediaIndex.TryGetValue(card.AudioUrl, out var audSrc))
+                {
+                    var dest = Path.Combine(audioDir, Path.GetFileName(card.AudioUrl));
+                    if (!System.IO.File.Exists(dest)) System.IO.File.Copy(audSrc, dest);
+                }
+            }
+
+            var dbPath = Path.Combine(buildDir, "course.db");
+            if (System.IO.File.Exists(dbPath)) System.IO.File.Delete(dbPath);
+
+            using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath}"))
+            {
+                await conn.OpenAsync();
+
+                using (var schemaCmd = conn.CreateCommand())
+                {
+                    schemaCmd.CommandText = @"
+                        CREATE TABLE IF NOT EXISTS course (
+                            id TEXT PRIMARY KEY,
+                            title TEXT NOT NULL,
+                            description TEXT,
+                            category TEXT,
+                            difficulty TEXT,
+                            price REAL NOT NULL DEFAULT 0.0,
+                            version INTEGER NOT NULL DEFAULT 1,
+                            created_at TEXT NOT NULL
+                        );
+                        CREATE TABLE IF NOT EXISTS cards (
+                            id TEXT PRIMARY KEY,
+                            course_id TEXT NOT NULL,
+                            card_number INTEGER NOT NULL,
+                            question_text TEXT NOT NULL,
+                            answer_text TEXT NOT NULL,
+                            image_name TEXT,
+                            audio_name TEXT
+                        );
+                        CREATE UNIQUE INDEX IF NOT EXISTS idx_cards_course_number ON cards (course_id, card_number);
+                    ";
+                    await schemaCmd.ExecuteNonQueryAsync();
+                }
+
+                using (var tx = conn.BeginTransaction())
+                {
+                    using (var courseCmd = conn.CreateCommand())
+                    {
+                        courseCmd.Transaction = tx;
+                        courseCmd.CommandText = "INSERT INTO course (id, title, description, category, difficulty, price, version, created_at) " +
+                                                 "VALUES ($id,$title,$description,$category,$difficulty,$price,$version,$createdAt)";
+                        courseCmd.Parameters.AddWithValue("$id", courseId.ToString());
+                        courseCmd.Parameters.AddWithValue("$title", title);
+                        courseCmd.Parameters.AddWithValue("$description", (object?)description ?? DBNull.Value);
+                        courseCmd.Parameters.AddWithValue("$category", (object?)category ?? DBNull.Value);
+                        courseCmd.Parameters.AddWithValue("$difficulty", (object?)difficulty ?? DBNull.Value);
+                        courseCmd.Parameters.AddWithValue("$price", price);
+                        courseCmd.Parameters.AddWithValue("$version", version);
+                        courseCmd.Parameters.AddWithValue("$createdAt", DateTime.UtcNow.ToString("o"));
+                        await courseCmd.ExecuteNonQueryAsync();
+                    }
+
+                    foreach (var card in cardsList)
+                    {
+                        using var cardCmd = conn.CreateCommand();
+                        cardCmd.Transaction = tx;
+                        cardCmd.CommandText = "INSERT INTO cards (id, course_id, card_number, question_text, answer_text, image_name, audio_name) " +
+                                               "VALUES ($id,$courseId,$cardNumber,$question,$answer,$image,$audio)";
+                        cardCmd.Parameters.AddWithValue("$id", card.Id.ToString());
+                        cardCmd.Parameters.AddWithValue("$courseId", courseId.ToString());
+                        cardCmd.Parameters.AddWithValue("$cardNumber", card.CardNumber);
+                        cardCmd.Parameters.AddWithValue("$question", card.QuestionText);
+                        cardCmd.Parameters.AddWithValue("$answer", card.AnswerText);
+                        cardCmd.Parameters.AddWithValue("$image", (object?)(card.ImageUrl != null ? Path.GetFileName(card.ImageUrl) : null) ?? DBNull.Value);
+                        cardCmd.Parameters.AddWithValue("$audio", (object?)(card.AudioUrl != null ? Path.GetFileName(card.AudioUrl) : null) ?? DBNull.Value);
+                        await cardCmd.ExecuteNonQueryAsync();
+                    }
+
+                    await tx.CommitAsync();
+                }
+            }
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+
+            if (Directory.GetFiles(imagesDir).Length == 0) Directory.Delete(imagesDir, true);
+            if (Directory.GetFiles(audioDir).Length == 0) Directory.Delete(audioDir, true);
+
+            var outputZipPath = Path.Combine(Path.GetTempPath(), $"built_{courseId}_{Guid.NewGuid()}.zip");
+            if (System.IO.File.Exists(outputZipPath)) System.IO.File.Delete(outputZipPath);
+            System.IO.Compression.ZipFile.CreateFromDirectory(buildDir, outputZipPath, System.IO.Compression.CompressionLevel.Optimal, false);
+
+            try { Directory.Delete(buildDir, true); } catch { }
+
+            return outputZipPath;
+        }
+
         [HttpPut("courses/{id}")]
         public async Task<IActionResult> UpdateCourse(Guid id, [FromBody] AdminCourseUpdateInput input)
         {
@@ -935,6 +1092,8 @@ namespace LeitnerPlatform.API.Controllers.v1
             course.Difficulty = input.Difficulty ?? course.Difficulty;
             if (input.Price.HasValue) course.Price = input.Price.Value;
             if (input.IsPublished.HasValue) course.IsPublished = input.IsPublished.Value;
+            if (input.IsCriticalUpdate.HasValue) course.IsCriticalUpdate = input.IsCriticalUpdate.Value;
+            course.UpdatedAt = DateTime.UtcNow;
 
             _context.Entry(course).State = EntityState.Modified;
             await _context.SaveChangesAsync();
@@ -951,6 +1110,13 @@ namespace LeitnerPlatform.API.Controllers.v1
             return Ok(new { success = true, message = "Course metadata updated successfully.", course });
         }
 
+        /// <summary>
+        /// Archives (soft-deletes) a course: hides it from the public catalog and the
+        /// default admin course list, but keeps its row, cards, package file, and all
+        /// existing purchases intact so users who already bought/downloaded it keep access.
+        /// Use POST courses/{id}/unarchive to reverse, or DELETE courses/{id}/purge for a
+        /// permanent, destructive removal.
+        /// </summary>
         [HttpDelete("courses/{id}")]
         public async Task<IActionResult> DeleteCourse(Guid id)
         {
@@ -960,9 +1126,85 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return NotFound(new { success = false, message = "Course not found." });
             }
 
+            if (course.IsArchived)
+            {
+                return Ok(new { success = true, message = "Course is already archived." });
+            }
+
             var beforeJson = JsonSerializer.Serialize(course);
 
-            // Delete course package file from disk
+            course.IsArchived = true;
+            course.ArchivedAt = DateTime.UtcNow;
+            course.IsPublished = false;
+            course.UpdatedAt = DateTime.UtcNow;
+
+            _context.Entry(course).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            var afterJson = JsonSerializer.Serialize(course);
+            await _auditLogService.LogActionAsync(
+                GetAdminUsername(),
+                "ARCHIVE_COURSE",
+                $"Course:{id}",
+                beforeJson,
+                afterJson
+            );
+
+            return Ok(new { success = true, message = "Course archived successfully. Existing buyers keep access; it is hidden from the store." });
+        }
+
+        /// <summary>
+        /// Reverses an archive: re-hides no fields, but sets IsArchived = false. Admin must
+        /// still explicitly re-publish via PUT courses/{id} (IsPublished) if desired.
+        /// </summary>
+        [HttpPost("courses/{id}/unarchive")]
+        public async Task<IActionResult> UnarchiveCourse(Guid id)
+        {
+            var course = await _context.Courses.FindAsync(id);
+            if (course == null)
+            {
+                return NotFound(new { success = false, message = "Course not found." });
+            }
+
+            var beforeJson = JsonSerializer.Serialize(course);
+
+            course.IsArchived = false;
+            course.ArchivedAt = null;
+            course.UpdatedAt = DateTime.UtcNow;
+
+            _context.Entry(course).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            var afterJson = JsonSerializer.Serialize(course);
+            await _auditLogService.LogActionAsync(
+                GetAdminUsername(),
+                "UNARCHIVE_COURSE",
+                $"Course:{id}",
+                beforeJson,
+                afterJson
+            );
+
+            return Ok(new { success = true, message = "Course unarchived successfully.", course });
+        }
+
+        /// <summary>
+        /// Permanently and irreversibly deletes a course: removes the row (cascading to
+        /// cards, purchases, progress, and reports), and deletes the package file from disk.
+        /// Intended only for legal/compliance removals or cleaning up test data - NOT for
+        /// routine "take this course down" workflows, which should use DELETE courses/{id}
+        /// (archive) instead so paying customers don't lose access.
+        /// </summary>
+        [HttpDelete("courses/{id}/purge")]
+        public async Task<IActionResult> PurgeCourse(Guid id)
+        {
+            var course = await _context.Courses.FindAsync(id);
+            if (course == null)
+            {
+                return NotFound(new { success = false, message = "Course not found." });
+            }
+
+            var beforeJson = JsonSerializer.Serialize(course);
+
             try
             {
                 var targetZipPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "courses", $"{id}.zip");
@@ -981,13 +1223,13 @@ namespace LeitnerPlatform.API.Controllers.v1
 
             await _auditLogService.LogActionAsync(
                 GetAdminUsername(),
-                "DELETE_COURSE",
+                "PURGE_COURSE",
                 $"Course:{id}",
                 beforeJson,
                 null
             );
 
-            return Ok(new { success = true, message = "Course and all related cards deleted successfully." });
+            return Ok(new { success = true, message = "Course and all related cards, purchases, and progress permanently deleted." });
         }
 
         #endregion
@@ -1071,6 +1313,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         public string? Difficulty { get; set; }
         public decimal? Price { get; set; }
         public bool? IsPublished { get; set; }
+        public bool? IsCriticalUpdate { get; set; }
     }
 
     public class AdminUserUpdateInput

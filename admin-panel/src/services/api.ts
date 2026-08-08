@@ -93,9 +93,10 @@ export const api = {
   admin: {
     getStats: () => request<{ success: boolean; stats: any }>('/admin/dashboard/stats'),
 
-    getCourses: (search?: string, page = 1, pageSize = 15) => {
+    getCourses: (search?: string, page = 1, pageSize = 15, includeArchived = false) => {
       const params = new URLSearchParams({ page: page.toString(), pageSize: pageSize.toString() });
       if (search) params.set('search', search);
+      if (includeArchived) params.set('includeArchived', 'true');
       return request<{ success: boolean; total_count: number; courses: any[] }>(`/admin/courses?${params.toString()}`);
     },
 
@@ -236,6 +237,14 @@ export const api = {
     }),
 
     deleteCourse: (id: string) => request<{ success: boolean; message: string }>(`/admin/courses/${id}`, {
+      method: 'DELETE'
+    }),
+
+    unarchiveCourse: (id: string) => request<{ success: boolean; message: string; course: any }>(`/admin/courses/${id}/unarchive`, {
+      method: 'POST'
+    }),
+
+    purgeCourse: (id: string) => request<{ success: boolean; message: string }>(`/admin/courses/${id}/purge`, {
       method: 'DELETE'
     }),
     

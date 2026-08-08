@@ -81,7 +81,7 @@ class DatabaseHelper {
     // Using standard sqflite for maximum compatibility across test and local compilation setups:
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -157,7 +157,11 @@ class DatabaseHelper {
         card_count INTEGER NOT NULL,
         is_purchased INTEGER NOT NULL DEFAULT 0,
         download_url TEXT,
-        version INTEGER NOT NULL DEFAULT 1
+        version INTEGER NOT NULL DEFAULT 1,
+        is_archived INTEGER NOT NULL DEFAULT 0,
+        is_critical_update INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT,
+        downloaded_version INTEGER
       )
     ''');
 
@@ -243,6 +247,18 @@ class DatabaseHelper {
       try {
         await db.execute('ALTER TABLE client_progress ADD COLUMN has_entered_leitner INTEGER NOT NULL DEFAULT 0');
       } catch (_) {}
+    }
+    if (oldVersion < 6) {
+      for (final ddl in [
+        'ALTER TABLE courses_cache ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE courses_cache ADD COLUMN is_critical_update INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE courses_cache ADD COLUMN updated_at TEXT',
+        'ALTER TABLE courses_cache ADD COLUMN downloaded_version INTEGER',
+      ]) {
+        try {
+          await db.execute(ddl);
+        } catch (_) {}
+      }
     }
   }
 

@@ -29,6 +29,10 @@ export interface Course {
   version: number;
   card_count: number;
   created_at: string;
+  updated_at?: string;
+  is_archived: boolean;
+  archived_at?: string;
+  is_critical_update: boolean;
 }
 
 export interface Purchase {

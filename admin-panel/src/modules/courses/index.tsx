@@ -16,7 +16,8 @@ export const CoursesView: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  
+  const [includeArchived, setIncludeArchived] = useState(false);
+
   // Edit Form Fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -24,6 +25,7 @@ export const CoursesView: React.FC = () => {
   const [difficulty, setDifficulty] = useState('Intermediate');
   const [price, setPrice] = useState<number>(0);
   const [isPublished, setIsPublished] = useState(false);
+  const [isCriticalUpdate, setIsCriticalUpdate] = useState(false);
 
   // Upload Fields
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -33,7 +35,7 @@ export const CoursesView: React.FC = () => {
   const loadCourses = async () => {
     try {
       setLoading(true);
-      const res = await api.admin.getCourses(search, page, 10);
+      const res = await api.admin.getCourses(search, page, 10, includeArchived);
       setCourses(res.courses || []);
       setTotalPages(Math.ceil((res.total_count || 0) / 10) || 1);
     } catch (err: any) {
@@ -45,7 +47,7 @@ export const CoursesView: React.FC = () => {
 
   useEffect(() => {
     loadCourses();
-  }, [page, search]);
+  }, [page, search, includeArchived]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -60,6 +62,7 @@ export const CoursesView: React.FC = () => {
     setDifficulty(course.difficulty || 'Intermediate');
     setPrice(course.price || 0);
     setIsPublished(course.is_published || false);
+    setIsCriticalUpdate(course.is_critical_update || false);
     setShowEditModal(true);
   };
 
@@ -74,7 +77,8 @@ export const CoursesView: React.FC = () => {
         category,
         difficulty,
         price,
-        is_published: isPublished
+        is_published: isPublished,
+        is_critical_update: isCriticalUpdate
       });
       toast.showSuccess(t('courses.alert_save_success', 'Course metadata updated successfully.'));
       setShowEditModal(false);
@@ -98,9 +102,12 @@ export const CoursesView: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     const confirmed = await toast.confirm({
-      title: 'حذف دوره آموزشی',
-      message: t('courses.confirm_delete', 'Are you sure you want to delete this course and all associated cards? This cannot be undone.'),
-      confirmText: 'حذف دوره',
+      title: t('courses.confirm_archive_title', 'Archive Course'),
+      message: t(
+        'courses.confirm_delete',
+        'This will hide the course from the store. Users who already purchased or downloaded it keep their access. You can unarchive it later. Continue?'
+      ),
+      confirmText: t('courses.btn_archive', 'Archive'),
       cancelText: 'انصراف',
       type: 'danger',
     });
@@ -109,10 +116,43 @@ export const CoursesView: React.FC = () => {
 
     try {
       await api.admin.deleteCourse(id);
-      toast.showSuccess(t('courses.alert_delete_success', 'Course deleted successfully.'));
+      toast.showSuccess(t('courses.alert_delete_success', 'Course archived successfully. Existing buyers keep access.'));
       loadCourses();
     } catch (err: any) {
-      toast.showError(err.message || t('courses.alert_delete_failed', 'Failed to delete course.'));
+      toast.showError(err.message || t('courses.alert_delete_failed', 'Failed to archive course.'));
+    }
+  };
+
+  const handleUnarchive = async (id: string) => {
+    try {
+      await api.admin.unarchiveCourse(id);
+      toast.showSuccess(t('courses.alert_unarchive_success', 'Course unarchived successfully.'));
+      loadCourses();
+    } catch (err: any) {
+      toast.showError(err.message || t('courses.alert_unarchive_failed', 'Failed to unarchive course.'));
+    }
+  };
+
+  const handlePurge = async (id: string) => {
+    const confirmed = await toast.confirm({
+      title: t('courses.confirm_purge_title', 'Permanently Delete Course'),
+      message: t(
+        'courses.confirm_purge',
+        'This PERMANENTLY deletes the course, its cards, all purchases, and all learner progress. Existing buyers will lose access entirely. This cannot be undone. Only use this for legal/compliance removals.'
+      ),
+      confirmText: t('courses.btn_purge', 'Permanently Delete'),
+      cancelText: 'انصراف',
+      type: 'danger',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await api.admin.purgeCourse(id);
+      toast.showSuccess(t('courses.alert_purge_success', 'Course permanently deleted.'));
+      loadCourses();
+    } catch (err: any) {
+      toast.showError(err.message || t('courses.alert_purge_failed', 'Failed to permanently delete course.'));
     }
   };
 
@@ -150,6 +190,15 @@ export const CoursesView: React.FC = () => {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '12px', marginLeft: 'auto', alignItems: 'center' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={includeArchived}
+                onChange={(e) => { setIncludeArchived(e.target.checked); setPage(1); }}
+                style={{ width: 'auto' }}
+              />
+              {t('courses.show_archived', 'Show archived')}
+            </label>
             <input
               type="text"
               className="search-input"
@@ -218,25 +267,42 @@ export const CoursesView: React.FC = () => {
                       <td>
                         <strong style={{ color: 'var(--accent-cyan)' }}>{localizeNumber(course.card_count)}</strong> {t('courses.cards_unit', 'cards')}
                       </td>
-                      <td>v{localizeNumber(course.version)}</td>
                       <td>
-                        <button
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: 0
-                          }}
-                          onClick={() => togglePublishStatus(course)}
-                          title="Click to toggle publish status"
-                        >
-                          <span className={`badge ${course.is_published ? 'completed' : 'pending'}`}>
-                            {course.is_published ? t('announcements.th_published', 'Published') : t('courses.status_draft', 'Draft / Private')}
+                        v{localizeNumber(course.version)}
+                        {course.is_critical_update && (
+                          <span
+                            className="badge pending"
+                            style={{ marginLeft: '6px', fontSize: '9px' }}
+                            title={t('courses.critical_update_flag_desc', 'Flagged as a critical fix - clients will be prompted to update')}
+                          >
+                            {t('courses.critical_update_flag', 'Fix')}
                           </span>
-                        </button>
+                        )}
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        {course.is_archived ? (
+                          <span className="badge pending" title={t('courses.archived_desc', 'Hidden from store; existing buyers keep access')}>
+                            {t('courses.status_archived', 'Archived')}
+                          </span>
+                        ) : (
+                          <button
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: 0
+                            }}
+                            onClick={() => togglePublishStatus(course)}
+                            title="Click to toggle publish status"
+                          >
+                            <span className={`badge ${course.is_published ? 'completed' : 'pending'}`}>
+                              {course.is_published ? t('announcements.th_published', 'Published') : t('courses.status_draft', 'Draft / Private')}
+                            </span>
+                          </button>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           <button
                             className="btn btn-secondary"
                             style={{ padding: '6px 12px', fontSize: '12px' }}
@@ -244,13 +310,32 @@ export const CoursesView: React.FC = () => {
                           >
                             {t('courses.btn_edit')}
                           </button>
-                          <button
-                            className="btn btn-danger"
-                            style={{ padding: '6px 12px', fontSize: '12px' }}
-                            onClick={() => handleDelete(course.id)}
-                          >
-                            {t('courses.btn_delete')}
-                          </button>
+                          {course.is_archived ? (
+                            <>
+                              <button
+                                className="btn btn-secondary"
+                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                onClick={() => handleUnarchive(course.id)}
+                              >
+                                {t('courses.btn_unarchive', 'Unarchive')}
+                              </button>
+                              <button
+                                className="btn btn-danger"
+                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                onClick={() => handlePurge(course.id)}
+                              >
+                                {t('courses.btn_purge', 'Permanently Delete')}
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              className="btn btn-danger"
+                              style={{ padding: '6px 12px', fontSize: '12px' }}
+                              onClick={() => handleDelete(course.id)}
+                            >
+                              {t('courses.btn_archive', 'Archive')}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -335,6 +420,20 @@ export const CoursesView: React.FC = () => {
                       />
                       <label htmlFor="coursePublish" style={{ margin: 0, cursor: 'pointer' }}>{t('courses.field_publish', 'Publish Course')}</label>
                     </div>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      id="courseCriticalUpdate"
+                      checked={isCriticalUpdate}
+                      onChange={(e) => setIsCriticalUpdate(e.target.checked)}
+                      style={{ width: 'auto' }}
+                    />
+                    <label htmlFor="courseCriticalUpdate" style={{ margin: 0, cursor: 'pointer' }}>
+                      {t('courses.field_critical_update', 'Mark as critical fix (prompts existing users to update)')}
+                    </label>
                   </div>
                 </div>
               </div>

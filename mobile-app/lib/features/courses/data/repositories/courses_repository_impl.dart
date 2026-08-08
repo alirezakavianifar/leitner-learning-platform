@@ -72,6 +72,7 @@ class CoursesRepositoryImpl implements CoursesRepository {
       final tokenInfo = await remoteDataSource.getDownloadToken(courseId);
       var downloadUrl = tokenInfo['download_url'] as String;
       final expectedChecksum = tokenInfo['checksum'] as String?;
+      final downloadedVersion = tokenInfo['version'] as int?;
 
       if (!kIsWeb && Platform.isAndroid && downloadUrl.contains('localhost')) {
         downloadUrl = downloadUrl.replaceAll('localhost', '10.0.2.2');
@@ -133,6 +134,9 @@ class CoursesRepositoryImpl implements CoursesRepository {
           courseId: courseId,
           zipFilePath: tempZipPath,
         );
+        if (downloadedVersion != null) {
+          await localDataSource.markCourseVersionDownloaded(courseId, downloadedVersion);
+        }
       } catch (e) {
         // The package failed to extract/process - most likely a corrupted or
         // incomplete download. Clean up so a retry starts from a clean slate.

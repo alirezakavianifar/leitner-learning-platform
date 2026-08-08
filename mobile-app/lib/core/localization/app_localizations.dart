@@ -240,6 +240,10 @@ class AppLocalizations {
       'offline_catalog_warning': 'Internet connection unavailable; course catalog update not performed.',
       'no_downloaded_courses_avail': 'No downloaded courses available.',
       'no_courses_avail': 'No courses available.',
+      'update_available': 'Update available',
+      'update_now': 'Update',
+      'course_no_longer_in_store': 'No longer available in store - you keep access',
+      'critical_update_desc': 'This course was updated to fix a reported issue. Please update to get the corrected content.',
       'select_payment_method': 'Select Payment Method',
       'zarinpal_gateway': 'Direct Gateway (ZarinPal)',
       'bazaar_billing': 'Cafe Bazaar Billing',
@@ -529,6 +533,10 @@ class AppLocalizations {
       'offline_catalog_warning': 'اتصال به اینترنت برقرار نیست؛ بروزرسانی کاتالوگ دوره‌ها انجام نشد.',
       'no_downloaded_courses_avail': 'هیچ دوره دانلود شده‌ای در دسترس نیست.',
       'no_courses_avail': 'هیچ دوره‌ای در دسترس نیست.',
+      'update_available': 'بروزرسانی موجود است',
+      'update_now': 'بروزرسانی',
+      'course_no_longer_in_store': 'دیگر در فروشگاه موجود نیست - دسترسی شما حفظ می‌شود',
+      'critical_update_desc': 'این دوره برای رفع یک مشکل گزارش‌شده بروزرسانی شده است. لطفاً برای دریافت محتوای اصلاح‌شده بروزرسانی کنید.',
       'select_payment_method': 'انتخاب روش پرداخت',
       'zarinpal_gateway': 'درگاه مستقیم (زرین‌پال)',
       'bazaar_billing': 'پرداخت درون‌برنامه‌ای بازار',
@@ -633,6 +641,8 @@ class AppLocalizations {
   String get allCourses => translate('all_courses');
   String get readyToStudy => translate('ready_to_study');
   String get downloadNow => translate('download_now');
+  String get updateAvailable => translate('update_available');
+  String get updateNow => translate('update_now');
   String get purchase => translate('purchase');
   String get free => translate('free');
   String get toman => translate('toman');

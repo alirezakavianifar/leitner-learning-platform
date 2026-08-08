@@ -12,8 +12,12 @@ class CourseModel extends Course {
     required bool isPurchased,
     String? downloadUrl,
     required int version,
+    bool isArchived = false,
+    bool isCriticalUpdate = false,
+    DateTime? updatedAt,
     bool isDownloaded = false,
     String? localDbPath,
+    int? downloadedVersion,
   }) : super(
           id: id,
           title: title,
@@ -25,8 +29,12 @@ class CourseModel extends Course {
           isPurchased: isPurchased,
           downloadUrl: downloadUrl,
           version: version,
+          isArchived: isArchived,
+          isCriticalUpdate: isCriticalUpdate,
+          updatedAt: updatedAt,
           isDownloaded: isDownloaded,
           localDbPath: localDbPath,
+          downloadedVersion: downloadedVersion,
         );
 
   factory CourseModel.fromJson(Map<String, dynamic> json) {
@@ -41,6 +49,9 @@ class CourseModel extends Course {
       isPurchased: json['is_purchased'] as bool,
       downloadUrl: json['download_url'] as String?,
       version: json['version'] as int? ?? 1,
+      isArchived: json['is_archived'] as bool? ?? false,
+      isCriticalUpdate: json['is_critical_update'] as bool? ?? false,
+      updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at'] as String) : null,
     );
   }
 
@@ -56,6 +67,9 @@ class CourseModel extends Course {
       'is_purchased': isPurchased,
       'download_url': downloadUrl,
       'version': version,
+      'is_archived': isArchived,
+      'is_critical_update': isCriticalUpdate,
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -71,8 +85,12 @@ class CourseModel extends Course {
       isPurchased: (map['is_purchased'] as int) == 1,
       downloadUrl: map['download_url'] as String?,
       version: map['version'] as int? ?? 1,
+      isArchived: (map['is_archived'] as int?) == 1,
+      isCriticalUpdate: (map['is_critical_update'] as int?) == 1,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'] as String) : null,
       isDownloaded: isDownloaded,
       localDbPath: localDbPath,
+      downloadedVersion: map['downloaded_version'] as int?,
     );
   }
 
@@ -88,6 +106,11 @@ class CourseModel extends Course {
       'is_purchased': isPurchased ? 1 : 0,
       'download_url': downloadUrl,
       'version': version,
+      'is_archived': isArchived ? 1 : 0,
+      'is_critical_update': isCriticalUpdate ? 1 : 0,
+      'updated_at': updatedAt?.toIso8601String(),
+      // downloaded_version is intentionally omitted: it is client-owned state
+      // and must be preserved across re-caches, not overwritten from the server.
     };
   }
 }

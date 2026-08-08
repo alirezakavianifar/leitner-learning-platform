@@ -47,16 +47,18 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return Unauthorized(new { success = false, message = "User not found or token invalid." });
             }
 
-            // Get published courses
-            var courses = await _context.Courses
-                .Where(c => c.IsPublished)
-                .OrderBy(c => c.Title)
-                .ToListAsync();
-
-            // Get user's completed purchases
+            // Get user's completed purchases first, so archived-but-purchased courses can
+            // still be included below (buyers keep access even after a course is archived).
             var completedPurchases = await _context.Purchases
                 .Where(p => p.UserId == userId && p.Status == "COMPLETED")
                 .Select(p => p.CourseId)
+                .ToListAsync();
+
+            // Catalog = published, non-archived courses (visible to everyone), plus any
+            // course this user has purchased even if it has since been archived/unpublished.
+            var courses = await _context.Courses
+                .Where(c => (c.IsPublished && !c.IsArchived) || completedPurchases.Contains(c.Id))
+                .OrderBy(c => c.Title)
                 .ToListAsync();
 
             var result = courses.Select(c =>
@@ -81,7 +83,12 @@ namespace LeitnerPlatform.API.Controllers.v1
                     price = c.Price,
                     card_count = c.CardCount,
                     is_purchased = isPurchased,
-                    download_url = downloadUrl
+                    download_url = downloadUrl,
+                    version = c.Version,
+                    checksum_sha256 = c.ChecksumSha256,
+                    updated_at = c.UpdatedAt,
+                    is_critical_update = c.IsCriticalUpdate,
+                    is_archived = c.IsArchived
                 };
             });
 
@@ -98,14 +105,22 @@ namespace LeitnerPlatform.API.Controllers.v1
             }
 
             var course = await _context.Courses.FindAsync(id);
-            if (course == null || !course.IsPublished)
+            if (course == null)
             {
                 return NotFound(new { success = false, message = "Course not found." });
             }
 
-            // Verify access (either course is free or user has purchased it)
-            var hasAccess = course.Price == 0 || await _context.Purchases.AnyAsync(p => 
+            // Verify access (either course is free or user has purchased it). Purchasers keep
+            // download access even if the course was later archived/unpublished; non-purchasers
+            // cannot access an unpublished or archived course at all.
+            var hasPurchase = await _context.Purchases.AnyAsync(p =>
                 p.UserId == userId && p.CourseId == id && p.Status == "COMPLETED");
+            var hasAccess = hasPurchase || (course.IsPublished && !course.IsArchived && course.Price == 0);
+
+            if (!course.IsPublished && !hasPurchase)
+            {
+                return NotFound(new { success = false, message = "Course not found." });
+            }
 
             if (!hasAccess)
             {
@@ -152,7 +167,9 @@ namespace LeitnerPlatform.API.Controllers.v1
                 success = true,
                 download_url = absoluteDownloadUrl,
                 token = tempToken,
-                checksum = course.ChecksumSha256
+                checksum = course.ChecksumSha256,
+                version = course.Version,
+                is_critical_update = course.IsCriticalUpdate
             });
         }
 

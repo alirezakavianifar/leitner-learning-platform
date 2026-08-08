@@ -11,10 +11,18 @@ class Course extends Equatable {
   final bool isPurchased;
   final String? downloadUrl;
   final int version;
-  
+
+  // Server-side content lifecycle metadata
+  final bool isArchived;
+  final bool isCriticalUpdate;
+  final DateTime? updatedAt;
+
   // Client-side computed state
   final bool isDownloaded;
   final String? localDbPath;
+  // The content version that is currently downloaded on this device, if any.
+  // Null when the course has never been downloaded.
+  final int? downloadedVersion;
 
   const Course({
     required this.id,
@@ -27,9 +35,18 @@ class Course extends Equatable {
     required this.isPurchased,
     this.downloadUrl,
     required this.version,
+    this.isArchived = false,
+    this.isCriticalUpdate = false,
+    this.updatedAt,
     this.isDownloaded = false,
     this.localDbPath,
+    this.downloadedVersion,
   });
+
+  /// True when the course has been downloaded before but the server now has
+  /// a newer content version available (e.g. the author fixed an issue).
+  bool get updateAvailable =>
+      isDownloaded && downloadedVersion != null && downloadedVersion! < version;
 
   Course copyWith({
     String? id,
@@ -42,8 +59,12 @@ class Course extends Equatable {
     bool? isPurchased,
     String? downloadUrl,
     int? version,
+    bool? isArchived,
+    bool? isCriticalUpdate,
+    DateTime? updatedAt,
     bool? isDownloaded,
     String? localDbPath,
+    int? downloadedVersion,
   }) {
     return Course(
       id: id ?? this.id,
@@ -56,8 +77,12 @@ class Course extends Equatable {
       isPurchased: isPurchased ?? this.isPurchased,
       downloadUrl: downloadUrl ?? this.downloadUrl,
       version: version ?? this.version,
+      isArchived: isArchived ?? this.isArchived,
+      isCriticalUpdate: isCriticalUpdate ?? this.isCriticalUpdate,
+      updatedAt: updatedAt ?? this.updatedAt,
       isDownloaded: isDownloaded ?? this.isDownloaded,
       localDbPath: localDbPath ?? this.localDbPath,
+      downloadedVersion: downloadedVersion ?? this.downloadedVersion,
     );
   }
 
@@ -73,7 +98,11 @@ class Course extends Equatable {
         isPurchased,
         downloadUrl,
         version,
+        isArchived,
+        isCriticalUpdate,
+        updatedAt,
         isDownloaded,
         localDbPath,
+        downloadedVersion,
       ];
 }

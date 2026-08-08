@@ -15,6 +15,9 @@ abstract class CoursesLocalDataSource {
     required String courseId,
     required String zipFilePath,
   });
+  /// Records which content version is now on-disk for [courseId], so future
+  /// catalog refreshes can detect when the server has a newer version.
+  Future<void> markCourseVersionDownloaded(String courseId, int version);
 }
 
 class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
@@ -26,9 +29,20 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
   Future<void> cacheCourses(List<CourseModel> courses) async {
     final db = await databaseHelper.localDatabase;
     await db.transaction((txn) async {
+      // Preserve locally-known downloaded versions - the server response never
+      // carries this client-owned state, and a plain REPLACE would wipe it.
+      final existingRows = await txn.query('courses_cache', columns: ['id', 'downloaded_version']);
+      final downloadedVersions = <String, int>{};
+      for (final row in existingRows) {
+        final version = row['downloaded_version'] as int?;
+        if (version != null) {
+          downloadedVersions[row['id'] as String] = version;
+        }
+      }
+
       // Clear existing cache
       await txn.delete('courses_cache');
-      
+
       // Insert new cache items
       for (final course in courses) {
         await txn.insert(
@@ -36,6 +50,16 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
           course.toCacheMap(),
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
+
+        final preservedVersion = downloadedVersions[course.id];
+        if (preservedVersion != null) {
+          await txn.update(
+            'courses_cache',
+            {'downloaded_version': preservedVersion},
+            where: 'id = ?',
+            whereArgs: [course.id],
+          );
+        }
       }
     });
   }
@@ -72,6 +96,17 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
   Future<String> getCourseDatabasePath(String courseId) async {
     final docDir = await getApplicationDocumentsDirectory();
     return p.join(docDir.path, 'courses', courseId, 'course.db');
+  }
+
+  @override
+  Future<void> markCourseVersionDownloaded(String courseId, int version) async {
+    final db = await databaseHelper.localDatabase;
+    await db.update(
+      'courses_cache',
+      {'downloaded_version': version},
+      where: 'id = ?',
+      whereArgs: [courseId],
+    );
   }
 
   @override

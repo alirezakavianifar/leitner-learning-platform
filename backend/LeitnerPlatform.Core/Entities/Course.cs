@@ -16,5 +16,16 @@ namespace LeitnerPlatform.Core.Entities
         public string? DownloadUrl { get; set; }
         public int CardCount { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+
+        // Soft-delete: archived courses are hidden from the public catalog and the
+        // admin "active" list, but their row, cards, and purchases stay intact so
+        // users who already bought/downloaded them keep access.
+        public bool IsArchived { get; set; }
+        public DateTime? ArchivedAt { get; set; }
+
+        // Set by an admin when re-uploading a package that fixes a known issue,
+        // so clients can prompt more assertively than a routine content update.
+        public bool IsCriticalUpdate { get; set; }
     }
 }

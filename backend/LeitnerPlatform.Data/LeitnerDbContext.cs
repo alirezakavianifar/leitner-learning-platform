@@ -57,6 +57,10 @@ namespace LeitnerPlatform.Data
                 entity.Property(e => e.DownloadUrl).HasColumnName("download_url").HasMaxLength(512);
                 entity.Property(e => e.CardCount).HasColumnName("card_count").HasDefaultValue(0);
                 entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.Property(e => e.IsArchived).HasColumnName("is_archived").HasDefaultValue(false);
+                entity.Property(e => e.ArchivedAt).HasColumnName("archived_at");
+                entity.Property(e => e.IsCriticalUpdate).HasColumnName("is_critical_update").HasDefaultValue(false);
             });
 
             // Card mapping

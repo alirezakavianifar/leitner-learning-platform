@@ -46,10 +46,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
     super.dispose();
   }
 
-  /// Sorts courses: Downloaded courses go to the top, then purchased, then unpaid.
+  /// Sorts courses: courses needing an update go first, then downloaded, then purchased, then unpaid.
   List<Course> _sortCourses(List<Course> courses) {
     final list = List<Course>.from(courses);
     list.sort((a, b) {
+      if (a.updateAvailable && !b.updateAvailable) return -1;
+      if (!a.updateAvailable && b.updateAvailable) return 1;
       if (a.isDownloaded && !b.isDownloaded) return -1;
       if (!a.isDownloaded && b.isDownloaded) return 1;
       if (a.isPurchased && !b.isPurchased) return -1;
@@ -476,12 +478,47 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   const SizedBox(width: 12),
                   // Border label helper
                   Icon(
-                    course.isDownloaded ? Icons.offline_pin : Icons.cloud_download,
-                    color: borderColor,
+                    course.updateAvailable
+                        ? Icons.system_update
+                        : (course.isDownloaded ? Icons.offline_pin : Icons.cloud_download),
+                    color: course.updateAvailable
+                        ? (course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800))
+                        : borderColor,
                     size: 24,
                   ),
                 ],
               ),
+              if (course.updateAvailable) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800)).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    course.isCriticalUpdate
+                        ? AppLocalizations.of(context).translate('critical_update_desc')
+                        : AppLocalizations.of(context).updateAvailable,
+                    style: TextStyle(
+                      color: course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+              if (course.isArchived && course.isPurchased) ...[
+                const SizedBox(height: 8),
+                Text(
+                  AppLocalizations.of(context).translate('course_no_longer_in_store'),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               if (course.description != null) ...[
                 Text(
@@ -532,7 +569,28 @@ class _CoursesScreenState extends State<CoursesScreen> {
   Widget _buildActionButton(Course course, bool isDownloading, [double downloadProgress = 0.0]) {
     final loc = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
+    if (!isDownloading && !kIsWeb && course.updateAvailable) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          backgroundColor: course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800),
+          foregroundColor: Colors.white,
+        ),
+        onPressed: () {
+          context.read<CoursesBloc>().add(DownloadCourseEvent(courseId: course.id));
+        },
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.system_update, size: 16),
+            const SizedBox(width: 6),
+            Text(loc.updateNow),
+          ],
+        ),
+      );
+    }
+
     if (course.isDownloaded || (kIsWeb && course.isPurchased)) {
       return ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
