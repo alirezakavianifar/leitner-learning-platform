@@ -28,6 +28,10 @@ class CoursesRepositoryImpl implements CoursesRepository {
       // 1. Fetch remote list
       final remoteCourses = await remoteDataSource.getCourses();
       
+      if (kIsWeb) {
+        return Right((remoteCourses, false));
+      }
+
       // 2. Cache locally
       await localDataSource.cacheCourses(remoteCourses);
       
@@ -35,6 +39,9 @@ class CoursesRepositoryImpl implements CoursesRepository {
       final cachedCourses = await localDataSource.getCachedCourses();
       return Right((cachedCourses, false));
     } catch (e) {
+      if (kIsWeb) {
+        return Left(NetworkFailure('Failed to load courses: ${e.toString()}'));
+      }
       // Offline fallback: load cached courses if database/network fails
       try {
         final cachedCourses = await localDataSource.getCachedCourses();
@@ -50,7 +57,13 @@ class CoursesRepositoryImpl implements CoursesRepository {
   }
 
   @override
-  Future<Either<Failure, void>> downloadCourse(String courseId) async {
+  Future<Either<Failure, void>> downloadCourse(
+    String courseId, {
+    void Function(int received, int total)? onProgress,
+  }) async {
+    if (kIsWeb) {
+      return Left(ServerFailure('Offline course downloads are available on mobile and desktop apps.'));
+    }
     try {
       // 1. Fetch download token and url from backend
       final tokenInfo = await remoteDataSource.getDownloadToken(courseId);
@@ -70,12 +83,15 @@ class CoursesRepositoryImpl implements CoursesRepository {
       final response = await dio.download(
         downloadUrl,
         tempZipPath,
+        onReceiveProgress: onProgress,
         options: Options(
           headers: {
             'Accept': '*/*',
+            'Accept-Encoding': 'identity',
           },
         ),
       );
+
 
       if (response.statusCode != 200) {
         return Left(ServerFailure('Failed to download course archive package.'));

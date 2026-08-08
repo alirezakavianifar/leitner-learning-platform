@@ -52,10 +52,37 @@ class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
       courseId: event.courseId,
       currentCourses: List.from(currentCourses),
       isOffline: isOffline,
+      progress: 0.0,
     ));
 
+    int lastReportedPercent = -1;
+
     final result = await downloadCourseUseCase(
-      DownloadCourseParams(courseId: event.courseId),
+      DownloadCourseParams(
+        courseId: event.courseId,
+        onProgress: (received, total) {
+          double progress;
+          if (total > 0) {
+            progress = (received / total).clamp(0.0, 1.0);
+          } else if (received > 0) {
+            // Fallback for unknown total length: scale received bytes into 0.05 to 0.95
+            progress = (1.0 - (1.0 / (1.0 + (received / 500000)))).clamp(0.05, 0.95);
+          } else {
+            progress = 0.0;
+          }
+
+          final int percent = (progress * 100).clamp(0, 100).toInt();
+          if (percent != lastReportedPercent) {
+            lastReportedPercent = percent;
+            emit(CourseDownloading(
+              courseId: event.courseId,
+              currentCourses: List.from(currentCourses),
+              isOffline: isOffline,
+              progress: progress,
+            ));
+          }
+        },
+      ),
     );
 
     await result.fold(
@@ -80,4 +107,5 @@ class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
       },
     );
   }
+
 }

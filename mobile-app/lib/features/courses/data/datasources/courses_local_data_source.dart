@@ -140,42 +140,43 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
     // A. Insert defaults for new card numbers added
     final nowIso = DateTime.now().toUtc().toIso8601String();
     final cardsToInsert = newCardNumbers.difference(existingCardNumbers);
-    
-    await localDb.transaction((txn) async {
-      for (final cardNum in cardsToInsert) {
-        final compositeId = '${courseId}_$cardNum';
-        await txn.insert(
-          'client_progress',
-          {
-            'id': compositeId,
-            'course_id': courseId,
-            'card_number': cardNum,
-            'current_box': 1,
-            'last_reviewed_at': null,
-            'next_review_due': nowIso,
-            'is_synced': 0,
-            'has_entered_leitner': 0,
-          },
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
-      }
+    final cardsToDelete = existingCardNumbers.difference(newCardNumbers);
 
-      // B. Remove progress records for deleted card numbers
-      final cardsToDelete = existingCardNumbers.difference(newCardNumbers);
-      for (final cardNum in cardsToDelete) {
-        final compositeId = '${courseId}_$cardNum';
-        await txn.delete(
-          'client_progress',
-          where: 'id = ?',
-          whereArgs: [compositeId],
-        );
-        await txn.delete(
-          'favorites',
-          where: 'course_id = ? AND card_number = ?',
-          whereArgs: [courseId, cardNum],
-        );
-      }
-    });
+    final batch = localDb.batch();
+    for (final cardNum in cardsToInsert) {
+      final compositeId = '${courseId}_$cardNum';
+      batch.insert(
+        'client_progress',
+        {
+          'id': compositeId,
+          'course_id': courseId,
+          'card_number': cardNum,
+          'current_box': 1,
+          'last_reviewed_at': null,
+          'next_review_due': nowIso,
+          'is_synced': 0,
+          'has_entered_leitner': 0,
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+
+    // B. Remove progress records for deleted card numbers
+    for (final cardNum in cardsToDelete) {
+      final compositeId = '${courseId}_$cardNum';
+      batch.delete(
+        'client_progress',
+        where: 'id = ?',
+        whereArgs: [compositeId],
+      );
+      batch.delete(
+        'favorites',
+        where: 'course_id = ? AND card_number = ?',
+        whereArgs: [courseId, cardNum],
+      );
+    }
+
+    await batch.commit(noResult: true);
 
     // 3. Swap the old database/assets with the new ones
     final targetDbFile = File(p.join(courseDir, 'course.db'));

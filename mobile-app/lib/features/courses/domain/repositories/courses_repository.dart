@@ -8,5 +8,9 @@ abstract class CoursesRepository {
   Future<Either<Failure, (List<Course> courses, bool isOffline)>> getCourses();
 
   /// Downloads, decrypts, and extracts a course database and assets.
-  Future<Either<Failure, void>> downloadCourse(String courseId);
+  Future<Either<Failure, void>> downloadCourse(
+    String courseId, {
+    void Function(int received, int total)? onProgress,
+  });
 }
+

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
@@ -151,6 +152,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 List<Course> courses = [];
                 bool isOffline = false;
                 String? downloadingCourseId;
+                double downloadProgress = 0.0;
 
                 if (state is CoursesLoaded) {
                   courses = state.courses;
@@ -159,6 +161,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   courses = state.currentCourses;
                   isOffline = state.isOffline;
                   downloadingCourseId = state.courseId;
+                  downloadProgress = state.progress;
                 } else if (state is CoursesError && courses.isEmpty) {
                   return Center(
                     child: Column(
@@ -242,12 +245,13 @@ class _CoursesScreenState extends State<CoursesScreen> {
                               (context, index) {
                                 final course = sortedCourses[index];
                                 final isDownloading = downloadingCourseId == course.id;
-                                return _buildCourseCard(course, isDownloading);
+                                return _buildCourseCard(course, isDownloading, downloadProgress);
                               },
                               childCount: sortedCourses.length,
                             ),
                           ),
                         ),
+
                     ],
                   ),
                 );
@@ -385,7 +389,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
     }
   }
 
-  Widget _buildCourseCard(Course course, bool isDownloading) {
+  Widget _buildCourseCard(Course course, bool isDownloading, [double downloadProgress = 0.0]) {
     final borderColor = course.isDownloaded
         ? AppColors.courseDownloaded
         : AppColors.courseNotDownloaded;
@@ -515,7 +519,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                       ),
                     ],
                   ),
-                  _buildActionButton(course, isDownloading),
+                  _buildActionButton(course, isDownloading, downloadProgress),
                 ],
               ),
             ],
@@ -525,11 +529,11 @@ class _CoursesScreenState extends State<CoursesScreen> {
     );
   }
 
-  Widget _buildActionButton(Course course, bool isDownloading) {
+  Widget _buildActionButton(Course course, bool isDownloading, [double downloadProgress = 0.0]) {
     final loc = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    if (course.isDownloaded) {
+    if (course.isDownloaded || (kIsWeb && course.isPurchased)) {
       return ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         backgroundColor: isDark 
@@ -548,7 +552,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check, size: 16),
+            Icon(kIsWeb ? Icons.play_arrow : Icons.check, size: 16),
             const SizedBox(width: 6),
             Text(loc.readyToStudy),
           ],
@@ -567,19 +571,41 @@ class _CoursesScreenState extends State<CoursesScreen> {
     }
 
     if (isDownloading) {
-      return ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          backgroundColor: AppColors.surface,
+      final percent = (downloadProgress * 100).clamp(0, 100).toInt();
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.primary.withOpacity(0.5)),
         ),
-        onPressed: null,
-        child: SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                value: downloadProgress > 0 ? downloadProgress : null,
+                color: AppColors.primary,
+                backgroundColor: AppColors.primary.withOpacity(0.2),
+                strokeWidth: 2.5,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$percent%',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       );
     }
+
 
     if (course.isPurchased) {
       return ElevatedButton(

@@ -10,15 +10,23 @@ class DownloadCourse implements UseCase<Either<Failure, void>, DownloadCoursePar
 
   @override
   Future<Either<Failure, void>> call(DownloadCourseParams params) async {
-    return await repository.downloadCourse(params.courseId);
+    return await repository.downloadCourse(
+      params.courseId,
+      onProgress: params.onProgress,
+    );
   }
 }
 
 class DownloadCourseParams extends Equatable {
   final String courseId;
+  final void Function(int received, int total)? onProgress;
 
-  const DownloadCourseParams({required this.courseId});
+  const DownloadCourseParams({
+    required this.courseId,
+    this.onProgress,
+  });
 
   @override
-  List<Object?> get props => [courseId];
+  List<Object?> get props => [courseId, onProgress];
 }
+
