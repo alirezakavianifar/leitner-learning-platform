@@ -31,6 +31,11 @@ COPY --from=build /app/publish .
 # Copy database migrations
 COPY deployment/db/migrations ./db/migrations
 
+# Ensure the non-privileged app user can write rebuilt course packages
+# into wwwroot/courses after admin uploads (directory is otherwise root-owned 755).
+RUN mkdir -p /app/wwwroot/courses \
+    && chown -R $APP_UID:$APP_UID /app/wwwroot
+
 # Run as non-privileged app user for security hardening
 USER $APP_UID
 

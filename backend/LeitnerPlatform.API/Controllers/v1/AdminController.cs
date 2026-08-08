@@ -832,7 +832,13 @@ namespace LeitnerPlatform.API.Controllers.v1
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Could not save built course package to wwwroot/courses: {Message}", ex.Message);
+                    _logger.LogError(ex, "Could not save built course package to wwwroot/courses: {Message}", ex.Message);
+                    try { if (System.IO.File.Exists(builtZipPath)) System.IO.File.Delete(builtZipPath); } catch { }
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = $"Course metadata was parsed, but the mobile package could not be saved to disk: {ex.Message}"
+                    });
                 }
                 finally
                 {
