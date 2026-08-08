@@ -661,6 +661,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                 int cardCount = 0;
                 string? checksum = null;
 
+                bool isPublished = true;
+
                 if (manifestPath != null && System.IO.File.Exists(manifestPath))
                 {
                     var manifestContent = await System.IO.File.ReadAllTextAsync(manifestPath);
@@ -681,6 +683,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     if (root.TryGetProperty("version", out var versionProp)) version = versionProp.GetInt32();
                     if (root.TryGetProperty("card_count", out var countProp)) cardCount = countProp.GetInt32();
                     if (root.TryGetProperty("db_checksum_sha256", out var checkProp)) checksum = checkProp.GetString();
+                    if (root.TryGetProperty("is_published", out var pubProp)) isPublished = pubProp.GetBoolean();
                 }
                 else
                 {
@@ -709,6 +712,15 @@ namespace LeitnerPlatform.API.Controllers.v1
                         category = "General";
                         difficulty = "Intermediate";
                     }
+                }
+
+                // Compute SHA256 checksum if not provided in manifest
+                if (string.IsNullOrEmpty(checksum) && System.IO.File.Exists(tempZipPath))
+                {
+                    using var sha256 = System.Security.Cryptography.SHA256.Create();
+                    using var stream = System.IO.File.OpenRead(tempZipPath);
+                    var hashBytes = await sha256.ComputeHashAsync(stream);
+                    checksum = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
                 }
 
                 // 2. Read cards from SQLite database dynamically supporting various column naming conventions
@@ -827,6 +839,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                             existingCourse.ChecksumSha256 = checksum;
                             existingCourse.DownloadUrl = relativeDownloadUrl;
                             existingCourse.CardCount = cardCount;
+                            existingCourse.IsPublished = isPublished;
 
                             _context.Entry(existingCourse).State = EntityState.Modified;
 
@@ -857,7 +870,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                                 Category = category,
                                 Difficulty = difficulty,
                                 Price = price,
-                                IsPublished = false,
+                                IsPublished = isPublished,
                                 Version = version,
                                 ChecksumSha256 = checksum,
                                 DownloadUrl = relativeDownloadUrl,

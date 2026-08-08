@@ -1,8 +1,9 @@
 -- Migration V5: Seed Sample Courses and Cards for testing
-INSERT INTO courses (id, title, description, category, difficulty, price, is_published) VALUES
-('c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1', 'Essential English Vocabulary', 'Learn the most common English words for everyday conversations. Perfect for beginners.', 'Language', 'Beginner', 0.00, true),
-('c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'Advanced Flutter & State Management', 'Master complex UI designs, architecture patterns, BLoC, and performance optimization in Flutter.', 'Software Development', 'Advanced', 19.99, true),
-('c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3', 'Data Structures & Algorithms', 'Learn arrays, linked lists, stacks, queues, trees, graphs, and sorting/searching algorithms.', 'Computer Science', 'Intermediate', 0.00, true)
+INSERT INTO courses (id, title, description, category, difficulty, price, is_published, download_url) VALUES
+('c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1', 'Essential English Vocabulary', 'Learn the most common English words for everyday conversations. Perfect for beginners.', 'Language', 'Beginner', 0.00, true, '/courses/c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1.zip'),
+('c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c2c2c2', 'Advanced Flutter & State Management', 'Master complex UI designs, architecture patterns, BLoC, and performance optimization in Flutter.', 'Software Development', 'Advanced', 19.99, true, '/courses/c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c2c2c2.zip'),
+('c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3', 'Data Structures & Algorithms', 'Learn arrays, linked lists, stacks, queues, trees, graphs, and sorting/searching algorithms.', 'Computer Science', 'Intermediate', 0.00, true, '/courses/c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3.zip'),
+('50400000-0000-0000-0000-000000000504', '504 Absolutely Essential Words', 'Master 504 essential English vocabulary words with sentences, Persian translations, and native audio pronunciations.', 'Vocabulary', 'Intermediate', 0.00, true, '/courses/50400000-0000-0000-0000-000000000504.zip')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO cards (id, course_id, card_number, question_text, answer_text) VALUES

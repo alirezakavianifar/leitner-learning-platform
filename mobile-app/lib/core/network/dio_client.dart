@@ -31,8 +31,8 @@ class DioClient {
     } else {
       dio.options.baseUrl = 'http://localhost/';
     }
-    dio.options.connectTimeout = const Duration(seconds: 15);
-    dio.options.receiveTimeout = const Duration(seconds: 15);
+    dio.options.connectTimeout = const Duration(seconds: 60);
+    dio.options.receiveTimeout = const Duration(seconds: 180);
     dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -42,7 +42,16 @@ class DioClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          if (options.path.startsWith('/')) {
+          if (options.path.startsWith('http://') || options.path.startsWith('https://')) {
+            // Absolute URL provided, leave untouched
+          } else if (options.path.startsWith('/courses/')) {
+            // Static course package URL: resolve to root host origin
+            try {
+              final uri = Uri.parse(dio.options.baseUrl);
+              final rootOrigin = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
+              options.path = '$rootOrigin${options.path}';
+            } catch (_) {}
+          } else if (options.path.startsWith('/')) {
             options.path = options.path.substring(1);
           }
           final token = await storageService.readSecure('jwt_token');

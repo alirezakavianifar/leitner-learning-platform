@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as p;
@@ -53,8 +54,14 @@ class CoursesRepositoryImpl implements CoursesRepository {
     try {
       // 1. Fetch download token and url from backend
       final tokenInfo = await remoteDataSource.getDownloadToken(courseId);
-      final downloadUrl = tokenInfo['download_url'] as String;
+      var downloadUrl = tokenInfo['download_url'] as String;
       final expectedChecksum = tokenInfo['checksum'] as String?;
+
+      if (!kIsWeb && Platform.isAndroid && downloadUrl.contains('localhost')) {
+        downloadUrl = downloadUrl.replaceAll('localhost', '10.0.2.2');
+      } else if (!kIsWeb && Platform.isWindows && downloadUrl.contains('10.0.2.2')) {
+        downloadUrl = downloadUrl.replaceAll('10.0.2.2', 'localhost');
+      }
 
       // 2. Download package ZIP file to temp directory
       final tempDir = await getTemporaryDirectory();
