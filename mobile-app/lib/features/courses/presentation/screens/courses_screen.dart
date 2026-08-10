@@ -64,56 +64,130 @@ class _CoursesScreenState extends State<CoursesScreen> {
   Widget _buildTabSelector() {
     final loc = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 12.0, bottom: 4.0),
+      padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 12.0, bottom: 6.0),
       child: Container(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
+          color: AppColors.surface.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Expanded(
               child: GestureDetector(
                 onTap: () => setState(() => _selectedTab = 0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                   decoration: BoxDecoration(
                     color: _selectedTab == 0 ? AppColors.primary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: _selectedTab == 0
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.35),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            )
+                          ]
+                        : [],
                   ),
-                  child: Center(
-                    child: Text(
-                      loc.catalog,
-                      style: TextStyle(
-                        color: _selectedTab == 0 ? Colors.white : AppColors.textSecondary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: _selectedTab == 0
+                              ? Colors.white.withOpacity(0.2)
+                              : AppColors.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        child: Image.asset(
+                          'assets/images/courses_list.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          loc.catalog,
+                          style: TextStyle(
+                            color: _selectedTab == 0 ? Colors.white : AppColors.textSecondary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
+            const SizedBox(width: 6),
             Expanded(
               child: GestureDetector(
                 onTap: () => setState(() => _selectedTab = 1),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                   decoration: BoxDecoration(
                     color: _selectedTab == 1 ? AppColors.primary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: _selectedTab == 1
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.35),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            )
+                          ]
+                        : [],
                   ),
-                  child: Center(
-                    child: Text(
-                      loc.myCourses,
-                      style: TextStyle(
-                        color: _selectedTab == 1 ? Colors.white : AppColors.textSecondary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: _selectedTab == 1
+                              ? Colors.white.withOpacity(0.2)
+                              : AppColors.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        child: Image.asset(
+                          'assets/images/my_courses.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          loc.myCourses,
+                          style: TextStyle(
+                            color: _selectedTab == 1 ? Colors.white : AppColors.textSecondary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

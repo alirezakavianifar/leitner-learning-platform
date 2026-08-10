@@ -381,9 +381,9 @@ class HomeHubScreenState extends State<HomeHubScreen> {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
               child: Container(
-                height: 64,
+                height: 72,
                 decoration: BoxDecoration(
-                  color: AppColors.background.withOpacity(0.8),
+                  color: AppColors.background.withOpacity(0.85),
                   border: Border(
                     top: BorderSide(color: AppColors.border, width: 1),
                   ),
@@ -405,22 +405,56 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   },
                   backgroundColor: Colors.transparent,
                   elevation: 0,
+                  iconSize: 28,
                   selectedItemColor: AppColors.primary,
                   unselectedItemColor: AppColors.textSecondary,
+                  selectedFontSize: 12,
+                  unselectedFontSize: 11,
+                  selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
                   items: [
                     BottomNavigationBarItem(
-                      icon: const Icon(Icons.home_outlined),
-                      activeIcon: const Icon(Icons.home),
+                      icon: const Padding(
+                        padding: EdgeInsets.only(bottom: 2.0),
+                        child: Icon(Icons.dashboard_outlined, size: 26),
+                      ),
+                      activeIcon: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(Icons.dashboard_rounded, size: 28, color: AppColors.primary),
+                      ),
                       label: loc.home,
                     ),
                     BottomNavigationBarItem(
-                      icon: const Icon(Icons.rate_review_outlined),
-                      activeIcon: const Icon(Icons.rate_review),
+                      icon: const Padding(
+                        padding: EdgeInsets.only(bottom: 2.0),
+                        child: Icon(Icons.style_outlined, size: 26),
+                      ),
+                      activeIcon: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(Icons.style_rounded, size: 28, color: AppColors.primary),
+                      ),
                       label: loc.review,
                     ),
                     BottomNavigationBarItem(
-                      icon: const Icon(Icons.library_books_outlined),
-                      activeIcon: const Icon(Icons.library_books),
+                      icon: const Padding(
+                        padding: EdgeInsets.only(bottom: 2.0),
+                        child: Icon(Icons.school_outlined, size: 26),
+                      ),
+                      activeIcon: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(Icons.school_rounded, size: 28, color: AppColors.primary),
+                      ),
                       label: loc.courses,
                     ),
                   ],

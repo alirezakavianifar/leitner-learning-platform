@@ -194,8 +194,8 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                 unselectedLabelColor: AppColors.textSecondary,
                 indicatorColor: AppColors.primary,
                 tabs: [
-                  Tab(icon: const Icon(Icons.list), text: loc.allCards),
-                  Tab(icon: const Icon(Icons.play_circle_outline), text: loc.studyMode),
+                  Tab(icon: const Icon(Icons.featured_play_list_rounded, size: 24), text: loc.allCards),
+                  Tab(icon: const Icon(Icons.play_circle_fill_rounded, size: 24), text: loc.studyMode),
                 ],
               ),
       ),
