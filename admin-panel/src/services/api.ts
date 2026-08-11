@@ -186,19 +186,21 @@ export const api = {
         const end = Math.min(file.size, start + CHUNK_SIZE);
         const chunkBlob = file.slice(start, end);
 
-        const formData = new FormData();
-        formData.append('file', chunkBlob, file.name);
-        formData.append('uploadId', uploadId);
-        formData.append('chunkIndex', i.toString());
-        formData.append('totalChunks', totalChunks.toString());
-        formData.append('fileName', file.name);
-
         let attempts = 0;
         let success = false;
 
         while (attempts < 3 && !success) {
           try {
             attempts++;
+            // Rebuild FormData on every attempt - a previously-sent FormData body can be
+            // consumed/empty on retry in some browsers, which produced empty-chunk 400s.
+            const formData = new FormData();
+            formData.append('file', chunkBlob, file.name);
+            formData.append('uploadId', uploadId);
+            formData.append('chunkIndex', String(i));
+            formData.append('totalChunks', String(totalChunks));
+            formData.append('fileName', file.name);
+
             lastResult = await sendXhr(`${baseUrl}/admin/courses/upload-chunk`, formData, (chunkPct) => {
               if (onProgress) {
                 const currentTotalProgress = Math.round(((i + (chunkPct / 100)) / totalChunks) * 99);
@@ -222,6 +224,14 @@ export const api = {
             onProgress(maxProgress);
           }
         }
+      }
+
+      // Final chunk response must report completed=true after the server reassembles the ZIP.
+      if (!lastResult || lastResult.completed !== true) {
+        throw new Error(
+          lastResult?.message ||
+            'Upload finished sending chunks, but the server did not assemble the course package. Please try again.'
+        );
       }
 
       if (onProgress) {

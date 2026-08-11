@@ -252,6 +252,7 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                       TextFormField(
                         controller: _phoneController,
                         enabled: false,
+                        keyboardType: TextInputType.number,
                         style: TextStyle(color: AppColors.textPrimary.withOpacity(0.6)),
                         decoration: InputDecoration(
                           labelText: loc.mobileReadonly,

@@ -60,9 +60,19 @@ tar -czf $TarPath `
     --exclude="*.exe" `
     --exclude="*.apk" `
     --exclude="*.rar" `
+    --exclude="*.cobertura.xml" `
+    --exclude="*/bin" `
+    --exclude="*/obj" `
+    --exclude="*/dist" `
+    --exclude="*/node_modules" `
+    --exclude="*/TestResults" `
+    --exclude="*/wwwroot/courses/*.zip" `
+    --exclude="*/.git" `
     --exclude="bin" `
     --exclude="obj" `
+    --exclude="dist" `
     --exclude="node_modules" `
+    --exclude="TestResults" `
     --exclude=".git" `
     --exclude="data" `
     --exclude="mobile-app" `
@@ -78,8 +88,11 @@ Write-Host "Archive created at $TarPath ($ArchiveSize KB)" -ForegroundColor Gree
 Write-Host "Uploading archive to the server ($ServerIP)..." -ForegroundColor Yellow
 $ScpArgs = @(
     "-i", $KeyPath,
+    "-C",
     "-o", "StrictHostKeyChecking=no",
-    "-o", "ConnectTimeout=15",
+    "-o", "ServerAliveInterval=15",
+    "-o", "ServerAliveCountMax=6",
+    "-o", "ConnectTimeout=30",
     $TarPath,
     "${ServerUser}@${ServerIP}:/tmp/leitner_platform.tar.gz"
 )
@@ -87,7 +100,7 @@ $ScpArgs = @(
 & scp $ScpArgs
 
 If ($LASTEXITCODE -ne 0) {
-    Write-Error "Upload failed! Check SSH key configuration."
+    Write-Error "Upload failed! Verify network connectivity, server status, and SSH key configuration."
     Exit $LASTEXITCODE
 }
 Write-Host "Upload completed successfully!" -ForegroundColor Green
@@ -102,8 +115,11 @@ $RemoteCmd = "mkdir -p /opt/leitner-platform; " +
 
 $SshArgs = @(
     "-i", $KeyPath,
+    "-C",
     "-o", "StrictHostKeyChecking=no",
-    "-o", "ConnectTimeout=15",
+    "-o", "ServerAliveInterval=15",
+    "-o", "ServerAliveCountMax=6",
+    "-o", "ConnectTimeout=30",
     "${ServerUser}@${ServerIP}",
     $RemoteCmd
 )

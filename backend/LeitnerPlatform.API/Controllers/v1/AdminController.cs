@@ -580,45 +580,67 @@ namespace LeitnerPlatform.API.Controllers.v1
 
         [HttpPost("courses/upload-chunk")]
         [RequestSizeLimit(20_000_000)] // 20MB chunk max limit
-        public async Task<IActionResult> UploadCourseChunk([FromForm] ChunkUploadInput input)
+        public async Task<IActionResult> UploadCourseChunk(
+            IFormFile file,
+            [FromForm(Name = "uploadId")] string uploadId,
+            [FromForm(Name = "chunkIndex")] int chunkIndex,
+            [FromForm(Name = "totalChunks")] int totalChunks,
+            [FromForm(Name = "fileName")] string fileName)
         {
-            if (input.File == null || input.File.Length == 0)
+            // Bind fields individually (not via a complex DTO). Complex [FromForm] DTOs that
+            // also contain IFormFile have been observed to leave int fields at their defaults
+            // (ChunkIndex=0), which made every chunk overwrite chunk_00000.tmp and left the
+            // admin UI stuck at ~20% for multi-chunk packages such as 1100.zip.
+            if (file == null || file.Length == 0)
             {
                 return BadRequest(new { success = false, message = "Chunk file is empty." });
             }
 
-            if (string.IsNullOrEmpty(input.UploadId))
+            if (string.IsNullOrEmpty(uploadId))
             {
                 return BadRequest(new { success = false, message = "UploadId is required." });
             }
 
-            var chunkDir = Path.Combine(Path.GetTempPath(), "chunks", input.UploadId);
+            if (totalChunks <= 0 || chunkIndex < 0 || chunkIndex >= totalChunks)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = $"Invalid chunk metadata (chunkIndex={chunkIndex}, totalChunks={totalChunks})."
+                });
+            }
+
+            var chunkDir = Path.Combine(Path.GetTempPath(), "chunks", uploadId);
             if (!Directory.Exists(chunkDir))
             {
                 Directory.CreateDirectory(chunkDir);
             }
 
-            var chunkFilePath = Path.Combine(chunkDir, $"chunk_{input.ChunkIndex:D5}.tmp");
+            var chunkFilePath = Path.Combine(chunkDir, $"chunk_{chunkIndex:D5}.tmp");
             using (var stream = new FileStream(chunkFilePath, FileMode.Create))
             {
-                await input.File.CopyToAsync(stream);
+                await file.CopyToAsync(stream);
             }
+
+            _logger.LogInformation(
+                "Received course upload chunk {ChunkIndex}/{TotalChunks} for upload {UploadId} ({Bytes} bytes)",
+                chunkIndex + 1, totalChunks, uploadId, file.Length);
 
             var uploadedChunks = Directory.GetFiles(chunkDir, "chunk_*.tmp");
             var distinctIndices = uploadedChunks
                 .Select(p => Path.GetFileNameWithoutExtension(p))
                 .Where(n => n.StartsWith("chunk_"))
                 .Select(n => int.TryParse(n.Substring(6), out int idx) ? idx : -1)
-                .Where(idx => idx >= 0 && idx < input.TotalChunks)
+                .Where(idx => idx >= 0 && idx < totalChunks)
                 .ToHashSet();
 
-            if (distinctIndices.Count < input.TotalChunks)
+            if (distinctIndices.Count < totalChunks)
             {
-                return Ok(new { success = true, message = $"Chunk {input.ChunkIndex + 1}/{input.TotalChunks} received.", completed = false });
+                return Ok(new { success = true, message = $"Chunk {chunkIndex + 1}/{totalChunks} received.", completed = false });
             }
 
-            // Reassemble chunks into single ZIP file
-            Array.Sort(uploadedChunks);
+            // Reassemble chunks into single ZIP file (ordered by padded index in the filename).
+            Array.Sort(uploadedChunks, StringComparer.Ordinal);
             var tempZipPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
             using (var destinationStream = new FileStream(tempZipPath, FileMode.Create))
             {
@@ -633,7 +655,7 @@ namespace LeitnerPlatform.API.Controllers.v1
 
             try { Directory.Delete(chunkDir, true); } catch { }
 
-            return await ProcessZipPackageInternal(tempZipPath, input.FileName);
+            return await ProcessZipPackageInternal(tempZipPath, fileName);
         }
 
         private async Task<IActionResult> ProcessZipPackageInternal(string tempZipPath, string originalFileName)
@@ -1301,15 +1323,6 @@ namespace LeitnerPlatform.API.Controllers.v1
     }
 
     #region Input DTOs
-
-    public class ChunkUploadInput
-    {
-        public IFormFile File { get; set; } = null!;
-        public string UploadId { get; set; } = string.Empty;
-        public int ChunkIndex { get; set; }
-        public int TotalChunks { get; set; }
-        public string FileName { get; set; } = string.Empty;
-    }
 
     public class AdminCourseUpdateInput
     {

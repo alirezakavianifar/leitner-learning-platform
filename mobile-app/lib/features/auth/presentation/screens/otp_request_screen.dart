@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mobile_app/app/theme.dart';
@@ -156,7 +157,10 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                       // Mobile input field
                       TextFormField(
                         controller: _phoneController,
-                        keyboardType: TextInputType.phone,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         style: TextStyle(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: loc.mobileNumber,
@@ -224,7 +228,10 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _captchaController,
-                                keyboardType: TextInputType.text,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
                                 style: TextStyle(color: AppColors.textPrimary),
                                 decoration: InputDecoration(
                                   labelText: loc.captchaAnswer,

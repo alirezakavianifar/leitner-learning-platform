@@ -281,6 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 key: ValueKey(_mobileNumber),
                 initialValue: _mobileNumber,
                 enabled: false,
+                keyboardType: TextInputType.number,
                 style: TextStyle(color: AppColors.textSecondary),
                 decoration: InputDecoration(
                   labelText: loc.mobileReadonly,
