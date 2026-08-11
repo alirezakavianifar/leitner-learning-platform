@@ -19,8 +19,8 @@ When the user uses the keyword "push" in a request (e.g., "please push these cha
 3. **Commit**: `git commit -m "<inferred_message>"`
 4. **Push**: `git push` (or `git push -u origin <branch>` if the upstream is not set).
 5. **Post-Push Execution**:
-   - If the changes correspond to the backend, run `E:\projects\leitner-learning-platform\scripts\deploy-to-server.ps1` after pushing changes to GitHub.
-   - If the changes correspond to the frontend, run `E:\projects\leitner-learning-platform\scripts\build-apk.ps1` after pushing changes to GitHub.
+   - If the changes correspond to the backend, run [deploy-to-server.ps1](file:///E:/projects/leitner-learning-platform/scripts/deploy-to-server.ps1) by executing `E:\projects\leitner-learning-platform\scripts\deploy-to-server.ps1` in the foreground (synchronously, waiting for output) so that the user can see the terminal after pushing changes to GitHub.
+   - If the changes correspond to the frontend, run `E:\projects\leitner-learning-platform\scripts\build-apk.ps1` after pushing changes to GitHub `in the foreground (synchronously, waiting for output)`so that the user can see the terminal after pushing changes to GitHub.
    - If the changes correspond to both, run both scripts after pushing changes to GitHub.
 
 **Note:** You should proactively execute these commands without asking for extra confirmation if the user explicitly said "push".
