@@ -10,6 +10,7 @@ import 'package:mobile_app/features/courses/presentation/bloc/courses_bloc.dart'
 import 'package:mobile_app/features/courses/presentation/bloc/courses_event.dart';
 import 'package:mobile_app/features/courses/presentation/bloc/courses_state.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
+import 'package:mobile_app/core/error/error_formatter.dart';
 
 
 class CoursesScreen extends StatefulWidget {
@@ -211,7 +212,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 if (state is CoursesError) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(state.message),
+                      content: Text(AppErrorFormatter.formatError(state.message, context: context)),
                       backgroundColor: AppColors.error,
                     ),
                   );
@@ -240,22 +241,26 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   downloadProgress = state.progress;
                 } else if (state is CoursesError && courses.isEmpty) {
                   return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                        const SizedBox(height: 16),
-                        Text(
-                          loc.translate('failed_load_catalog'),
-                          style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
-                        ),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                          onPressed: () => context.read<CoursesBloc>().add(LoadCoursesEvent()),
-                          child: Text(loc.retry),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const SizedBox(height: 16),
+                          Text(
+                            AppErrorFormatter.formatError(state.message, context: context),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                            onPressed: () => context.read<CoursesBloc>().add(LoadCoursesEvent()),
+                            child: Text(loc.retry),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }

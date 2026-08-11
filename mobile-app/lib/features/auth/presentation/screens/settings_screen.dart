@@ -8,6 +8,7 @@ import 'package:mobile_app/app/theme_bloc.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/core/localization/locale_bloc.dart';
 import 'package:mobile_app/core/services/backup_service.dart';
+import 'package:mobile_app/core/error/error_formatter.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
 class SettingsScreen extends StatefulWidget {
@@ -124,9 +125,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _passwordController.clear();
       _loadBackupFiles();
     } catch (e) {
-      final loc = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(loc.translate('backup_failed_msg').replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
+        SnackBar(
+          content: Text(AppErrorFormatter.formatError(e, context: context)),
+          backgroundColor: AppColors.error,
+        ),
       );
     }
   }
@@ -172,7 +175,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(loc.translate('restore_failed_msg').replaceAll('{error}', e.toString())), backgroundColor: AppColors.error),
+        SnackBar(
+          content: Text(AppErrorFormatter.formatError(e, context: context)),
+          backgroundColor: AppColors.error,
+        ),
       );
     }
   }

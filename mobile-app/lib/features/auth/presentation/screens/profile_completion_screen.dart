@@ -7,6 +7,7 @@ import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
+import 'package:mobile_app/core/error/error_formatter.dart';
 import 'home_hub_screen.dart';
 
 class ProfileCompletionScreen extends StatefulWidget {
@@ -172,14 +173,11 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
               (route) => false,
             );
           } else if (state is AuthErrorState) {
-            String errorMessage = state.message;
-            if (state.errorCode != null) {
-              final key = state.errorCode!.toLowerCase();
-              final translated = loc.translate(key);
-              if (translated != key) {
-                errorMessage = translated;
-              }
-            }
+            final errorMessage = AppErrorFormatter.formatError(
+              state.message,
+              context: context,
+              errorCode: state.errorCode,
+            );
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(errorMessage),

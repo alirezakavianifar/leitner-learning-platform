@@ -15,6 +15,7 @@ import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 import 'package:mobile_app/features/flashcards/presentation/bloc/flashcard_bloc.dart';
 import 'package:mobile_app/features/flashcards/presentation/bloc/flashcard_event.dart';
 import 'package:mobile_app/features/flashcards/presentation/bloc/flashcard_state.dart';
+import 'package:mobile_app/core/error/error_formatter.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
 class FlashcardStudyScreen extends StatefulWidget {
@@ -436,7 +437,10 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
             if (state is FlashcardQueueLoaded) {
               if (state.error != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(state.error!), backgroundColor: AppColors.error),
+                  SnackBar(
+                    content: Text(AppErrorFormatter.formatError(state.error!, context: context)),
+                    backgroundColor: AppColors.error,
+                  ),
                 );
               }
               if (state.reportMessage != null) {

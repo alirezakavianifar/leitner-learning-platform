@@ -83,7 +83,7 @@ class _FavoritesCoursesScreenState extends State<FavoritesCoursesScreen> {
     final noCoursesDesc = isFa 
         ? 'برای مشاهده کارت‌های نشان‌شده، ابتدا باید یک دوره را از تب دوره‌ها دانلود کرده و کارت‌های آن را مطالعه نمایید.'
         : 'To view bookmarked/favorited cards, please download a course from the catalog and start studying first.';
-    final errorTitle = isFa ? 'خطا در بارگذاری دوره‌ها' : 'Failed to Load Courses';
+    final errorTitle = isFa ? 'خطا در بارگذاری دوره‌ها. لطفاً اتصال اینترنت و حافظه دستگاه خود را بررسی کرده و مجدداً تلاش کنید.' : 'Failed to Load Courses. Please check your network and retry.';
     final retryText = isFa ? 'تلاش مجدد' : 'Retry';
 
     return Scaffold(

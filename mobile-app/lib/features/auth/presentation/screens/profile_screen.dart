@@ -8,6 +8,7 @@ import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
+import 'package:mobile_app/core/error/error_formatter.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
 class ProfileScreen extends StatefulWidget {
@@ -210,7 +211,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(AppErrorFormatter.formatError(
+                  state.message,
+                  context: context,
+                  errorCode: state.errorCode,
+                )),
                 backgroundColor: AppColors.error,
               ),
             );

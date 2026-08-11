@@ -7,6 +7,7 @@ import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
 import 'profile_completion_screen.dart';
 import 'home_hub_screen.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
+import 'package:mobile_app/core/error/error_formatter.dart';
 
 class TermsAcceptanceScreen extends StatefulWidget {
   final String mobileNumber;
@@ -67,14 +68,11 @@ class _TermsAcceptanceScreenState extends State<TermsAcceptanceScreen> {
               (route) => false,
             );
           } else if (state is AuthErrorState) {
-            String errorMessage = state.message;
-            if (state.errorCode != null) {
-              final key = state.errorCode!.toLowerCase();
-              final translated = AppLocalizations.of(context).translate(key);
-              if (translated != key) {
-                errorMessage = translated;
-              }
-            }
+            final errorMessage = AppErrorFormatter.formatError(
+              state.message,
+              context: context,
+              errorCode: state.errorCode,
+            );
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(errorMessage),

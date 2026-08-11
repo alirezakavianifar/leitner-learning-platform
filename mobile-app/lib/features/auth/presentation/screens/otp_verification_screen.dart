@@ -10,6 +10,7 @@ import 'terms_acceptance_screen.dart';
 import 'profile_completion_screen.dart';
 import 'home_hub_screen.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
+import 'package:mobile_app/core/error/error_formatter.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String mobileNumber;
@@ -118,14 +119,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               (route) => false,
             );
           } else if (state is AuthErrorState) {
-            String errorMessage = state.message;
-            if (state.errorCode != null) {
-              final key = state.errorCode!.toLowerCase();
-              final translated = loc.translate(key);
-              if (translated != key) {
-                errorMessage = translated;
-              }
-            }
+            final errorMessage = AppErrorFormatter.formatError(
+              state.message,
+              context: context,
+              errorCode: state.errorCode,
+            );
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(errorMessage),

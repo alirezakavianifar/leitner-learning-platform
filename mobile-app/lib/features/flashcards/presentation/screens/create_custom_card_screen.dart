@@ -10,6 +10,7 @@ import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/database/database_helper.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 import 'package:sqflite/sqflite.dart';
+import 'package:mobile_app/core/error/error_formatter.dart';
 
 class CreateCustomCardScreen extends StatefulWidget {
   final String courseTitle;
@@ -115,7 +116,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isFa ? 'خطا در انتخاب تصویر: $e' : 'Failed to pick image: $e')),
+        SnackBar(content: Text(AppErrorFormatter.formatError('Failed to pick image: $e', context: context))),
       );
     }
   }
@@ -141,18 +142,17 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isFa ? 'دسترسی به میکروفون رد شد.' : 'Microphone permission denied.')),
+          SnackBar(content: Text(isFa ? 'دسترسی به میکروفون دستگاه رد شد. لطفاً دسترسی به میکروفون را بپذیرید.' : 'Microphone permission denied.')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isFa ? 'خطا در ضبط صدا: $e' : 'Failed to record: $e')),
+        SnackBar(content: Text(AppErrorFormatter.formatError('Failed to record: $e', context: context))),
       );
     }
   }
 
   Future<void> _playRecordedAudio() async {
-    final isFa = Localizations.localeOf(context).languageCode == 'fa';
     if (_recordedAudioPath == null) return;
     try {
       if (_isPlaying) {
@@ -169,7 +169,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isFa ? 'خطا در پخش صدا: $e' : 'Failed to play audio: $e')),
+        SnackBar(content: Text(AppErrorFormatter.formatError('Failed to play audio: $e', context: context))),
       );
       setState(() => _isPlaying = false);
     }
@@ -300,7 +300,7 @@ class _CreateCustomCardScreenState extends State<CreateCustomCardScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isFa ? 'خطا در ذخیره کارت: $e' : 'Failed to save card: $e'),
+          content: Text(AppErrorFormatter.formatError('Failed to save card: $e', context: context)),
           backgroundColor: AppColors.error,
         ),
       );

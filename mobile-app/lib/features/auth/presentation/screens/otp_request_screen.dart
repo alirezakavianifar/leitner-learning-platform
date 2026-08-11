@@ -9,6 +9,7 @@ import 'package:mobile_app/core/localization/locale_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
+import 'package:mobile_app/core/error/error_formatter.dart';
 import 'otp_verification_screen.dart';
 
 class OtpRequestScreen extends StatefulWidget {
@@ -81,14 +82,11 @@ class _OtpRequestScreenState extends State<OtpRequestScreen> {
               }
             });
           } else if (state is AuthErrorState) {
-            String errorMessage = state.message;
-            if (state.errorCode != null) {
-              final key = state.errorCode!.toLowerCase();
-              final translated = loc.translate(key);
-              if (translated != key) {
-                errorMessage = translated;
-              }
-            }
+            final errorMessage = AppErrorFormatter.formatError(
+              state.message,
+              context: context,
+              errorCode: state.errorCode,
+            );
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(errorMessage),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/database/database_helper.dart';
 import 'package:mobile_app/injection_container.dart' as di;
+import 'package:mobile_app/core/error/error_formatter.dart';
 import 'custom_cards_screen.dart';
 import 'create_custom_card_screen.dart';
 
@@ -134,7 +135,7 @@ class _CustomCoursesScreenState extends State<CustomCoursesScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(isFa ? 'خطا در ایجاد دوره: $e' : 'Failed to create course: $e'),
+              content: Text(AppErrorFormatter.formatError('Failed to create course: $e', context: context)),
               backgroundColor: AppColors.error,
             ),
           );
@@ -185,7 +186,7 @@ class _CustomCoursesScreenState extends State<CustomCoursesScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(isFa ? 'دوره با موفقیت حذف شد' : 'Course deleted successfully.'),
-              backgroundColor: AppColors.error,
+              backgroundColor: AppColors.secondary,
             ),
           );
         }
@@ -193,7 +194,7 @@ class _CustomCoursesScreenState extends State<CustomCoursesScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(isFa ? 'خطا در حذف دوره: $e' : 'Failed to delete course: $e'),
+              content: Text(AppErrorFormatter.formatError('Failed to delete course: $e', context: context)),
               backgroundColor: AppColors.error,
             ),
           );
