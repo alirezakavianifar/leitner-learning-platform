@@ -17,6 +17,7 @@ class FlashcardQueueLoaded extends FlashcardState {
   final List<Flashcard> queue;
   final int currentIndex;
   final bool isTodayReview;
+  final bool isFromFavorites;
   final bool isFlipped;
   final bool isFavorited;
   final bool isSubmittingReport;
@@ -30,6 +31,7 @@ class FlashcardQueueLoaded extends FlashcardState {
     required this.queue,
     required this.currentIndex,
     this.isTodayReview = false,
+    this.isFromFavorites = false,
     this.isFlipped = false,
     this.isFavorited = false,
     this.isSubmittingReport = false,
@@ -51,6 +53,7 @@ class FlashcardQueueLoaded extends FlashcardState {
     List<Flashcard>? queue,
     int? currentIndex,
     bool? isTodayReview,
+    bool? isFromFavorites,
     bool? isFlipped,
     bool? isFavorited,
     bool? isSubmittingReport,
@@ -64,6 +67,7 @@ class FlashcardQueueLoaded extends FlashcardState {
       queue: queue ?? this.queue,
       currentIndex: currentIndex ?? this.currentIndex,
       isTodayReview: isTodayReview ?? this.isTodayReview,
+      isFromFavorites: isFromFavorites ?? this.isFromFavorites,
       isFlipped: isFlipped ?? this.isFlipped,
       isFavorited: isFavorited ?? this.isFavorited,
       isSubmittingReport: isSubmittingReport ?? this.isSubmittingReport,
@@ -80,6 +84,7 @@ class FlashcardQueueLoaded extends FlashcardState {
         queue,
         currentIndex,
         isTodayReview,
+        isFromFavorites,
         isFlipped,
         isFavorited,
         isSubmittingReport,

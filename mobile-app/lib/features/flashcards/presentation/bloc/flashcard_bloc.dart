@@ -26,25 +26,30 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
   ) async {
     emit(FlashcardLoading());
     try {
-      final queue = await flashcardRepository.getReviewQueue(
-        event.courseId,
-        isTodayReview: event.isTodayReview,
-      );
+      final List<Flashcard> queue;
+      if (event.isFromFavorites) {
+        queue = await flashcardRepository.getFavoriteCards(event.courseId);
+      } else {
+        queue = await flashcardRepository.getReviewQueue(
+          event.courseId,
+          isTodayReview: event.isTodayReview,
+        );
+      }
 
       int finalIndex = 0;
       List<Flashcard> finalQueue = List<Flashcard>.from(queue);
       Flashcard? initialCard;
 
       if (event.initialCardNumber != null) {
-        initialCard = await flashcardRepository.getCardByNumber(
-          event.courseId,
-          event.initialCardNumber!,
-        );
-        if (initialCard != null) {
-          final index = finalQueue.indexWhere((c) => c.cardNumber == initialCard!.cardNumber);
-          if (index != -1) {
-            finalIndex = index;
-          } else {
+        final index = finalQueue.indexWhere((c) => c.cardNumber == event.initialCardNumber!);
+        if (index != -1) {
+          finalIndex = index;
+        } else {
+          initialCard = await flashcardRepository.getCardByNumber(
+            event.courseId,
+            event.initialCardNumber!,
+          );
+          if (initialCard != null) {
             finalQueue.insert(0, initialCard);
             finalIndex = 0;
           }
@@ -69,6 +74,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           queue: finalQueue,
           currentIndex: finalIndex,
           isTodayReview: event.isTodayReview,
+          isFromFavorites: event.isFromFavorites,
           isFavorited: isFav,
           jumpWarningCardNumber: currentCard.cardNumber,
           jumpTargetCard: currentCard,
@@ -81,6 +87,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         queue: finalQueue,
         currentIndex: finalIndex,
         isTodayReview: event.isTodayReview,
+        isFromFavorites: event.isFromFavorites,
         isFavorited: isFav,
       ));
     } catch (e) {
@@ -114,10 +121,12 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           isCorrect: event.isCorrect,
         );
 
-        final newQueue = await flashcardRepository.getReviewQueue(
-          currentState.courseId,
-          isTodayReview: currentState.isTodayReview,
-        );
+        final newQueue = currentState.isFromFavorites
+            ? await flashcardRepository.getFavoriteCards(currentState.courseId)
+            : await flashcardRepository.getReviewQueue(
+                currentState.courseId,
+                isTodayReview: currentState.isTodayReview,
+              );
         if (newQueue.isEmpty) {
           emit(FlashcardFinished(currentState.courseId));
           return;
@@ -337,10 +346,12 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           reason: event.reason,
         );
 
-        final newQueue = await flashcardRepository.getReviewQueue(
-          currentState.courseId,
-          isTodayReview: currentState.isTodayReview,
-        );
+        final newQueue = currentState.isFromFavorites
+            ? await flashcardRepository.getFavoriteCards(currentState.courseId)
+            : await flashcardRepository.getReviewQueue(
+                currentState.courseId,
+                isTodayReview: currentState.isTodayReview,
+              );
 
         final card = await flashcardRepository.getCardByNumber(
           currentState.courseId,

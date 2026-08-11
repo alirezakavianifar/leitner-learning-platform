@@ -11,11 +11,17 @@ class LoadFlashcardQueue extends FlashcardEvent {
   final String courseId;
   final bool isTodayReview;
   final int? initialCardNumber;
+  final bool isFromFavorites;
 
-  const LoadFlashcardQueue(this.courseId, {this.isTodayReview = false, this.initialCardNumber});
+  const LoadFlashcardQueue(
+    this.courseId, {
+    this.isTodayReview = false,
+    this.initialCardNumber,
+    this.isFromFavorites = false,
+  });
 
   @override
-  List<Object?> get props => [courseId, isTodayReview, initialCardNumber];
+  List<Object?> get props => [courseId, isTodayReview, initialCardNumber, isFromFavorites];
 }
 
 class FlipFlashcard extends FlashcardEvent {}

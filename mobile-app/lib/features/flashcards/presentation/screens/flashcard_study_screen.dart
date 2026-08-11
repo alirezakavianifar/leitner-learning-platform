@@ -447,6 +447,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
             widget.courseId,
             isTodayReview: widget.isTodayReview,
             initialCardNumber: widget.initialCardNumber,
+            isFromFavorites: widget.isFromFavorites,
           ));
         return bloc;
       },
