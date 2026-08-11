@@ -41,9 +41,17 @@ try {
     Write-Host ""
     if ($Device -eq "web-server") {
         $port = 8085
+        Write-Host "Here is the direct link to open the mobile web application in Google Chrome:" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "  http://localhost:$port" -ForegroundColor Cyan
+        Write-Host ""
         Start-Process "http://localhost:$port"
         flutter run -d web-server --web-port $port -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
     } else {
+        Write-Host "Here is the direct link to open the mobile web application in Google Chrome:" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "  http://localhost:8085" -ForegroundColor Cyan
+        Write-Host ""
         flutter run -d $Device -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
     }
 }
