@@ -47,7 +47,7 @@ try {
     }
 }
 catch {
-    Write-Host "  [ERROR] Failed to run web app on $Device: $_" -ForegroundColor Red
+    Write-Host "  [ERROR] Failed to run web app on ${Device}: $_" -ForegroundColor Red
     Write-Host "  [TIP] If Chrome crashes with out-of-memory error, try running with web-server:" -ForegroundColor Yellow
     Write-Host "        .\scripts\run-chrome.ps1 -Device web-server" -ForegroundColor Yellow
 }
