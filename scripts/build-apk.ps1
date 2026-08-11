@@ -175,6 +175,16 @@ try {
         Write-Step "Compressing $destPath into $rarPath archive..."
         tar.exe -a -cf $zipPath -C $OUTPUT_DIR "app-$Flavor-release.apk"
         Move-Item -Path $zipPath -Destination $rarPath -Force
+
+        $uploadScript = "$ROOT\scripts\upload-to-rubika.py"
+        if (Test-Path $uploadScript) {
+            Write-Step "Uploading $rarPath to Rubika Bot..."
+            try {
+                python $uploadScript
+            } catch {
+                Write-Err "Rubika upload failed: $_"
+            }
+        }
         
         Write-Step "Cleaning up intermediate build files to reclaim disk space..."
         Start-Sleep -Seconds 2

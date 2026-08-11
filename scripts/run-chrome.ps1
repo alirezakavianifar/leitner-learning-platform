@@ -52,7 +52,7 @@ try {
         Write-Host ""
         Write-Host "  http://localhost:8085" -ForegroundColor Cyan
         Write-Host ""
-        flutter run -d $Device -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
+        flutter run -d $Device --web-port 8085 -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
     }
 }
 catch {
