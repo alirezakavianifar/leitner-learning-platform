@@ -173,7 +173,7 @@ try {
         $zipPath = "$OUTPUT_DIR\app-$Flavor-release.zip"
         $rarPath = "$OUTPUT_DIR\app-$Flavor-release.rar"
         Write-Step "Compressing $destPath into $rarPath archive..."
-        Compress-Archive -Path $destPath -DestinationPath $zipPath -Force
+        tar.exe -a -cf $zipPath -C $OUTPUT_DIR "app-$Flavor-release.apk"
         Move-Item -Path $zipPath -Destination $rarPath -Force
         
         Write-Step "Cleaning up intermediate build files to reclaim disk space..."

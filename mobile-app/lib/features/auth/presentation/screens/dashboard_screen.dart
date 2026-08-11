@@ -905,7 +905,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return Column(
-      children: _userCoursesProgress.map((courseProgress) {
+      children: _userCoursesProgress.asMap().entries.map((entry) {
+        final index = entry.key;
+        final courseProgress = entry.value;
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
@@ -916,7 +918,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: ExpansionTile(
-              initiallyExpanded: true,
+              initiallyExpanded: index == 0,
               iconColor: AppColors.primary,
               collapsedIconColor: AppColors.textSecondary,
               tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
