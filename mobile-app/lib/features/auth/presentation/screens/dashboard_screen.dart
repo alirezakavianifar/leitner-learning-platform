@@ -13,7 +13,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/favorites_courses_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_event.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
+import 'package:mobile_app/features/courses/domain/entities/course.dart';
+import 'package:mobile_app/features/courses/domain/repositories/courses_repository.dart';
+import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
+import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
 import 'package:mobile_app/features/courses/presentation/widgets/lesson_stage_pot.dart';
 import 'package:mobile_app/core/utils/scroll_physics.dart';
 
@@ -43,12 +48,46 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
+class _CourseLessonProgress {
+  final String courseId;
+  final String courseTitle;
+  final List<_LessonBlockInfo> lessons;
+
+  _CourseLessonProgress({
+    required this.courseId,
+    required this.courseTitle,
+    required this.lessons,
+  });
+}
+
+class _LessonBlockInfo {
+  final int lessonIndex;
+  final String lessonTitle;
+  final int totalCards;
+  final int remainingWords;
+  final double progress;
+  final List<Flashcard> cards;
+
+  _LessonBlockInfo({
+    required this.lessonIndex,
+    required this.lessonTitle,
+    required this.totalCards,
+    required this.remainingWords,
+    required this.progress,
+    required this.cards,
+  });
+}
+
 class _DashboardScreenState extends State<DashboardScreen> {
   late FlashcardRepository _flashcardRepository;
   late NotificationsRepository _notificationsRepository;
+  late CoursesRepository _coursesRepository;
   
   int _dueCount = 0;
   int _finishedCount = 0;
+  int _totalDownloadedCards = 0;
+  List<_CourseLessonProgress> _userCoursesProgress = [];
+  bool _loadingCoursesData = true;
 
   String _username = 'User';
   String _educationalField = 'General';
@@ -85,10 +124,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _flashcardRepository = di.sl<FlashcardRepository>();
     _notificationsRepository = di.sl<NotificationsRepository>();
+    _coursesRepository = di.sl<CoursesRepository>();
     _pageController = PageController(initialPage: 0);
     _loadProfile();
     _loadStats();
     _loadBanners();
+    _loadCoursesData();
     _startBannerRotation();
   }
 
@@ -175,6 +216,86 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _loadCoursesData() async {
+    try {
+      final coursesResult = await _coursesRepository.getCourses();
+      List<Course> downloadedCourses = [];
+      coursesResult.fold((_) {}, (res) {
+        downloadedCourses = res.$1.where((c) => c.isDownloaded).toList();
+      });
+
+      List<_CourseLessonProgress> list = [];
+      int totalCardsSum = 0;
+
+      final loc = AppLocalizations.of(context);
+      final lessonLabelText = loc.translate('lesson_label');
+
+      for (final course in downloadedCourses) {
+        final cards = await _flashcardRepository.getAllCardsForCourse(course.id);
+        totalCardsSum += cards.length;
+
+        const blockSize = 20;
+        List<_LessonBlockInfo> lessons = [];
+        final totalBlocks = cards.isNotEmpty ? (cards.length / blockSize).ceil() : 0;
+
+        for (int i = 0; i < totalBlocks; i++) {
+          final blockCards = cards.skip(i * blockSize).take(blockSize).toList();
+          if (blockCards.isEmpty) continue;
+
+          int unmastered = 0;
+          int mastered = 0;
+          for (final card in blockCards) {
+            if (card.progress.currentBox >= 4) {
+              mastered++;
+            } else {
+              unmastered++;
+            }
+          }
+
+          final progressRatio = blockCards.isNotEmpty ? (mastered / blockCards.length) : 0.0;
+          lessons.add(_LessonBlockInfo(
+            lessonIndex: i + 1,
+            lessonTitle: '$lessonLabelText ${i + 1}',
+            totalCards: blockCards.length,
+            remainingWords: unmastered,
+            progress: progressRatio,
+            cards: blockCards,
+          ));
+        }
+
+        list.add(_CourseLessonProgress(
+          courseId: course.id,
+          courseTitle: course.title,
+          lessons: lessons,
+        ));
+      }
+
+      if (mounted) {
+        setState(() {
+          _userCoursesProgress = list;
+          _totalDownloadedCards = totalCardsSum;
+          _loadingCoursesData = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loadingCoursesData = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    await _loadProfile();
+    await _loadStats();
+    await _loadBanners(force: true);
+    await _loadCoursesData();
+    if (mounted) {
+      context.read<ConfigBloc>().add(LoadConfigEvent());
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -193,141 +314,69 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: RefreshIndicator(
         color: AppColors.primary,
         backgroundColor: AppColors.surface,
-        onRefresh: () async {
-          await _loadProfile();
-          await _loadStats();
-          await _loadBanners(force: true);
-        },
+        onRefresh: _onRefresh,
         child: SingleChildScrollView(
-          physics: const ScrollOnlyWhenNeededPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (enableGamifiedLayout) ...[
-                // Top Greeting & VIP Header
-                _buildTopGamifiedHeader(context, loc),
-                const SizedBox(height: 16),
-
-                // Gamified 3D Learning Hero Banner
-                _buildGamifiedHeroBanner(context, loc),
-                const SizedBox(height: 20),
-
-                // Practice More Section Title
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: enableGamifiedLayout
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Top Greeting & VIP Header
+                    _buildTopGamifiedHeader(context, loc),
+                    const SizedBox(height: 16),
+
+                    // Gamified 3D Learning Hero Banner
+                    _buildGamifiedHeroBanner(context, loc),
+                    const SizedBox(height: 20),
+
+                    // Practice More Section Title
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          loc.translate('practice_more'),
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Daily Practice Orange Review Banner Card
+                    _buildDailyPracticeCard(context, loc),
+                    const SizedBox(height: 20),
+
+                    // Dynamic Real Course Accordion & Lesson Progress Tree
+                    _buildCourseAccordionTree(context, loc),
+                    const SizedBox(height: 48),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Classic Carousel Banner Layout
+                    _buildClassicBannerCarousel(context, loc),
+                    const SizedBox(height: 16),
+
                     Text(
-                      loc.translate('practice_more'),
+                      loc.quickHub,
                       style: TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(height: 12),
+
+                    // Classic Feature Grid (6 Cards)
+                    _buildClassicFeatureGrid(context, loc),
+                    const SizedBox(height: 64),
                   ],
                 ),
-                const SizedBox(height: 10),
-
-                // Daily Practice Orange Review Banner Card
-                _buildDailyPracticeCard(context, loc),
-                const SizedBox(height: 20),
-
-                // Course Accordion & Dynamic Lesson Progress Tree
-                _buildCourseAccordionTree(context, loc),
-                const SizedBox(height: 24),
-              ] else ...[
-                // Classic Carousel Banner Layout
-                _buildClassicBannerCarousel(context, loc),
-                const SizedBox(height: 16),
-              ],
-
-              Text(
-                loc.quickHub,
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Feature Grid
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.35,
-                children: [
-                  _buildGridCard(
-                    key: widget.coursesListKey,
-                    title: loc.courses,
-                    imageAsset: 'assets/images/courses_list.png',
-                    onTap: () {
-                      widget.coursesTabNotifier?.value = 0;
-                      widget.onTabChange(2);
-                    },
-                  ),
-                  _buildGridCard(
-                    key: widget.todayReviewsKey,
-                    title: loc.reviewToday,
-                    imageAsset: 'assets/images/today_cards.png',
-                    badgeCount: _dueCount,
-                    badgeColor: AppColors.error,
-                    onTap: () => widget.onTabChange(1),
-                  ),
-                  _buildGridCard(
-                    key: widget.myCoursesKey,
-                    title: loc.myCourses,
-                    imageAsset: 'assets/images/my_courses.png',
-                    onTap: () {
-                      widget.coursesTabNotifier?.value = 1;
-                      widget.onTabChange(2);
-                    },
-                  ),
-                  _buildGridCard(
-                    key: widget.createCardKey,
-                    title: loc.customCards,
-                    imageAsset: 'assets/images/create_card.png',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CustomCoursesScreen()),
-                      ).then((_) => _loadStats());
-                    },
-                  ),
-                  _buildGridCard(
-                    key: widget.finishedCardsKey,
-                    title: loc.finishedCards,
-                    imageAsset: 'assets/images/finished_cards.png',
-                    badgeCount: _finishedCount,
-                    badgeColor: const Color(0xFFFFD700),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const FinishedCardsScreen()),
-                      ).then((_) => _loadStats());
-                    },
-                  ),
-                  _buildGridCard(
-                    key: widget.favoritesKey,
-                    title: loc.favorites,
-                    imageAsset: 'assets/images/favorite_cards.png',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const FavoritesCoursesScreen()),
-                      ).then((_) => _loadStats());
-                    },
-                  ),
-
-                ],
-              ),
-              const SizedBox(height: 64),
-            ],
-          ),
         ),
       ),
     );
@@ -610,6 +659,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildGamifiedHeroBanner(BuildContext context, AppLocalizations loc) {
+    final overallPercentage = (_finishedCount > 0 && _totalDownloadedCards > 0)
+        ? ((_finishedCount / _totalDownloadedCards) * 100).round().clamp(0, 100)
+        : 0;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -655,8 +708,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(
                       children: [
                         Container(
-                          width: 42,
-                          height: 42,
+                          width: 44,
+                          height: 44,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white.withOpacity(0.25),
@@ -664,7 +717,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           child: Center(
                             child: Text(
-                              '%${_finishedCount > 0 ? ((_finishedCount / (_dueCount + _finishedCount + 1)) * 100).toInt() : 0}',
+                              '%$overallPercentage',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,
@@ -676,7 +729,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            '${_finishedCount} ${loc.translate('words_so_far')}',
+                            '$_finishedCount ${loc.translate('words_so_far')}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 13,
@@ -759,7 +812,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        loc.translate('review_words_sub'),
+                        _dueCount > 0
+                            ? '${_dueCount} ${loc.translate("words_remaining")}'
+                            : loc.translate('review_words_sub'),
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.85),
                           fontSize: 12,
@@ -775,7 +830,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
-                    loc.translate('daily_practice_badge'),
+                    _dueCount > 0 ? '$_dueCount ${loc.translate("daily_practice_badge")}' : loc.translate('daily_practice_badge'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -792,66 +847,131 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildCourseAccordionTree(BuildContext context, AppLocalizations loc) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: ExpansionTile(
-          initiallyExpanded: true,
-          iconColor: AppColors.primary,
-          collapsedIconColor: AppColors.textSecondary,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          title: Row(
-            children: [
-              const Text('✍️ ', style: TextStyle(fontSize: 18)),
-              Text(
-                '۵۰۴ لغت ضروری',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
+    if (_loadingCoursesData) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        alignment: Alignment.center,
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    if (_userCoursesProgress.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
-              child: Column(
-                children: [
-                  _buildLessonItem(
-                    context: context,
-                    lessonTitle: '${loc.translate('lesson_label')} ۱',
-                    remainingWords: '۱۲ ${loc.translate('words_remaining')}',
-                    progress: 0.3,
-                    onTap: () => widget.onTabChange(1),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildLessonItem(
-                    context: context,
-                    lessonTitle: '${loc.translate('lesson_label')} ۲',
-                    remainingWords: '۱۲ ${loc.translate('words_remaining')}',
-                    progress: 0.0,
-                    onTap: () => widget.onTabChange(1),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildLessonItem(
-                    context: context,
-                    lessonTitle: '${loc.translate('lesson_label')} ۳',
-                    remainingWords: '۱۵ ${loc.translate('words_remaining')}',
-                    progress: 0.7,
-                    onTap: () => widget.onTabChange(1),
-                  ),
-                ],
+            Icon(Icons.school_outlined, size: 48, color: AppColors.primary),
+            const SizedBox(height: 12),
+            Text(
+              loc.translate('my_courses'),
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              loc.translate('courses'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                widget.coursesTabNotifier?.value = 0;
+                widget.onTabChange(2);
+              },
+              icon: const Icon(Icons.download, size: 18),
+              label: Text(loc.courses),
             ),
           ],
         ),
-      ),
+      );
+    }
+
+    return Column(
+      children: _userCoursesProgress.map((courseProgress) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: ExpansionTile(
+              initiallyExpanded: true,
+              iconColor: AppColors.primary,
+              collapsedIconColor: AppColors.textSecondary,
+              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              title: Row(
+                children: [
+                  const Text('✍️ ', style: TextStyle(fontSize: 18)),
+                  Expanded(
+                    child: Text(
+                      courseProgress.courseTitle,
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+                  child: Column(
+                    children: courseProgress.lessons.map((lesson) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: _buildLessonItem(
+                          context: context,
+                          lessonTitle: lesson.lessonTitle,
+                          remainingWords: '${lesson.remainingWords} ${loc.translate("words_remaining")}',
+                          progress: lesson.progress,
+                          onTap: () {
+                            if (lesson.cards.isNotEmpty) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => FlashcardStudyScreen(
+                                    courseId: courseProgress.courseId,
+                                    courseTitle: courseProgress.courseTitle,
+                                    initialCardNumber: lesson.cards.first.cardNumber,
+                                  ),
+                                ),
+                              ).then((_) => _onRefresh());
+                            }
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -892,6 +1012,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
           size: 48,
         ),
       ),
+    );
+  }
+
+  Widget _buildClassicFeatureGrid(BuildContext context, AppLocalizations loc) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: 1.35,
+      children: [
+        _buildGridCard(
+          key: widget.coursesListKey,
+          title: loc.courses,
+          imageAsset: 'assets/images/courses_list.png',
+          onTap: () {
+            widget.coursesTabNotifier?.value = 0;
+            widget.onTabChange(2);
+          },
+        ),
+        _buildGridCard(
+          key: widget.todayReviewsKey,
+          title: loc.reviewToday,
+          imageAsset: 'assets/images/today_cards.png',
+          badgeCount: _dueCount,
+          badgeColor: AppColors.error,
+          onTap: () => widget.onTabChange(1),
+        ),
+        _buildGridCard(
+          key: widget.myCoursesKey,
+          title: loc.myCourses,
+          imageAsset: 'assets/images/my_courses.png',
+          onTap: () {
+            widget.coursesTabNotifier?.value = 1;
+            widget.onTabChange(2);
+          },
+        ),
+        _buildGridCard(
+          key: widget.createCardKey,
+          title: loc.customCards,
+          imageAsset: 'assets/images/create_card.png',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CustomCoursesScreen()),
+            ).then((_) => _onRefresh());
+          },
+        ),
+        _buildGridCard(
+          key: widget.finishedCardsKey,
+          title: loc.finishedCards,
+          imageAsset: 'assets/images/finished_cards.png',
+          badgeCount: _finishedCount,
+          badgeColor: const Color(0xFFFFD700),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FinishedCardsScreen()),
+            ).then((_) => _onRefresh());
+          },
+        ),
+        _buildGridCard(
+          key: widget.favoritesKey,
+          title: loc.favorites,
+          imageAsset: 'assets/images/favorite_cards.png',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FavoritesCoursesScreen()),
+            ).then((_) => _onRefresh());
+          },
+        ),
+      ],
     );
   }
 }
