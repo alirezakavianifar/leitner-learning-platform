@@ -11,6 +11,7 @@ import 'package:mobile_app/features/notifications/domain/entities/banner.dart' a
 import 'package:mobile_app/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/favorites_courses_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/features/courses/presentation/widgets/lesson_stage_pot.dart';
