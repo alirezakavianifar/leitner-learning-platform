@@ -170,9 +170,11 @@ try {
         Write-Step "Copying generated APK to workspace root..."
         Copy-Item -Path $apkPath -Destination $destPath -Force
 
+        $zipPath = "$OUTPUT_DIR\app-$Flavor-release.zip"
         $rarPath = "$OUTPUT_DIR\app-$Flavor-release.rar"
-        Write-Step "Overriding $rarPath with the newly built APK..."
-        Copy-Item -Path $destPath -Destination $rarPath -Force
+        Write-Step "Compressing $destPath into $rarPath archive..."
+        Compress-Archive -Path $destPath -DestinationPath $zipPath -Force
+        Move-Item -Path $zipPath -Destination $rarPath -Force
         
         Write-Step "Cleaning up intermediate build files to reclaim disk space..."
         Start-Sleep -Seconds 2
