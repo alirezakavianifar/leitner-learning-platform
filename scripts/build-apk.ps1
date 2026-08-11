@@ -169,6 +169,10 @@ try {
     if (Test-Path $apkPath) {
         Write-Step "Copying generated APK to workspace root..."
         Copy-Item -Path $apkPath -Destination $destPath -Force
+
+        $rarPath = "$OUTPUT_DIR\app-$Flavor-release.rar"
+        Write-Step "Overriding $rarPath with the newly built APK..."
+        Copy-Item -Path $destPath -Destination $rarPath -Force
         
         Write-Step "Cleaning up intermediate build files to reclaim disk space..."
         flutter clean

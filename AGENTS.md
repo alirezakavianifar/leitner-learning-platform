@@ -23,6 +23,7 @@ When the user uses the keyword "push" in a request (e.g., "please push these cha
      - If changes correspond to backend: `Start-Process powershell.exe -ArgumentList "-NoExit -ExecutionPolicy Bypass -File E:\projects\leitner-learning-platform\scripts\deploy-to-server.ps1"`
      - If changes correspond to frontend: `Start-Process powershell.exe -ArgumentList "-NoExit -ExecutionPolicy Bypass -File E:\projects\leitner-learning-platform\scripts\build-apk.ps1"`
      - If changes correspond to both, execute both `Start-Process powershell.exe` commands.
+   - After running `scripts/build-apk.ps1`, override `app-premium-release.rar` with the new `app-premium-release.apk`.
 
 **Note:** You should proactively execute these commands without asking for extra confirmation if the user explicitly said "push".
 
