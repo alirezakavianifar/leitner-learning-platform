@@ -42,6 +42,71 @@ function Write-Info([string]$msg) {
     Write-Host "  [INFO] $msg" -ForegroundColor DarkCyan
 }
 
+function Send-RubikaFile {
+    param (
+        [string]$FilePath,
+        [string]$BotToken = "CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL"
+    )
+
+    if (-not (Test-Path $FilePath)) {
+        Write-Err "File not found for Rubika upload: $FilePath"
+        return
+    }
+
+    $fileName = Split-Path $FilePath -Leaf
+    $fileLength = (Get-Item $FilePath).Length
+    $mbSize = [math]::Round($fileLength / 1MB, 2)
+    Write-Step "Uploading '$fileName' ($mbSize MB) to Rubika Bot (@AliDeveloperBot)..."
+
+    try {
+        $reqUrl = "https://botapi.rubika.ir/v3/$BotToken/requestSendFile"
+        $reqBody = @{
+            file_name = $fileName
+            size      = $fileLength
+            type      = "File"
+        } | ConvertTo-Json
+
+        $reqRes = Invoke-RestMethod -Uri $reqUrl -Method Post -Body $reqBody -ContentType "application/json" -TimeoutSec 30
+        if ($reqRes.status -ne "OK" -or -not $reqRes.data.upload_url) {
+            Write-Err "Rubika requestSendFile failed: $($reqRes | ConvertTo-Json -Compress)"
+            return
+        }
+
+        $uploadUrl = $reqRes.data.upload_url
+        Write-Step "Sending archive data to Rubika media server..."
+
+        $uploadOutput = & curl.exe -s -X POST -F "file=@$FilePath" $uploadUrl
+        $uploadJson = $uploadOutput | ConvertFrom-Json
+
+        if ($uploadJson.status -eq "OK") {
+            $fileId = if ($uploadJson.data.file_id) { $uploadJson.data.file_id } else { $uploadJson.data.id }
+            Write-Ok "Rubika upload complete! Cloud File ID: $fileId"
+
+            try {
+                $updates = Invoke-RestMethod -Uri "https://botapi.rubika.ir/v3/$BotToken/getUpdates" -Method Post -TimeoutSec 10
+                if ($updates.status -eq "OK" -and $updates.data.updates) {
+                    foreach ($upd in $updates.data.updates) {
+                        $chatId = if ($upd.chat_id) { $upd.chat_id } else { $upd.message.chat_id }
+                        if ($chatId) {
+                            $sendBody = @{
+                                chat_id = $chatId
+                                file_id = $fileId
+                                text    = "🚀 New App Update Available: $fileName"
+                            } | ConvertTo-Json
+                            Invoke-RestMethod -Uri "https://botapi.rubika.ir/v3/$BotToken/sendFile" -Method Post -Body $sendBody -ContentType "application/json" | Out-Null
+                        }
+                    }
+                }
+            } catch {}
+        } else {
+            Write-Err "Rubika media server upload failed: $uploadOutput"
+        }
+    }
+    catch {
+        Write-Err "Rubika upload error: $_"
+    }
+}
+
 # -- Logic --------------------------------------------------------------------
 Write-Header
 
@@ -176,15 +241,7 @@ try {
         tar.exe -a -cf $zipPath -C $OUTPUT_DIR "app-$Flavor-release.apk"
         Move-Item -Path $zipPath -Destination $rarPath -Force
 
-        $uploadScript = "$ROOT\scripts\upload-to-rubika.py"
-        if (Test-Path $uploadScript) {
-            Write-Step "Uploading $rarPath to Rubika Bot..."
-            try {
-                python $uploadScript
-            } catch {
-                Write-Err "Rubika upload failed: $_"
-            }
-        }
+        Send-RubikaFile -FilePath $rarPath
         
         Write-Step "Cleaning up intermediate build files to reclaim disk space..."
         Start-Sleep -Seconds 2
