@@ -11,6 +11,9 @@ import 'package:mobile_app/features/notifications/domain/entities/banner.dart' a
 import 'package:mobile_app/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/favorites_courses_screen.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
+import 'package:mobile_app/features/courses/presentation/widgets/lesson_stage_pot.dart';
 import 'package:mobile_app/core/utils/scroll_physics.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -176,6 +179,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
 
+    bool enableGamifiedLayout = true;
+    try {
+      final configState = context.watch<ConfigBloc>().state;
+      if (configState is ConfigLoaded) {
+        enableGamifiedLayout = configState.config.enableGamifiedLayout;
+      }
+    } catch (_) {}
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
@@ -192,151 +203,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (enableGamifiedLayout) ...[
+                // Top Greeting & VIP Header
+                _buildTopGamifiedHeader(context, loc),
+                const SizedBox(height: 16),
 
+                // Gamified 3D Learning Hero Banner
+                _buildGamifiedHeroBanner(context, loc),
+                const SizedBox(height: 20),
 
-              // Banner Carousel
-              SizedBox(
-                height: 125,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: PageView.builder(
-                    controller: _pageController,
-                    itemCount: _bannerList.isNotEmpty ? _bannerList.length : _defaultBanners.length,
-                    onPageChanged: (idx) {
-                      setState(() {
-                        _currentBannerIndex = idx;
-                      });
-                    },
-                    itemBuilder: (context, index) {
-                      final activeList = _bannerList.isNotEmpty ? _bannerList : _defaultBanners;
-                      final isRealBanner = _bannerList.isNotEmpty;
-                      final banner = activeList[index];
-
-                      if (isRealBanner) {
-                        final realBanner = banner as entity.Banner;
-                        return GestureDetector(
-                          onTap: () {
-                            if (realBanner.linkUrl != null && realBanner.linkUrl!.isNotEmpty) {
-                              _launchUrl(realBanner.linkUrl!);
-                            }
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                            ),
-                            child: Image.network(
-                              realBanner.imageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: AppColors.surface,
-                                  alignment: Alignment.center,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.broken_image, color: AppColors.textSecondary, size: 36),
-                                      SizedBox(height: 8),
-                                      Text(loc.failedLoadBanner, style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-                                    ],
-                                  ),
-                                );
-                              },
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(color: AppColors.primary),
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      } else {
-                        // Fallback/Default Banner
-                        final defaultBanner = banner as Map<String, dynamic>;
-                        final key = defaultBanner['key'] as String;
-                        String title = '';
-                        String subtitle = '';
-                        if (key == 'banner_1') {
-                          title = loc.banner1Title;
-                          subtitle = loc.banner1Sub;
-                        } else if (key == 'banner_2') {
-                          title = loc.banner2Title;
-                          subtitle = loc.banner2Sub;
-                        } else if (key == 'banner_3') {
-                          title = loc.banner3Title;
-                          subtitle = loc.banner3Sub;
-                        }
-
-                        return Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: defaultBanner['gradient'] as List<Color>,
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          padding: const EdgeInsets.all(20.0),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      title,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      subtitle,
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 12,
-                                        height: 1.4,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Icon(
-                                defaultBanner['icon'] as IconData,
-                                size: 48,
-                                color: Colors.white.withOpacity(0.4),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              // Page indicators
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  _bannerList.isNotEmpty ? _bannerList.length : _defaultBanners.length,
-                  (index) => Container(
-                    width: 6,
-                    height: 6,
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _currentBannerIndex == index
-                          ? AppColors.primary
-                          : AppColors.textSecondary.withOpacity(0.3),
+                // Practice More Section Title
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      loc.translate('practice_more'),
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 10),
+
+                // Daily Practice Orange Review Banner Card
+                _buildDailyPracticeCard(context, loc),
+                const SizedBox(height: 20),
+
+                // Course Accordion & Dynamic Lesson Progress Tree
+                _buildCourseAccordionTree(context, loc),
+                const SizedBox(height: 24),
+              ] else ...[
+                // Classic Carousel Banner Layout
+                _buildClassicBannerCarousel(context, loc),
+                const SizedBox(height: 16),
+              ],
 
               Text(
                 loc.quickHub,
@@ -346,7 +249,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
 
               // Feature Grid
               GridView.count(
@@ -504,6 +407,488 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClassicBannerCarousel(BuildContext context, AppLocalizations loc) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 125,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _bannerList.isNotEmpty ? _bannerList.length : _defaultBanners.length,
+              onPageChanged: (idx) {
+                setState(() {
+                  _currentBannerIndex = idx;
+                });
+              },
+              itemBuilder: (context, index) {
+                final activeList = _bannerList.isNotEmpty ? _bannerList : _defaultBanners;
+                final isRealBanner = _bannerList.isNotEmpty;
+                final banner = activeList[index];
+
+                if (isRealBanner) {
+                  final realBanner = banner as entity.Banner;
+                  return GestureDetector(
+                    onTap: () {
+                      if (realBanner.linkUrl != null && realBanner.linkUrl!.isNotEmpty) {
+                        _launchUrl(realBanner.linkUrl!);
+                      }
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                      ),
+                      child: Image.network(
+                        realBanner.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: AppColors.surface,
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image, color: AppColors.textSecondary, size: 36),
+                                const SizedBox(height: 8),
+                                Text(loc.failedLoadBanner, style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                } else {
+                  final defaultBanner = banner as Map<String, dynamic>;
+                  final key = defaultBanner['key'] as String;
+                  String title = '';
+                  String subtitle = '';
+                  if (key == 'banner_1') {
+                    title = loc.banner1Title;
+                    subtitle = loc.banner1Sub;
+                  } else if (key == 'banner_2') {
+                    title = loc.banner2Title;
+                    subtitle = loc.banner2Sub;
+                  } else if (key == 'banner_3') {
+                    title = loc.banner3Title;
+                    subtitle = loc.banner3Sub;
+                  }
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: defaultBanner['gradient'] as List<Color>,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(20.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                subtitle,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          defaultBanner['icon'] as IconData,
+                          size: 48,
+                          color: Colors.white.withOpacity(0.4),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            _bannerList.isNotEmpty ? _bannerList.length : _defaultBanners.length,
+            (index) => Container(
+              width: 6,
+              height: 6,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _currentBannerIndex == index
+                    ? AppColors.primary
+                    : AppColors.textSecondary.withOpacity(0.3),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopGamifiedHeader(BuildContext context, AppLocalizations loc) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              loc.translate('greeting_hello'),
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              loc.translate('greeting_sub'),
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.shopping_cart_outlined, size: 18, color: AppColors.textSecondary),
+                  const SizedBox(width: 6),
+                  Text(
+                    loc.translate('vip_membership'),
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGamifiedHeroBanner(BuildContext context, AppLocalizations loc) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0072FF), Color(0xFF00C6FF)],
+          begin: Alignment.centerRight,
+          end: Alignment.centerLeft,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0072FF).withOpacity(0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person_pin,
+                  size: 48,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.25),
+                            border: Border.all(color: Colors.white.withOpacity(0.4), width: 2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '%${_finishedCount > 0 ? ((_finishedCount / (_dueCount + _finishedCount + 1)) * 100).toInt() : 0}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            '${_finishedCount} ${loc.translate('words_so_far')}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF0072FF),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      ),
+                      onPressed: () => widget.onTabChange(1),
+                      child: Text(
+                        loc.translate('start_learning'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDailyPracticeCard(BuildContext context, AppLocalizations loc) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF9500), Color(0xFFFF5E00)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF9500).withOpacity(0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => widget.onTabChange(1),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loc.translate('review_words_title'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        loc.translate('review_words_sub'),
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.85),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.25),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    loc.translate('daily_practice_badge'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCourseAccordionTree(BuildContext context, AppLocalizations loc) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: ExpansionTile(
+          initiallyExpanded: true,
+          iconColor: AppColors.primary,
+          collapsedIconColor: AppColors.textSecondary,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          title: Row(
+            children: [
+              const Text('✍️ ', style: TextStyle(fontSize: 18)),
+              Text(
+                '۵۰۴ لغت ضروری',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+              child: Column(
+                children: [
+                  _buildLessonItem(
+                    context: context,
+                    lessonTitle: '${loc.translate('lesson_label')} ۱',
+                    remainingWords: '۱۲ ${loc.translate('words_remaining')}',
+                    progress: 0.3,
+                    onTap: () => widget.onTabChange(1),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildLessonItem(
+                    context: context,
+                    lessonTitle: '${loc.translate('lesson_label')} ۲',
+                    remainingWords: '۱۲ ${loc.translate('words_remaining')}',
+                    progress: 0.0,
+                    onTap: () => widget.onTabChange(1),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildLessonItem(
+                    context: context,
+                    lessonTitle: '${loc.translate('lesson_label')} ۳',
+                    remainingWords: '۱۵ ${loc.translate('words_remaining')}',
+                    progress: 0.7,
+                    onTap: () => widget.onTabChange(1),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLessonItem({
+    required BuildContext context,
+    required String lessonTitle,
+    required String remainingWords,
+    required double progress,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.background.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border.withOpacity(0.5)),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        leading: const Icon(Icons.arrow_back_ios_new, size: 16, color: Colors.grey),
+        title: Text(
+          lessonTitle,
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          remainingWords,
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 12,
+          ),
+        ),
+        trailing: LessonStagePot(
+          progress: progress,
+          size: 48,
         ),
       ),
     );

@@ -70,6 +70,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             bool enableAiTutor = configs.TryGetValue("enable_ai_tutor", out var aiVal) && bool.TryParse(aiVal, out var aiBool) && aiBool;
             bool enableCustomThemes = !configs.TryGetValue("enable_custom_themes", out var themeVal) || !bool.TryParse(themeVal, out var themeBool) || themeBool;
             bool enableSearchV2 = !configs.TryGetValue("enable_search_v2", out var searchVal) || !bool.TryParse(searchVal, out var searchBool) || searchBool;
+            bool enableGamifiedLayout = !configs.TryGetValue("enable_gamified_layout", out var gVal) || !bool.TryParse(gVal, out var gBool) || gBool;
 
             int rotationInterval = configs.TryGetValue("rotation_interval_seconds", out var rotVal) && int.TryParse(rotVal, out var rotInt) ? rotInt : 4;
             int maxBannerCount = configs.TryGetValue("max_banner_count", out var maxVal) && int.TryParse(maxVal, out var maxInt) ? maxInt : 5;
@@ -87,7 +88,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                 {
                     enable_ai_tutor = enableAiTutor,
                     enable_custom_themes = enableCustomThemes,
-                    enable_search_v2 = enableSearchV2
+                    enable_search_v2 = enableSearchV2,
+                    enable_gamified_layout = enableGamifiedLayout
                 },
                 banner_configs = new
                 {

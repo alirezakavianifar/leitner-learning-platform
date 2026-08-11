@@ -238,6 +238,7 @@
     "flag_ai_tutor": "Enable AI Tutor Features (Beta)",
     "flag_themes": "Enable Custom Client Themes",
     "flag_search": "Enable Advanced Search (Search v2)",
+    "flag_gamified_layout": "Enable Gamified 3D Mobile App Layout",
     "section_maintenance": "Maintenance Mode Control",
     "maintenance_enable": "Enable System-Wide Maintenance Mode",
     "maintenance_desc": "Enabling maintenance mode blocks all client mobile applications immediately, presenting a \"Scheduled Maintenance\" screen.",

@@ -19,6 +19,7 @@ export const SettingsView: React.FC = () => {
   const [enableAiTutor, setEnableAiTutor] = useState(false);
   const [enableCustomThemes, setEnableCustomThemes] = useState(true);
   const [enableSearchV2, setEnableSearchV2] = useState(true);
+  const [enableGamifiedLayout, setEnableGamifiedLayout] = useState(true);
 
   const [rotationInterval, setRotationInterval] = useState(4);
   const [maxBannerCount, setMaxBannerCount] = useState(5);
@@ -50,6 +51,9 @@ export const SettingsView: React.FC = () => {
               break;
             case 'enable_search_v2':
               setEnableSearchV2(cfg.value !== 'false');
+              break;
+            case 'enable_gamified_layout':
+              setEnableGamifiedLayout(cfg.value !== 'false');
               break;
             case 'rotation_interval_seconds':
               setRotationInterval(parseInt(cfg.value) || 4);
@@ -85,7 +89,8 @@ export const SettingsView: React.FC = () => {
         { key: 'enable_ai_tutor', value: enableAiTutor.toString() },
         { key: 'enable_custom_themes', value: enableCustomThemes.toString() },
         { key: 'enable_search_v2', value: enableSearchV2.toString() },
-        { key: 'rotation_interval_seconds', rotation_interval_seconds: rotationInterval, value: rotationInterval.toString() },
+        { key: 'enable_gamified_layout', value: enableGamifiedLayout.toString() },
+        { key: 'rotation_interval_seconds', value: rotationInterval.toString() },
         { key: 'max_banner_count', value: maxBannerCount.toString() },
       ];
       await api.admin.updateConfig(payload);
@@ -216,6 +221,18 @@ export const SettingsView: React.FC = () => {
                     style={{ width: '18px', height: '18px' }}
                   />
                   <label htmlFor="enable_search_v2">{t('settings.flag_search')}</label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="checkbox"
+                    id="enable_gamified_layout"
+                    checked={enableGamifiedLayout}
+                    onChange={(e) => setEnableGamifiedLayout(e.target.checked)}
+                    style={{ width: '18px', height: '18px' }}
+                  />
+                  <label htmlFor="enable_gamified_layout" style={{ fontWeight: 'bold', color: enableGamifiedLayout ? 'var(--primary-hover)' : 'inherit' }}>
+                    {t('settings.flag_gamified_layout', 'Enable Gamified 3D Mobile App Layout')}
+                  </label>
                 </div>
               </div>
             </div>

@@ -8,6 +8,7 @@ class RemoteConfig extends Equatable {
   final bool enableAiTutor;
   final bool enableCustomThemes;
   final bool enableSearchV2;
+  final bool enableGamifiedLayout;
   final int rotationIntervalSeconds;
   final int maxBannerCount;
 
@@ -19,6 +20,7 @@ class RemoteConfig extends Equatable {
     required this.enableAiTutor,
     required this.enableCustomThemes,
     required this.enableSearchV2,
+    this.enableGamifiedLayout = true,
     required this.rotationIntervalSeconds,
     required this.maxBannerCount,
   });
@@ -32,6 +34,7 @@ class RemoteConfig extends Equatable {
         enableAiTutor,
         enableCustomThemes,
         enableSearchV2,
+        enableGamifiedLayout,
         rotationIntervalSeconds,
         maxBannerCount,
       ];
@@ -49,6 +52,7 @@ class RemoteConfig extends Equatable {
       enableAiTutor: featureFlags['enable_ai_tutor'] as bool? ?? false,
       enableCustomThemes: featureFlags['enable_custom_themes'] as bool? ?? true,
       enableSearchV2: featureFlags['enable_search_v2'] as bool? ?? true,
+      enableGamifiedLayout: featureFlags['enable_gamified_layout'] as bool? ?? true,
       rotationIntervalSeconds: bannerConfigs['rotation_interval_seconds'] as int? ?? 4,
       maxBannerCount: bannerConfigs['max_banner_count'] as int? ?? 5,
     );
@@ -66,6 +70,7 @@ class RemoteConfig extends Equatable {
         'enable_ai_tutor': enableAiTutor,
         'enable_custom_themes': enableCustomThemes,
         'enable_search_v2': enableSearchV2,
+        'enable_gamified_layout': enableGamifiedLayout,
       },
       'banner_configs': {
         'rotation_interval_seconds': rotationIntervalSeconds,
