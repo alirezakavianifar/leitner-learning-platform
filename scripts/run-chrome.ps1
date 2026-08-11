@@ -40,10 +40,11 @@ try {
     Write-Host "  >> Launching Flutter Web on '$Device' (Flavor: $Flavor)..." -ForegroundColor Green
     Write-Host ""
     if ($Device -eq "web-server") {
-        Start-Process "http://localhost:8080"
-        flutter run -d web-server --web-port 8080 --flavor $Flavor -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
+        $port = 8085
+        Start-Process "http://localhost:$port"
+        flutter run -d web-server --web-port $port -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
     } else {
-        flutter run -d $Device --flavor $Flavor -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
+        flutter run -d $Device -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
     }
 }
 catch {
