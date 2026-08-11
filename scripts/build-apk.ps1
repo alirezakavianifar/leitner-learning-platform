@@ -82,22 +82,32 @@ function Send-RubikaFile {
             $fileId = if ($uploadJson.data.file_id) { $uploadJson.data.file_id } else { $uploadJson.data.id }
             Write-Ok "Rubika upload complete! Cloud File ID: $fileId"
 
+            # Send to default admin chat
+            $targetChats = @("b09Oot0xD50c8c82ced516fe45377f0b")
+
             try {
                 $updates = Invoke-RestMethod -Uri "https://botapi.rubika.ir/v3/$BotToken/getUpdates" -Method Post -TimeoutSec 10
                 if ($updates.status -eq "OK" -and $updates.data.updates) {
                     foreach ($upd in $updates.data.updates) {
                         $chatId = if ($upd.chat_id) { $upd.chat_id } else { $upd.message.chat_id }
-                        if ($chatId) {
-                            $sendBody = @{
-                                chat_id = $chatId
-                                file_id = $fileId
-                                text    = "🚀 New App Update Available: $fileName"
-                            } | ConvertTo-Json
-                            Invoke-RestMethod -Uri "https://botapi.rubika.ir/v3/$BotToken/sendFile" -Method Post -Body $sendBody -ContentType "application/json" | Out-Null
+                        if ($chatId -and -not $targetChats.Contains($chatId)) {
+                            $targetChats += $chatId
                         }
                     }
                 }
             } catch {}
+
+            foreach ($chatId in $targetChats) {
+                try {
+                    $sendBody = @{
+                        chat_id = $chatId
+                        file_id = $fileId
+                        text    = "📱 New Leitner App Release: $fileName"
+                    } | ConvertTo-Json
+                    Invoke-RestMethod -Uri "https://botapi.rubika.ir/v3/$BotToken/sendFile" -Method Post -Body $sendBody -ContentType "application/json" | Out-Null
+                    Write-Ok "Delivered to Rubika chat: $chatId"
+                } catch {}
+            }
         } else {
             Write-Err "Rubika media server upload failed: $uploadOutput"
         }
