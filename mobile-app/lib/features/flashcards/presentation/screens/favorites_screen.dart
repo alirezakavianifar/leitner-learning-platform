@@ -46,14 +46,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   void _onCardTap(Flashcard card) async {
-    await Navigator.push(
+    await FlashcardStudyScreen.open(
       context,
-      FlashcardStudyScreen.route(
-        courseId: widget.courseId,
-        courseTitle: widget.courseTitle,
-        initialCardNumber: card.cardNumber,
-        isFromFavorites: true,
-      ),
+      courseId: widget.courseId,
+      courseTitle: widget.courseTitle,
+      initialCardNumber: card.cardNumber,
+      isFromFavorites: true,
     );
     _loadFavorites();
   }

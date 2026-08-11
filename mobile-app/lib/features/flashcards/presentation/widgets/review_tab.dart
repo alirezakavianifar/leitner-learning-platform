@@ -5,7 +5,6 @@ import 'package:mobile_app/features/courses/domain/entities/course.dart';
 import 'package:mobile_app/features/courses/domain/repositories/courses_repository.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
-import 'package:mobile_app/features/flashcards/presentation/screens/favorites_screen.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
 class ReviewTab extends StatefulWidget {
@@ -182,13 +181,11 @@ class _ReviewTabState extends State<ReviewTab> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () async {
-                        await Navigator.push(
+                        await FlashcardStudyScreen.open(
                           context,
-                          FlashcardStudyScreen.route(
-                            courseId: course.id,
-                            courseTitle: course.title,
-                            isTodayReview: true,
-                          ),
+                          courseId: course.id,
+                          courseTitle: course.title,
+                          isTodayReview: true,
                         );
                         _loadData();
                       },

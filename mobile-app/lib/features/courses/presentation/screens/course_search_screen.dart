@@ -138,13 +138,11 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
 
   void _navigateToStudyScreen(Flashcard card) {
     final course = _allCourses.firstWhere((c) => c.id == card.courseId);
-    Navigator.push(
+    FlashcardStudyScreen.open(
       context,
-      FlashcardStudyScreen.route(
-        courseId: card.courseId,
-        courseTitle: course.title,
-        initialCardNumber: card.cardNumber,
-      ),
+      courseId: card.courseId,
+      courseTitle: course.title,
+      initialCardNumber: card.cardNumber,
     ).then((_) {
       // Refresh status after return
       _loadCardsForSelectedCourses();

@@ -18,6 +18,10 @@ When the user uses the keyword "push" in a request (e.g., "please push these cha
 2. **Infer Commit Message**: Generate a concise, descriptive, and professional commit message based on the recent file changes and conversation context. Do not ask the user for a commit message unless they explicitly provide one.
 3. **Commit**: `git commit -m "<inferred_message>"`
 4. **Push**: `git push` (or `git push -u origin <branch>` if the upstream is not set).
+5. **Post-Push Execution**:
+   - If the changes correspond to the backend, run `E:\projects\leitner-learning-platform\scripts\deploy-to-server.ps1` after pushing changes to GitHub.
+   - If the changes correspond to the frontend, run `E:\projects\leitner-learning-platform\scripts\build-apk.ps1` after pushing changes to GitHub.
+   - If the changes correspond to both, run both scripts after pushing changes to GitHub.
 
 **Note:** You should proactively execute these commands without asking for extra confirmation if the user explicitly said "push".
 

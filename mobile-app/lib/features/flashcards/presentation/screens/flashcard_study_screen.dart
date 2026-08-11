@@ -63,6 +63,26 @@ class FlashcardStudyScreen extends StatefulWidget {
     );
   }
 
+  static Future<T?> open<T>(
+    BuildContext context, {
+    required String courseId,
+    required String courseTitle,
+    bool isTodayReview = false,
+    int? initialCardNumber,
+    bool isFromFavorites = false,
+  }) {
+    return Navigator.of(context, rootNavigator: true).push<T>(
+      route(
+        courseId: courseId,
+        courseTitle: courseTitle,
+        isTodayReview: isTodayReview,
+        initialCardNumber: initialCardNumber,
+        isFromFavorites: isFromFavorites,
+      ) as Route<T>,
+    );
+  }
+
+
   @override
   State<FlashcardStudyScreen> createState() => _FlashcardStudyScreenState();
 }
@@ -552,10 +572,15 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                       ),
                     ),
                   ),
-                  Center(
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                  SafeArea(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.only(
+                          left: 8.0,
+                          right: 8.0,
+                          top: 16.0,
+                          bottom: 24.0 + MediaQuery.of(context).padding.bottom,
+                        ),
                         child: Center(
                           child: Container(
                             width: double.infinity,

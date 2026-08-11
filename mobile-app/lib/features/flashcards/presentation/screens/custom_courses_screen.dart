@@ -282,7 +282,7 @@ class _CustomCoursesScreenState extends State<CustomCoursesScreen> {
   Widget _buildCoursesList() {
     final isFa = Localizations.localeOf(context).languageCode == 'fa';
     return ListView.builder(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 80.0),
       itemCount: _customCourses.length,
       itemBuilder: (context, index) {
         final course = _customCourses[index];

@@ -148,9 +148,10 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                     ),
                   ),
                 )
-              : Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
+              : SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 80.0),
+                    child: Column(
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -311,6 +312,7 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                     ],
                   ),
                 ),
+              ),
     );
   }
 }

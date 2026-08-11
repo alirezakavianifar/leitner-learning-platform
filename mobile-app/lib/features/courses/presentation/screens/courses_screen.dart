@@ -695,13 +695,11 @@ class _CoursesScreenState extends State<CoursesScreen> {
           ],
         ),
         onPressed: () {
-          Navigator.push(
+          FlashcardStudyScreen.open(
             context,
-            FlashcardStudyScreen.route(
-              courseId: course.id,
-              courseTitle: course.title,
-              isTodayReview: false,
-            ),
+            courseId: course.id,
+            courseTitle: course.title,
+            isTodayReview: false,
           );
         },
       );
