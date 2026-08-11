@@ -175,7 +175,8 @@ try {
         Copy-Item -Path $destPath -Destination $rarPath -Force
         
         Write-Step "Cleaning up intermediate build files to reclaim disk space..."
-        flutter clean
+        Start-Sleep -Seconds 2
+        try { flutter clean 2>$null } catch {}
         
         Write-Ok "APK built successfully!"
         Write-Host ""
