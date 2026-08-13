@@ -485,178 +485,184 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
     final imgPath = card['image_path'] as String?;
     final audPath = card['audio_path'] as String?;
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                card['course_title'] as String? ?? 'Custom Card',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-              Text(
-                isFa ? 'کارت ${_studyIndex + 1} از ${_customCards.length}' : 'Card ${_studyIndex + 1}/${_customCards.length}',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: Center(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      if (_showAnswer) {
-                        _flipController.reverse();
-                      } else {
-                        _flipController.forward();
-                      }
-                      setState(() {
-                        _showAnswer = !_showAnswer;
-                      });
-                    },
-                    onHorizontalDragEnd: (details) {
-                      if (details.primaryVelocity != null) {
-                        if (details.primaryVelocity! < -300) {
-                          _goToNextCard();
-                        } else if (details.primaryVelocity! > 300) {
-                          _goToPrevCard();
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  card['course_title'] as String? ?? 'Custom Card',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                Text(
+                  isFa ? 'کارت ${_studyIndex + 1} از ${_customCards.length}' : 'Card ${_studyIndex + 1}/${_customCards.length}',
+                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        if (_showAnswer) {
+                          _flipController.reverse();
+                        } else {
+                          _flipController.forward();
                         }
-                      }
-                    },
-                    child: AspectRatio(
-                      aspectRatio: 3 / 4,
-                      child: AnimatedBuilder(
-                        animation: _flipController,
-                        builder: (context, child) {
-                          final angle = _flipController.value * pi;
-                          final isBack = angle > pi / 2;
+                        setState(() {
+                          _showAnswer = !_showAnswer;
+                        });
+                      },
+                      onHorizontalDragEnd: (details) {
+                        if (details.primaryVelocity != null) {
+                          if (details.primaryVelocity! < -300) {
+                            _goToNextCard();
+                          } else if (details.primaryVelocity! > 300) {
+                            _goToPrevCard();
+                          }
+                        }
+                      },
+                      child: AspectRatio(
+                        aspectRatio: 3 / 4,
+                        child: AnimatedBuilder(
+                          animation: _flipController,
+                          builder: (context, child) {
+                            final angle = _flipController.value * pi;
+                            final isBack = angle > pi / 2;
 
-                          return Transform(
-                            transform: Matrix4.identity()
-                              ..setEntry(3, 2, 0.001)
-                              ..rotateY(angle),
-                            alignment: Alignment.center,
-                            child: isBack
-                                ? Transform(
-                                    transform: Matrix4.identity()..rotateY(pi),
-                                    alignment: Alignment.center,
-                                    child: _buildCardFace(card, imgPath, audPath, isFront: false),
-                                  )
-                                : _buildCardFace(card, imgPath, audPath, isFront: true),
-                          );
-                        },
+                            return Transform(
+                              transform: Matrix4.identity()
+                                ..setEntry(3, 2, 0.001)
+                                ..rotateY(angle),
+                              alignment: Alignment.center,
+                              child: isBack
+                                  ? Transform(
+                                      transform: Matrix4.identity()..rotateY(pi),
+                                      alignment: Alignment.center,
+                                      child: _buildCardFace(card, imgPath, audPath, isFront: false),
+                                    )
+                                  : _buildCardFace(card, imgPath, audPath, isFront: true),
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ),
 
-                  // Left Navigation Overlay Button (Previous Card)
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 48,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _studyIndex > 0 ? _goToPrevCard : null,
-                      child: Container(
-                        color: Colors.transparent,
-                        child: Center(
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: (_studyIndex > 0 ? AppColors.primary : Colors.grey).withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.arrow_back_ios_new,
-                              size: 18,
-                              color: _studyIndex > 0 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
+                    // Left Navigation Overlay Button (Previous Card)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 48,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _studyIndex > 0 ? _goToPrevCard : null,
+                        child: Container(
+                          color: Colors.transparent,
+                          child: Center(
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: (_studyIndex > 0 ? AppColors.primary : Colors.grey).withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.chevron_left,
+                                size: 24,
+                                color: _studyIndex > 0 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // Right Navigation Overlay Button (Next Card)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 48,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _studyIndex < _customCards.length - 1 ? _goToNextCard : null,
-                      child: Container(
-                        color: Colors.transparent,
-                        child: Center(
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: (_studyIndex < _customCards.length - 1 ? AppColors.primary : Colors.grey).withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.arrow_forward_ios,
-                              size: 18,
-                              color: _studyIndex < _customCards.length - 1 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
+                    // Right Navigation Overlay Button (Next Card)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 48,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _studyIndex < _customCards.length - 1 ? _goToNextCard : null,
+                        child: Container(
+                          color: Colors.transparent,
+                          child: Center(
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: (_studyIndex < _customCards.length - 1 ? AppColors.primary : Colors.grey).withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.chevron_right,
+                                size: 24,
+                                color: _studyIndex < _customCards.length - 1 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: (_studyIndex > 0 ? AppColors.primary : Colors.grey).withOpacity(0.15),
+                      foregroundColor: _studyIndex > 0 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.4),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                    onPressed: _studyIndex > 0 ? _goToPrevCard : null,
+                    icon: const Icon(Icons.chevron_left, size: 18),
+                    label: Text(isFa ? 'قبلی' : 'Previous', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  Flexible(
+                    child: Text(
+                      isFa ? 'برای دیدن پاسخ روی کارت بزنید' : 'Tap card to show answer',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _studyIndex < _customCards.length - 1 ? AppColors.primary : Colors.grey.withOpacity(0.3),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                    onPressed: _studyIndex < _customCards.length - 1 ? _goToNextCard : null,
+                    icon: const Icon(Icons.chevron_right, size: 18),
+                    iconAlignment: IconAlignment.end,
+                    label: Text(isFa ? 'بعدی' : 'Next', style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: (_studyIndex > 0 ? AppColors.primary : Colors.grey).withOpacity(0.15),
-                  foregroundColor: _studyIndex > 0 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.4),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                ),
-                onPressed: _studyIndex > 0 ? _goToPrevCard : null,
-                icon: const Icon(Icons.arrow_back_ios_new, size: 16),
-                label: Text(isFa ? 'قبلی' : 'Previous', style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-              Flexible(
-                child: Text(
-                  isFa ? 'برای دیدن پاسخ روی کارت بزنید' : 'Tap card to show answer',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _studyIndex < _customCards.length - 1 ? AppColors.primary : Colors.grey.withOpacity(0.3),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                ),
-                onPressed: _studyIndex < _customCards.length - 1 ? _goToNextCard : null,
-                icon: const Icon(Icons.arrow_forward_ios, size: 16),
-                label: Text(isFa ? 'بعدی' : 'Next', style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-        ],
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }

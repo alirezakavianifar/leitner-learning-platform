@@ -740,8 +740,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                                   shape: BoxShape.circle,
                                                 ),
                                                 child: Icon(
-                                                  Icons.arrow_back_ios_new,
-                                                  size: 16,
+                                                  Icons.chevron_left,
+                                                  size: 20,
                                                   color: state.currentIndex > 0
                                                       ? AppColors.primary
                                                       : AppColors.textSecondary.withOpacity(0.3),
@@ -777,8 +777,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                                   shape: BoxShape.circle,
                                                 ),
                                                 child: Icon(
-                                                  Icons.arrow_forward_ios,
-                                                  size: 16,
+                                                  Icons.chevron_right,
+                                                  size: 20,
                                                   color: state.currentIndex < state.queue.length - 1
                                                       ? AppColors.primary
                                                       : AppColors.textSecondary.withOpacity(0.3),
