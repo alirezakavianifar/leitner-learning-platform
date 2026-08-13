@@ -37,7 +37,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     try {
       final list = await _repository.getFavoriteCards(widget.courseId);
       setState(() {
-        _favorites = list;
+        // Exclude cards currently in the active Leitner process (box 2–6).
+        // These cards should not be visible in the list, and the study-screen
+        // navigation queue applies the same filter so Prev/Next cannot expose
+        // them either.
+        _favorites = list
+            .where((c) => !(c.progress.currentBox >= 2 && c.progress.currentBox <= 6))
+            .toList();
         _isLoading = false;
       });
     } catch (_) {
