@@ -23,6 +23,7 @@ export const SettingsView: React.FC = () => {
 
   const [rotationInterval, setRotationInterval] = useState(4);
   const [maxBannerCount, setMaxBannerCount] = useState(5);
+  const [cardNavIconStyle, setCardNavIconStyle] = useState('chevron');
 
   const loadSettings = async () => {
     try {
@@ -61,6 +62,9 @@ export const SettingsView: React.FC = () => {
             case 'max_banner_count':
               setMaxBannerCount(parseInt(cfg.value) || 5);
               break;
+            case 'card_nav_icon_style':
+              setCardNavIconStyle(cfg.value || 'chevron');
+              break;
             default:
               break;
           }
@@ -92,6 +96,7 @@ export const SettingsView: React.FC = () => {
         { key: 'enable_gamified_layout', value: enableGamifiedLayout.toString() },
         { key: 'rotation_interval_seconds', value: rotationInterval.toString() },
         { key: 'max_banner_count', value: maxBannerCount.toString() },
+        { key: 'card_nav_icon_style', value: cardNavIconStyle },
       ];
       await api.admin.updateConfig(payload);
       toast.showSuccess(t('settings.save_success', 'تنظیمات با موفقیت ذخیره شدند.'));
@@ -265,6 +270,89 @@ export const SettingsView: React.FC = () => {
                     onChange={(e) => setMaxBannerCount(parseInt(e.target.value) || 5)}
                     required
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Card Navigation Icon Style */}
+            <div style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.15)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginTop: 0, color: 'var(--primary-hover)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                  <polyline points="2 17 12 22 22 17" />
+                  <polyline points="2 12 12 17 22 12" />
+                </svg>
+                {t('settings.card_nav_icons_title', 'Card Navigation Icon Style')}
+              </h3>
+              <p className="text-muted" style={{ fontSize: '13px', margin: '4px 0 16px 0' }}>
+                {t('settings.card_nav_icons_subtitle', 'Select the icon design used for Next and Previous card navigation in the mobile app.')}
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                {[
+                  { id: 'chevron', label: t('settings.icon_style_chevron', 'Standard Chevron (‹ ›)'), left: '‹', right: '›' },
+                  { id: 'arrow', label: t('settings.icon_style_arrow', 'Standard Arrow (← →)'), left: '←', right: '→' },
+                  { id: 'arrow_ios', label: t('settings.icon_style_arrow_ios', 'iOS Style Arrow (‹ ›)'), left: '‹', right: '›' },
+                  { id: 'double_chevron', label: t('settings.icon_style_double_chevron', 'Double Chevron (« »)'), left: '«', right: '»' },
+                  { id: 'circle_arrow', label: t('settings.icon_style_circle_arrow', 'Circled Arrow (⮜ ⮞)'), left: '⮜', right: '⮞' },
+                  { id: 'triangle', label: t('settings.icon_style_triangle', 'Triangle Caret (◀ ▶)'), left: '◀', right: '▶' },
+                ].map((item) => {
+                  const isSelected = cardNavIconStyle === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => setCardNavIconStyle(item.id)}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '8px',
+                        border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                        background: isSelected ? 'rgba(var(--primary-rgb, 79, 70, 229), 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: isSelected ? 'bold' : 'normal', fontSize: '13px' }}>{item.label}</span>
+                        <input
+                          type="radio"
+                          name="cardNavIconStyle"
+                          value={item.id}
+                          checked={isSelected}
+                          onChange={() => setCardNavIconStyle(item.id)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', fontSize: '18px', fontWeight: 'bold' }}>
+                        <span style={{ color: 'var(--primary-hover)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                          <span style={{ fontSize: '16px' }}>{item.left}</span> Next
+                        </span>
+                        <span style={{ color: 'var(--primary-hover)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                          Prev <span style={{ fontSize: '16px' }}>{item.right}</span>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Live Preview Card */}
+              <div style={{ padding: '12px 16px', background: 'rgba(0, 0, 0, 0.25)', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
+                <span className="text-muted" style={{ fontSize: '12px', display: 'block', marginBottom: '8px' }}>
+                  {t('settings.preview_label', 'Live Preview in RTL:')}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--card-bg, #1e293b)', padding: '12px 20px', borderRadius: '8px', direction: 'ltr' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(var(--primary-rgb, 79, 70, 229), 0.2)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px' }}>
+                    {cardNavIconStyle === 'arrow' ? '←' : cardNavIconStyle === 'double_chevron' ? '«' : cardNavIconStyle === 'circle_arrow' ? '⮜' : cardNavIconStyle === 'triangle' ? '◀' : '‹'}
+                  </div>
+                  <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                    [ Flashcard Study Canvas ]
+                  </div>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(var(--primary-rgb, 79, 70, 229), 0.2)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px' }}>
+                    {cardNavIconStyle === 'arrow' ? '→' : cardNavIconStyle === 'double_chevron' ? '»' : cardNavIconStyle === 'circle_arrow' ? '⮞' : cardNavIconStyle === 'triangle' ? '▶' : '›'}
+                  </div>
                 </div>
               </div>
             </div>

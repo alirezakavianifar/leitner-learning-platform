@@ -2,11 +2,15 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/constants/app_nav_icons.dart';
 import 'package:mobile_app/core/database/database_helper.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 import 'create_custom_card_screen.dart';
 
@@ -481,6 +485,10 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
   Widget _buildStudyModeTab() {
     final loc = AppLocalizations.of(context);
     final isFa = Localizations.localeOf(context).languageCode == 'fa';
+    final configState = context.watch<ConfigBloc>().state;
+    final iconStyle = configState is ConfigLoaded
+        ? configState.config.cardNavIconStyle
+        : (configState is ConfigMaintenance ? configState.config.cardNavIconStyle : 'chevron');
     final card = _customCards[_studyIndex];
     final imgPath = card['image_path'] as String?;
     final audPath = card['audio_path'] as String?;
@@ -555,39 +563,9 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                       ),
                     ),
 
-                    // Left Navigation Overlay Button (Previous Card)
+                    // Left Navigation Overlay Button (Next Card)
                     Positioned(
                       left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 48,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: _studyIndex > 0 ? _goToPrevCard : null,
-                        child: Container(
-                          color: Colors.transparent,
-                          child: Center(
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: (_studyIndex > 0 ? AppColors.primary : Colors.grey).withOpacity(0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.chevron_left,
-                                size: 24,
-                                color: _studyIndex > 0 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Right Navigation Overlay Button (Next Card)
-                    Positioned(
-                      right: 0,
                       top: 0,
                       bottom: 0,
                       width: 48,
@@ -604,10 +582,46 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                                 color: (_studyIndex < _customCards.length - 1 ? AppColors.primary : Colors.grey).withOpacity(0.2),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(
-                                Icons.chevron_right,
-                                size: 24,
-                                color: _studyIndex < _customCards.length - 1 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
+                              child: Directionality(
+                                textDirection: TextDirection.ltr,
+                                child: Icon(
+                                  AppNavIcons.getLeftIcon(iconStyle),
+                                  size: 24,
+                                  color: _studyIndex < _customCards.length - 1 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Right Navigation Overlay Button (Previous Card)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 48,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _studyIndex > 0 ? _goToPrevCard : null,
+                        child: Container(
+                          color: Colors.transparent,
+                          child: Center(
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: (_studyIndex > 0 ? AppColors.primary : Colors.grey).withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Directionality(
+                                textDirection: TextDirection.ltr,
+                                child: Icon(
+                                  AppNavIcons.getRightIcon(iconStyle),
+                                  size: 24,
+                                  color: _studyIndex > 0 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
+                                ),
                               ),
                             ),
                           ),
@@ -626,15 +640,15 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                 children: [
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: (_studyIndex > 0 ? AppColors.primary : Colors.grey).withOpacity(0.15),
-                      foregroundColor: _studyIndex > 0 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.4),
+                      backgroundColor: _studyIndex < _customCards.length - 1 ? AppColors.primary : Colors.grey.withOpacity(0.3),
+                      foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     ),
-                    onPressed: _studyIndex > 0 ? _goToPrevCard : null,
-                    icon: const Icon(Icons.chevron_left, size: 18),
-                    label: Text(isFa ? 'قبلی' : 'Previous', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: _studyIndex < _customCards.length - 1 ? _goToNextCard : null,
+                    icon: Icon(AppNavIcons.getLeftIcon(iconStyle), size: 18),
+                    label: Text(isFa ? 'بعدی' : 'Next', style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                   Flexible(
                     child: Text(
@@ -646,16 +660,16 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                   ),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _studyIndex < _customCards.length - 1 ? AppColors.primary : Colors.grey.withOpacity(0.3),
-                      foregroundColor: Colors.white,
+                      backgroundColor: (_studyIndex > 0 ? AppColors.primary : Colors.grey).withOpacity(0.15),
+                      foregroundColor: _studyIndex > 0 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.4),
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     ),
-                    onPressed: _studyIndex < _customCards.length - 1 ? _goToNextCard : null,
-                    icon: const Icon(Icons.chevron_right, size: 18),
+                    onPressed: _studyIndex > 0 ? _goToPrevCard : null,
+                    icon: Icon(AppNavIcons.getRightIcon(iconStyle), size: 18),
                     iconAlignment: IconAlignment.end,
-                    label: Text(isFa ? 'بعدی' : 'Next', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    label: Text(isFa ? 'قبلی' : 'Previous', style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

@@ -252,6 +252,15 @@
     "carousel_title": "تنظیمات اسلایدر بنرهای اپلیکیشن",
     "carousel_subtitle": "تغییر سرعت چرخش و حداکثر تعداد بنرها در اسلایدر صفحه اصلی اپلیکیشن کاربران.",
     "rotation_speed_label": "سرعت چرخش بنرها (به ثانیه)",
-    "max_banner_label": "حداکثر تعداد بنرهای مجاز در اسلایدر"
+    "max_banner_label": "حداکثر تعداد بنرهای مجاز در اسلایدر",
+    "card_nav_icons_title": "سبک آیکون‌های پیمایش کارت‌ها",
+    "card_nav_icons_subtitle": "انتخاب سبک فلش‌های بعدی و قبلی در مرور کارت‌های اپلیکیشن موبایل.",
+    "icon_style_chevron": "شورون کلاسیک (‹ ›)",
+    "icon_style_arrow": "فلش ساده (← →)",
+    "icon_style_arrow_ios": "فلش باریک سبک iOS (‹ ›)",
+    "icon_style_double_chevron": "شورون دوتایی (« »)",
+    "icon_style_circle_arrow": "فلش دایره‌ای (⮜ ⮞)",
+    "icon_style_triangle": "مثلثی / کرت (◀ ▶)",
+    "preview_label": "پیش‌نمایش در چیدمان راست‌به‌چپ:"
   }
 }

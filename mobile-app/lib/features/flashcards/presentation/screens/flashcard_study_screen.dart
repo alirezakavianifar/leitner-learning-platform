@@ -16,6 +16,9 @@ import 'package:mobile_app/features/flashcards/presentation/bloc/flashcard_bloc.
 import 'package:mobile_app/features/flashcards/presentation/bloc/flashcard_event.dart';
 import 'package:mobile_app/features/flashcards/presentation/bloc/flashcard_state.dart';
 import 'package:mobile_app/core/error/error_formatter.dart';
+import 'package:mobile_app/core/constants/app_nav_icons.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
 class FlashcardStudyScreen extends StatefulWidget {
@@ -556,6 +559,11 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                 return _buildWarningView(context, state.jumpTargetCard!);
               }
 
+              final configState = context.watch<ConfigBloc>().state;
+              final iconStyle = configState is ConfigLoaded
+                  ? configState.config.cardNavIconStyle
+                  : (configState is ConfigMaintenance ? configState.config.cardNavIconStyle : 'chevron');
+
               final card = state.currentCard;
               if (card == null) return const SizedBox.shrink();
 
@@ -715,46 +723,9 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                         ),
                                       ),
 
-                                      // Left Navigation Overlay Tap Zone (Previous Card)
+                                      // Left Navigation Overlay Tap Zone (Next Card)
                                       Positioned(
                                         left: 0,
-                                        top: 0,
-                                        bottom: 0,
-                                        width: 44,
-                                        child: GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onTap: state.currentIndex > 0
-                                              ? () => context.read<FlashcardBloc>().add(PrevCard())
-                                              : null,
-                                          child: Container(
-                                            color: Colors.transparent,
-                                            child: Center(
-                                              child: Container(
-                                                width: 32,
-                                                height: 32,
-                                                decoration: BoxDecoration(
-                                                  color: (state.currentIndex > 0
-                                                          ? AppColors.primary
-                                                          : Colors.grey)
-                                                      .withOpacity(0.15),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: Icon(
-                                                  Icons.chevron_left,
-                                                  size: 20,
-                                                  color: state.currentIndex > 0
-                                                      ? AppColors.primary
-                                                      : AppColors.textSecondary.withOpacity(0.3),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                      // Right Navigation Overlay Tap Zone (Next Card)
-                                      Positioned(
-                                        right: 0,
                                         top: 0,
                                         bottom: 0,
                                         width: 44,
@@ -776,12 +747,55 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                                       .withOpacity(0.15),
                                                   shape: BoxShape.circle,
                                                 ),
-                                                child: Icon(
-                                                  Icons.chevron_right,
-                                                  size: 20,
-                                                  color: state.currentIndex < state.queue.length - 1
-                                                      ? AppColors.primary
-                                                      : AppColors.textSecondary.withOpacity(0.3),
+                                                child: Directionality(
+                                                  textDirection: TextDirection.ltr,
+                                                  child: Icon(
+                                                    AppNavIcons.getLeftIcon(iconStyle),
+                                                    size: 20,
+                                                    color: state.currentIndex < state.queue.length - 1
+                                                        ? AppColors.primary
+                                                        : AppColors.textSecondary.withOpacity(0.3),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+
+                                      // Right Navigation Overlay Tap Zone (Previous Card)
+                                      Positioned(
+                                        right: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        width: 44,
+                                        child: GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: state.currentIndex > 0
+                                              ? () => context.read<FlashcardBloc>().add(PrevCard())
+                                              : null,
+                                          child: Container(
+                                            color: Colors.transparent,
+                                            child: Center(
+                                              child: Container(
+                                                width: 32,
+                                                height: 32,
+                                                decoration: BoxDecoration(
+                                                  color: (state.currentIndex > 0
+                                                          ? AppColors.primary
+                                                          : Colors.grey)
+                                                      .withOpacity(0.15),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Directionality(
+                                                  textDirection: TextDirection.ltr,
+                                                  child: Icon(
+                                                    AppNavIcons.getRightIcon(iconStyle),
+                                                    size: 20,
+                                                    color: state.currentIndex > 0
+                                                        ? AppColors.primary
+                                                        : AppColors.textSecondary.withOpacity(0.3),
+                                                  ),
                                                 ),
                                               ),
                                             ),

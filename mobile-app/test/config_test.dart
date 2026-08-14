@@ -48,6 +48,7 @@ void main() {
       expect(config.enableSearchV2, true);
       expect(config.rotationIntervalSeconds, 6);
       expect(config.maxBannerCount, 4);
+      expect(config.cardNavIconStyle, 'chevron');
     });
 
     test('should return default values when fields are missing', () {
@@ -58,6 +59,7 @@ void main() {
       expect(config.enableAiTutor, false);
       expect(config.enableCustomThemes, true);
       expect(config.enableSearchV2, true);
+      expect(config.cardNavIconStyle, 'chevron');
     });
   });
 

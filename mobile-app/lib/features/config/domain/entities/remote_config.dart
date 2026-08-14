@@ -11,6 +11,7 @@ class RemoteConfig extends Equatable {
   final bool enableGamifiedLayout;
   final int rotationIntervalSeconds;
   final int maxBannerCount;
+  final String cardNavIconStyle;
 
   const RemoteConfig({
     required this.maintenanceMode,
@@ -23,6 +24,7 @@ class RemoteConfig extends Equatable {
     this.enableGamifiedLayout = true,
     required this.rotationIntervalSeconds,
     required this.maxBannerCount,
+    this.cardNavIconStyle = 'chevron',
   });
 
   @override
@@ -37,12 +39,14 @@ class RemoteConfig extends Equatable {
         enableGamifiedLayout,
         rotationIntervalSeconds,
         maxBannerCount,
+        cardNavIconStyle,
       ];
 
   factory RemoteConfig.fromJson(Map<String, dynamic> json) {
     final endpoints = json['endpoints'] as Map<String, dynamic>? ?? {};
     final featureFlags = json['feature_flags'] as Map<String, dynamic>? ?? {};
     final bannerConfigs = json['banner_configs'] as Map<String, dynamic>? ?? {};
+    final appStyles = json['app_styles'] as Map<String, dynamic>? ?? {};
 
     return RemoteConfig(
       maintenanceMode: json['maintenance_mode'] as bool? ?? false,
@@ -55,12 +59,16 @@ class RemoteConfig extends Equatable {
       enableGamifiedLayout: featureFlags['enable_gamified_layout'] as bool? ?? true,
       rotationIntervalSeconds: bannerConfigs['rotation_interval_seconds'] as int? ?? 4,
       maxBannerCount: bannerConfigs['max_banner_count'] as int? ?? 5,
+      cardNavIconStyle: json['card_nav_icon_style'] as String? ??
+          appStyles['card_nav_icon_style'] as String? ??
+          'chevron',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'maintenance_mode': maintenanceMode,
+      'card_nav_icon_style': cardNavIconStyle,
       'endpoints': {
         'api_server': apiServer,
         'content_server': contentServer,
@@ -71,6 +79,9 @@ class RemoteConfig extends Equatable {
         'enable_custom_themes': enableCustomThemes,
         'enable_search_v2': enableSearchV2,
         'enable_gamified_layout': enableGamifiedLayout,
+      },
+      'app_styles': {
+        'card_nav_icon_style': cardNavIconStyle,
       },
       'banner_configs': {
         'rotation_interval_seconds': rotationIntervalSeconds,

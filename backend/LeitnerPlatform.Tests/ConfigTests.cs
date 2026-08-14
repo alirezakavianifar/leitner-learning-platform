@@ -47,7 +47,10 @@ namespace LeitnerPlatform.Tests
             var featureFlags = type.GetProperty("feature_flags")?.GetValue(okResult.Value);
             var bannerConfigs = type.GetProperty("banner_configs")?.GetValue(okResult.Value);
 
+            var cardNavIconStyle = (string?)type.GetProperty("card_nav_icon_style")?.GetValue(okResult.Value);
+
             Assert.False(maintenanceMode);
+            Assert.Equal("chevron", cardNavIconStyle);
             Assert.NotNull(endpoints);
             Assert.NotNull(featureFlags);
             Assert.NotNull(bannerConfigs);
@@ -69,7 +72,8 @@ namespace LeitnerPlatform.Tests
             {
                 new SystemConfig { Key = "maintenance_mode", Value = "true" },
                 new SystemConfig { Key = "api_server", Value = "https://custom-api.com/v1" },
-                new SystemConfig { Key = "enable_ai_tutor", Value = "true" }
+                new SystemConfig { Key = "enable_ai_tutor", Value = "true" },
+                new SystemConfig { Key = "card_nav_icon_style", Value = "arrow" }
             });
             await context.SaveChangesAsync();
 
@@ -82,10 +86,12 @@ namespace LeitnerPlatform.Tests
             var okResult = Assert.IsType<OkObjectResult>(result);
             var type = okResult.Value!.GetType();
             var maintenanceMode = (bool?)type.GetProperty("maintenance_mode")?.GetValue(okResult.Value);
+            var cardNavIconStyle = (string?)type.GetProperty("card_nav_icon_style")?.GetValue(okResult.Value);
             var endpoints = type.GetProperty("endpoints")?.GetValue(okResult.Value);
             var featureFlags = type.GetProperty("feature_flags")?.GetValue(okResult.Value);
 
             Assert.True(maintenanceMode);
+            Assert.Equal("arrow", cardNavIconStyle);
             Assert.NotNull(endpoints);
             Assert.NotNull(featureFlags);
 

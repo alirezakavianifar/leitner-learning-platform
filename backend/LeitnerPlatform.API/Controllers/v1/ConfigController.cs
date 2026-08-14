@@ -74,10 +74,12 @@ namespace LeitnerPlatform.API.Controllers.v1
 
             int rotationInterval = configs.TryGetValue("rotation_interval_seconds", out var rotVal) && int.TryParse(rotVal, out var rotInt) ? rotInt : 4;
             int maxBannerCount = configs.TryGetValue("max_banner_count", out var maxVal) && int.TryParse(maxVal, out var maxInt) ? maxInt : 5;
+            string cardNavIconStyle = configs.TryGetValue("card_nav_icon_style", out var iconStyleVal) && !string.IsNullOrWhiteSpace(iconStyleVal) ? iconStyleVal : "chevron";
 
             return Ok(new
             {
                 maintenance_mode = maintenanceMode,
+                card_nav_icon_style = cardNavIconStyle,
                 endpoints = new
                 {
                     api_server = apiServer,
@@ -90,6 +92,10 @@ namespace LeitnerPlatform.API.Controllers.v1
                     enable_custom_themes = enableCustomThemes,
                     enable_search_v2 = enableSearchV2,
                     enable_gamified_layout = enableGamifiedLayout
+                },
+                app_styles = new
+                {
+                    card_nav_icon_style = cardNavIconStyle
                 },
                 banner_configs = new
                 {

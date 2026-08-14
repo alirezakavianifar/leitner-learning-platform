@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/constants/app_nav_icons.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
 import 'package:mobile_app/injection_container.dart' as di;
@@ -291,22 +295,41 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                           ],
                         )
                       else
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            IconButton(
-                              icon: Icon(Directionality.of(context) == TextDirection.rtl ? Icons.arrow_forward_ios : Icons.arrow_back_ios, color: AppColors.primary),
-                              onPressed: _prevCard,
-                            ),
-                            Text(
-                              loc.tapCardToShowAnswer,
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
-                            IconButton(
-                              icon: Icon(Directionality.of(context) == TextDirection.rtl ? Icons.arrow_back_ios : Icons.arrow_forward_ios, color: AppColors.primary),
-                              onPressed: _nextCard,
-                            ),
-                          ],
+                        Directionality(
+                          textDirection: TextDirection.ltr,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  AppNavIcons.getLeftIcon(
+                                    context.watch<ConfigBloc>().state is ConfigLoaded
+                                        ? (context.watch<ConfigBloc>().state as ConfigLoaded).config.cardNavIconStyle
+                                        : 'chevron',
+                                  ),
+                                  color: AppColors.primary,
+                                  size: 28,
+                                ),
+                                onPressed: _nextCard,
+                              ),
+                              Text(
+                                loc.tapCardToShowAnswer,
+                                style: TextStyle(color: AppColors.textSecondary),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  AppNavIcons.getRightIcon(
+                                    context.watch<ConfigBloc>().state is ConfigLoaded
+                                        ? (context.watch<ConfigBloc>().state as ConfigLoaded).config.cardNavIconStyle
+                                        : 'chevron',
+                                  ),
+                                  color: AppColors.primary,
+                                  size: 28,
+                                ),
+                                onPressed: _prevCard,
+                              ),
+                            ],
+                          ),
                         ),
                       const SizedBox(height: 16),
                     ],

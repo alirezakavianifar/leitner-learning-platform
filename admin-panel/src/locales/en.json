@@ -252,6 +252,15 @@
     "carousel_title": "Client Carousel Configurations",
     "carousel_subtitle": "Adjust display properties of banners dynamically on the mobile hub screen.",
     "rotation_speed_label": "Banner Rotation Speed (Seconds)",
-    "max_banner_label": "Max Dashboard Banner Count"
+    "max_banner_label": "Max Dashboard Banner Count",
+    "card_nav_icons_title": "Card Navigation Icon Style",
+    "card_nav_icons_subtitle": "Select the icon design used for Next and Previous card navigation in the mobile app.",
+    "icon_style_chevron": "Standard Chevron (‹ ›)",
+    "icon_style_arrow": "Standard Arrow (← →)",
+    "icon_style_arrow_ios": "iOS Style Arrow (‹ ›)",
+    "icon_style_double_chevron": "Double Chevron (« »)",
+    "icon_style_circle_arrow": "Circled Arrow (⮜ ⮞)",
+    "icon_style_triangle": "Triangle Caret (◀ ▶)",
+    "preview_label": "Live Preview in RTL:"
   }
 }
