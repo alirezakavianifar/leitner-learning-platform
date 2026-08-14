@@ -301,11 +301,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
 
-    bool enableGamifiedLayout = true;
+    bool enableGamifiedLayout = false;
     try {
       final configState = context.watch<ConfigBloc>().state;
-      if (configState is ConfigLoaded) {
-        enableGamifiedLayout = configState.config.enableGamifiedLayout;
+      if (configState.config != null) {
+        enableGamifiedLayout = configState.config!.enableGamifiedLayout;
       }
     } catch (_) {}
 

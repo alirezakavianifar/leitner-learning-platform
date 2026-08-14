@@ -9,6 +9,10 @@ import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 
 class FakeConfigRepository implements ConfigRepository {
   Either<Failure, RemoteConfig>? result;
+  RemoteConfig? cached;
+
+  @override
+  RemoteConfig? getCachedConfig() => cached;
 
   @override
   Future<Either<Failure, RemoteConfig>> getRemoteConfig() async {
@@ -30,6 +34,7 @@ void main() {
           'enable_ai_tutor': true,
           'enable_custom_themes': false,
           'enable_search_v2': true,
+          'enable_gamified_layout': false,
         },
         'banner_configs': {
           'rotation_interval_seconds': 6,
@@ -46,6 +51,7 @@ void main() {
       expect(config.enableAiTutor, true);
       expect(config.enableCustomThemes, false);
       expect(config.enableSearchV2, true);
+      expect(config.enableGamifiedLayout, false);
       expect(config.rotationIntervalSeconds, 6);
       expect(config.maxBannerCount, 4);
       expect(config.cardNavIconStyle, 'chevron');
@@ -59,6 +65,7 @@ void main() {
       expect(config.enableAiTutor, false);
       expect(config.enableCustomThemes, true);
       expect(config.enableSearchV2, true);
+      expect(config.enableGamifiedLayout, false);
       expect(config.cardNavIconStyle, 'chevron');
     });
   });
@@ -76,11 +83,32 @@ void main() {
       bloc.close();
     });
 
-    test('initial state should be ConfigInitial', () {
-      expect(bloc.state, ConfigInitial());
+    test('initial state should be ConfigInitial when no cache is available', () {
+      expect(bloc.state, const ConfigInitial());
     });
 
-    test('should emit [ConfigLoading, ConfigLoaded] when config loads successfully', () async {
+    test('initial state should be ConfigLoaded when cache is available', () {
+      const cachedConfig = RemoteConfig(
+        maintenanceMode: false,
+        apiServer: 'https://api.com',
+        contentServer: 'https://content.com',
+        bannerServer: 'https://banners.com',
+        enableAiTutor: false,
+        enableCustomThemes: true,
+        enableSearchV2: true,
+        enableGamifiedLayout: false,
+        rotationIntervalSeconds: 4,
+        maxBannerCount: 5,
+      );
+
+      final cachedRepo = FakeConfigRepository()..cached = cachedConfig;
+      final cachedBloc = ConfigBloc(configRepository: cachedRepo);
+
+      expect(cachedBloc.state, const ConfigLoaded(config: cachedConfig));
+      cachedBloc.close();
+    });
+
+    test('should emit [ConfigLoading, ConfigLoaded] when config loads successfully and preserve config', () async {
       const config = RemoteConfig(
         maintenanceMode: false,
         apiServer: 'https://api.com',
@@ -89,6 +117,7 @@ void main() {
         enableAiTutor: false,
         enableCustomThemes: true,
         enableSearchV2: true,
+        enableGamifiedLayout: false,
         rotationIntervalSeconds: 4,
         maxBannerCount: 5,
       );
@@ -96,13 +125,54 @@ void main() {
       repository.result = const Right(config);
 
       final expectedStates = [
-        ConfigLoading(),
+        const ConfigLoading(),
         const ConfigLoaded(config: config),
       ];
 
       expectLater(bloc.stream, emitsInOrder(expectedStates));
 
       bloc.add(LoadConfigEvent());
+    });
+
+    test('should emit [ConfigLoading(previousConfig), ConfigLoaded] during reload preserving config', () async {
+      const initialConfig = RemoteConfig(
+        maintenanceMode: false,
+        apiServer: 'https://api.com',
+        contentServer: 'https://content.com',
+        bannerServer: 'https://banners.com',
+        enableAiTutor: false,
+        enableCustomThemes: true,
+        enableSearchV2: true,
+        enableGamifiedLayout: false,
+        rotationIntervalSeconds: 4,
+        maxBannerCount: 5,
+      );
+
+      const updatedConfig = RemoteConfig(
+        maintenanceMode: false,
+        apiServer: 'https://api.com',
+        contentServer: 'https://content.com',
+        bannerServer: 'https://banners.com',
+        enableAiTutor: true,
+        enableCustomThemes: true,
+        enableSearchV2: true,
+        enableGamifiedLayout: false,
+        rotationIntervalSeconds: 4,
+        maxBannerCount: 5,
+      );
+
+      final repo = FakeConfigRepository()..cached = initialConfig;
+      final reloadedBloc = ConfigBloc(configRepository: repo);
+      repo.result = const Right(updatedConfig);
+
+      final expectedStates = [
+        const ConfigLoading(previousConfig: initialConfig),
+        const ConfigLoaded(config: updatedConfig),
+      ];
+
+      expectLater(reloadedBloc.stream, emitsInOrder(expectedStates));
+
+      reloadedBloc.add(LoadConfigEvent());
     });
 
     test('should emit [ConfigLoading, ConfigMaintenance] when maintenance mode is active', () async {
@@ -114,6 +184,7 @@ void main() {
         enableAiTutor: false,
         enableCustomThemes: true,
         enableSearchV2: true,
+        enableGamifiedLayout: false,
         rotationIntervalSeconds: 4,
         maxBannerCount: 5,
       );
@@ -121,7 +192,7 @@ void main() {
       repository.result = const Right(config);
 
       final expectedStates = [
-        ConfigLoading(),
+        const ConfigLoading(),
         const ConfigMaintenance(config: config),
       ];
 
@@ -134,7 +205,7 @@ void main() {
       repository.result = const Left(ServerFailure('Connection error'));
 
       final expectedStates = [
-        ConfigLoading(),
+        const ConfigLoading(),
         const ConfigError(message: 'Connection error'),
       ];
 

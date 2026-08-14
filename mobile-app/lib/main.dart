@@ -129,12 +129,21 @@ class AppGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ConfigBloc, ConfigState>(
+      buildWhen: (previous, current) {
+        // If we are already displaying the app with a loaded configuration,
+        // do not rebuild AppGate back to the full-screen loading spinner on background refreshes.
+        if (current is ConfigLoading && current.config != null) {
+          return false;
+        }
+        return true;
+      },
       builder: (context, state) {
         if (state is ConfigMaintenance) {
           return const MaintenanceScreen();
         }
 
-        if (state is ConfigLoading || state is ConfigInitial) {
+        if ((state is ConfigLoading && state.config == null) ||
+            (state is ConfigInitial && state.config == null)) {
           return Scaffold(
             body: Center(
               child: Column(

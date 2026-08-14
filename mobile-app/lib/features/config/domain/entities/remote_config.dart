@@ -21,7 +21,7 @@ class RemoteConfig extends Equatable {
     required this.enableAiTutor,
     required this.enableCustomThemes,
     required this.enableSearchV2,
-    this.enableGamifiedLayout = true,
+    this.enableGamifiedLayout = false,
     required this.rotationIntervalSeconds,
     required this.maxBannerCount,
     this.cardNavIconStyle = 'chevron',
@@ -56,7 +56,7 @@ class RemoteConfig extends Equatable {
       enableAiTutor: featureFlags['enable_ai_tutor'] as bool? ?? false,
       enableCustomThemes: featureFlags['enable_custom_themes'] as bool? ?? true,
       enableSearchV2: featureFlags['enable_search_v2'] as bool? ?? true,
-      enableGamifiedLayout: featureFlags['enable_gamified_layout'] as bool? ?? true,
+      enableGamifiedLayout: featureFlags['enable_gamified_layout'] as bool? ?? false,
       rotationIntervalSeconds: bannerConfigs['rotation_interval_seconds'] as int? ?? 4,
       maxBannerCount: bannerConfigs['max_banner_count'] as int? ?? 5,
       cardNavIconStyle: json['card_nav_icon_style'] as String? ??

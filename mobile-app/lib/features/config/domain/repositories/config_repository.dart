@@ -4,4 +4,5 @@ import 'package:mobile_app/features/config/domain/entities/remote_config.dart';
 
 abstract class ConfigRepository {
   Future<Either<Failure, RemoteConfig>> getRemoteConfig();
+  RemoteConfig? getCachedConfig();
 }

@@ -21,6 +21,19 @@ class ConfigRepositoryImpl implements ConfigRepository {
   });
 
   @override
+  RemoteConfig? getCachedConfig() {
+    final cachedJson = sharedPreferences.getString(_kCachedConfigKey);
+    if (cachedJson != null) {
+      try {
+        return RemoteConfig.fromJson(jsonDecode(cachedJson) as Map<String, dynamic>);
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  @override
   Future<Either<Failure, RemoteConfig>> getRemoteConfig() async {
     try {
       final config = await remoteDataSource.getRemoteConfig();
@@ -36,21 +49,15 @@ class ConfigRepositoryImpl implements ConfigRepository {
       return Right(config);
     } catch (e) {
       // Fallback to cached configuration if network is down
-      final cachedJson = sharedPreferences.getString(_kCachedConfigKey);
-      if (cachedJson != null) {
-        try {
-          final config = RemoteConfig.fromJson(jsonDecode(cachedJson) as Map<String, dynamic>);
-          
-          // Still apply endpoints if we had cached values (and no compile-time override)
-          const customUrl = String.fromEnvironment('API_BASE_URL');
-          if (config.apiServer.isNotEmpty && customUrl.isEmpty) {
-            dioClient.updateBaseUrl(config.apiServer);
-          }
-          
-          return Right(config);
-        } catch (_) {
-          // Fall through to failure if decoding fails
+      final config = getCachedConfig();
+      if (config != null) {
+        // Still apply endpoints if we had cached values (and no compile-time override)
+        const customUrl = String.fromEnvironment('API_BASE_URL');
+        if (config.apiServer.isNotEmpty && customUrl.isEmpty) {
+          dioClient.updateBaseUrl(config.apiServer);
         }
+        
+        return Right(config);
       }
       return Left(ServerFailure(e.toString()));
     }
