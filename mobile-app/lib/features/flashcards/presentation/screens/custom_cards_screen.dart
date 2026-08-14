@@ -10,6 +10,7 @@ import 'package:mobile_app/core/constants/app_nav_icons.dart';
 import 'package:mobile_app/core/database/database_helper.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_event.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 import 'create_custom_card_screen.dart';
@@ -47,6 +48,11 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
       duration: const Duration(milliseconds: 400),
     );
     _loadCustomCards();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<ConfigBloc>().add(LoadConfigEvent());
+      }
+    });
   }
 
   @override

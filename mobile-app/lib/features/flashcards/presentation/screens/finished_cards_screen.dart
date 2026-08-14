@@ -4,6 +4,7 @@ import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/constants/app_nav_icons.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_event.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
@@ -28,6 +29,11 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
     super.initState();
     _flashcardRepository = di.sl<FlashcardRepository>();
     _loadFinishedCards();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<ConfigBloc>().add(LoadConfigEvent());
+      }
+    });
   }
 
   Future<void> _loadFinishedCards() async {

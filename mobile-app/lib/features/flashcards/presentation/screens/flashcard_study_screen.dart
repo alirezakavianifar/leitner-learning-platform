@@ -18,6 +18,7 @@ import 'package:mobile_app/features/flashcards/presentation/bloc/flashcard_state
 import 'package:mobile_app/core/error/error_formatter.dart';
 import 'package:mobile_app/core/constants/app_nav_icons.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_event.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
@@ -111,6 +112,11 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
     _audioPlayer = AudioPlayer();
     _loadDocumentsPath();
     _enableSecureMode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<ConfigBloc>().add(LoadConfigEvent());
+      }
+    });
   }
 
   Future<void> _enableSecureMode() async {

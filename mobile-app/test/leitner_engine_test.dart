@@ -779,19 +779,19 @@ void main() {
         'card_number': 1,
         'current_box': 1,
         'last_reviewed_at': null,
-        'next_review_due': DateTime.now().subtract(const Duration(hours: 5)).toIso8601String(),
+        'next_review_due': DateTime.now().toUtc().subtract(const Duration(hours: 5)).toIso8601String(),
         'last_trigger': null,
         'is_synced': 0,
       });
 
-      // Card 2: Box 2 (Due/overdue, should be counted)
+      // Card 2: Box 2 (Due today, should be counted)
       localDb.tables['client_progress']!.add({
         'id': '${courseId}_2',
         'course_id': courseId,
         'card_number': 2,
         'current_box': 2,
-        'last_reviewed_at': DateTime.now().subtract(const Duration(days: 4)).toIso8601String(),
-        'next_review_due': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
+        'last_reviewed_at': DateTime.now().subtract(const Duration(days: 3)).toIso8601String(),
+        'next_review_due': DateTime.now().toIso8601String(),
         'last_trigger': 'REVIEW_CORRECT',
         'is_synced': 1,
       });
@@ -820,14 +820,14 @@ void main() {
         'is_synced': 1,
       });
 
-      // Card 5: Box 6 (Due/overdue, should be counted)
+      // Card 5: Box 6 (Due today, should be counted)
       localDb.tables['client_progress']!.add({
         'id': '${courseId}_5',
         'course_id': courseId,
         'card_number': 5,
         'current_box': 6,
         'last_reviewed_at': DateTime.now().toIso8601String(),
-        'next_review_due': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
+        'next_review_due': DateTime.now().toIso8601String(),
         'last_trigger': 'REVIEW_CORRECT',
         'is_synced': 1,
       });
