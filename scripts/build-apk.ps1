@@ -58,62 +58,17 @@ function Send-RubikaFile {
     $mbSize = [math]::Round($fileLength / 1MB, 2)
     Write-Step "Uploading '$fileName' ($mbSize MB) to Rubika Bot (@AliDeveloperBot)..."
 
-    try {
-        $reqUrl = "https://botapi.rubika.ir/v3/$BotToken/requestSendFile"
-        $reqBody = @{
-            file_name = $fileName
-            size      = $fileLength
-            type      = "File"
-        } | ConvertTo-Json
-
-        $reqRes = Invoke-RestMethod -Uri $reqUrl -Method Post -Body $reqBody -ContentType "application/json" -TimeoutSec 30
-        if ($reqRes.status -ne "OK" -or -not $reqRes.data.upload_url) {
-            Write-Err "Rubika requestSendFile failed: $($reqRes | ConvertTo-Json -Compress)"
+    $pythonScript = "$ROOT\scripts\upload-to-rubika.py"
+    if (Test-Path $pythonScript) {
+        $env:RUBIKA_BOT_TOKEN = $BotToken
+        $env:UPLOAD_FILE_PATH = (Resolve-Path $FilePath).Path
+        & python $pythonScript
+        if ($LASTEXITCODE -eq 0) {
+            Write-Ok "Rubika delivery completed successfully!"
             return
-        }
-
-        $uploadUrl = $reqRes.data.upload_url
-        Write-Step "Sending archive data to Rubika media server..."
-
-        $uploadOutput = & curl.exe -s -X POST -F "file=@$FilePath" $uploadUrl
-        $uploadJson = $uploadOutput | ConvertFrom-Json
-
-        if ($uploadJson.status -eq "OK") {
-            $fileId = if ($uploadJson.data.file_id) { $uploadJson.data.file_id } else { $uploadJson.data.id }
-            Write-Ok "Rubika upload complete! Cloud File ID: $fileId"
-
-            # Send to default admin chat
-            $targetChats = @("b09Oot0xD50c8c82ced516fe45377f0b")
-
-            try {
-                $updates = Invoke-RestMethod -Uri "https://botapi.rubika.ir/v3/$BotToken/getUpdates" -Method Post -TimeoutSec 10
-                if ($updates.status -eq "OK" -and $updates.data.updates) {
-                    foreach ($upd in $updates.data.updates) {
-                        $chatId = if ($upd.chat_id) { $upd.chat_id } else { $upd.message.chat_id }
-                        if ($chatId -and -not $targetChats.Contains($chatId)) {
-                            $targetChats += $chatId
-                        }
-                    }
-                }
-            } catch {}
-
-            foreach ($chatId in $targetChats) {
-                try {
-                    $sendBody = @{
-                        chat_id = $chatId
-                        file_id = $fileId
-                        text    = "📱 New Leitner App Release: $fileName"
-                    } | ConvertTo-Json
-                    Invoke-RestMethod -Uri "https://botapi.rubika.ir/v3/$BotToken/sendFile" -Method Post -Body $sendBody -ContentType "application/json" | Out-Null
-                    Write-Ok "Delivered to Rubika chat: $chatId"
-                } catch {}
-            }
         } else {
-            Write-Err "Rubika media server upload failed: $uploadOutput"
+            Write-Err "Python upload script encountered an error (exit code $LASTEXITCODE)."
         }
-    }
-    catch {
-        Write-Err "Rubika upload error: $_"
     }
 }
 
@@ -246,23 +201,29 @@ try {
         Copy-Item -Path $apkPath -Destination $destPath -Force
 
         $zipPath = "$OUTPUT_DIR\app-$Flavor-release.zip"
-        $rarPath = "$OUTPUT_DIR\app-$Flavor-release.rar"
-        Write-Step "Compressing $destPath into $rarPath archive..."
+        Write-Step "Compressing $destPath into $zipPath archive..."
         tar.exe -a -cf $zipPath -C $OUTPUT_DIR "app-$Flavor-release.apk"
-        Move-Item -Path $zipPath -Destination $rarPath -Force
 
-        Send-RubikaFile -FilePath $rarPath
+        # Also maintain .rar copy for compatibility
+        $rarPath = "$OUTPUT_DIR\app-$Flavor-release.rar"
+        Copy-Item -Path $zipPath -Destination $rarPath -Force
+
+        Send-RubikaFile -FilePath $zipPath
         
         Write-Step "Cleaning up intermediate build files to reclaim disk space..."
         Start-Sleep -Seconds 2
         try { flutter clean 2>$null } catch {}
         
-        Write-Ok "APK built successfully!"
+        Write-Ok "APK built and compressed successfully!"
         Write-Host ""
-        Write-Host "  Output Location: $destPath" -ForegroundColor Green
-        Write-Host "  How to use:" -ForegroundColor Cyan
-        Write-Host "    1. Copy '$(Split-Path $destPath -Leaf)' to your Android phone." -ForegroundColor Gray
-        Write-Host "    2. Install the APK and enjoy testing with your local backend!" -ForegroundColor Gray
+        Write-Host "  Output Locations:" -ForegroundColor Green
+        Write-Host "    - Raw APK : $destPath" -ForegroundColor DarkCyan
+        Write-Host "    - ZIP File: $zipPath" -ForegroundColor DarkCyan
+        Write-Host ""
+        Write-Host "  How to install on Android:" -ForegroundColor Cyan
+        Write-Host "    1. Download '$([System.IO.Path]::GetFileName($zipPath))' from Rubika to your phone." -ForegroundColor Gray
+        Write-Host "    2. Use your phone's File Manager to EXTRACT / UNZIP the file." -ForegroundColor Gray
+        Write-Host "    3. Tap on the extracted '$([System.IO.Path]::GetFileName($destPath))' to install." -ForegroundColor Gray
         Write-Host ""
     } else {
         Write-Err "Could not locate the compiled APK at $apkPath."

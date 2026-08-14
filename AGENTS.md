@@ -31,7 +31,7 @@ When performing git operations, follow these specific guidelines based on the us
     - If changes correspond to backend: `Start-Process powershell.exe -ArgumentList "-NoExit -ExecutionPolicy Bypass -File E:\projects\leitner-learning-platform\scripts\deploy-to-server.ps1"`
     - If changes correspond to frontend: `Start-Process powershell.exe -ArgumentList "-NoExit -ExecutionPolicy Bypass -File E:\projects\leitner-learning-platform\scripts\build-apk.ps1"`
     - If changes correspond to both, execute both `Start-Process powershell.exe` commands.
-  - After running `scripts/build-apk.ps1`, override `app-premium-release.rar` with the new `app-premium-release.apk` and upload to the Rubika bot via `scripts/upload-to-rubika.py`.
+  - After running `scripts/build-apk.ps1`, ensure `app-premium-release.zip` contains the new `app-premium-release.apk` and upload to the Rubika bot via `scripts/upload-to-rubika.py`.
 
 **Note:** You should proactively execute these commands without asking for extra confirmation.
 

@@ -3,7 +3,11 @@ import sys
 import requests
 
 RUBIKA_TOKEN = os.environ.get("RUBIKA_BOT_TOKEN", "CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL")
-FILE_PATH = os.environ.get("UPLOAD_FILE_PATH", r"E:\projects\leitner-learning-platform\app-premium-release.rar")
+DEFAULT_FILE_PATH = r"E:\projects\leitner-learning-platform\app-premium-release.zip"
+if not os.path.exists(DEFAULT_FILE_PATH) and os.path.exists(r"E:\projects\leitner-learning-platform\app-premium-release.rar"):
+    DEFAULT_FILE_PATH = r"E:\projects\leitner-learning-platform\app-premium-release.rar"
+
+FILE_PATH = os.environ.get("UPLOAD_FILE_PATH", DEFAULT_FILE_PATH)
 
 def upload_to_rubika():
     if not os.path.exists(FILE_PATH):
@@ -52,7 +56,7 @@ def upload_to_rubika():
 
         # Step 3: Check recent chats & sendFile
         updates_res = requests.post(f"https://botapi.rubika.ir/v3/{RUBIKA_TOKEN}/getUpdates", timeout=10).json()
-        chats = set()
+        chats = {"b09Oot0xD50c8c82ced516fe45377f0b"}
         if updates_res.get("status") == "OK":
             for upd in updates_res.get("data", {}).get("updates", []):
                 chat_id = upd.get("chat_id") or upd.get("message", {}).get("chat_id")
@@ -65,7 +69,7 @@ def upload_to_rubika():
                 send_payload = {
                     "chat_id": cid,
                     "file_id": file_id,
-                    "text": f"🚀 New App Update Available: {file_name}"
+                    "text": f"🚀 New App Update (ZIP Archive): {file_name}\n\n⚠️ Note: Please extract/unzip this .zip file on your phone first, then install the APK inside."
                 }
                 send_res = requests.post(f"https://botapi.rubika.ir/v3/{RUBIKA_TOKEN}/sendFile", json=send_payload).json()
                 print(f"  [OK] Sent to chat {cid}: {send_res.get('status')}")
