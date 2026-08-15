@@ -21,6 +21,7 @@
 > ```
 
 *سایر گزینه‌های جایگزین:*
+
 - گزینه ۲: `Smart Leitner Flashcard App & Admin Suite (Flutter, .NET 8, SQLite)`
 - گزینه ۳: `سامانه هوشمند جعبه لایتنر و یادگیری فاصله‌دار با فلاتر و دات‌نت`
 - گزینه ۴: `Enterprise Offline-First Leitner Learning System (Flutter, .NET 8)`
@@ -42,6 +43,7 @@
 > ```
 
 *سایر گزینه‌های جایگزین:*
+
 - گزینه ۲: `Senior Flutter & Full-Stack .NET Developer (Clean Architecture, Offline-First)`
 - گزینه ۳: `توسعه‌دهنده ارشد فلاتر و دات‌نت (پیاده‌سازی موتور آفلاین و امنیت محتوا)`
 

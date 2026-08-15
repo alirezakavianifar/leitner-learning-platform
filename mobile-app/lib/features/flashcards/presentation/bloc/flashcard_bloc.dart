@@ -28,13 +28,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
     try {
       final List<Flashcard> queue;
       if (event.isFromFavorites) {
-        final allFavorites = await flashcardRepository.getFavoriteCards(event.courseId);
-        // Exclude cards currently in the active Leitner process (box 2–6).
-        // These are hidden in the FavoritesScreen list and must not appear
-        // during Prev/Next navigation either.
-        queue = allFavorites
-            .where((c) => !(c.progress.currentBox >= 2 && c.progress.currentBox <= 6))
-            .toList();
+        queue = await flashcardRepository.getFavoriteCards(event.courseId);
       } else {
         queue = await flashcardRepository.getReviewQueue(
           event.courseId,
@@ -141,10 +135,35 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           return;
         }
 
-        // Adjust index to the next card in sequence by card number, or the last card in new queue if out of bounds
-        int nextIndex = newQueue.indexWhere((c) => c.cardNumber > currentCard.cardNumber);
-        if (nextIndex == -1) {
-          nextIndex = newQueue.length - 1;
+        int nextIndex;
+        if (currentState.isFromFavorites) {
+          final now = DateTime.now();
+          nextIndex = newQueue.indexWhere((c) =>
+              c.cardNumber > currentCard.cardNumber &&
+              (c.progress.currentBox == 1 ||
+                  c.progress.currentBox == 7 ||
+                  (c.progress.nextReviewDue != null &&
+                      c.progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1))))));
+
+          if (nextIndex == -1) {
+            nextIndex = newQueue.indexWhere((c) =>
+                c.cardNumber != currentCard.cardNumber &&
+                (c.progress.currentBox == 1 ||
+                    c.progress.currentBox == 7 ||
+                    (c.progress.nextReviewDue != null &&
+                        c.progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1))))));
+          }
+
+          if (nextIndex == -1) {
+            emit(FlashcardFinished(currentState.courseId));
+            return;
+          }
+        } else {
+          // Adjust index to the next card in sequence by card number, or the last card in new queue if out of bounds
+          nextIndex = newQueue.indexWhere((c) => c.cardNumber > currentCard.cardNumber);
+          if (nextIndex == -1) {
+            nextIndex = newQueue.length - 1;
+          }
         }
 
         final nextCard = newQueue[nextIndex];
@@ -153,12 +172,26 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           cardNumber: nextCard.cardNumber,
         );
 
-        emit(currentState.copyWith(
-          queue: newQueue,
-          currentIndex: nextIndex,
-          isFlipped: false,
-          isFavorited: isFav,
-        ));
+        final box = nextCard.progress.currentBox;
+        if (box >= 2 && box <= 6) {
+          emit(currentState.copyWith(
+            queue: newQueue,
+            currentIndex: nextIndex,
+            isFlipped: false,
+            isFavorited: isFav,
+            jumpWarningCardNumber: nextCard.cardNumber,
+            jumpTargetCard: nextCard,
+          ));
+        } else {
+          emit(currentState.copyWith(
+            queue: newQueue,
+            currentIndex: nextIndex,
+            isFlipped: false,
+            isFavorited: isFav,
+            jumpWarningCardNumber: null,
+            jumpTargetCard: null,
+          ));
+        }
       } catch (e) {
         emit(currentState.copyWith(error: 'Failed to submit review: ${e.toString()}'));
       }
@@ -285,20 +318,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
   ) async {
     final currentState = state;
     if (currentState is FlashcardQueueLoaded) {
-      // Skip cards that are in the active Leitner process (box 2–6) when
-      // navigating from the Favorites view. Those cards are filtered out of
-      // the queue at load time, but guard here as a safety net.
       int nextIndex = currentState.currentIndex + 1;
-      while (nextIndex < currentState.queue.length) {
-        final candidate = currentState.queue[nextIndex];
-        final box = candidate.progress.currentBox;
-        if (currentState.isFromFavorites && box >= 2 && box <= 6) {
-          nextIndex++;
-          continue;
-        }
-        break;
-      }
-
       if (nextIndex < currentState.queue.length) {
         final card = currentState.queue[nextIndex];
         final isFav = await flashcardRepository.isFavorite(
@@ -306,13 +326,24 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           cardNumber: card.cardNumber,
         );
 
-        emit(currentState.copyWith(
-          currentIndex: nextIndex,
-          isFlipped: false,
-          isFavorited: isFav,
-          jumpWarningCardNumber: null,
-          jumpTargetCard: null,
-        ));
+        final box = card.progress.currentBox;
+        if (box >= 2 && box <= 6) {
+          emit(currentState.copyWith(
+            currentIndex: nextIndex,
+            isFlipped: false,
+            isFavorited: isFav,
+            jumpWarningCardNumber: card.cardNumber,
+            jumpTargetCard: card,
+          ));
+        } else {
+          emit(currentState.copyWith(
+            currentIndex: nextIndex,
+            isFlipped: false,
+            isFavorited: isFav,
+            jumpWarningCardNumber: null,
+            jumpTargetCard: null,
+          ));
+        }
       }
     }
   }
@@ -323,20 +354,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
   ) async {
     final currentState = state;
     if (currentState is FlashcardQueueLoaded) {
-      // Skip cards that are in the active Leitner process (box 2–6) when
-      // navigating from the Favorites view. Those cards are filtered out of
-      // the queue at load time, but guard here as a safety net.
       int prevIndex = currentState.currentIndex - 1;
-      while (prevIndex >= 0) {
-        final candidate = currentState.queue[prevIndex];
-        final box = candidate.progress.currentBox;
-        if (currentState.isFromFavorites && box >= 2 && box <= 6) {
-          prevIndex--;
-          continue;
-        }
-        break;
-      }
-
       if (prevIndex >= 0) {
         final card = currentState.queue[prevIndex];
         final isFav = await flashcardRepository.isFavorite(
@@ -344,13 +362,24 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           cardNumber: card.cardNumber,
         );
 
-        emit(currentState.copyWith(
-          currentIndex: prevIndex,
-          isFlipped: false,
-          isFavorited: isFav,
-          jumpWarningCardNumber: null,
-          jumpTargetCard: null,
-        ));
+        final box = card.progress.currentBox;
+        if (box >= 2 && box <= 6) {
+          emit(currentState.copyWith(
+            currentIndex: prevIndex,
+            isFlipped: false,
+            isFavorited: isFav,
+            jumpWarningCardNumber: card.cardNumber,
+            jumpTargetCard: card,
+          ));
+        } else {
+          emit(currentState.copyWith(
+            currentIndex: prevIndex,
+            isFlipped: false,
+            isFavorited: isFav,
+            jumpWarningCardNumber: null,
+            jumpTargetCard: null,
+          ));
+        }
       }
     }
   }

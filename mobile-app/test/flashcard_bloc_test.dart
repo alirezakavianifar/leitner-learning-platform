@@ -154,5 +154,49 @@ void main() {
         ]),
       );
     });
+
+    test('LoadFlashcardQueue with Box 2 favorite card emits jumpWarningCardNumber', () async {
+      final box2Card = Flashcard(
+        id: '2',
+        courseId: 'course-1',
+        cardNumber: 2,
+        questionText: 'Question 2 (Favorite Box 2)',
+        answerText: 'Answer 2',
+        options: const [],
+        progress: const CardProgress(
+          id: '2',
+          courseId: 'course-1',
+          cardNumber: 2,
+          currentBox: 2,
+          isSynced: true,
+          hasEnteredLeitner: true,
+        ),
+      );
+
+      final repo = MockFlashcardRepository(
+        reviewQueue: [card1],
+        favoriteCards: [box2Card, card3],
+      );
+      final bloc = FlashcardBloc(flashcardRepository: repo);
+
+      bloc.add(const LoadFlashcardQueue('course-1', isFromFavorites: true, initialCardNumber: 2));
+
+      await expectLater(
+        bloc.stream,
+        emitsInOrder([
+          isA<FlashcardLoading>(),
+          predicate<FlashcardState>((state) {
+            if (state is FlashcardQueueLoaded) {
+              return state.queue.length == 2 &&
+                  state.isFromFavorites &&
+                  state.currentCard?.cardNumber == 2 &&
+                  state.jumpWarningCardNumber == 2 &&
+                  state.jumpTargetCard?.cardNumber == 2;
+            }
+            return false;
+          }),
+        ]),
+      );
+    });
   });
 }
