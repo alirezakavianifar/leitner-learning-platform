@@ -26,6 +26,10 @@ function Write-Header {
     Write-Host ""
 }
 
+function Show-BuildProgress([string]$activity, [string]$status, [int]$percent) {
+    Write-Progress -Activity "APK Build & Distribution Pipeline" -Status "[$percent%] $activity: $status" -PercentComplete $percent
+}
+
 function Write-Step([string]$msg) {
     Write-Host "  >> $msg" -ForegroundColor Yellow
 }
@@ -57,12 +61,13 @@ function Send-RubikaFile {
     $fileLength = (Get-Item $FilePath).Length
     $mbSize = [math]::Round($fileLength / 1MB, 2)
     Write-Step "Uploading '$fileName' ($mbSize MB) to Rubika Bot (@AliDeveloperBot)..."
+    Show-BuildProgress "Rubika Cloud Upload" "Transferring $fileName to bot..." 85
 
     $pythonScript = "$ROOT\scripts\upload-to-rubika.py"
     if (Test-Path $pythonScript) {
         $env:RUBIKA_BOT_TOKEN = $BotToken
         $env:UPLOAD_FILE_PATH = (Resolve-Path $FilePath).Path
-        & python $pythonScript
+        & python -u $pythonScript
         if ($LASTEXITCODE -eq 0) {
             Write-Ok "Rubika delivery completed successfully!"
             return
@@ -74,6 +79,7 @@ function Send-RubikaFile {
 
 # -- Logic --------------------------------------------------------------------
 Write-Header
+Show-BuildProgress "Initializing" "Validating build parameters..." 5
 
 # Validate flavor
 if ($Flavor -ne "premium" -and $Flavor -ne "store") {
@@ -96,7 +102,7 @@ if (-not [string]::IsNullOrWhiteSpace($TargetUrl)) {
     }
     Write-Info "Targeting custom specified backend endpoint: $apiBaseUrl"
 } else {
-    # 1. Verify Backend is running
+    Show-BuildProgress "Backend Verification" "Checking local server status on port 5217..." 10
     Write-Step "Checking if backend is running on port 5217..."
     $backendRunning = $false
     try {
@@ -118,11 +124,10 @@ if (-not [string]::IsNullOrWhiteSpace($TargetUrl)) {
         }
     }
 
-    # 2. Check/Start Ngrok
+    Show-BuildProgress "Tunnel Resolution" "Checking Ngrok tunnel..." 15
     Write-Step "Checking if Ngrok is running..."
     $ngrokUrl = $null
 
-    # Check if ngrok is already running and has tunnels
     try {
         $tunnels = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -TimeoutSec 2 -ErrorAction SilentlyContinue
         if ($tunnels.tunnels) {
@@ -132,7 +137,6 @@ if (-not [string]::IsNullOrWhiteSpace($TargetUrl)) {
     } catch {}
 
     if ($null -eq $ngrokUrl) {
-        # Verify ngrok command exists
         if (-not (Get-Command ngrok -ErrorAction SilentlyContinue)) {
             Write-Err "'ngrok' was not found in your system PATH."
             Write-Host "  Please install ngrok or run it manually and pass the URL." -ForegroundColor Yellow
@@ -159,7 +163,6 @@ if (-not [string]::IsNullOrWhiteSpace($TargetUrl)) {
         }
     }
 
-    # 3. Resolve API URL
     if ([string]::IsNullOrWhiteSpace($ngrokUrl)) {
         $apiBaseUrl = "http://10.0.2.2:5217/api/v1"
         Write-Info "Using default Android emulator loopback: $apiBaseUrl"
@@ -180,16 +183,20 @@ if (-not [string]::IsNullOrWhiteSpace($TargetUrl)) {
     }
 }
 
+Show-BuildProgress "Workspace Preparation" "Entering mobile app directory..." 20
 Write-Step "Navigating to mobile application directory..."
 Push-Location $MOBILE_DIR
 
 try {
+    Show-BuildProgress "Flutter Clean" "Cleaning temporary build files..." 25
     Write-Step "Running flutter clean..."
     flutter clean
 
+    Show-BuildProgress "Flutter Dependencies" "Fetching packages (pub get)..." 35
     Write-Step "Fetching flutter packages..."
     flutter pub get
 
+    Show-BuildProgress "Flutter Compilation" "Compiling release APK for flavor '$Flavor'..." 45
     Write-Step "Building release APK for flavor '$Flavor' with API_BASE_URL=$apiBaseUrl ..."
     flutter build apk --release --flavor $Flavor -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
 
@@ -197,10 +204,12 @@ try {
     $destPath = "$OUTPUT_DIR\app-$Flavor-release.apk"
 
     if (Test-Path $apkPath) {
+        Show-BuildProgress "Packaging" "Copying APK to workspace root..." 70
         Write-Step "Copying generated APK to workspace root..."
         Copy-Item -Path $apkPath -Destination $destPath -Force
 
         $zipPath = "$OUTPUT_DIR\app-$Flavor-release.zip"
+        Show-BuildProgress "Packaging" "Compressing $destPath into ZIP archive..." 75
         Write-Step "Compressing $destPath into $zipPath archive..."
         tar.exe -a -cf $zipPath -C $OUTPUT_DIR "app-$Flavor-release.apk"
 
@@ -208,12 +217,15 @@ try {
         $rarPath = "$OUTPUT_DIR\app-$Flavor-release.rar"
         Copy-Item -Path $zipPath -Destination $rarPath -Force
 
+        # Send to Rubika Bot
         Send-RubikaFile -FilePath $zipPath
         
+        Show-BuildProgress "Reclaiming Space" "Cleaning up intermediate build cache..." 95
         Write-Step "Cleaning up intermediate build files to reclaim disk space..."
         Start-Sleep -Seconds 2
         try { flutter clean 2>$null } catch {}
         
+        Show-BuildProgress "Complete" "All operations finished successfully!" 100
         Write-Ok "APK built and compressed successfully!"
         Write-Host ""
         Write-Host "  Output Locations:" -ForegroundColor Green
@@ -233,5 +245,6 @@ catch {
     Write-Err "Build failed: $_"
 }
 finally {
+    Write-Progress -Activity "APK Build & Distribution Pipeline" -Completed
     Pop-Location
 }
