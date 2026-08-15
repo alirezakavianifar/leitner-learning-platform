@@ -14,6 +14,7 @@ Welcome to the Leitner Learning Platform repository. This repository contains th
 *   **[docs/course/course_upload_guide.md](file:///e:/projects/leitner-learning-platform/docs/course/course_upload_guide.md)**: Steps to package, encrypt, compile, and upload Leitner courses using the Authoring Kit.
 *   **[docs/deployment/backup_and_recovery_guide.md](file:///e:/projects/leitner-learning-platform/docs/deployment/backup_and_recovery_guide.md)**: Backup schedule policies, S3 replication workflows, and database recovery commands.
 *   **[docs/sms_configuration_guide.md](file:///e:/projects/leitner-learning-platform/docs/sms_configuration_guide.md)**: Detailed reference guide for configuring, toggling, and deploying the SMS/OTP verification system.
+*   **[portfolio/](file:///e:/projects/leitner-learning-platform/portfolio)**: Comprehensive English & Persian portfolio package ([English Details](file:///e:/projects/leitner-learning-platform/portfolio/UPWORK_PROJECT_DETAILS.md), [English Case Study](file:///e:/projects/leitner-learning-platform/portfolio/CASE_STUDY.md), [Persian Details](file:///e:/projects/leitner-learning-platform/portfolio/UPWORK_PROJECT_DETAILS_FA.md), [Persian Case Study](file:///e:/projects/leitner-learning-platform/portfolio/CASE_STUDY_FA.md)) with high-res showcase graphics and real live app screenshots for freelance portals.
 *   **[AGENTS.md](file:///e:/projects/leitner-learning-platform/AGENTS.md)**: Instructions and constraints for autonomous AI coding agents working on this repository.
 
 
