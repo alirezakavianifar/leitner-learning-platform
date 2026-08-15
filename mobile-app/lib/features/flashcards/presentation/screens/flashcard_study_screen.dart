@@ -906,8 +906,9 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           },
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildCardFace(Flashcard card, {required bool isFront}) {
     final loc = AppLocalizations.of(context);
