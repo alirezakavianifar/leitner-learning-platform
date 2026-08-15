@@ -1,5 +1,6 @@
 import os
 import sys
+import socket
 import requests
 
 RUBIKA_TOKEN = os.environ.get("RUBIKA_BOT_TOKEN", "CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL")
@@ -8,6 +9,21 @@ if not os.path.exists(DEFAULT_FILE_PATH) and os.path.exists(r"E:\projects\leitne
     DEFAULT_FILE_PATH = r"E:\projects\leitner-learning-platform\app-premium-release.rar"
 
 FILE_PATH = os.environ.get("UPLOAD_FILE_PATH", DEFAULT_FILE_PATH)
+
+def get_session():
+    s = requests.Session()
+    # Check if SOCKS5 proxy is listening on 127.0.0.1:10808
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(1.0)
+    result = sock.connect_ex(('127.0.0.1', 10808))
+    sock.close()
+    if result == 0:
+        print(">> Using active SSH SOCKS5 proxy (127.0.0.1:10808)...")
+        s.proxies = {
+            "http": "socks5h://127.0.0.1:10808",
+            "https": "socks5h://127.0.0.1:10808"
+        }
+    return s
 
 def upload_to_rubika():
     if not os.path.exists(FILE_PATH):
@@ -18,6 +34,8 @@ def upload_to_rubika():
     file_size = os.path.getsize(FILE_PATH)
     print(f">> Preparing Rubika upload for '{file_name}' ({file_size / (1024*1024):.2f} MB)...")
 
+    session = get_session()
+
     # Step 1: Request Upload URL
     req_url = f"https://botapi.rubika.ir/v3/{RUBIKA_TOKEN}/requestSendFile"
     payload = {
@@ -27,7 +45,7 @@ def upload_to_rubika():
     }
 
     try:
-        res = requests.post(req_url, json=payload, timeout=30)
+        res = session.post(req_url, json=payload, timeout=30)
         res_json = res.json()
         if res_json.get("status") != "OK":
             print(f"[ERROR] requestSendFile failed: {res_json}")
@@ -44,7 +62,7 @@ def upload_to_rubika():
         # Step 2: Binary Upload to upload_url
         print(">> Uploading binary archive data to Rubika media server...")
         with open(FILE_PATH, "rb") as f:
-            up_res = requests.post(upload_url, files={"file": f}, timeout=180)
+            up_res = session.post(upload_url, files={"file": f}, timeout=300)
             up_json = up_res.json()
 
         if up_json.get("status") != "OK":
@@ -55,7 +73,7 @@ def upload_to_rubika():
         print(f"  [OK] Binary upload complete! File ID: {file_id}")
 
         # Step 3: Check recent chats & sendFile
-        updates_res = requests.post(f"https://botapi.rubika.ir/v3/{RUBIKA_TOKEN}/getUpdates", timeout=10).json()
+        updates_res = session.post(f"https://botapi.rubika.ir/v3/{RUBIKA_TOKEN}/getUpdates", timeout=15).json()
         chats = {"b09Oot0xD50c8c82ced516fe45377f0b"}
         if updates_res.get("status") == "OK":
             for upd in updates_res.get("data", {}).get("updates", []):
@@ -71,7 +89,7 @@ def upload_to_rubika():
                     "file_id": file_id,
                     "text": f"🚀 New App Update (ZIP Archive): {file_name}\n\n⚠️ Note: Please extract/unzip this .zip file on your phone first, then install the APK inside."
                 }
-                send_res = requests.post(f"https://botapi.rubika.ir/v3/{RUBIKA_TOKEN}/sendFile", json=send_payload).json()
+                send_res = session.post(f"https://botapi.rubika.ir/v3/{RUBIKA_TOKEN}/sendFile", json=send_payload).json()
                 print(f"  [OK] Sent to chat {cid}: {send_res.get('status')}")
         else:
             print(">> Upload complete! File is registered and ready in Rubika cloud storage.")
