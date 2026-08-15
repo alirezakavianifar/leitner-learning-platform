@@ -90,6 +90,7 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
 *   Watermarked content displays to discourage piracy.
 *   SQLite course databases and media files are encrypted at rest.
 *   Secure, tokenized single-use download links.
+*   Dynamic Screenshot & Screen Recording Protection (`FLAG_SECURE` / screen capture prevention) remotely controllable via Admin Panel.
 *   Immediate, automatic off-server backups (replication of user registrations and purchases to secure S3/FTP/external storage upon every change).
 
 ### 6. Search, Statistics & Banners Workflows

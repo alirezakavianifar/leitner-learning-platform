@@ -1,3 +1,4 @@
+
 # Agent Instructions
 
 ## Git Remote
@@ -22,10 +23,11 @@ When performing git operations, follow these specific guidelines based on the us
 ### Execution Rules by Keyword:
 
 - **If the keyword `push` is used alone** (e.g., "push", "please push these changes"):
+
   - ONLY execute steps 1-4 to stage, commit, and push to GitHub.
   - DO NOT execute any post-push build or deployment scripts.
-
 - **If the keyword `push&deploy` (or `push & deploy` / `push and deploy`) is used**:
+
   - Execute steps 1-4 to push changes to GitHub.
   - AND launch post-push deployment/build scripts in visible interactive PowerShell terminal windows on the user's desktop using `Start-Process powershell.exe` as necessary based on modified files:
     - If changes correspond to backend: `Start-Process powershell.exe -ArgumentList "-NoExit -ExecutionPolicy Bypass -File E:\projects\leitner-learning-platform\scripts\deploy-to-server.ps1"`

@@ -20,6 +20,7 @@ import 'package:mobile_app/core/constants/app_nav_icons.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_event.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
+import 'package:mobile_app/features/config/domain/entities/remote_config.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
 class FlashcardStudyScreen extends StatefulWidget {
@@ -111,17 +112,23 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
     );
     _audioPlayer = AudioPlayer();
     _loadDocumentsPath();
-    _enableSecureMode();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        _applySecureMode();
         context.read<ConfigBloc>().add(LoadConfigEvent());
       }
     });
   }
 
-  Future<void> _enableSecureMode() async {
+  Future<void> _applySecureMode([RemoteConfig? config]) async {
     if (!kIsWeb) {
-      await NoScreenshot.instance.screenshotOff();
+      final activeConfig = config ?? context.read<ConfigBloc>().state.config;
+      final bool isProtected = activeConfig?.enableScreenshotProtection ?? true;
+      if (isProtected) {
+        await NoScreenshot.instance.screenshotOff();
+      } else {
+        await NoScreenshot.instance.screenshotOn();
+      }
     }
   }
 
@@ -460,9 +467,15 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
           ));
         return bloc;
       },
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: BlocConsumer<FlashcardBloc, FlashcardState>(
+      child: BlocListener<ConfigBloc, ConfigState>(
+        listener: (context, state) {
+          if (state.config != null) {
+            _applySecureMode(state.config);
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: BlocConsumer<FlashcardBloc, FlashcardState>(
           listener: (context, state) {
             if (state is FlashcardQueueLoaded) {
               if (state.error != null) {

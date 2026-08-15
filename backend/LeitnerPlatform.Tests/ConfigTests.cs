@@ -61,6 +61,7 @@ namespace LeitnerPlatform.Tests
             var flagType = featureFlags.GetType();
             Assert.False((bool?)flagType.GetProperty("enable_ai_tutor")?.GetValue(featureFlags));
             Assert.True((bool?)flagType.GetProperty("enable_custom_themes")?.GetValue(featureFlags));
+            Assert.True((bool?)flagType.GetProperty("enable_screenshot_protection")?.GetValue(featureFlags));
         }
 
         [Fact]
@@ -73,6 +74,7 @@ namespace LeitnerPlatform.Tests
                 new SystemConfig { Key = "maintenance_mode", Value = "true" },
                 new SystemConfig { Key = "api_server", Value = "https://custom-api.com/v1" },
                 new SystemConfig { Key = "enable_ai_tutor", Value = "true" },
+                new SystemConfig { Key = "enable_screenshot_protection", Value = "false" },
                 new SystemConfig { Key = "card_nav_icon_style", Value = "arrow" }
             });
             await context.SaveChangesAsync();
@@ -100,6 +102,7 @@ namespace LeitnerPlatform.Tests
 
             var flagType = featureFlags.GetType();
             Assert.True((bool?)flagType.GetProperty("enable_ai_tutor")?.GetValue(featureFlags));
+            Assert.False((bool?)flagType.GetProperty("enable_screenshot_protection")?.GetValue(featureFlags));
         }
 
         [Fact]

@@ -35,6 +35,7 @@ void main() {
           'enable_custom_themes': false,
           'enable_search_v2': true,
           'enable_gamified_layout': false,
+          'enable_screenshot_protection': false,
         },
         'banner_configs': {
           'rotation_interval_seconds': 6,
@@ -52,6 +53,7 @@ void main() {
       expect(config.enableCustomThemes, false);
       expect(config.enableSearchV2, true);
       expect(config.enableGamifiedLayout, false);
+      expect(config.enableScreenshotProtection, false);
       expect(config.rotationIntervalSeconds, 6);
       expect(config.maxBannerCount, 4);
       expect(config.cardNavIconStyle, 'chevron');
@@ -66,6 +68,7 @@ void main() {
       expect(config.enableCustomThemes, true);
       expect(config.enableSearchV2, true);
       expect(config.enableGamifiedLayout, false);
+      expect(config.enableScreenshotProtection, true);
       expect(config.cardNavIconStyle, 'chevron');
     });
   });

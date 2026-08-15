@@ -20,6 +20,7 @@ export const SettingsView: React.FC = () => {
   const [enableCustomThemes, setEnableCustomThemes] = useState(true);
   const [enableSearchV2, setEnableSearchV2] = useState(true);
   const [enableGamifiedLayout, setEnableGamifiedLayout] = useState(true);
+  const [enableScreenshotProtection, setEnableScreenshotProtection] = useState(true);
 
   const [rotationInterval, setRotationInterval] = useState(4);
   const [maxBannerCount, setMaxBannerCount] = useState(5);
@@ -55,6 +56,9 @@ export const SettingsView: React.FC = () => {
               break;
             case 'enable_gamified_layout':
               setEnableGamifiedLayout(cfg.value !== 'false');
+              break;
+            case 'enable_screenshot_protection':
+              setEnableScreenshotProtection(cfg.value !== 'false');
               break;
             case 'rotation_interval_seconds':
               setRotationInterval(parseInt(cfg.value) || 4);
@@ -94,6 +98,7 @@ export const SettingsView: React.FC = () => {
         { key: 'enable_custom_themes', value: enableCustomThemes.toString() },
         { key: 'enable_search_v2', value: enableSearchV2.toString() },
         { key: 'enable_gamified_layout', value: enableGamifiedLayout.toString() },
+        { key: 'enable_screenshot_protection', value: enableScreenshotProtection.toString() },
         { key: 'rotation_interval_seconds', value: rotationInterval.toString() },
         { key: 'max_banner_count', value: maxBannerCount.toString() },
         { key: 'card_nav_icon_style', value: cardNavIconStyle },
@@ -238,6 +243,26 @@ export const SettingsView: React.FC = () => {
                   <label htmlFor="enable_gamified_layout" style={{ fontWeight: 'bold', color: enableGamifiedLayout ? 'var(--primary-hover)' : 'inherit' }}>
                     {t('settings.flag_gamified_layout', 'Enable Gamified 3D Mobile App Layout')}
                   </label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '10px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.05)', marginTop: '4px' }}>
+                  <input
+                    type="checkbox"
+                    id="enable_screenshot_protection"
+                    checked={enableScreenshotProtection}
+                    onChange={(e) => setEnableScreenshotProtection(e.target.checked)}
+                    style={{ width: '18px', height: '18px', marginTop: '2px' }}
+                  />
+                  <div>
+                    <label htmlFor="enable_screenshot_protection" style={{ fontWeight: 'bold', color: enableScreenshotProtection ? 'var(--primary-hover)' : 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      </svg>
+                      {t('settings.flag_screenshot_protection', 'Enable Screenshot & Screen Capture Protection (FLAG_SECURE)')}
+                    </label>
+                    <p className="text-muted" style={{ fontSize: '12px', margin: '4px 0 0 0' }}>
+                      {t('settings.flag_screenshot_protection_desc', 'When enabled, prevents users from capturing screenshots or recording videos of flashcards and course study material on mobile devices.')}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -239,6 +239,8 @@
     "flag_themes": "Enable Custom Client Themes",
     "flag_search": "Enable Advanced Search (Search v2)",
     "flag_gamified_layout": "Enable Gamified 3D Mobile App Layout",
+    "flag_screenshot_protection": "Enable Screenshot & Screen Capture Protection (FLAG_SECURE)",
+    "flag_screenshot_protection_desc": "When enabled, prevents users from capturing screenshots or recording videos of flashcards and course study material on mobile devices.",
     "section_maintenance": "Maintenance Mode Control",
     "maintenance_enable": "Enable System-Wide Maintenance Mode",
     "maintenance_desc": "Enabling maintenance mode blocks all client mobile applications immediately, presenting a \"Scheduled Maintenance\" screen.",
