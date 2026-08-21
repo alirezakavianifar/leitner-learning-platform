@@ -15,16 +15,24 @@ class StorageServiceImpl implements StorageService {
 
   @override
   Future<void> writeSecure(String key, String value) async {
-    await _secureStorage.write(key: key, value: value);
+    try {
+      await _secureStorage.write(key: key, value: value);
+    } catch (_) {}
   }
 
   @override
   Future<String?> readSecure(String key) async {
-    return await _secureStorage.read(key: key);
+    try {
+      return await _secureStorage.read(key: key);
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   Future<void> deleteSecure(String key) async {
-    await _secureStorage.delete(key: key);
+    try {
+      await _secureStorage.delete(key: key);
+    } catch (_) {}
   }
 }

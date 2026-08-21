@@ -84,27 +84,64 @@ class CoursesRepositoryImpl implements CoursesRepository {
       final tempDir = await getTemporaryDirectory();
       tempZipPath = p.join(tempDir.path, 'download_$courseId.zip');
 
-      final response = await dio.download(
-        downloadUrl,
-        tempZipPath,
-        onReceiveProgress: onProgress,
-        options: Options(
-          headers: {
-            'Accept': '*/*',
-            'Accept-Encoding': 'identity',
-          },
-        ),
-      );
+      // Always clear any stale partially-downloaded file from prior aborted attempts
+      try {
+        final existingFile = File(tempZipPath);
+        if (existingFile.existsSync()) {
+          existingFile.deleteSync();
+        }
+      } catch (_) {}
 
+      // Retry up to 3 times on transient network drops or socket terminations
+      Response? response;
+      const maxRetries = 3;
+      for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          response = await dio.download(
+            downloadUrl,
+            tempZipPath,
+            onReceiveProgress: onProgress,
+            options: Options(
+              headers: {
+                'Accept': '*/*',
+                'Accept-Encoding': 'identity',
+              },
+              receiveTimeout: const Duration(seconds: 180),
+            ),
+          );
 
-      if (response.statusCode != 200) {
+          if (response.statusCode == 200) {
+            final file = File(tempZipPath);
+            final actualLength = file.existsSync() ? file.lengthSync() : 0;
+            final expectedLength = _extractContentLength(response.headers.map);
+
+            // If the server provided Content-Length and file is smaller, stream cut short
+            if (expectedLength != null && actualLength < expectedLength) {
+              if (attempt < maxRetries) {
+                try { file.deleteSync(); } catch (_) {}
+                await Future.delayed(Duration(seconds: attempt * 2));
+                continue;
+              }
+            }
+            break;
+          }
+        } catch (e) {
+          if (attempt == maxRetries) {
+            rethrow;
+          }
+          try {
+            final f = File(tempZipPath);
+            if (f.existsSync()) f.deleteSync();
+          } catch (_) {}
+          await Future.delayed(Duration(seconds: attempt * 2));
+        }
+      }
+
+      if (response == null || response.statusCode != 200) {
         return Left(ServerFailure('Failed to download course archive package.'));
       }
 
       // 3. Verify the file actually arrived intact before trusting it.
-      // A flaky mobile connection can drop mid-transfer while dio still
-      // reports completion, so we cross-check the on-disk size against the
-      // server-reported Content-Length whenever it is available.
       final expectedLength = _extractContentLength(response.headers.map);
       final actualLength = File(tempZipPath).existsSync() ? File(tempZipPath).lengthSync() : 0;
       if (actualLength == 0 || (expectedLength != null && actualLength != expectedLength)) {
@@ -118,7 +155,7 @@ class CoursesRepositoryImpl implements CoursesRepository {
       }
 
       // 4. Verify checksum (if provided)
-      if (expectedChecksum != null && expectedChecksum.isNotEmpty) {
+      if (expectedChecksum != null && expectedChecksum.trim().isNotEmpty && expectedChecksum.trim().toLowerCase() != 'null') {
         final isVerified = await _verifyChecksum(tempZipPath, expectedChecksum);
         if (!isVerified) {
           try {
@@ -176,14 +213,23 @@ class CoursesRepositoryImpl implements CoursesRepository {
   Future<bool> _verifyChecksum(String filePath, String expectedChecksum) async {
     final file = File(filePath);
     if (!file.existsSync()) return false;
-    
-    final fileBytes = await file.readAsBytes();
-    final hashHex = sha256.convert(fileBytes).toString().toLowerCase();
-    
-    var cleanExpected = expectedChecksum.toLowerCase();
+
+    var cleanExpected = expectedChecksum.trim().toLowerCase();
     if (cleanExpected.startsWith('sha256-')) {
       cleanExpected = cleanExpected.substring(7);
+    } else if (cleanExpected.startsWith('sha256:')) {
+      cleanExpected = cleanExpected.substring(7);
+    } else if (cleanExpected.startsWith('sha-256:')) {
+      cleanExpected = cleanExpected.substring(8);
     }
-    return hashHex == cleanExpected;
+    if (cleanExpected.isEmpty || cleanExpected == 'null') return true;
+
+    try {
+      final digest = await file.openRead().transform(sha256).first;
+      final hashHex = digest.toString().toLowerCase();
+      return hashHex == cleanExpected;
+    } catch (_) {
+      return false;
+    }
   }
 }

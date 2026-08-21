@@ -286,15 +286,16 @@ namespace LeitnerPlatform.Tests
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
-            var deleted = await db.Courses.FindAsync(course.Id);
-            Assert.Null(deleted);
+            var updated = await db.Courses.FindAsync(course.Id);
+            Assert.NotNull(updated);
+            Assert.True(updated.IsArchived);
 
             mockAudit.Verify(a => a.LogActionAsync(
                 "test_admin",
-                "DELETE_COURSE",
+                "ARCHIVE_COURSE",
                 $"Course:{course.Id}",
                 It.Is<string>(s => s.Contains("Course to Delete")),
-                null
+                It.Is<string>(s => s.Contains("true"))
             ), Times.Once);
         }
 

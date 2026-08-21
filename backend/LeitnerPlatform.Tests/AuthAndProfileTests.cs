@@ -180,5 +180,87 @@ namespace LeitnerPlatform.Tests
             Assert.Equal(tcs.Task, completedTask);
             mockBackupService.Verify(b => b.ReplicateUserAsync(testUser), Times.Once);
         }
+
+        [Fact]
+        public async Task AuthController_RefreshToken_ShouldGenerateNewTokenPair_WhenValid()
+        {
+            // Arrange
+            var mockUserRepo = new Mock<IUserRepository>();
+            var mockSms = new Mock<ISmsService>();
+            var mockCaptcha = new Mock<ICaptchaService>();
+            var mockEventBus = new Mock<IEventBus>();
+            var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+            var userId = Guid.NewGuid();
+            var user = new User
+            {
+                Id = userId,
+                Username = "active_user",
+                MobileNumber = "+989123456789",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var validRefreshToken = "sample_refresh_token_123";
+            memoryCache.Set($"refresh_token:{validRefreshToken}", userId.ToString(), TimeSpan.FromDays(30));
+            mockUserRepo.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(user);
+
+            var controller = new AuthController(
+                mockUserRepo.Object,
+                mockSms.Object,
+                mockCaptcha.Object,
+                mockEventBus.Object,
+                config,
+                memoryCache);
+
+            // Act
+            var result = await controller.RefreshToken(new RefreshTokenInput { RefreshToken = validRefreshToken });
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(okResult.Value);
+
+            var type = okResult.Value.GetType();
+            var successVal = type.GetProperty("success")?.GetValue(okResult.Value);
+            var tokenVal = type.GetProperty("token")?.GetValue(okResult.Value) as string;
+            var newRefreshTokenVal = type.GetProperty("refresh_token")?.GetValue(okResult.Value) as string;
+
+            Assert.Equal(true, successVal);
+            Assert.False(string.IsNullOrEmpty(tokenVal));
+            Assert.False(string.IsNullOrEmpty(newRefreshTokenVal));
+            Assert.NotEqual(validRefreshToken, newRefreshTokenVal);
+
+            // Old token should be deleted from cache
+            Assert.False(memoryCache.TryGetValue($"refresh_token:{validRefreshToken}", out _));
+            // New token should be in cache
+            Assert.True(memoryCache.TryGetValue($"refresh_token:{newRefreshTokenVal}", out var cachedUserId));
+            Assert.Equal(userId.ToString(), cachedUserId);
+        }
+
+        [Fact]
+        public async Task AuthController_RefreshToken_ShouldReturnUnauthorized_WhenInvalid()
+        {
+            // Arrange
+            var mockUserRepo = new Mock<IUserRepository>();
+            var mockSms = new Mock<ISmsService>();
+            var mockCaptcha = new Mock<ICaptchaService>();
+            var mockEventBus = new Mock<IEventBus>();
+            var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+            var controller = new AuthController(
+                mockUserRepo.Object,
+                mockSms.Object,
+                mockCaptcha.Object,
+                mockEventBus.Object,
+                config,
+                memoryCache);
+
+            // Act
+            var result = await controller.RefreshToken(new RefreshTokenInput { RefreshToken = "invalid_token" });
+
+            // Assert
+            Assert.IsType<UnauthorizedObjectResult>(result);
+        }
     }
 }

@@ -231,6 +231,92 @@ namespace LeitnerPlatform.API.Controllers.v1
             });
         }
 
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenInput input)
+        {
+            if (string.IsNullOrEmpty(input.RefreshToken))
+            {
+                return BadRequest(new { success = false, error_code = "INVALID_INPUT", message = "Refresh token is required." });
+            }
+
+            string? userIdStr = null;
+
+            // Fetch from Cache
+            if (_redisConnection != null && _redisConnection.IsConnected)
+            {
+                try
+                {
+                    var db = _redisConnection.GetDatabase();
+                    userIdStr = await db.StringGetAsync($"refresh_token:{input.RefreshToken}");
+                }
+                catch
+                {
+                    _memoryCache.TryGetValue($"refresh_token:{input.RefreshToken}", out userIdStr);
+                }
+            }
+            else
+            {
+                _memoryCache.TryGetValue($"refresh_token:{input.RefreshToken}", out userIdStr);
+            }
+
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            {
+                return Unauthorized(new { success = false, error_code = "INVALID_REFRESH_TOKEN", message = "The refresh token is invalid or expired." });
+            }
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+            {
+                return Unauthorized(new { success = false, error_code = "USER_NOT_FOUND", message = "User not found." });
+            }
+
+            // Invalidate previous refresh token
+            if (_redisConnection != null && _redisConnection.IsConnected)
+            {
+                try
+                {
+                    var db = _redisConnection.GetDatabase();
+                    await db.KeyDeleteAsync($"refresh_token:{input.RefreshToken}");
+                }
+                catch
+                {
+                    _memoryCache.Remove($"refresh_token:{input.RefreshToken}");
+                }
+            }
+            else
+            {
+                _memoryCache.Remove($"refresh_token:{input.RefreshToken}");
+            }
+
+            // Generate new tokens (token rotation)
+            var newJwtToken = GenerateJwtToken(user!);
+            var newRefreshToken = Guid.NewGuid().ToString();
+
+            if (_redisConnection != null && _redisConnection.IsConnected)
+            {
+                try
+                {
+                    var db = _redisConnection.GetDatabase();
+                    await db.StringSetAsync($"refresh_token:{newRefreshToken}", user.Id.ToString(), TimeSpan.FromDays(30));
+                }
+                catch
+                {
+                    _memoryCache.Set($"refresh_token:{newRefreshToken}", user.Id.ToString(), TimeSpan.FromDays(30));
+                }
+            }
+            else
+            {
+                _memoryCache.Set($"refresh_token:{newRefreshToken}", user.Id.ToString(), TimeSpan.FromDays(30));
+            }
+
+            return Ok(new
+            {
+                success = true,
+                token = newJwtToken,
+                refresh_token = newRefreshToken
+            });
+        }
+
         private string NormalizeMobileNumber(string mobile)
         {
             var clean = mobile.Trim().Replace(" ", "").Replace("-", "");
@@ -298,5 +384,10 @@ namespace LeitnerPlatform.API.Controllers.v1
     {
         public string MobileNumber { get; set; } = string.Empty;
         public string OtpCode { get; set; } = string.Empty;
+    }
+
+    public class RefreshTokenInput
+    {
+        public string RefreshToken { get; set; } = string.Empty;
     }
 }

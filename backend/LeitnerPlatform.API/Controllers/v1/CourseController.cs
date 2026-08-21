@@ -148,14 +148,34 @@ namespace LeitnerPlatform.API.Controllers.v1
             var relativePackagePath = course.DownloadUrl.TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar);
             var wwwrootPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot");
             var absolutePackagePath = System.IO.Path.Combine(wwwrootPath, relativePackagePath);
-            if (!System.IO.File.Exists(absolutePackagePath))
+            var packageFileExists = System.IO.File.Exists(absolutePackagePath);
+
+            string? checksum = course.ChecksumSha256;
+            if (string.IsNullOrEmpty(checksum))
             {
-                return StatusCode(503, new
+                if (!packageFileExists)
                 {
-                    success = false,
-                    error_code = "PACKAGE_NOT_AVAILABLE",
-                    message = "This course's content package has not been uploaded yet. Please try again later."
-                });
+                    return StatusCode(503, new
+                    {
+                        success = false,
+                        error_code = "PACKAGE_NOT_AVAILABLE",
+                        message = "This course's content package has not been uploaded yet. Please try again later."
+                    });
+                }
+
+                try
+                {
+                    using var sha256 = System.Security.Cryptography.SHA256.Create();
+                    using var stream = System.IO.File.OpenRead(absolutePackagePath);
+                    var hashBytes = await sha256.ComputeHashAsync(stream);
+                    checksum = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                    course.ChecksumSha256 = checksum;
+                    await _context.SaveChangesAsync();
+                }
+                catch
+                {
+                    // Fall back to existing value if disk read fails
+                }
             }
 
             var request = HttpContext.Request;
@@ -167,7 +187,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 success = true,
                 download_url = absoluteDownloadUrl,
                 token = tempToken,
-                checksum = course.ChecksumSha256,
+                checksum = checksum,
                 version = course.Version,
                 is_critical_update = course.IsCriticalUpdate
             });

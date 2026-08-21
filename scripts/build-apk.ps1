@@ -27,7 +27,7 @@ function Write-Header {
 }
 
 function Show-BuildProgress([string]$activity, [string]$status, [int]$percent) {
-    Write-Progress -Activity "APK Build & Distribution Pipeline" -Status "[$percent%] $activity: $status" -PercentComplete $percent
+    Write-Progress -Activity "APK Build & Distribution Pipeline" -Status "[$percent%] ${activity}: $status" -PercentComplete $percent
 }
 
 function Write-Step([string]$msg) {

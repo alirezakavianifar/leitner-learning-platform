@@ -67,7 +67,10 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
   final sharedPrefs = await SharedPreferences.getInstance();
   sl.registerSingleton<SharedPreferences>(sharedPrefs);
 
-  const secureStorage = FlutterSecureStorage();
+  const secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+  );
   sl.registerSingleton<FlutterSecureStorage>(secureStorage);
 
   final storageService = StorageServiceImpl(secureStorage);

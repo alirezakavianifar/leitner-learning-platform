@@ -259,21 +259,29 @@ except Exception:
     pass
 """
 
-    ssh_proc = subprocess.Popen(
-        ["ssh", "-i", KEY_PATH, "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=15", f"{SERVER_USER}@{SERVER_IP}", "python3 -"],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8"
-    )
-    ssh_stdout, ssh_stderr = ssh_proc.communicate(input=remote_code)
+    import base64
+    encoded_script = base64.b64encode(remote_code.encode("utf-8")).decode("ascii")
+    remote_script_path = f"/tmp/rubika_deliver_{int(time.time())}.py"
 
-    if ssh_proc.returncode != 0:
-        print(f"[ERROR] Remote bridge execution failed: {ssh_stderr or ssh_stdout}")
+    prep_cmd = [
+        "ssh", "-i", KEY_PATH, "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=15",
+        f"{SERVER_USER}@{SERVER_IP}",
+        f"echo {encoded_script} | base64 -d > {remote_script_path}"
+    ]
+    subprocess.run(prep_cmd, capture_output=True)
+
+    exec_cmd = [
+        "ssh", "-i", KEY_PATH, "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=15",
+        f"{SERVER_USER}@{SERVER_IP}",
+        f"python3 {remote_script_path} ; rm -f {remote_script_path}"
+    ]
+    res = subprocess.run(exec_cmd, capture_output=True, text=True, encoding="utf-8", timeout=240)
+
+    if res.returncode != 0:
+        print(f"[ERROR] Remote bridge execution failed: {res.stderr or res.stdout}")
         return False
 
-    for line in ssh_stdout.splitlines():
+    for line in res.stdout.splitlines():
         if line.startswith("FILE_ID:"):
             print(f"  [OK] Binary upload complete! File ID: {line.split(':', 1)[1]}")
         elif line.startswith("DELIVERED:"):

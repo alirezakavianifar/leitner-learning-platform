@@ -8,12 +8,9 @@ using Microsoft.EntityFrameworkCore;
 namespace LeitnerPlatform.Data
 {
     /// <summary>
-    /// One-time, self-limiting startup task that computes and persists
-    /// ChecksumSha256 for any course whose package file already exists on
-    /// disk but predates the checksum-computation feature (e.g. courses
-    /// uploaded before that logic was deployed). Safe to run on every
-    /// startup: once a course has a checksum, it is skipped on subsequent
-    /// runs.
+    /// Startup task that computes and synchronizes ChecksumSha256 for any
+    /// course whose package file exists on disk, ensuring database records
+    /// always match the exact physical archive files.
     /// </summary>
     public static class ChecksumBackfiller
     {
@@ -22,17 +19,17 @@ namespace LeitnerPlatform.Data
             string wwwrootPath,
             Action<string> log)
         {
-            var coursesMissingChecksum = await context.Courses
-                .Where(c => (c.ChecksumSha256 == null || c.ChecksumSha256 == "") && c.DownloadUrl != null)
+            var courses = await context.Courses
+                .Where(c => c.DownloadUrl != null && c.DownloadUrl != "")
                 .ToListAsync();
 
-            if (coursesMissingChecksum.Count == 0)
+            if (courses.Count == 0)
             {
                 return;
             }
 
             var updated = 0;
-            foreach (var course in coursesMissingChecksum)
+            foreach (var course in courses)
             {
                 try
                 {
@@ -40,26 +37,31 @@ namespace LeitnerPlatform.Data
                     var zipPath = Path.Combine(wwwrootPath, relativePath);
                     if (!File.Exists(zipPath))
                     {
-                        log($"Checksum backfill skipped for course {course.Id} ('{course.Title}'): package file not found at {zipPath}.");
                         continue;
                     }
 
                     using var sha256 = SHA256.Create();
                     using var stream = File.OpenRead(zipPath);
                     var hashBytes = await sha256.ComputeHashAsync(stream);
-                    course.ChecksumSha256 = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-                    updated++;
+                    var actualChecksum = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+
+                    if (!string.Equals(course.ChecksumSha256, actualChecksum, StringComparison.OrdinalIgnoreCase))
+                    {
+                        course.ChecksumSha256 = actualChecksum;
+                        updated++;
+                        log($"Synchronized checksum for course {course.Id} ('{course.Title}') to {actualChecksum}.");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    log($"Checksum backfill failed for course {course.Id} ('{course.Title}'): {ex.Message}");
+                    log($"Checksum sync failed for course {course.Id} ('{course.Title}'): {ex.Message}");
                 }
             }
 
             if (updated > 0)
             {
                 await context.SaveChangesAsync();
-                log($"Checksum backfill complete: updated {updated} course(s).");
+                log($"Checksum sync complete: updated {updated} course(s).");
             }
         }
     }

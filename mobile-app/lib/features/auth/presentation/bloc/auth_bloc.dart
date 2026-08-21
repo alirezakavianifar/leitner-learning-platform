@@ -54,13 +54,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     // Read cached token and user profile
     final token = await localDataSource.getCachedToken();
+    final refreshToken = await localDataSource.getCachedRefreshToken() ?? '';
     final cachedUser = await localDataSource.getCachedUser();
 
     if (token != null && token.isNotEmpty && cachedUser != null) {
       if (!termsAccepted) {
-        emit(TermsPendingState(mobileNumber: cachedUser.mobileNumber, token: token, refreshToken: ''));
+        emit(TermsPendingState(mobileNumber: cachedUser.mobileNumber, token: token, refreshToken: refreshToken));
       } else if (_isProfileIncomplete(cachedUser)) {
-        emit(ProfilePendingState(mobileNumber: cachedUser.mobileNumber, token: token, refreshToken: ''));
+        emit(ProfilePendingState(mobileNumber: cachedUser.mobileNumber, token: token, refreshToken: refreshToken));
       } else {
         emit(AuthenticatedState(user: cachedUser, token: token));
       }
@@ -81,9 +82,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         (user) async {
           // Update state with fresh user profile
           if (!termsAccepted) {
-            emit(TermsPendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: ''));
+            emit(TermsPendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: refreshToken));
           } else if (_isProfileIncomplete(user)) {
-            emit(ProfilePendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: ''));
+            emit(ProfilePendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: refreshToken));
           } else {
             emit(AuthenticatedState(user: user, token: token));
           }
@@ -101,14 +102,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final profileRes = await getProfileUseCase(NoParams());
       await profileRes.fold(
         (failure) async {
-          await logoutUseCase(NoParams());
-          emit(UnauthenticatedState());
+          // Only log out on explicit authorization failures. For offline/network errors, keep token!
+          if (failure is ServerFailure &&
+              (failure.errorCode == 'UNAUTHORIZED' ||
+               failure.errorCode == 'INVALID_TOKEN' ||
+               failure.errorCode == 'SESSION_EXPIRED')) {
+            await logoutUseCase(NoParams());
+            emit(UnauthenticatedState());
+          } else {
+            // Fallback minimal offline user
+            final fallbackUser = User(
+              id: 'offline_user',
+              username: 'User',
+              mobileNumber: '',
+              createdAt: DateTime.now(),
+            );
+            emit(AuthenticatedState(user: fallbackUser, token: token));
+          }
         },
         (user) async {
           if (!termsAccepted) {
-            emit(TermsPendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: ''));
+            emit(TermsPendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: refreshToken));
           } else if (_isProfileIncomplete(user)) {
-            emit(ProfilePendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: ''));
+            emit(ProfilePendingState(mobileNumber: user.mobileNumber, token: token, refreshToken: refreshToken));
           } else {
             emit(AuthenticatedState(user: user, token: token));
           }

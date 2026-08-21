@@ -15,6 +15,8 @@ class DioClient {
   final VoidCallback? onUnauthorized;
 
   bool _isFailoverInProgress = false;
+  bool _isRefreshingToken = false;
+  Future<String?>? _refreshTokenFuture;
 
   DioClient({
     required this.dio,
@@ -55,15 +57,38 @@ class DioClient {
             options.path = options.path.substring(1);
           }
           final token = await storageService.readSecure('jwt_token');
-          if (token != null) {
+          if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           return handler.next(options);
         },
         onError: (DioException e, handler) async {
-          // Handle 401 Unauthorized — clear token and redirect to login
+          // Handle 401 Unauthorized — attempt token refresh before logging out
           if (e.response?.statusCode == 401) {
+            final isAuthEndpoint = e.requestOptions.path.contains('/auth/refresh') ||
+                e.requestOptions.path.contains('/auth/otp') ||
+                e.requestOptions.path.contains('/auth/captcha');
+
+            if (!isAuthEndpoint) {
+              final newToken = await _performTokenRefresh();
+              if (newToken != null && newToken.isNotEmpty) {
+                // Retry failed request with new token
+                final newOptions = e.requestOptions;
+                newOptions.headers['Authorization'] = 'Bearer $newToken';
+                try {
+                  final retryResponse = await dio.fetch(newOptions);
+                  return handler.resolve(retryResponse);
+                } catch (retryError) {
+                  if (retryError is DioException) {
+                    return handler.next(retryError);
+                  }
+                }
+              }
+            }
+
+            // If refresh fails or not applicable, clear credentials and redirect to login
             await storageService.deleteSecure('jwt_token');
+            await storageService.deleteSecure('refresh_token');
             onUnauthorized?.call();
             return handler.next(e);
           }
@@ -89,6 +114,65 @@ class DioClient {
         },
       ),
     );
+  }
+
+  Future<String?> _performTokenRefresh() async {
+    if (_isRefreshingToken && _refreshTokenFuture != null) {
+      return await _refreshTokenFuture;
+    }
+
+    _isRefreshingToken = true;
+    _refreshTokenFuture = _executeRefresh();
+
+    try {
+      final token = await _refreshTokenFuture;
+      return token;
+    } finally {
+      _isRefreshingToken = false;
+      _refreshTokenFuture = null;
+    }
+  }
+
+  Future<String?> _executeRefresh() async {
+    final refreshToken = await storageService.readSecure('refresh_token');
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return null;
+    }
+
+    try {
+      final refreshDio = Dio(BaseOptions(
+        baseUrl: dio.options.baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ));
+
+      final response = await refreshDio.post(
+        'auth/refresh',
+        data: {'refresh_token': refreshToken},
+      );
+
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = response.data;
+        final newJwt = data['token'] as String?;
+        final newRefreshToken = data['refresh_token'] as String?;
+
+        if (newJwt != null && newJwt.isNotEmpty) {
+          await storageService.writeSecure('jwt_token', newJwt);
+          if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
+            await storageService.writeSecure('refresh_token', newRefreshToken);
+          }
+          return newJwt;
+        }
+      }
+    } catch (_) {
+      // Refresh failed (e.g. invalid refresh token or network error)
+    }
+
+    return null;
   }
 
   void updateBaseUrl(String newUrl) {

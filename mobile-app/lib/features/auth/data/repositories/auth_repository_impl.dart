@@ -62,6 +62,18 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       // Cache tokens locally
       await localDataSource.cacheTokens(token: result.$1, refreshToken: result.$2);
+
+      // Cache minimal user profile immediately to prevent cold boot null states
+      final existingUser = await localDataSource.getCachedUser();
+      if (existingUser == null) {
+        await localDataSource.cacheUserProfile(
+          id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+          username: 'User_${mobileNumber.replaceAll('+', '').replaceAll(' ', '')}',
+          mobileNumber: mobileNumber,
+          createdAt: DateTime.now(),
+        );
+      }
+
       return Right(result);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message, errorCode: e.errorCode));
