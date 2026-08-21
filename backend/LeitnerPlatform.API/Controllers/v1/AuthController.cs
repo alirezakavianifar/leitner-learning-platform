@@ -13,6 +13,7 @@ using StackExchange.Redis;
 using LeitnerPlatform.Core.Entities;
 using LeitnerPlatform.Core.Events;
 using LeitnerPlatform.Core.Interfaces;
+using LeitnerPlatform.Data;
 
 namespace LeitnerPlatform.API.Controllers.v1
 {
@@ -28,6 +29,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         private readonly IConfiguration _configuration;
         private readonly IMemoryCache _memoryCache;
         private readonly IConnectionMultiplexer? _redisConnection;
+        private readonly LeitnerDbContext? _dbContext;
 
         public AuthController(
             IUserRepository userRepository,
@@ -36,7 +38,8 @@ namespace LeitnerPlatform.API.Controllers.v1
             IEventBus eventBus,
             IConfiguration configuration,
             IMemoryCache memoryCache,
-            IConnectionMultiplexer? redisConnection = null)
+            IConnectionMultiplexer? redisConnection = null,
+            LeitnerDbContext? dbContext = null)
         {
             _userRepository = userRepository;
             _smsService = smsService;
@@ -45,6 +48,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             _configuration = configuration;
             _memoryCache = memoryCache;
             _redisConnection = redisConnection;
+            _dbContext = dbContext;
         }
 
         [HttpGet("captcha")]
@@ -195,8 +199,12 @@ namespace LeitnerPlatform.API.Controllers.v1
                 await _eventBus.PublishAsync(new UserRegisteredEvent(user));
             }
 
+            // Fetch custom token lifetimes
+            var jwtLifetime = await GetJwtLifetimeAsync();
+            var refreshTokenLifetime = await GetRefreshTokenLifetimeAsync();
+
             // Generate JWT Token
-            var token = GenerateJwtToken(user!);
+            var token = GenerateJwtToken(user!, jwtLifetime);
             var refreshToken = Guid.NewGuid().ToString(); // Simple UUID refresh token
 
             // Save refresh token to Redis/cache
@@ -205,16 +213,16 @@ namespace LeitnerPlatform.API.Controllers.v1
                 try
                 {
                     var db = _redisConnection.GetDatabase();
-                    await db.StringSetAsync($"refresh_token:{refreshToken}", user!.Id.ToString(), TimeSpan.FromDays(30));
+                    await db.StringSetAsync($"refresh_token:{refreshToken}", user!.Id.ToString(), refreshTokenLifetime);
                 }
                 catch
                 {
-                    _memoryCache.Set($"refresh_token:{refreshToken}", user!.Id.ToString(), TimeSpan.FromDays(30));
+                    _memoryCache.Set($"refresh_token:{refreshToken}", user!.Id.ToString(), refreshTokenLifetime);
                 }
             }
             else
             {
-                _memoryCache.Set($"refresh_token:{refreshToken}", user!.Id.ToString(), TimeSpan.FromDays(30));
+                _memoryCache.Set($"refresh_token:{refreshToken}", user!.Id.ToString(), refreshTokenLifetime);
             }
 
             // Define user status
@@ -288,8 +296,12 @@ namespace LeitnerPlatform.API.Controllers.v1
                 _memoryCache.Remove($"refresh_token:{input.RefreshToken}");
             }
 
+            // Fetch custom token lifetimes
+            var jwtLifetime = await GetJwtLifetimeAsync();
+            var refreshTokenLifetime = await GetRefreshTokenLifetimeAsync();
+
             // Generate new tokens (token rotation)
-            var newJwtToken = GenerateJwtToken(user!);
+            var newJwtToken = GenerateJwtToken(user!, jwtLifetime);
             var newRefreshToken = Guid.NewGuid().ToString();
 
             if (_redisConnection != null && _redisConnection.IsConnected)
@@ -297,16 +309,16 @@ namespace LeitnerPlatform.API.Controllers.v1
                 try
                 {
                     var db = _redisConnection.GetDatabase();
-                    await db.StringSetAsync($"refresh_token:{newRefreshToken}", user.Id.ToString(), TimeSpan.FromDays(30));
+                    await db.StringSetAsync($"refresh_token:{newRefreshToken}", user.Id.ToString(), refreshTokenLifetime);
                 }
                 catch
                 {
-                    _memoryCache.Set($"refresh_token:{newRefreshToken}", user.Id.ToString(), TimeSpan.FromDays(30));
+                    _memoryCache.Set($"refresh_token:{newRefreshToken}", user.Id.ToString(), refreshTokenLifetime);
                 }
             }
             else
             {
-                _memoryCache.Set($"refresh_token:{newRefreshToken}", user.Id.ToString(), TimeSpan.FromDays(30));
+                _memoryCache.Set($"refresh_token:{newRefreshToken}", user.Id.ToString(), refreshTokenLifetime);
             }
 
             return Ok(new
@@ -315,6 +327,62 @@ namespace LeitnerPlatform.API.Controllers.v1
                 token = newJwtToken,
                 refresh_token = newRefreshToken
             });
+        }
+
+        private async Task<TimeSpan> GetJwtLifetimeAsync()
+        {
+            if (_dbContext == null) return TimeSpan.FromDays(1);
+
+            try
+            {
+                var valConfig = await _dbContext.SystemConfigs.FindAsync("jwt_lifetime_value");
+                var unitConfig = await _dbContext.SystemConfigs.FindAsync("jwt_lifetime_unit");
+
+                var valStr = valConfig?.Value;
+                var unitStr = unitConfig?.Value?.ToLowerInvariant() ?? "days";
+
+                if (int.TryParse(valStr, out var value) && value > 0)
+                {
+                    return unitStr switch
+                    {
+                        "minutes" or "min" => TimeSpan.FromMinutes(value),
+                        "hours" or "hour" or "h" => TimeSpan.FromHours(value),
+                        "days" or "day" or "d" => TimeSpan.FromDays(value),
+                        _ => TimeSpan.FromDays(value)
+                    };
+                }
+            }
+            catch { }
+
+            return TimeSpan.FromDays(1);
+        }
+
+        private async Task<TimeSpan> GetRefreshTokenLifetimeAsync()
+        {
+            if (_dbContext == null) return TimeSpan.FromDays(30);
+
+            try
+            {
+                var valConfig = await _dbContext.SystemConfigs.FindAsync("refresh_token_lifetime_value");
+                var unitConfig = await _dbContext.SystemConfigs.FindAsync("refresh_token_lifetime_unit");
+
+                var valStr = valConfig?.Value;
+                var unitStr = unitConfig?.Value?.ToLowerInvariant() ?? "days";
+
+                if (int.TryParse(valStr, out var value) && value > 0)
+                {
+                    return unitStr switch
+                    {
+                        "hours" or "hour" or "h" => TimeSpan.FromHours(value),
+                        "days" or "day" or "d" => TimeSpan.FromDays(value),
+                        "months" or "month" or "m" => TimeSpan.FromDays(value * 30),
+                        _ => TimeSpan.FromDays(value)
+                    };
+                }
+            }
+            catch { }
+
+            return TimeSpan.FromDays(30);
         }
 
         private string NormalizeMobileNumber(string mobile)
@@ -350,7 +418,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             return code;
         }
 
-        private string GenerateJwtToken(User user)
+        private string GenerateJwtToken(User user, TimeSpan? validity = null)
         {
             var secretKey = _configuration["JWT_SECRET_KEY"] ?? "jwt_secret_lts_2026_super_secure_key_default";
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
@@ -364,9 +432,11 @@ namespace LeitnerPlatform.API.Controllers.v1
                 new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "Student")
             };
 
+            var tokenExpiry = validity ?? TimeSpan.FromDays(1);
+
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(1),
+                expires: DateTime.UtcNow.Add(tokenExpiry),
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

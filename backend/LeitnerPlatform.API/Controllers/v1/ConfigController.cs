@@ -77,6 +77,12 @@ namespace LeitnerPlatform.API.Controllers.v1
             int maxBannerCount = configs.TryGetValue("max_banner_count", out var maxVal) && int.TryParse(maxVal, out var maxInt) ? maxInt : 5;
             string cardNavIconStyle = configs.TryGetValue("card_nav_icon_style", out var iconStyleVal) && !string.IsNullOrWhiteSpace(iconStyleVal) ? iconStyleVal : "chevron";
 
+            int jwtLifetimeValue = configs.TryGetValue("jwt_lifetime_value", out var jwtVal) && int.TryParse(jwtVal, out var jv) ? jv : 1;
+            string jwtLifetimeUnit = configs.TryGetValue("jwt_lifetime_unit", out var jwtUnit) ? jwtUnit : "days";
+            int refreshTokenLifetimeValue = configs.TryGetValue("refresh_token_lifetime_value", out var refVal) && int.TryParse(refVal, out var rv) ? rv : 30;
+            string refreshTokenLifetimeUnit = configs.TryGetValue("refresh_token_lifetime_unit", out var refUnit) ? refUnit : "days";
+            bool enableAutoTokenRefresh = !configs.TryGetValue("enable_auto_token_refresh", out var autoRefVal) || !bool.TryParse(autoRefVal, out var autoRefBool) || autoRefBool;
+
             return Ok(new
             {
                 maintenance_mode = maintenanceMode,
@@ -103,6 +109,14 @@ namespace LeitnerPlatform.API.Controllers.v1
                 {
                     rotation_interval_seconds = rotationInterval,
                     max_banner_count = maxBannerCount
+                },
+                auth_session_configs = new
+                {
+                    jwt_lifetime_value = jwtLifetimeValue,
+                    jwt_lifetime_unit = jwtLifetimeUnit,
+                    refresh_token_lifetime_value = refreshTokenLifetimeValue,
+                    refresh_token_lifetime_unit = refreshTokenLifetimeUnit,
+                    enable_auto_token_refresh = enableAutoTokenRefresh
                 },
                 announcements = announcements,
                 banners = banners

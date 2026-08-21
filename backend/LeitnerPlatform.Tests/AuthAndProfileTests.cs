@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Moq;
@@ -261,6 +262,70 @@ namespace LeitnerPlatform.Tests
 
             // Assert
             Assert.IsType<UnauthorizedObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task AuthController_CustomTokenLifetimes_ShouldRespectConfigValues()
+        {
+            // Arrange
+            var options = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<LeitnerPlatform.Data.LeitnerDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+            using var dbContext = new LeitnerPlatform.Data.LeitnerDbContext(options);
+
+            // Configure 15 minutes JWT and 7 days refresh token
+            await dbContext.SystemConfigs.AddAsync(new SystemConfig { Key = "jwt_lifetime_value", Value = "15" });
+            await dbContext.SystemConfigs.AddAsync(new SystemConfig { Key = "jwt_lifetime_unit", Value = "minutes" });
+            await dbContext.SystemConfigs.AddAsync(new SystemConfig { Key = "refresh_token_lifetime_value", Value = "7" });
+            await dbContext.SystemConfigs.AddAsync(new SystemConfig { Key = "refresh_token_lifetime_unit", Value = "days" });
+            await dbContext.SaveChangesAsync();
+
+            var mockUserRepo = new Mock<IUserRepository>();
+            var mockSms = new Mock<ISmsService>();
+            var mockCaptcha = new Mock<ICaptchaService>();
+            var mockEventBus = new Mock<IEventBus>();
+            var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+            var userId = Guid.NewGuid();
+            var user = new User
+            {
+                Id = userId,
+                Username = "active_user",
+                MobileNumber = "+989123456789",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var validRefreshToken = "custom_refresh_token_456";
+            memoryCache.Set($"refresh_token:{validRefreshToken}", userId.ToString(), TimeSpan.FromDays(7));
+            mockUserRepo.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(user);
+
+            var controller = new AuthController(
+                mockUserRepo.Object,
+                mockSms.Object,
+                mockCaptcha.Object,
+                mockEventBus.Object,
+                config,
+                memoryCache,
+                null,
+                dbContext);
+
+            // Act
+            var result = await controller.RefreshToken(new RefreshTokenInput { RefreshToken = validRefreshToken });
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var type = okResult.Value!.GetType();
+            var tokenStr = type.GetProperty("token")?.GetValue(okResult.Value) as string;
+            Assert.False(string.IsNullOrEmpty(tokenStr));
+
+            var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(tokenStr);
+
+            // Verify JWT expiry is around 15 minutes from now (allowing a 1-minute delta)
+            var expectedExpiry = DateTime.UtcNow.AddMinutes(15);
+            var diff = Math.Abs((jwt.ValidTo - expectedExpiry).TotalSeconds);
+            Assert.True(diff < 60, $"JWT validity difference {diff}s is unexpectedly high.");
         }
     }
 }

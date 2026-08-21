@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/core/error/error_formatter.dart';
-import 'package:mobile_app/core/error/exceptions.dart';
 import 'package:mobile_app/core/error/failures.dart';
 
 void main() {

@@ -263,6 +263,19 @@
     "icon_style_double_chevron": "Double Chevron (« »)",
     "icon_style_circle_arrow": "Circled Arrow (⮜ ⮞)",
     "icon_style_triangle": "Triangle Caret (◀ ▶)",
-    "preview_label": "Live Preview in RTL:"
+    "preview_label": "Live Preview in RTL:",
+    "section_auth": "Authentication & Session Persistence",
+    "auth_subtitle": "Configure JWT access token expiry, refresh token duration, and auto-renewal policies.",
+    "jwt_lifetime_label": "JWT Access Token Lifetime",
+    "jwt_lifetime_desc": "How long an active session token stays valid before needing background renewal.",
+    "refresh_token_lifetime_label": "Refresh Token Duration (Max Inactive Session)",
+    "refresh_token_lifetime_desc": "How long a user can remain logged in without re-authenticating via SMS OTP.",
+    "auto_refresh_label": "Enable Seamless Background Token Renewal",
+    "auto_refresh_desc": "Automatically exchanges refresh tokens for new access tokens before expiry without interrupting user study.",
+    "unit_minutes": "Minutes",
+    "unit_hours": "Hours",
+    "unit_days": "Days",
+    "unit_months": "Months",
+    "session_summary_label": "Effective Session Policy Summary:"
   }
 }

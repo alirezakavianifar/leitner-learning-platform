@@ -26,6 +26,13 @@ export const SettingsView: React.FC = () => {
   const [maxBannerCount, setMaxBannerCount] = useState(5);
   const [cardNavIconStyle, setCardNavIconStyle] = useState('chevron');
 
+  // States for Authentication & Session Validity
+  const [jwtLifetimeValue, setJwtLifetimeValue] = useState(1);
+  const [jwtLifetimeUnit, setJwtLifetimeUnit] = useState('days');
+  const [refreshTokenLifetimeValue, setRefreshTokenLifetimeValue] = useState(30);
+  const [refreshTokenLifetimeUnit, setRefreshTokenLifetimeUnit] = useState('days');
+  const [enableAutoTokenRefresh, setEnableAutoTokenRefresh] = useState(true);
+
   const loadSettings = async () => {
     try {
       setLoading(true);
@@ -69,6 +76,21 @@ export const SettingsView: React.FC = () => {
             case 'card_nav_icon_style':
               setCardNavIconStyle(cfg.value || 'chevron');
               break;
+            case 'jwt_lifetime_value':
+              setJwtLifetimeValue(parseInt(cfg.value) || 1);
+              break;
+            case 'jwt_lifetime_unit':
+              setJwtLifetimeUnit(cfg.value || 'days');
+              break;
+            case 'refresh_token_lifetime_value':
+              setRefreshTokenLifetimeValue(parseInt(cfg.value) || 30);
+              break;
+            case 'refresh_token_lifetime_unit':
+              setRefreshTokenLifetimeUnit(cfg.value || 'days');
+              break;
+            case 'enable_auto_token_refresh':
+              setEnableAutoTokenRefresh(cfg.value !== 'false');
+              break;
             default:
               break;
           }
@@ -102,12 +124,18 @@ export const SettingsView: React.FC = () => {
         { key: 'rotation_interval_seconds', value: rotationInterval.toString() },
         { key: 'max_banner_count', value: maxBannerCount.toString() },
         { key: 'card_nav_icon_style', value: cardNavIconStyle },
+        { key: 'jwt_lifetime_value', value: jwtLifetimeValue.toString() },
+        { key: 'jwt_lifetime_unit', value: jwtLifetimeUnit },
+        { key: 'refresh_token_lifetime_value', value: refreshTokenLifetimeValue.toString() },
+        { key: 'refresh_token_lifetime_unit', value: refreshTokenLifetimeUnit },
+        { key: 'enable_auto_token_refresh', value: enableAutoTokenRefresh.toString() },
       ];
       await api.admin.updateConfig(payload);
       toast.showSuccess(t('settings.save_success', 'تنظیمات با موفقیت ذخیره شدند.'));
       loadSettings();
-    } catch (err: any) {
-      toast.showError(err.message || t('settings.save_failed', 'Failed to save configuration settings.'));
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      toast.showError(errorMsg || t('settings.save_failed', 'Failed to save configuration settings.'));
     } finally {
       setSaving(false);
     }
@@ -264,6 +292,113 @@ export const SettingsView: React.FC = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Authentication & Session Persistence */}
+            <div style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.15)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginTop: 0, color: 'var(--primary-hover)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                {t('settings.section_auth', 'Authentication & Session Persistence')}
+              </h3>
+              <p className="text-muted" style={{ fontSize: '13px', margin: '4px 0 16px 0' }}>
+                {t('settings.auth_subtitle', 'Configure JWT access token expiry, refresh token duration, and auto-renewal policies.')}
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                {/* JWT Token Lifetime */}
+                <div className="form-group">
+                  <label style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                    {t('settings.jwt_lifetime_label', 'JWT Access Token Lifetime')}
+                  </label>
+                  <p className="text-muted" style={{ fontSize: '12px', margin: '2px 0 8px 0' }}>
+                    {t('settings.jwt_lifetime_desc', 'How long an active session token stays valid before needing background renewal.')}
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={jwtLifetimeValue}
+                      onChange={(e) => setJwtLifetimeValue(Math.max(1, parseInt(e.target.value) || 1))}
+                      style={{ flex: 1 }}
+                      required
+                    />
+                    <select
+                      value={jwtLifetimeUnit}
+                      onChange={(e) => setJwtLifetimeUnit(e.target.value)}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--input-bg, #1e293b)', color: 'inherit', cursor: 'pointer' }}
+                    >
+                      <option value="minutes">{t('settings.unit_minutes', 'Minutes')}</option>
+                      <option value="hours">{t('settings.unit_hours', 'Hours')}</option>
+                      <option value="days">{t('settings.unit_days', 'Days')}</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Refresh Token Lifetime */}
+                <div className="form-group">
+                  <label style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                    {t('settings.refresh_token_lifetime_label', 'Refresh Token Duration (Max Inactive Session)')}
+                  </label>
+                  <p className="text-muted" style={{ fontSize: '12px', margin: '2px 0 8px 0' }}>
+                    {t('settings.refresh_token_lifetime_desc', 'How long a user can remain logged in without re-authenticating via SMS OTP.')}
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={refreshTokenLifetimeValue}
+                      onChange={(e) => setRefreshTokenLifetimeValue(Math.max(1, parseInt(e.target.value) || 1))}
+                      style={{ flex: 1 }}
+                      required
+                    />
+                    <select
+                      value={refreshTokenLifetimeUnit}
+                      onChange={(e) => setRefreshTokenLifetimeUnit(e.target.value)}
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--input-bg, #1e293b)', color: 'inherit', cursor: 'pointer' }}
+                    >
+                      <option value="hours">{t('settings.unit_hours', 'Hours')}</option>
+                      <option value="days">{t('settings.unit_days', 'Days')}</option>
+                      <option value="months">{t('settings.unit_months', 'Months')}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seamless Token Auto-Refresh Toggle */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '10px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.05)', marginBottom: '16px' }}>
+                <input
+                  type="checkbox"
+                  id="enable_auto_token_refresh"
+                  checked={enableAutoTokenRefresh}
+                  onChange={(e) => setEnableAutoTokenRefresh(e.target.checked)}
+                  style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer' }}
+                />
+                <div>
+                  <label htmlFor="enable_auto_token_refresh" style={{ fontWeight: 'bold', color: enableAutoTokenRefresh ? 'var(--primary-hover)' : 'inherit', cursor: 'pointer' }}>
+                    {t('settings.auto_refresh_label', 'Enable Seamless Background Token Renewal')}
+                  </label>
+                  <p className="text-muted" style={{ fontSize: '12px', margin: '4px 0 0 0' }}>
+                    {t('settings.auto_refresh_desc', 'Automatically exchanges refresh tokens for new access tokens before expiry without interrupting user study.')}
+                  </p>
+                </div>
+              </div>
+
+              {/* Policy Live Summary Badge */}
+              <div style={{ padding: '10px 14px', background: 'rgba(79, 70, 229, 0.1)', borderRadius: '6px', border: '1px solid rgba(79, 70, 229, 0.25)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                <span style={{ color: 'var(--primary-hover)', fontWeight: 'bold' }}>
+                  {t('settings.session_summary_label', 'Effective Session Policy Summary:')}
+                </span>
+                <span style={{ color: '#e2e8f0' }}>
+                  {enableAutoTokenRefresh
+                    ? `Users will stay logged in for up to ${refreshTokenLifetimeValue} ${t(`settings.unit_${refreshTokenLifetimeUnit}`, refreshTokenLifetimeUnit)}, renewing access tokens silently every ${jwtLifetimeValue} ${t(`settings.unit_${jwtLifetimeUnit}`, jwtLifetimeUnit)}.`
+                    : `Users must re-login via SMS OTP every ${jwtLifetimeValue} ${t(`settings.unit_${jwtLifetimeUnit}`, jwtLifetimeUnit)} (Background renewal disabled).`}
+                </span>
               </div>
             </div>
 
