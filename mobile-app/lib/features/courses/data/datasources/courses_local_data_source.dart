@@ -136,30 +136,170 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
     final archive = ZipDecoder().decodeBytes(bytes);
 
     for (final file in archive) {
-      final filename = file.name;
+      final normalizedPath = file.name.replaceAll('\\', '/');
       if (file.isFile) {
         final data = file.content as List<int>;
-        final outFile = File(p.join(tempExtractDir, filename));
+        final outFile = File(p.join(tempExtractDir, normalizedPath));
         outFile.createSync(recursive: true);
         outFile.writeAsBytesSync(data);
       }
     }
 
-    final tempDbPath = p.join(tempExtractDir, 'course.db');
-    if (!File(tempDbPath).existsSync()) {
-      throw Exception('Database file course.db is missing in the package.');
+    // 2. Discover SQLite database file (supports root course.db, nested 504/504.db, *.db)
+    String? foundDbPath;
+    final directDb = File(p.join(tempExtractDir, 'course.db'));
+    if (directDb.existsSync()) {
+      foundDbPath = directDb.path;
+    } else {
+      final allFiles = tempDir.listSync(recursive: true);
+      for (final entity in allFiles) {
+        if (entity is File) {
+          final lower = entity.path.toLowerCase();
+          if (lower.endsWith('.db') || lower.endsWith('.sqlite')) {
+            foundDbPath = entity.path;
+            break;
+          }
+        }
+      }
     }
 
-    // 2. Perform Schema Migration & Progress Synchronization in local db
-    final courseDb = await databaseHelper.openCourseDatabase(tempDbPath);
+    if (foundDbPath == null) {
+      throw Exception('Database file (.db) is missing in the downloaded course package.');
+    }
+
+    final tempDbPath = p.join(tempExtractDir, 'course.db');
+    if (foundDbPath != tempDbPath) {
+      File(foundDbPath).copySync(tempDbPath);
+    }
+
+    // 3. Inspect and normalize database schema in tempDbPath
+    final courseDb = await openDatabase(tempDbPath, readOnly: false);
     
-    // Get all valid card numbers from the new course database
-    final List<Map<String, dynamic>> cardRows = await courseDb.query(
+    try {
+      final tableRows = await courseDb.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';");
+      final tableNames = tableRows.map((r) => r['name'] as String).toList();
+      
+      String targetCardTable = 'cards';
+      if (!tableNames.contains('cards')) {
+        if (tableNames.contains('flashcards')) {
+          targetCardTable = 'flashcards';
+        } else if (tableNames.isNotEmpty) {
+          targetCardTable = tableNames.first;
+        }
+      }
+
+      final List<Map<String, dynamic>> columnInfo = await courseDb.rawQuery('PRAGMA table_info($targetCardTable)');
+      final columnNames = columnInfo.map((c) => (c['name'] as String).toLowerCase()).toList();
+
+      final bool isStandardSchema = tableNames.contains('cards') &&
+          columnNames.contains('card_number') &&
+          columnNames.contains('question_text') &&
+          columnNames.contains('answer_text') &&
+          columnNames.contains('id') &&
+          columnNames.contains('course_id');
+
+      if (!isStandardSchema) {
+        int idxCardNum = columnNames.indexOf('card_number');
+        if (idxCardNum == -1) idxCardNum = columnNames.indexOf('number');
+        if (idxCardNum == -1) idxCardNum = columnNames.indexOf('id');
+
+        int idxQuestion = columnNames.indexOf('question_text');
+        if (idxQuestion == -1) idxQuestion = columnNames.indexOf('questions');
+        if (idxQuestion == -1) idxQuestion = columnNames.indexOf('question');
+        if (idxQuestion == -1) idxQuestion = columnNames.indexOf('front');
+
+        int idxAnswer = columnNames.indexOf('answer_text');
+        if (idxAnswer == -1) idxAnswer = columnNames.indexOf('answer');
+        if (idxAnswer == -1) idxAnswer = columnNames.indexOf('answers');
+        if (idxAnswer == -1) idxAnswer = columnNames.indexOf('back');
+
+        int idxImage = columnNames.indexOf('image_name');
+        if (idxImage == -1) idxImage = columnNames.indexOf('front image');
+        if (idxImage == -1) idxImage = columnNames.indexOf('image');
+        if (idxImage == -1) idxImage = columnNames.indexOf('image_url');
+
+        int idxAudio = columnNames.indexOf('audio_name');
+        if (idxAudio == -1) idxAudio = columnNames.indexOf('front voice');
+        if (idxAudio == -1) idxAudio = columnNames.indexOf('audio');
+        if (idxAudio == -1) idxAudio = columnNames.indexOf('audio_url');
+
+        final rawRows = await courseDb.query(targetCardTable);
+        final List<Map<String, dynamic>> normalizedCards = [];
+        int rowCounter = 1;
+        for (final r in rawRows) {
+          final rawNum = idxCardNum != -1 ? r[columnInfo[idxCardNum]['name']] : null;
+          final cardNum = rawNum is int ? rawNum : (int.tryParse(rawNum?.toString() ?? '') ?? rowCounter);
+          final qText = idxQuestion != -1 ? (r[columnInfo[idxQuestion]['name']]?.toString() ?? 'Question') : 'Question';
+          final aText = idxAnswer != -1 ? (r[columnInfo[idxAnswer]['name']]?.toString() ?? 'Answer') : 'Answer';
+          final img = idxImage != -1 ? r[columnInfo[idxImage]['name']]?.toString() : null;
+          final aud = idxAudio != -1 ? r[columnInfo[idxAudio]['name']]?.toString() : null;
+
+          normalizedCards.add({
+            'id': '${courseId}_$cardNum',
+            'course_id': courseId,
+            'card_number': cardNum,
+            'question_text': qText,
+            'answer_text': aText,
+            'image_name': (img != null && img.trim().isNotEmpty) ? p.basename(img.trim()) : null,
+            'audio_name': (aud != null && aud.trim().isNotEmpty) ? p.basename(aud.trim()) : null,
+            'options': null,
+          });
+          rowCounter++;
+        }
+
+        await courseDb.execute('DROP TABLE IF EXISTS cards_temp_norm;');
+        await courseDb.execute('''
+          CREATE TABLE cards_temp_norm (
+            id TEXT PRIMARY KEY,
+            course_id TEXT NOT NULL,
+            card_number INTEGER NOT NULL,
+            question_text TEXT NOT NULL,
+            answer_text TEXT NOT NULL,
+            image_name TEXT,
+            audio_name TEXT,
+            options TEXT
+          );
+        ''');
+        await courseDb.execute('CREATE UNIQUE INDEX idx_cards_temp_course_num ON cards_temp_norm (course_id, card_number);');
+
+        final normBatch = courseDb.batch();
+        for (final c in normalizedCards) {
+          normBatch.insert('cards_temp_norm', c);
+        }
+        await normBatch.commit(noResult: true);
+
+        await courseDb.execute('DROP TABLE IF EXISTS cards;');
+        if (targetCardTable != 'cards') {
+          await courseDb.execute('DROP TABLE IF EXISTS $targetCardTable;');
+        }
+        await courseDb.execute('ALTER TABLE cards_temp_norm RENAME TO cards;');
+      }
+
+      // Ensure course table exists in course.db
+      await courseDb.execute('''
+        CREATE TABLE IF NOT EXISTS course (
+          id TEXT PRIMARY KEY,
+          title TEXT,
+          description TEXT,
+          category TEXT,
+          difficulty TEXT,
+          price REAL DEFAULT 0.0,
+          version INTEGER DEFAULT 1,
+          created_at TEXT
+        );
+      ''');
+    } finally {
+      await courseDb.close();
+    }
+
+    // 4. Perform Schema Migration & Progress Synchronization in local db
+    final verifiedCourseDb = await databaseHelper.openCourseDatabase(tempDbPath);
+    final List<Map<String, dynamic>> cardRows = await verifiedCourseDb.query(
       'cards',
       columns: ['card_number'],
     );
-    final newCardNumbers = cardRows.map((row) => row['card_number'] as int).toSet();
-    await courseDb.close();
+    final newCardNumbers = cardRows.map((row) => (row['card_number'] as num).toInt()).toSet();
+    await verifiedCourseDb.close();
 
     final localDb = await databaseHelper.localDatabase;
 
@@ -170,7 +310,7 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
       where: 'course_id = ?',
       whereArgs: [courseId],
     );
-    final existingCardNumbers = progressRows.map((row) => row['card_number'] as int).toSet();
+    final existingCardNumbers = progressRows.map((row) => (row['card_number'] as num).toInt()).toSet();
 
     // A. Insert defaults for new card numbers added
     final nowIso = DateTime.now().toUtc().toIso8601String();
@@ -213,33 +353,38 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
 
     await batch.commit(noResult: true);
 
-    // 3. Swap the old database/assets with the new ones
+    // 5. Swap the old database with the normalized one
     final targetDbFile = File(p.join(courseDir, 'course.db'));
     if (targetDbFile.existsSync()) {
       targetDbFile.deleteSync();
     }
     File(tempDbPath).copySync(targetDbFile.path);
 
-    // Swap images/audio subdirectories
-    final tempImagesDir = Directory(p.join(tempExtractDir, 'images'));
+    // 6. Gather and flatten media files from all extracted locations into courseDir/images and courseDir/audio
     final targetImagesDir = Directory(p.join(courseDir, 'images'));
-    if (tempImagesDir.existsSync()) {
-      if (targetImagesDir.existsSync()) {
-        targetImagesDir.deleteSync(recursive: true);
-      }
-      tempImagesDir.renameSync(targetImagesDir.path);
-    }
-
-    final tempAudioDir = Directory(p.join(tempExtractDir, 'audio'));
     final targetAudioDir = Directory(p.join(courseDir, 'audio'));
-    if (tempAudioDir.existsSync()) {
-      if (targetAudioDir.existsSync()) {
-        targetAudioDir.deleteSync(recursive: true);
+    if (!targetImagesDir.existsSync()) targetImagesDir.createSync(recursive: true);
+    if (!targetAudioDir.existsSync()) targetAudioDir.createSync(recursive: true);
+
+    const audioExts = {'.mp3', '.wav', '.m4a', '.ogg', '.aac', '.opus', '.flac', '.wma'};
+    const imageExts = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.bmp'};
+
+    final allExtractedEntities = tempDir.listSync(recursive: true);
+    for (final entity in allExtractedEntities) {
+      if (entity is File) {
+        final ext = p.extension(entity.path).toLowerCase();
+        final baseName = p.basename(entity.path);
+        if (audioExts.contains(ext)) {
+          final dest = p.join(targetAudioDir.path, baseName);
+          entity.copySync(dest);
+        } else if (imageExts.contains(ext)) {
+          final dest = p.join(targetImagesDir.path, baseName);
+          entity.copySync(dest);
+        }
       }
-      tempAudioDir.renameSync(targetAudioDir.path);
     }
 
-    // Clean up temporary files
+    // 7. Clean up temporary files
     try {
       tempDir.deleteSync(recursive: true);
       zipFile.deleteSync();

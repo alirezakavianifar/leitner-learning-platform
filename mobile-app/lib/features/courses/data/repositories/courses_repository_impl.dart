@@ -175,13 +175,12 @@ class CoursesRepositoryImpl implements CoursesRepository {
           await localDataSource.markCourseVersionDownloaded(courseId, downloadedVersion);
         }
       } catch (e) {
-        // The package failed to extract/process - most likely a corrupted or
-        // incomplete download. Clean up so a retry starts from a clean slate.
+        // The package failed to extract/process. Clean up so a retry starts from a clean slate.
         try {
           File(tempZipPath).deleteSync();
         } catch (_) {}
         return Left(CacheFailure(
-          'The downloaded course package could not be processed (it may have been corrupted in transit). Please try downloading again.',
+          'Failed to process course package: ${e.toString().replaceFirst("Exception: ", "")}',
         ));
       }
 
