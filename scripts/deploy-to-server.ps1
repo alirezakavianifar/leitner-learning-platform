@@ -50,7 +50,7 @@ if (Test-Path $EnvFile) {
 Write-Host "Streaming and extracting source files directly to server ($ServerIP)..." -ForegroundColor Yellow
 
 $ExcludeArgs = "--exclude=*.dll --exclude=*.pdb --exclude=*.exe --exclude=*.apk --exclude=*.rar --exclude=*.cobertura.xml " +
-               "--exclude=*/bin --exclude=*/obj --exclude=*/dist --exclude=*/node_modules --exclude=*/TestResults --exclude=*/wwwroot/courses/*.zip " +
+               "--exclude=*/bin --exclude=*/obj --exclude=*/dist --exclude=*/node_modules --exclude=*/TestResults " +
                "--exclude=*/.git --exclude=bin --exclude=obj --exclude=dist --exclude=node_modules --exclude=TestResults --exclude=.git " +
                "--exclude=data --exclude=mobile-app --exclude=docs --exclude=scripts --exclude=temp"
 

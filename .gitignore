@@ -61,5 +61,7 @@ ios/Flutter/Flutter.podspec
 # Binaries and Releases
 *.apk
 *.zip
+!backend/LeitnerPlatform.API/wwwroot/courses/*.zip
+!data/*.zip
 *.rar
 *.7z
