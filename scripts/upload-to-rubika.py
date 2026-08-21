@@ -21,16 +21,13 @@ SERVER_IP = os.environ.get("DEPLOY_SERVER_IP", "45.94.215.188")
 SERVER_USER = os.environ.get("DEPLOY_SERVER_USER", "root")
 KEY_PATH = os.environ.get("DEPLOY_KEY_PATH", r"C:\Users\Administrator\.ssh\id_rsa_deploy")
 SOCKS_PORT = int(os.environ.get("RUBIKA_SOCKS_PORT", "10808"))
-CHUNK_SIZE = 2 * 1024 * 1024  # 2MB chunks for DPI resilience
+CHUNK_SIZE = 1 * 1024 * 1024  # 1MB chunks for DPI resilience and fast per-chunk transfers
 
 def render_progress_bar(current, total, prefix="Transfer", suffix="", length=28, fill="=", empty="-"):
     percent = (current / total) * 100 if total > 0 else 0
     filled_len = int(length * current // total) if total > 0 else 0
     bar = fill * filled_len + empty * (length - filled_len)
-    sys.stdout.write(f"\r  [{prefix}] [{bar}] {percent:5.1f}% {suffix}")
-    sys.stdout.flush()
-    if current >= total:
-        sys.stdout.write("\n")
+    print(f"  [{prefix}] [{bar}] {percent:5.1f}% {suffix}", flush=True)
 
 def is_port_open(port=SOCKS_PORT):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -129,6 +126,8 @@ def upload_via_server_bridge(file_path):
     file_size = os.path.getsize(file_path)
     remote_tmp = f"/tmp/{file_name}"
     chunks_dir = f"/tmp/chunks_{file_name}"
+    local_chunks_dir = os.path.join(os.path.dirname(file_path), f"chunks_{file_name}")
+    os.makedirs(local_chunks_dir, exist_ok=True)
     total_chunks = (file_size + CHUNK_SIZE - 1) // CHUNK_SIZE
 
     # Check if complete file already exists on remote
@@ -144,38 +143,89 @@ def upload_via_server_bridge(file_path):
     else:
         print(f">> Transferring '{file_name}' ({file_size / (1024*1024):.2f} MB in {total_chunks} chunks) to deployment bridge server ({SERVER_IP})...")
 
-        # Clean previous chunk directory
+        # Ensure chunk directory exists
         subprocess.run(
-            ["ssh", "-i", KEY_PATH, "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10", f"{SERVER_USER}@{SERVER_IP}", f"rm -rf {chunks_dir} {remote_tmp} && mkdir -p {chunks_dir}"],
+            ["ssh", "-i", KEY_PATH, "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10", f"{SERVER_USER}@{SERVER_IP}", f"mkdir -p {chunks_dir}"],
             capture_output=True
         )
+
+        # Get list of existing valid chunks on remote
+        ls_res = subprocess.run(
+            ["ssh", "-i", KEY_PATH, "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10", f"{SERVER_USER}@{SERVER_IP}", f"ls -l {chunks_dir} 2>/dev/null"],
+            capture_output=True,
+            text=True
+        )
+        existing_chunks = {}
+        for line in ls_res.stdout.splitlines():
+            parts = line.split()
+            if len(parts) >= 9 and parts[-1].endswith(".bin"):
+                try:
+                    existing_chunks[parts[-1]] = int(parts[4])
+                except ValueError:
+                    pass
 
         start_time = time.time()
         uploaded_bytes = 0
 
-        # Idempotent Chunked Transfer
+        # Resumable Atomic Chunked Transfer
         with open(file_path, "rb") as f:
             for idx in range(total_chunks):
                 chunk_data = f.read(CHUNK_SIZE)
                 chunk_len = len(chunk_data)
-                chunk_file = f"{chunks_dir}/chunk_{idx:04d}.bin"
-                chunk_success = False
+                chunk_file_name = f"chunk_{idx:04d}.bin"
+                local_chunk_path = os.path.join(local_chunks_dir, chunk_file_name)
+                remote_chunk_path = f"{chunks_dir}/{chunk_file_name}"
+                remote_part_path = f"{chunks_dir}/{chunk_file_name}.part"
 
-                for attempt in range(1, 4):
-                    cmd = [
+                if existing_chunks.get(chunk_file_name) == chunk_len:
+                    uploaded_bytes += chunk_len
+                    mb_done = uploaded_bytes / (1024 * 1024)
+                    mb_total = file_size / (1024 * 1024)
+                    suffix = f"({idx+1}/{total_chunks} chunks | {mb_done:.1f}/{mb_total:.1f} MB [cached])"
+                    render_progress_bar(idx + 1, total_chunks, prefix="Uploading", suffix=suffix)
+                    continue
+
+                # Write chunk locally
+                with open(local_chunk_path, "wb") as cf:
+                    cf.write(chunk_data)
+
+                chunk_success = False
+                for attempt in range(1, 15):
+                    # Check if already present on remote before or after attempt
+                    chk_cmd = [
                         "ssh",
                         "-i", KEY_PATH,
                         "-o", "StrictHostKeyChecking=no",
                         "-o", "ConnectTimeout=10",
                         f"{SERVER_USER}@{SERVER_IP}",
-                        f"cat > {chunk_file}"
+                        f"stat -c %s {remote_chunk_path} 2>/dev/null || echo 0"
                     ]
-                    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    proc.communicate(input=chunk_data)
-                    if proc.returncode == 0:
-                        chunk_success = True
-                        break
-                    time.sleep(1)
+                    try:
+                        chk_p = subprocess.run(chk_cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15)
+                        if int(chk_p.stdout.strip() or 0) == chunk_len:
+                            chunk_success = True
+                            break
+                    except Exception:
+                        pass
+
+                    scp_cmd = [
+                        "scp",
+                        "-O",
+                        "-C",
+                        "-i", KEY_PATH,
+                        "-o", "StrictHostKeyChecking=no",
+                        "-o", "ConnectTimeout=15",
+                        local_chunk_path,
+                        f"{SERVER_USER}@{SERVER_IP}:{remote_chunk_path}"
+                    ]
+                    try:
+                        proc = subprocess.run(scp_cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45)
+                        if proc.returncode == 0:
+                            chunk_success = True
+                            break
+                    except Exception:
+                        pass
+                    time.sleep(2)
 
                 if not chunk_success:
                     print(f"\n[ERROR] Failed to transfer chunk {idx+1}/{total_chunks}")
@@ -189,12 +239,19 @@ def upload_via_server_bridge(file_path):
                 suffix = f"({idx+1}/{total_chunks} chunks | {mb_done:.1f}/{mb_total:.1f} MB @ {speed:.2f} MB/s)"
                 render_progress_bar(idx + 1, total_chunks, prefix="Uploading", suffix=suffix)
 
+        # Cleanup local chunks
+        try:
+            import shutil
+            shutil.rmtree(local_chunks_dir, ignore_errors=True)
+        except Exception:
+            pass
+
         print("  >> Reassembling chunks on remote server...")
         reassemble_cmd = [
             "ssh",
             "-i", KEY_PATH,
             "-o", "StrictHostKeyChecking=no",
-            "-o", "ConnectTimeout=15",
+            "-o", "ConnectTimeout=20",
             f"{SERVER_USER}@{SERVER_IP}",
             f"cat {chunks_dir}/chunk_*.bin > {remote_tmp} && rm -rf {chunks_dir}"
         ]
@@ -202,7 +259,7 @@ def upload_via_server_bridge(file_path):
 
         print("  >> Verifying reassembled archive integrity...")
         chk = subprocess.run(
-            ["ssh", "-i", KEY_PATH, "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10", f"{SERVER_USER}@{SERVER_IP}", f"stat -c %s {remote_tmp}"],
+            ["ssh", "-i", KEY_PATH, "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=15", f"{SERVER_USER}@{SERVER_IP}", f"stat -c %s {remote_tmp}"],
             capture_output=True,
             text=True
         )

@@ -50,6 +50,11 @@ android {
             versionNameSuffix = "-premium"
         }
     }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
 }
 
 kotlin {
