@@ -803,23 +803,30 @@ class _CoursesScreenState extends State<CoursesScreen> {
                               onPurchase: () => _purchasePackage(parentPackage),
                             ),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFF9800).withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFFFF9800).withOpacity(0.4)),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFFF9800).withOpacity(0.45)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.auto_awesome, size: 12, color: Color(0xFFFF9800)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    loc.translate('available_in_bundle').replaceAll('{bundle}', parentPackage.title),
-                                    style: const TextStyle(
-                                      color: Color(0xFFFFB300),
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
+                                  const Icon(Icons.auto_awesome, size: 14, color: Color(0xFFFF9800)),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      loc.translate('available_in_bundle').replaceAll('{bundle}', parentPackage.title),
+                                      style: const TextStyle(
+                                        color: Color(0xFFFFB300),
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.35,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      softWrap: true,
                                     ),
                                   ),
                                 ],
