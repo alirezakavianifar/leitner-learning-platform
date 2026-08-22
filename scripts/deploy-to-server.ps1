@@ -109,10 +109,14 @@ try {
     # 3. Upload & Extract Archive on Remote Server
     Write-Host "Uploading source archive to server ($ServerIP)..." -ForegroundColor Yellow
     $ScpArgs = @(
-        "-O",
         "-i", $KeyPath,
         "-o", "StrictHostKeyChecking=no",
-        "-o", "ConnectTimeout=15",
+        "-o", "IPQoS=none",
+        "-o", "ServerAliveInterval=5",
+        "-o", "ServerAliveCountMax=10",
+        "-o", "TCPKeepAlive=yes",
+        "-o", "Compression=yes",
+        "-o", "ConnectTimeout=30",
         $TempArchiveName,
         "${ServerUser}@${ServerIP}:/tmp/$TempArchiveName"
     )
@@ -128,7 +132,11 @@ try {
         "-T",
         "-i", $KeyPath,
         "-o", "StrictHostKeyChecking=no",
-        "-o", "ConnectTimeout=15",
+        "-o", "IPQoS=none",
+        "-o", "ServerAliveInterval=5",
+        "-o", "ServerAliveCountMax=10",
+        "-o", "TCPKeepAlive=yes",
+        "-o", "ConnectTimeout=30",
         "${ServerUser}@${ServerIP}",
         $ExtractCmd
     )
@@ -151,7 +159,7 @@ if (Test-Path $LocalCoursesDir) {
     $LocalZipFiles = Get-ChildItem -Path $LocalCoursesDir -Filter "*.zip" -ErrorAction SilentlyContinue
     if ($LocalZipFiles -and $LocalZipFiles.Count -gt 0) {
         Write-Host "Checking course packages synchronization..." -ForegroundColor Yellow
-        $RemoteLsOutput = & ssh -n -T -i $KeyPath -o StrictHostKeyChecking=no -o ConnectTimeout=15 "${ServerUser}@${ServerIP}" "mkdir -p /opt/leitner-platform/backend/LeitnerPlatform.API/wwwroot/courses && ls -l /opt/leitner-platform/backend/LeitnerPlatform.API/wwwroot/courses"
+        $RemoteLsOutput = & ssh -n -T -i $KeyPath -o StrictHostKeyChecking=no -o IPQoS=none -o ConnectTimeout=30 "${ServerUser}@${ServerIP}" "mkdir -p /opt/leitner-platform/backend/LeitnerPlatform.API/wwwroot/courses && ls -l /opt/leitner-platform/backend/LeitnerPlatform.API/wwwroot/courses"
         
         foreach ($zipFile in $LocalZipFiles) {
             $fileName = $zipFile.Name
@@ -171,10 +179,14 @@ if (Test-Path $LocalCoursesDir) {
             if (-not $matched) {
                 Write-Host "  Syncing course package: $fileName ($([math]::Round($fileLength / 1MB, 2)) MB)..." -ForegroundColor DarkYellow
                 $CourseScpArgs = @(
-                    "-O",
                     "-i", $KeyPath,
                     "-o", "StrictHostKeyChecking=no",
-                    "-o", "ConnectTimeout=15",
+                    "-o", "IPQoS=none",
+                    "-o", "ServerAliveInterval=5",
+                    "-o", "ServerAliveCountMax=10",
+                    "-o", "TCPKeepAlive=yes",
+                    "-o", "Compression=yes",
+                    "-o", "ConnectTimeout=30",
                     $zipFile.FullName,
                     "${ServerUser}@${ServerIP}:/opt/leitner-platform/backend/LeitnerPlatform.API/wwwroot/courses/$fileName"
                 )
@@ -200,6 +212,7 @@ $SshDeployArgs = @(
     "-T",
     "-i", $KeyPath,
     "-o", "StrictHostKeyChecking=no",
+    "-o", "IPQoS=none",
     "-o", "ServerAliveInterval=15",
     "-o", "ServerAliveCountMax=10",
     "-o", "TCPKeepAlive=yes",
@@ -222,7 +235,8 @@ $VerifyArgs = @(
     "-T",
     "-i", $KeyPath,
     "-o", "StrictHostKeyChecking=no",
-    "-o", "ConnectTimeout=15",
+    "-o", "IPQoS=none",
+    "-o", "ConnectTimeout=30",
     "${ServerUser}@${ServerIP}",
     $VerifyCmd
 )
