@@ -83,6 +83,12 @@ namespace LeitnerPlatform.API.Controllers.v1
             string refreshTokenLifetimeUnit = configs.TryGetValue("refresh_token_lifetime_unit", out var refUnit) ? refUnit : "days";
             bool enableAutoTokenRefresh = !configs.TryGetValue("enable_auto_token_refresh", out var autoRefVal) || !bool.TryParse(autoRefVal, out var autoRefBool) || autoRefBool;
 
+            string telegramUrl = configs.TryGetValue("telegram_url", out var tgVal) && !string.IsNullOrWhiteSpace(tgVal) ? tgVal : "https://t.me/RightlearnApp";
+            string baleUrl = configs.TryGetValue("bale_url", out var baleVal) && !string.IsNullOrWhiteSpace(baleVal) ? baleVal : "https://ble.ir/rightlearnapp";
+            string eitaaUrl = configs.TryGetValue("eitaa_url", out var eitaaVal) && !string.IsNullOrWhiteSpace(eitaaVal) ? eitaaVal : "https://eitaa.com/RightLearnApp";
+            string supportUrl = configs.TryGetValue("support_url", out var supVal) && !string.IsNullOrWhiteSpace(supVal) ? supVal : "https://t.me/RLAppSupport";
+            string supportId = configs.TryGetValue("support_id", out var supIdVal) && !string.IsNullOrWhiteSpace(supIdVal) ? supIdVal : "@RLAppSupport";
+
             return Ok(new
             {
                 maintenance_mode = maintenanceMode,
@@ -117,6 +123,14 @@ namespace LeitnerPlatform.API.Controllers.v1
                     refresh_token_lifetime_value = refreshTokenLifetimeValue,
                     refresh_token_lifetime_unit = refreshTokenLifetimeUnit,
                     enable_auto_token_refresh = enableAutoTokenRefresh
+                },
+                social_links = new
+                {
+                    telegram_url = telegramUrl,
+                    bale_url = baleUrl,
+                    eitaa_url = eitaaUrl,
+                    support_url = supportUrl,
+                    support_id = supportId
                 },
                 announcements = announcements,
                 banners = banners

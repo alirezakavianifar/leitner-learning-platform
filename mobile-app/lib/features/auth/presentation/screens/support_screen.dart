@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
+import '../widgets/social_messenger_tile.dart';
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({Key? key}) : super(key: key);
@@ -68,6 +72,35 @@ class _SupportScreenState extends State<SupportScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Direct Telegram & Messenger Support
+              BlocBuilder<ConfigBloc, ConfigState>(
+                builder: (context, state) {
+                  final config = state.config;
+                  final supportUrl = config?.supportUrl ?? 'https://t.me/RLAppSupport';
+                  final supportId = config?.supportId ?? '@RLAppSupport';
+                  final telegramUrl = config?.telegramUrl ?? 'https://t.me/RightlearnApp';
+                  final isFa = Localizations.localeOf(context).languageCode == 'fa';
+
+                  return Column(
+                    children: [
+                      SocialMessengerTile(
+                        type: MessengerType.support,
+                        title: isFa ? 'پشتیبانی سریع در تلگرام ($supportId)' : 'Fast Telegram Support ($supportId)',
+                        subtitle: supportUrl,
+                        url: supportUrl,
+                      ),
+                      SocialMessengerTile(
+                        type: MessengerType.telegram,
+                        title: isFa ? 'کانال اطلاع‌رسانی تلگرام' : 'Official Telegram Channel',
+                        subtitle: telegramUrl,
+                        url: telegramUrl,
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+
               // Contact details
               Card(
                 color: AppColors.surface.withOpacity(0.6),

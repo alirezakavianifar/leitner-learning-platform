@@ -1,6 +1,9 @@
 # Stage 1: Build and Publish the application using SDK image
 FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /src
+ENV DOTNET_SYSTEM_NET_DISABLEIPV6=1
+ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
+ENV DOTNET_NOLOGO=1
 
 # Copy solution and project files first to cache dependencies resolution
 COPY ["backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj", "backend/LeitnerPlatform.API/"]
@@ -8,17 +11,20 @@ COPY ["backend/LeitnerPlatform.Core/LeitnerPlatform.Core.csproj", "backend/Leitn
 COPY ["backend/LeitnerPlatform.Data/LeitnerPlatform.Data.csproj", "backend/LeitnerPlatform.Data/"]
 COPY ["backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj", "backend/LeitnerPlatform.BackgroundWorker/"]
 
-RUN dotnet restore "backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj"
-RUN dotnet restore "backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj"
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet restore "backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj" && \
+    dotnet restore "backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj"
 
 # Copy remaining source code and publish
 COPY . .
-RUN dotnet publish "backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
-RUN dotnet publish "backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet publish "backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj" -c Release -o /app/publish /p:UseAppHost=false --no-restore && \
+    dotnet publish "backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj" -c Release -o /app/publish /p:UseAppHost=false --no-restore
 
 # Stage 2: Runtime image configuration
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
 WORKDIR /app
+ENV DOTNET_SYSTEM_NET_DISABLEIPV6=1
 EXPOSE 80
 EXPOSE 443
 

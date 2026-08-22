@@ -276,6 +276,13 @@
     "unit_hours": "ساعت",
     "unit_days": "روز",
     "unit_months": "ماه",
-    "session_summary_label": "خلاصه سیاست اعمال‌شده برای نشست کاربران:"
+    "session_summary_label": "خلاصه سیاست اعمال‌شده برای نشست کاربران:",
+    "section_social": "پیام‌رسان‌ها، راه‌های ارتباطی و پشتیبانی",
+    "social_subtitle": "تنظیم آدرس کانال‌ها و گروه‌های اپلیکیشن در پیام‌رسان‌ها و شناسه پشتیبانی مستقیم.",
+    "telegram_url_label": "آدرس کانال تلگرام (Telegram)",
+    "bale_url_label": "آدرس کانال بله (Bale)",
+    "eitaa_url_label": "آدرس کانال ایتا (Eitaa)",
+    "support_url_label": "آدرس مستقیم پشتیبانی (لینک تلگرام)",
+    "support_id_label": "شناسه کاربری پشتیبانی (آی‌دی نمایش داده شده)"
   }
 }

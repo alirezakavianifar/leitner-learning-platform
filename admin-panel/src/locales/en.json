@@ -276,6 +276,13 @@
     "unit_hours": "Hours",
     "unit_days": "Days",
     "unit_months": "Months",
-    "session_summary_label": "Effective Session Policy Summary:"
+    "session_summary_label": "Effective Session Policy Summary:",
+    "section_social": "Social Messengers & Support Links",
+    "social_subtitle": "Configure messenger channel links (Telegram, Bale, Eitaa) and direct support handle/URL.",
+    "telegram_url_label": "Telegram Channel URL",
+    "bale_url_label": "Bale Messenger URL",
+    "eitaa_url_label": "Eitaa Messenger URL",
+    "support_url_label": "Direct Support URL (Telegram link)",
+    "support_id_label": "Support Display ID / Handle"
   }
 }

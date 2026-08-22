@@ -33,6 +33,13 @@ export const SettingsView: React.FC = () => {
   const [refreshTokenLifetimeUnit, setRefreshTokenLifetimeUnit] = useState('days');
   const [enableAutoTokenRefresh, setEnableAutoTokenRefresh] = useState(true);
 
+  // States for Social Messengers & Support
+  const [telegramUrl, setTelegramUrl] = useState('https://t.me/RightlearnApp');
+  const [baleUrl, setBaleUrl] = useState('https://ble.ir/rightlearnapp');
+  const [eitaaUrl, setEitaaUrl] = useState('https://eitaa.com/RightLearnApp');
+  const [supportUrl, setSupportUrl] = useState('https://t.me/RLAppSupport');
+  const [supportId, setSupportId] = useState('@RLAppSupport');
+
   const loadSettings = async () => {
     try {
       setLoading(true);
@@ -91,6 +98,21 @@ export const SettingsView: React.FC = () => {
             case 'enable_auto_token_refresh':
               setEnableAutoTokenRefresh(cfg.value !== 'false');
               break;
+            case 'telegram_url':
+              setTelegramUrl(cfg.value || 'https://t.me/RightlearnApp');
+              break;
+            case 'bale_url':
+              setBaleUrl(cfg.value || 'https://ble.ir/rightlearnapp');
+              break;
+            case 'eitaa_url':
+              setEitaaUrl(cfg.value || 'https://eitaa.com/RightLearnApp');
+              break;
+            case 'support_url':
+              setSupportUrl(cfg.value || 'https://t.me/RLAppSupport');
+              break;
+            case 'support_id':
+              setSupportId(cfg.value || '@RLAppSupport');
+              break;
             default:
               break;
           }
@@ -129,6 +151,11 @@ export const SettingsView: React.FC = () => {
         { key: 'refresh_token_lifetime_value', value: refreshTokenLifetimeValue.toString() },
         { key: 'refresh_token_lifetime_unit', value: refreshTokenLifetimeUnit },
         { key: 'enable_auto_token_refresh', value: enableAutoTokenRefresh.toString() },
+        { key: 'telegram_url', value: telegramUrl },
+        { key: 'bale_url', value: baleUrl },
+        { key: 'eitaa_url', value: eitaaUrl },
+        { key: 'support_url', value: supportUrl },
+        { key: 'support_id', value: supportId },
       ];
       await api.admin.updateConfig(payload);
       toast.showSuccess(t('settings.save_success', 'تنظیمات با موفقیت ذخیره شدند.'));
@@ -512,6 +539,95 @@ export const SettingsView: React.FC = () => {
                   </div>
                   <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(var(--primary-rgb, 79, 70, 229), 0.2)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px' }}>
                     {cardNavIconStyle === 'arrow' ? '→' : cardNavIconStyle === 'double_chevron' ? '»' : cardNavIconStyle === 'circle_arrow' ? '⮞' : cardNavIconStyle === 'triangle' ? '▶' : '›'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Messengers & Support Links */}
+            <div style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.15)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginTop: 0, color: 'var(--primary-hover)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                </svg>
+                {t('settings.section_social', 'Social Messengers & Support Links')}
+              </h3>
+              <p className="text-muted" style={{ fontSize: '13px', margin: '4px 0 16px 0' }}>
+                {t('settings.social_subtitle', 'Configure messenger channel links (Telegram, Bale, Eitaa) and direct support handle/URL.')}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Telegram */}
+                <div className="form-group">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+                    <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#24A1DE' }}></span>
+                    {t('settings.telegram_url_label', 'Telegram Channel URL')}
+                  </label>
+                  <input
+                    type="url"
+                    value={telegramUrl}
+                    onChange={(e) => setTelegramUrl(e.target.value)}
+                    placeholder="https://t.me/RightlearnApp"
+                    required
+                  />
+                </div>
+
+                {/* Bale */}
+                <div className="form-group">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+                    <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#00B18F' }}></span>
+                    {t('settings.bale_url_label', 'Bale Messenger URL')}
+                  </label>
+                  <input
+                    type="url"
+                    value={baleUrl}
+                    onChange={(e) => setBaleUrl(e.target.value)}
+                    placeholder="https://ble.ir/rightlearnapp"
+                    required
+                  />
+                </div>
+
+                {/* Eitaa */}
+                <div className="form-group">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+                    <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#E56717' }}></span>
+                    {t('settings.eitaa_url_label', 'Eitaa Messenger URL')}
+                  </label>
+                  <input
+                    type="url"
+                    value={eitaaUrl}
+                    onChange={(e) => setEitaaUrl(e.target.value)}
+                    placeholder="https://eitaa.com/RightLearnApp"
+                    required
+                  />
+                </div>
+
+                {/* Support URL & Handle */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="form-group">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+                      <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#6B4EE6' }}></span>
+                      {t('settings.support_url_label', 'Direct Support URL')}
+                    </label>
+                    <input
+                      type="url"
+                      value={supportUrl}
+                      onChange={(e) => setSupportUrl(e.target.value)}
+                      placeholder="https://t.me/RLAppSupport"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontWeight: 'bold' }}>
+                      {t('settings.support_id_label', 'Support Display ID / Handle')}
+                    </label>
+                    <input
+                      type="text"
+                      value={supportId}
+                      onChange={(e) => setSupportId(e.target.value)}
+                      placeholder="@RLAppSupport"
+                      required
+                    />
                   </div>
                 </div>
               </div>

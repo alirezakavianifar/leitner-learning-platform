@@ -62,6 +62,15 @@ namespace LeitnerPlatform.Tests
             Assert.False((bool?)flagType.GetProperty("enable_ai_tutor")?.GetValue(featureFlags));
             Assert.True((bool?)flagType.GetProperty("enable_custom_themes")?.GetValue(featureFlags));
             Assert.True((bool?)flagType.GetProperty("enable_screenshot_protection")?.GetValue(featureFlags));
+
+            var socialLinks = type.GetProperty("social_links")?.GetValue(okResult.Value);
+            Assert.NotNull(socialLinks);
+            var socialType = socialLinks.GetType();
+            Assert.Equal("https://t.me/RightlearnApp", (string?)socialType.GetProperty("telegram_url")?.GetValue(socialLinks));
+            Assert.Equal("https://ble.ir/rightlearnapp", (string?)socialType.GetProperty("bale_url")?.GetValue(socialLinks));
+            Assert.Equal("https://eitaa.com/RightLearnApp", (string?)socialType.GetProperty("eitaa_url")?.GetValue(socialLinks));
+            Assert.Equal("https://t.me/RLAppSupport", (string?)socialType.GetProperty("support_url")?.GetValue(socialLinks));
+            Assert.Equal("@RLAppSupport", (string?)socialType.GetProperty("support_id")?.GetValue(socialLinks));
         }
 
         [Fact]
@@ -75,7 +84,9 @@ namespace LeitnerPlatform.Tests
                 new SystemConfig { Key = "api_server", Value = "https://custom-api.com/v1" },
                 new SystemConfig { Key = "enable_ai_tutor", Value = "true" },
                 new SystemConfig { Key = "enable_screenshot_protection", Value = "false" },
-                new SystemConfig { Key = "card_nav_icon_style", Value = "arrow" }
+                new SystemConfig { Key = "card_nav_icon_style", Value = "arrow" },
+                new SystemConfig { Key = "telegram_url", Value = "https://t.me/CustomChannel" },
+                new SystemConfig { Key = "support_url", Value = "https://t.me/CustomSupport" }
             });
             await context.SaveChangesAsync();
 
@@ -91,11 +102,13 @@ namespace LeitnerPlatform.Tests
             var cardNavIconStyle = (string?)type.GetProperty("card_nav_icon_style")?.GetValue(okResult.Value);
             var endpoints = type.GetProperty("endpoints")?.GetValue(okResult.Value);
             var featureFlags = type.GetProperty("feature_flags")?.GetValue(okResult.Value);
+            var socialLinks = type.GetProperty("social_links")?.GetValue(okResult.Value);
 
             Assert.True(maintenanceMode);
             Assert.Equal("arrow", cardNavIconStyle);
             Assert.NotNull(endpoints);
             Assert.NotNull(featureFlags);
+            Assert.NotNull(socialLinks);
 
             var epType = endpoints.GetType();
             Assert.Equal("https://custom-api.com/v1", epType.GetProperty("api_server")?.GetValue(endpoints));
@@ -103,6 +116,11 @@ namespace LeitnerPlatform.Tests
             var flagType = featureFlags.GetType();
             Assert.True((bool?)flagType.GetProperty("enable_ai_tutor")?.GetValue(featureFlags));
             Assert.False((bool?)flagType.GetProperty("enable_screenshot_protection")?.GetValue(featureFlags));
+
+            var socialType = socialLinks.GetType();
+            Assert.Equal("https://t.me/CustomChannel", (string?)socialType.GetProperty("telegram_url")?.GetValue(socialLinks));
+            Assert.Equal("https://t.me/CustomSupport", (string?)socialType.GetProperty("support_url")?.GetValue(socialLinks));
+            Assert.Equal("https://ble.ir/rightlearnapp", (string?)socialType.GetProperty("bale_url")?.GetValue(socialLinks));
         }
 
         [Fact]

@@ -112,6 +112,14 @@ class AppLocalizations {
       'profile_details': 'Profile Details',
       'update_profile': 'Update Profile',
       'about_us': 'About Us',
+      'our_messengers': 'Our Messenger Channels',
+      'messengers_desc': 'Join our channels in popular messengers for updates, tips, and tutorials:',
+      'telegram_channel': 'Telegram Channel',
+      'bale_channel': 'Bale Channel',
+      'eitaa_channel': 'Eitaa Channel',
+      'direct_support': 'Direct Support',
+      'support_page_btn': 'Support & Tickets Page',
+      'open_link_error': 'Could not open the requested link.',
       'offline_backup_restore': 'Offline Backup & Restore',
       'backup_desc': 'Protect your database! Backups export your progress, custom cards, and favorites to an encrypted file.',
       'backup_encryption_password': 'Backup Encryption Password',
@@ -416,6 +424,14 @@ class AppLocalizations {
       'profile_details': 'اطلاعات پروفایل',
       'update_profile': 'به‌روزرسانی پروفایل',
       'about_us': 'درباره ما',
+      'our_messengers': 'آدرس ما در پیام‌رسان‌ها',
+      'messengers_desc': 'برای دریافت آخرین اخبار، تخفیف‌ها و آموزش‌ها به کانال‌های ما بپیوندید:',
+      'telegram_channel': 'کانال تلگرام',
+      'bale_channel': 'کانال بله',
+      'eitaa_channel': 'کانال ایتا',
+      'direct_support': 'پشتیبانی مستقیم',
+      'support_page_btn': 'صفحه پشتیبانی و ثبت تیکت',
+      'open_link_error': 'امکان باز کردن لینک مورد نظر وجود ندارد.',
       'offline_backup_restore': 'پشتیبان‌گیری و بازیابی آفلاین',
       'backup_desc': 'از اطلاعات خود محافظت کنید! فایل پشتیبان شامل پیشرفت مطالعه، کارت‌های اختصاصی و نشان‌شده‌ها می‌باشد.',
       'backup_encryption_password': 'رمز عبور رمزنگاری فایل پشتیبان',
@@ -825,8 +841,15 @@ class AppLocalizations {
   String get tourFinishedTitle => translate('tour_finished_title');
   String get tourFinishedDesc => translate('tour_finished_desc');
   String get tourCatalogTitle => translate('tour_catalog_title');
-  String get tourCatalogDesc => translate('tour_catalog_desc');
   String get aboutUs => translate('about_us');
+  String get ourMessengers => translate('our_messengers');
+  String get messengersDesc => translate('messengers_desc');
+  String get telegramChannel => translate('telegram_channel');
+  String get baleChannel => translate('bale_channel');
+  String get eitaaChannel => translate('eitaa_channel');
+  String get directSupport => translate('direct_support');
+  String get supportPageBtn => translate('support_page_btn');
+  String get openLinkError => translate('open_link_error');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

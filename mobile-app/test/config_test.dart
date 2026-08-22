@@ -40,6 +40,13 @@ void main() {
         'banner_configs': {
           'rotation_interval_seconds': 6,
           'max_banner_count': 4,
+        },
+        'social_links': {
+          'telegram_url': 'https://t.me/CustomApp',
+          'bale_url': 'https://ble.ir/customapp',
+          'eitaa_url': 'https://eitaa.com/customapp',
+          'support_url': 'https://t.me/CustomSupport',
+          'support_id': '@CustomSupport',
         }
       };
 
@@ -57,6 +64,11 @@ void main() {
       expect(config.rotationIntervalSeconds, 6);
       expect(config.maxBannerCount, 4);
       expect(config.cardNavIconStyle, 'chevron');
+      expect(config.telegramUrl, 'https://t.me/CustomApp');
+      expect(config.baleUrl, 'https://ble.ir/customapp');
+      expect(config.eitaaUrl, 'https://eitaa.com/customapp');
+      expect(config.supportUrl, 'https://t.me/CustomSupport');
+      expect(config.supportId, '@CustomSupport');
     });
 
     test('should return default values when fields are missing', () {
@@ -70,6 +82,11 @@ void main() {
       expect(config.enableGamifiedLayout, false);
       expect(config.enableScreenshotProtection, true);
       expect(config.cardNavIconStyle, 'chevron');
+      expect(config.telegramUrl, 'https://t.me/RightlearnApp');
+      expect(config.baleUrl, 'https://ble.ir/rightlearnapp');
+      expect(config.eitaaUrl, 'https://eitaa.com/RightLearnApp');
+      expect(config.supportUrl, 'https://t.me/RLAppSupport');
+      expect(config.supportId, '@RLAppSupport');
     });
   });
 
