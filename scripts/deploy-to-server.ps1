@@ -10,6 +10,10 @@ param (
     [string]$Sms = "ON"
 )
 
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding = [System.Text.Encoding]::UTF8
+
 $ServerIP = "45.94.215.188"
 $ServerUser = "root"
 $KeyPath = "C:\Users\Administrator\.ssh\id_rsa_deploy"
