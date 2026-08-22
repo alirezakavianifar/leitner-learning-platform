@@ -83,6 +83,12 @@ namespace LeitnerPlatform.API.Controllers.v1
             string refreshTokenLifetimeUnit = configs.TryGetValue("refresh_token_lifetime_unit", out var refUnit) ? refUnit : "days";
             bool enableAutoTokenRefresh = !configs.TryGetValue("enable_auto_token_refresh", out var autoRefVal) || !bool.TryParse(autoRefVal, out var autoRefBool) || autoRefBool;
 
+            int leitnerBox2Interval = configs.TryGetValue("leitner_box2_interval", out var b2Val) && int.TryParse(b2Val, out var b2Int) ? b2Int : 3;
+            int leitnerBox3Interval = configs.TryGetValue("leitner_box3_interval", out var b3Val) && int.TryParse(b3Val, out var b3Int) ? b3Int : 7;
+            int leitnerBox4Interval = configs.TryGetValue("leitner_box4_interval", out var b4Val) && int.TryParse(b4Val, out var b4Int) ? b4Int : 16;
+            int leitnerBox5Interval = configs.TryGetValue("leitner_box5_interval", out var b5Val) && int.TryParse(b5Val, out var b5Int) ? b5Int : 31;
+            string leitnerIntervalUnit = configs.TryGetValue("leitner_interval_unit", out var unitVal) && !string.IsNullOrWhiteSpace(unitVal) ? unitVal : "days";
+
             string telegramUrl = configs.TryGetValue("telegram_url", out var tgVal) && !string.IsNullOrWhiteSpace(tgVal) ? tgVal : "https://t.me/RightlearnApp";
             string baleUrl = configs.TryGetValue("bale_url", out var baleVal) && !string.IsNullOrWhiteSpace(baleVal) ? baleVal : "https://ble.ir/rightlearnapp";
             string eitaaUrl = configs.TryGetValue("eitaa_url", out var eitaaVal) && !string.IsNullOrWhiteSpace(eitaaVal) ? eitaaVal : "https://eitaa.com/RightLearnApp";
@@ -115,6 +121,14 @@ namespace LeitnerPlatform.API.Controllers.v1
                 {
                     rotation_interval_seconds = rotationInterval,
                     max_banner_count = maxBannerCount
+                },
+                leitner_configs = new
+                {
+                    box2_interval = leitnerBox2Interval,
+                    box3_interval = leitnerBox3Interval,
+                    box4_interval = leitnerBox4Interval,
+                    box5_interval = leitnerBox5Interval,
+                    interval_unit = leitnerIntervalUnit
                 },
                 auth_session_configs = new
                 {

@@ -8,8 +8,26 @@ import 'package:mobile_app/core/event_bus/event_bus.dart';
 import 'package:mobile_app/core/event_bus/domain_events.dart';
 import 'package:mobile_app/core/network/dio_client.dart';
 import 'package:mobile_app/core/services/storage_service.dart';
+import 'package:mobile_app/core/error/failures.dart';
+import 'package:mobile_app/core/usecase/usecase.dart';
+import 'package:mobile_app/features/config/domain/entities/remote_config.dart';
+import 'package:mobile_app/features/config/domain/repositories/config_repository.dart';
 import 'package:mobile_app/features/flashcards/data/models/card_progress_model.dart';
 import 'package:mobile_app/features/flashcards/data/repositories/flashcard_repository_impl.dart';
+
+class FakeConfigRepository implements ConfigRepository {
+  RemoteConfig? cached;
+
+  FakeConfigRepository([this.cached]);
+
+  @override
+  RemoteConfig? getCachedConfig() => cached;
+
+  @override
+  Future<Either<Failure, RemoteConfig>> getRemoteConfig() async {
+    return cached != null ? Right(cached!) : Left(ServerFailure('No mock config'));
+  }
+}
 
 // --- Fakes for Sqflite and Core Services ---
 
@@ -882,6 +900,175 @@ void main() {
       final progressList = localDb.tables['client_progress']!;
       expect(progressList[0]['is_synced'], 1);
       expect(progressList[1]['is_synced'], 1);
+    });
+  });
+
+  group('Leitner Engine Configurable Intervals & Fast 1-Hour Verification Mode', () {
+    late FakeConfigRepository configRepo;
+    late FlashcardRepositoryImpl fastRepo;
+
+    setUp(() {
+      const fastConfig = RemoteConfig(
+        maintenanceMode: false,
+        apiServer: 'http://test',
+        contentServer: 'http://test',
+        bannerServer: 'http://test',
+        enableAiTutor: false,
+        enableCustomThemes: true,
+        enableSearchV2: true,
+        rotationIntervalSeconds: 4,
+        maxBannerCount: 5,
+        leitnerBox2Interval: 5,
+        leitnerBox3Interval: 10,
+        leitnerBox4Interval: 15,
+        leitnerBox5Interval: 20,
+        leitnerIntervalUnit: 'minutes',
+      );
+      configRepo = FakeConfigRepository(fastConfig);
+      fastRepo = FlashcardRepositoryImpl(
+        databaseHelper: databaseHelper,
+        dioClient: dioClient,
+        eventBus: eventBus,
+        configRepository: configRepo,
+      );
+    });
+
+    test('Fast 1-Hour mode: Box 1 to Box 2 schedules review after 5 minutes', () async {
+      // Arrange
+      final beforeTime = DateTime.now();
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_1',
+        'course_id': courseId,
+        'card_number': 1,
+        'current_box': 1,
+        'last_reviewed_at': null,
+        'next_review_due': beforeTime.toIso8601String(),
+        'last_trigger': null,
+        'is_synced': 0,
+      });
+
+      // Act
+      await fastRepo.submitReview(courseId: courseId, cardNumber: 1, isCorrect: true);
+
+      // Assert
+      final progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
+      expect(progress.currentBox, 2);
+      expect(progress.nextReviewDue, isNotNull);
+      final diffMinutes = progress.nextReviewDue!.difference(progress.lastReviewedAt!).inMinutes;
+      expect(diffMinutes, 5);
+    });
+
+    test('Fast 1-Hour mode: Box 2 card reviewed BEFORE due time should NOT promote', () async {
+      // Arrange - Box 2 card due in 4 minutes (not due yet)
+      final now = DateTime.now();
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_1',
+        'course_id': courseId,
+        'card_number': 1,
+        'current_box': 2,
+        'last_reviewed_at': now.subtract(const Duration(minutes: 1)).toIso8601String(),
+        'next_review_due': now.add(const Duration(minutes: 4)).toIso8601String(),
+        'last_trigger': 'REVIEW_CORRECT',
+        'is_synced': 1,
+      });
+
+      // Act
+      await fastRepo.submitReview(courseId: courseId, cardNumber: 1, isCorrect: true);
+
+      // Assert - should stay in Box 2
+      final progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
+      expect(progress.currentBox, 2);
+    });
+
+    test('Fast 1-Hour mode: Box 2 card reviewed ON/AFTER due time promotes to Box 3 (due in 10 mins)', () async {
+      // Arrange - Box 2 card due 1 minute ago (is due!)
+      final now = DateTime.now();
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_1',
+        'course_id': courseId,
+        'card_number': 1,
+        'current_box': 2,
+        'last_reviewed_at': now.subtract(const Duration(minutes: 6)).toIso8601String(),
+        'next_review_due': now.subtract(const Duration(minutes: 1)).toIso8601String(),
+        'last_trigger': 'REVIEW_CORRECT',
+        'is_synced': 1,
+      });
+
+      // Act
+      await fastRepo.submitReview(courseId: courseId, cardNumber: 1, isCorrect: true);
+
+      // Assert - promoted to Box 3 and next due in 10 minutes
+      final progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
+      expect(progress.currentBox, 3);
+      final diffMinutes = progress.nextReviewDue!.difference(progress.lastReviewedAt!).inMinutes;
+      expect(diffMinutes, 10);
+    });
+
+    test('Fast 1-Hour mode: Complete progression cycle from Box 1 through Box 7 (Finished)', () async {
+      final now = DateTime.now();
+      // Start card in Box 4, due now
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_1',
+        'course_id': courseId,
+        'card_number': 1,
+        'current_box': 4,
+        'last_reviewed_at': now.subtract(const Duration(minutes: 20)).toIso8601String(),
+        'next_review_due': now.toIso8601String(),
+        'last_trigger': 'REVIEW_CORRECT',
+        'is_synced': 1,
+      });
+
+      // 1. Box 4 -> Box 5 (due in 20 mins)
+      await fastRepo.submitReview(courseId: courseId, cardNumber: 1, isCorrect: true);
+      var progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
+      expect(progress.currentBox, 5);
+      expect(progress.nextReviewDue!.difference(progress.lastReviewedAt!).inMinutes, 20);
+
+      // Simulate time passing for Box 5 due time
+      localDb.tables['client_progress']![0]['next_review_due'] = DateTime.now().subtract(const Duration(minutes: 1)).toIso8601String();
+
+      // 2. Box 5 -> Box 6 (due immediately)
+      await fastRepo.submitReview(courseId: courseId, cardNumber: 1, isCorrect: true);
+      progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
+      expect(progress.currentBox, 6);
+      expect(progress.nextReviewDue!.difference(progress.lastReviewedAt!).inSeconds <= 2, isTrue);
+
+      // 3. Box 6 -> Box 7 (Finished, next_review_due cleared)
+      CardFinished? finishedEvent;
+      eventBus.on<CardFinished>().listen((e) => finishedEvent = e);
+
+      await fastRepo.submitReview(courseId: courseId, cardNumber: 1, isCorrect: true);
+      await Future.delayed(Duration.zero);
+
+      progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
+      expect(progress.currentBox, 7);
+      expect(progress.nextReviewDue, isNull);
+      expect(finishedEvent, isNotNull);
+      expect(finishedEvent!.cardNumber, 1);
+    });
+
+    test('Fast 1-Hour mode: Sub-day overdue card resets to Box 1', () async {
+      // Arrange - card in Box 3 whose due time was 30 minutes ago (well past the 5-minute grace window)
+      final now = DateTime.now();
+      localDb.tables['client_progress']!.add({
+        'id': '${courseId}_1',
+        'course_id': courseId,
+        'card_number': 1,
+        'current_box': 3,
+        'last_reviewed_at': now.subtract(const Duration(minutes: 40)).toIso8601String(),
+        'next_review_due': now.subtract(const Duration(minutes: 30)).toIso8601String(),
+        'last_trigger': 'REVIEW_CORRECT',
+        'is_synced': 1,
+        'has_entered_leitner': 1,
+      });
+
+      // Act
+      await fastRepo.checkForOverdueResets(courseId);
+
+      // Assert - card should reset to Box 1
+      final progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
+      expect(progress.currentBox, 1);
+      expect(progress.lastTrigger, 'OVERDUE_RESET');
     });
   });
 }

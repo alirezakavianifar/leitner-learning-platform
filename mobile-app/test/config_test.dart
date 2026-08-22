@@ -47,6 +47,13 @@ void main() {
           'eitaa_url': 'https://eitaa.com/customapp',
           'support_url': 'https://t.me/CustomSupport',
           'support_id': '@CustomSupport',
+        },
+        'leitner_configs': {
+          'box2_interval': 5,
+          'box3_interval': 10,
+          'box4_interval': 15,
+          'box5_interval': 20,
+          'interval_unit': 'minutes',
         }
       };
 
@@ -69,6 +76,11 @@ void main() {
       expect(config.eitaaUrl, 'https://eitaa.com/customapp');
       expect(config.supportUrl, 'https://t.me/CustomSupport');
       expect(config.supportId, '@CustomSupport');
+      expect(config.leitnerBox2Interval, 5);
+      expect(config.leitnerBox3Interval, 10);
+      expect(config.leitnerBox4Interval, 15);
+      expect(config.leitnerBox5Interval, 20);
+      expect(config.leitnerIntervalUnit, 'minutes');
     });
 
     test('should return default values when fields are missing', () {
@@ -87,6 +99,11 @@ void main() {
       expect(config.eitaaUrl, 'https://eitaa.com/RightLearnApp');
       expect(config.supportUrl, 'https://t.me/RLAppSupport');
       expect(config.supportId, '@RLAppSupport');
+      expect(config.leitnerBox2Interval, 3);
+      expect(config.leitnerBox3Interval, 7);
+      expect(config.leitnerBox4Interval, 16);
+      expect(config.leitnerBox5Interval, 31);
+      expect(config.leitnerIntervalUnit, 'days');
     });
   });
 

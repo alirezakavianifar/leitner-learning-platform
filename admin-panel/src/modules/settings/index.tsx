@@ -40,6 +40,35 @@ export const SettingsView: React.FC = () => {
   const [supportUrl, setSupportUrl] = useState('https://t.me/RLAppSupport');
   const [supportId, setSupportId] = useState('@RLAppSupport');
 
+  // States for Leitner Spaced Repetition Stage Intervals
+  const [leitnerBox2Interval, setLeitnerBox2Interval] = useState(3);
+  const [leitnerBox3Interval, setLeitnerBox3Interval] = useState(7);
+  const [leitnerBox4Interval, setLeitnerBox4Interval] = useState(16);
+  const [leitnerBox5Interval, setLeitnerBox5Interval] = useState(31);
+  const [leitnerIntervalUnit, setLeitnerIntervalUnit] = useState('days');
+
+  const applyLeitnerPreset = (preset: 'standard' | 'fast_hour' | 'fast_10m') => {
+    if (preset === 'standard') {
+      setLeitnerBox2Interval(3);
+      setLeitnerBox3Interval(7);
+      setLeitnerBox4Interval(16);
+      setLeitnerBox5Interval(31);
+      setLeitnerIntervalUnit('days');
+    } else if (preset === 'fast_hour') {
+      setLeitnerBox2Interval(5);
+      setLeitnerBox3Interval(10);
+      setLeitnerBox4Interval(15);
+      setLeitnerBox5Interval(20);
+      setLeitnerIntervalUnit('minutes');
+    } else if (preset === 'fast_10m') {
+      setLeitnerBox2Interval(1);
+      setLeitnerBox3Interval(2);
+      setLeitnerBox4Interval(3);
+      setLeitnerBox5Interval(4);
+      setLeitnerIntervalUnit('minutes');
+    }
+  };
+
   const loadSettings = async () => {
     try {
       setLoading(true);
@@ -113,6 +142,21 @@ export const SettingsView: React.FC = () => {
             case 'support_id':
               setSupportId(cfg.value || '@RLAppSupport');
               break;
+            case 'leitner_box2_interval':
+              setLeitnerBox2Interval(parseInt(cfg.value) || 3);
+              break;
+            case 'leitner_box3_interval':
+              setLeitnerBox3Interval(parseInt(cfg.value) || 7);
+              break;
+            case 'leitner_box4_interval':
+              setLeitnerBox4Interval(parseInt(cfg.value) || 16);
+              break;
+            case 'leitner_box5_interval':
+              setLeitnerBox5Interval(parseInt(cfg.value) || 31);
+              break;
+            case 'leitner_interval_unit':
+              setLeitnerIntervalUnit(cfg.value || 'days');
+              break;
             default:
               break;
           }
@@ -156,6 +200,11 @@ export const SettingsView: React.FC = () => {
         { key: 'eitaa_url', value: eitaaUrl },
         { key: 'support_url', value: supportUrl },
         { key: 'support_id', value: supportId },
+        { key: 'leitner_box2_interval', value: leitnerBox2Interval.toString() },
+        { key: 'leitner_box3_interval', value: leitnerBox3Interval.toString() },
+        { key: 'leitner_box4_interval', value: leitnerBox4Interval.toString() },
+        { key: 'leitner_box5_interval', value: leitnerBox5Interval.toString() },
+        { key: 'leitner_interval_unit', value: leitnerIntervalUnit },
       ];
       await api.admin.updateConfig(payload);
       toast.showSuccess(t('settings.save_success', 'تنظیمات با موفقیت ذخیره شدند.'));
@@ -541,6 +590,137 @@ export const SettingsView: React.FC = () => {
                     {cardNavIconStyle === 'arrow' ? '→' : cardNavIconStyle === 'double_chevron' ? '»' : cardNavIconStyle === 'circle_arrow' ? '⮞' : cardNavIconStyle === 'triangle' ? '▶' : '›'}
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Leitner Box Progression Timing & Verification */}
+            <div style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.15)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginTop: 0, color: 'var(--primary-hover)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                </svg>
+                {t('settings.section_leitner', 'Leitner Spaced Repetition Stage Intervals')}
+              </h3>
+              <p className="text-muted" style={{ fontSize: '13px', margin: '4px 0 16px 0' }}>
+                {t('settings.leitner_subtitle', 'Configure review intervals for each Leitner stage. Use fast verification presets to test the complete progression within ~1 hour.')}
+              </p>
+
+              {/* Quick Presets */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => applyLeitnerPreset('standard')}
+                  style={{
+                    fontSize: '12px',
+                    padding: '6px 12px',
+                    background: leitnerIntervalUnit === 'days' && leitnerBox2Interval === 3 && leitnerBox3Interval === 7 && leitnerBox4Interval === 16 && leitnerBox5Interval === 31 ? 'var(--primary)' : 'rgba(255,255,255,0.08)',
+                    borderColor: 'var(--border-color)'
+                  }}
+                >
+                  📅 {t('settings.leitner_preset_standard', 'Standard (Days)')}
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => applyLeitnerPreset('fast_hour')}
+                  style={{
+                    fontSize: '12px',
+                    padding: '6px 12px',
+                    background: leitnerIntervalUnit === 'minutes' && leitnerBox2Interval === 5 && leitnerBox3Interval === 10 && leitnerBox4Interval === 15 && leitnerBox5Interval === 20 ? 'var(--primary)' : 'rgba(255,255,255,0.08)',
+                    borderColor: 'var(--border-color)'
+                  }}
+                >
+                  ⚡ {t('settings.leitner_preset_fast_hour', 'Fast Verification (1 Hour Total)')}
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => applyLeitnerPreset('fast_10m')}
+                  style={{
+                    fontSize: '12px',
+                    padding: '6px 12px',
+                    background: leitnerIntervalUnit === 'minutes' && leitnerBox2Interval === 1 && leitnerBox3Interval === 2 && leitnerBox4Interval === 3 && leitnerBox5Interval === 4 ? 'var(--primary)' : 'rgba(255,255,255,0.08)',
+                    borderColor: 'var(--border-color)'
+                  }}
+                >
+                  🚀 {t('settings.leitner_preset_fast_10m', 'Ultra-Fast (10 Mins Total)')}
+                </button>
+              </div>
+
+              {/* Time Unit Selector */}
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label style={{ fontWeight: 'bold' }}>{t('settings.leitner_unit_label', 'Stage Interval Time Unit')}</label>
+                <select
+                  value={leitnerIntervalUnit}
+                  onChange={(e) => setLeitnerIntervalUnit(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--input-bg, #0f172a)', color: 'inherit' }}
+                >
+                  <option value="seconds">{t('settings.unit_seconds', 'Seconds')}</option>
+                  <option value="minutes">{t('settings.unit_minutes', 'Minutes')}</option>
+                  <option value="hours">{t('settings.unit_hours', 'Hours')}</option>
+                  <option value="days">{t('settings.unit_days', 'Days')}</option>
+                </select>
+              </div>
+
+              {/* Box Stage Inputs */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                <div className="form-group">
+                  <label style={{ fontSize: '13px', fontWeight: 'bold' }}>{t('settings.leitner_box2_label', 'Box 2 Interval')}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={leitnerBox2Interval}
+                    onChange={(e) => setLeitnerBox2Interval(Math.max(1, parseInt(e.target.value) || 1))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '13px', fontWeight: 'bold' }}>{t('settings.leitner_box3_label', 'Box 3 Interval')}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={leitnerBox3Interval}
+                    onChange={(e) => setLeitnerBox3Interval(Math.max(1, parseInt(e.target.value) || 1))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '13px', fontWeight: 'bold' }}>{t('settings.leitner_box4_label', 'Box 4 Interval')}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={leitnerBox4Interval}
+                    onChange={(e) => setLeitnerBox4Interval(Math.max(1, parseInt(e.target.value) || 1))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontSize: '13px', fontWeight: 'bold' }}>{t('settings.leitner_box5_label', 'Box 5 Interval')}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={leitnerBox5Interval}
+                    onChange={(e) => setLeitnerBox5Interval(Math.max(1, parseInt(e.target.value) || 1))}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Summary and Hint Badge */}
+              <div style={{ padding: '12px 16px', background: 'rgba(0, 0, 0, 0.25)', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                    {t('settings.leitner_summary_label', 'Total Time to Finished (Box 7):')}
+                  </span>
+                  <span style={{ color: 'var(--primary-hover)', fontWeight: 'bold', fontSize: '14px' }}>
+                    {leitnerBox2Interval + leitnerBox3Interval + leitnerBox4Interval + leitnerBox5Interval} {t(`settings.unit_${leitnerIntervalUnit}`, leitnerIntervalUnit)}
+                  </span>
+                </div>
+                <p className="text-muted" style={{ fontSize: '12px', margin: 0 }}>
+                  {t('settings.leitner_test_hint', 'In 1-Hour Verification Mode, cards in Boxes 2–5 become due in minutes (5m → 10m → 15m → 20m), allowing you to quickly verify the entire learning workflow end-to-end.')}
+                </p>
               </div>
             </div>
 

@@ -47,15 +47,17 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
 ## Key Features & Custom Rules
 
 ### 1. Custom Leitner Progression & Resets
-*   **Box Stages & Timings:**
-    *   *Box 1:* Timing behavior to be confirmed with the client during Phase 0 (PDF does not define a standard interval).
-    *   *Box 2:* Reviewed 3 days after entering.
-    *   *Box 3:* Reviewed 7 days after entering.
-    *   *Box 4:* Reviewed 16 days after entering.
-    *   *Box 5:* Reviewed 31 days after entering.
-    *   *Finished Cards:* Cards successfully reviewed in Box 5 move to the Finished pool.
+*   **Box Stages & Timings (Configurable by Admin):**
+    *   *Box 1:* Initial / Unlearned cards. First successful review promotes the card to Box 2 immediately.
+    *   *Box 2:* Default 3 days (or configured value/unit).
+    *   *Box 3:* Default 7 days (or configured value/unit).
+    *   *Box 4:* Default 16 days (or configured value/unit).
+    *   *Box 5:* Default 31 days (or configured value/unit).
+    *   *Box 6:* Due immediately for final review upon promotion from Box 5.
+    *   *Box 7 (Finished Cards):* Cards successfully reviewed in Box 6 move to the Finished pool.
+    *   *Dynamic Admin Configuration & Fast Verification Mode:* All box stage review intervals (Boxes 2, 3, 4, 5) and time units (`Seconds`, `Minutes`, `Hours`, `Days`) are fully configurable by the administrator in the Web Admin Panel. Admins can select presets such as **Fast Verification Mode (1 Hour Total)** (Box 2: 5m, Box 3: 10m, Box 4: 15m, Box 5: 20m) to verify the entire end-to-end Leitner lifecycle in ~50 minutes without waiting days.
 *   **Incorrect Reset:** Answering incorrectly during review resets the card's progress back to Box 1 immediately.
-*   **Overdue Reset (Rule A):** If a card is due on a given day and the user does NOT review it on that day, the card's progress resets, and it returns to Box 1.
+*   **Overdue Reset (Rule A):** If a card is due on a given day/window and the user does NOT review it within that window, the card's progress resets, and it returns to Box 1.
 *   **Favorites Reset (Rule B):** Viewing a card from the "Favorites" screen resets its Leitner stage to Box 1 after user confirmation.
 *   **Direct View & Navigation Reset (Rule C):** Users can enter a card number to jump directly to it. If the card is in active Leitner boxes (2–5), a warning confirmation is displayed, and upon confirmation, its Leitner progress is reset to Box 1.
 *   **Finished Cards Action:** When viewing Finished Cards, pressing "Know It" does nothing; pressing "Don't Know" resets the card's progress, sending it back to Box 1.
@@ -87,6 +89,7 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
 *   Upload and manage course metadata and SQLite packages.
 *   Publish, schedule, or hide banners and announcements.
 *   *Flashcard Reports Interface:* Admin review interface to browse and filter submitted flashcard reports by card, course, or user, and flag content issues.
+*   *Dynamic Leitner Stage Intervals & 1-Hour Verification:* Configure review intervals per Leitner stage (Boxes 2–5) and time units (`Seconds`, `Minutes`, `Hours`, `Days`) with one-click presets for standard or fast verification testing (~1 hour total).
 
 ### 5. Security & Content Protection
 *   Watermarked content displays to discourage piracy.

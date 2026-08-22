@@ -169,6 +169,7 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
       databaseHelper: sl(),
       dioClient: sl(),
       eventBus: sl(),
+      configRepository: sl(),
     ),
   );
 

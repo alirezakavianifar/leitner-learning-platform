@@ -86,7 +86,12 @@ namespace LeitnerPlatform.Tests
                 new SystemConfig { Key = "enable_screenshot_protection", Value = "false" },
                 new SystemConfig { Key = "card_nav_icon_style", Value = "arrow" },
                 new SystemConfig { Key = "telegram_url", Value = "https://t.me/CustomChannel" },
-                new SystemConfig { Key = "support_url", Value = "https://t.me/CustomSupport" }
+                new SystemConfig { Key = "support_url", Value = "https://t.me/CustomSupport" },
+                new SystemConfig { Key = "leitner_box2_interval", Value = "5" },
+                new SystemConfig { Key = "leitner_box3_interval", Value = "10" },
+                new SystemConfig { Key = "leitner_box4_interval", Value = "15" },
+                new SystemConfig { Key = "leitner_box5_interval", Value = "20" },
+                new SystemConfig { Key = "leitner_interval_unit", Value = "minutes" }
             });
             await context.SaveChangesAsync();
 
@@ -103,12 +108,14 @@ namespace LeitnerPlatform.Tests
             var endpoints = type.GetProperty("endpoints")?.GetValue(okResult.Value);
             var featureFlags = type.GetProperty("feature_flags")?.GetValue(okResult.Value);
             var socialLinks = type.GetProperty("social_links")?.GetValue(okResult.Value);
+            var leitnerConfigs = type.GetProperty("leitner_configs")?.GetValue(okResult.Value);
 
             Assert.True(maintenanceMode);
             Assert.Equal("arrow", cardNavIconStyle);
             Assert.NotNull(endpoints);
             Assert.NotNull(featureFlags);
             Assert.NotNull(socialLinks);
+            Assert.NotNull(leitnerConfigs);
 
             var epType = endpoints.GetType();
             Assert.Equal("https://custom-api.com/v1", epType.GetProperty("api_server")?.GetValue(endpoints));
@@ -121,6 +128,13 @@ namespace LeitnerPlatform.Tests
             Assert.Equal("https://t.me/CustomChannel", (string?)socialType.GetProperty("telegram_url")?.GetValue(socialLinks));
             Assert.Equal("https://t.me/CustomSupport", (string?)socialType.GetProperty("support_url")?.GetValue(socialLinks));
             Assert.Equal("https://ble.ir/rightlearnapp", (string?)socialType.GetProperty("bale_url")?.GetValue(socialLinks));
+
+            var leitnerType = leitnerConfigs.GetType();
+            Assert.Equal(5, (int?)leitnerType.GetProperty("box2_interval")?.GetValue(leitnerConfigs));
+            Assert.Equal(10, (int?)leitnerType.GetProperty("box3_interval")?.GetValue(leitnerConfigs));
+            Assert.Equal(15, (int?)leitnerType.GetProperty("box4_interval")?.GetValue(leitnerConfigs));
+            Assert.Equal(20, (int?)leitnerType.GetProperty("box5_interval")?.GetValue(leitnerConfigs));
+            Assert.Equal("minutes", (string?)leitnerType.GetProperty("interval_unit")?.GetValue(leitnerConfigs));
         }
 
         [Fact]

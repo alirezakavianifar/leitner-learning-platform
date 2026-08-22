@@ -10,17 +10,52 @@ import 'package:mobile_app/core/network/dio_client.dart';
 import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 import 'package:mobile_app/features/flashcards/data/models/card_progress_model.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
+import 'package:mobile_app/features/config/domain/entities/remote_config.dart';
+import 'package:mobile_app/features/config/domain/repositories/config_repository.dart';
 
 class FlashcardRepositoryImpl implements FlashcardRepository {
   final DatabaseHelper databaseHelper;
   final DioClient dioClient;
   final EventBus eventBus;
+  final ConfigRepository? configRepository;
 
   FlashcardRepositoryImpl({
     required this.databaseHelper,
     required this.dioClient,
     required this.eventBus,
+    this.configRepository,
   });
+
+  int _getIntervalCountForBox(int box, RemoteConfig? config) {
+    if (config == null) {
+      if (box == 2) return 3;
+      if (box == 3) return 7;
+      if (box == 4) return 16;
+      if (box == 5) return 31;
+      return 0;
+    }
+    if (box == 2) return config.leitnerBox2Interval;
+    if (box == 3) return config.leitnerBox3Interval;
+    if (box == 4) return config.leitnerBox4Interval;
+    if (box == 5) return config.leitnerBox5Interval;
+    return 0;
+  }
+
+  Duration _getDurationForBox(int box, RemoteConfig? config) {
+    final count = _getIntervalCountForBox(box, config);
+    final unit = config?.leitnerIntervalUnit.toLowerCase() ?? 'days';
+    switch (unit) {
+      case 'seconds':
+        return Duration(seconds: count);
+      case 'minutes':
+        return Duration(minutes: count);
+      case 'hours':
+        return Duration(hours: count);
+      case 'days':
+      default:
+        return Duration(days: count);
+    }
+  }
 
   Future<String> _getCourseDatabasePath(String courseId) async {
     final docDir = await getApplicationDocumentsDirectory();
@@ -179,33 +214,44 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
           finishedAt: now,
         ));
       } else {
+        final config = configRepository?.getCachedConfig();
+        final unit = config?.leitnerIntervalUnit.toLowerCase() ?? 'days';
+
         // Rule 5 & 8: Promotion for Boxes 2–5 is only valid if the card is reviewed on its
-        // scheduled day. Box 1 is always eligible (first success enters Leitner immediately).
+        // scheduled day/time. Box 1 is always eligible (first success enters Leitner immediately).
         // Box 6 is always eligible (it becomes due immediately after being promoted into it).
         if (currentProgress.currentBox >= 2 && currentProgress.currentBox <= 5) {
           final dueDate = currentProgress.nextReviewDue;
           if (dueDate != null) {
-            final dueDateLocal = DateTime(dueDate.toLocal().year, dueDate.toLocal().month, dueDate.toLocal().day);
-            final todayLocal = DateTime(now.year, now.month, now.day);
-            if (dueDateLocal.isAfter(todayLocal)) {
-              // Card is not due today — silently abort promotion to enforce the Leitner schedule.
-              return;
+            if (unit == 'days') {
+              final dueDateLocal = DateTime(dueDate.toLocal().year, dueDate.toLocal().month, dueDate.toLocal().day);
+              final todayLocal = DateTime(now.year, now.month, now.day);
+              if (dueDateLocal.isAfter(todayLocal)) {
+                // Card is not due today — silently abort promotion to enforce the Leitner schedule.
+                return;
+              }
+            } else {
+              // Sub-day units (minutes, hours, seconds):
+              if (dueDate.isAfter(now)) {
+                // Card is not due yet — silently abort promotion.
+                return;
+              }
             }
           }
         }
 
         newBox = currentProgress.currentBox + 1;
-        int days = 0;
-        if (newBox == 2) days = 3;
-        if (newBox == 3) days = 7;
-        if (newBox == 4) days = 16;
-        if (newBox == 5) days = 31;
         
         if (newBox == 6) {
           newNextReviewDue = now; // Box 6 is due immediately for review to move to Finished
         } else {
-          final startOfToday = DateTime(now.year, now.month, now.day);
-          newNextReviewDue = startOfToday.add(Duration(days: days));
+          final duration = _getDurationForBox(newBox, config);
+          if (unit == 'days') {
+            final startOfToday = DateTime(now.year, now.month, now.day);
+            newNextReviewDue = startOfToday.add(duration);
+          } else {
+            newNextReviewDue = now.add(duration);
+          }
         }
         
         eventBus.fire(CardReviewed(
@@ -301,14 +347,23 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
   Future<void> checkForOverdueResets(String courseId) async {
     final localDb = await databaseHelper.localDatabase;
     final now = DateTime.now();
-    final startOfTodayLocal = DateTime(now.year, now.month, now.day);
-    final startOfTodayUtcStr = startOfTodayLocal.toUtc().toIso8601String();
+    final config = configRepository?.getCachedConfig();
+    final unit = config?.leitnerIntervalUnit.toLowerCase() ?? 'days';
 
-    // Query active Leitner cards (Boxes 2-6) whose nextReviewDue is strictly before the start of today local time
+    final String overdueUtcStr;
+    if (unit == 'days') {
+      final startOfTodayLocal = DateTime(now.year, now.month, now.day);
+      overdueUtcStr = startOfTodayLocal.toUtc().toIso8601String();
+    } else {
+      final graceDuration = config != null ? _getDurationForBox(2, config) : const Duration(minutes: 5);
+      overdueUtcStr = now.subtract(graceDuration).toUtc().toIso8601String();
+    }
+
+    // Query active Leitner cards (Boxes 2-6) whose nextReviewDue is strictly before the overdue threshold
     final List<Map<String, dynamic>> overdueMaps = await localDb.query(
       'client_progress',
       where: 'course_id = ? AND current_box >= 2 AND current_box <= 6 AND next_review_due < ?',
-      whereArgs: [courseId, startOfTodayUtcStr],
+      whereArgs: [courseId, overdueUtcStr],
     );
 
     for (final map in overdueMaps) {

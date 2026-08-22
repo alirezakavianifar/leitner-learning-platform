@@ -18,6 +18,11 @@ class RemoteConfig extends Equatable {
   final String eitaaUrl;
   final String supportUrl;
   final String supportId;
+  final int leitnerBox2Interval;
+  final int leitnerBox3Interval;
+  final int leitnerBox4Interval;
+  final int leitnerBox5Interval;
+  final String leitnerIntervalUnit;
 
   const RemoteConfig({
     required this.maintenanceMode,
@@ -37,6 +42,11 @@ class RemoteConfig extends Equatable {
     this.eitaaUrl = 'https://eitaa.com/RightLearnApp',
     this.supportUrl = 'https://t.me/RLAppSupport',
     this.supportId = '@RLAppSupport',
+    this.leitnerBox2Interval = 3,
+    this.leitnerBox3Interval = 7,
+    this.leitnerBox4Interval = 16,
+    this.leitnerBox5Interval = 31,
+    this.leitnerIntervalUnit = 'days',
   });
 
   @override
@@ -58,12 +68,18 @@ class RemoteConfig extends Equatable {
         eitaaUrl,
         supportUrl,
         supportId,
+        leitnerBox2Interval,
+        leitnerBox3Interval,
+        leitnerBox4Interval,
+        leitnerBox5Interval,
+        leitnerIntervalUnit,
       ];
 
   factory RemoteConfig.fromJson(Map<String, dynamic> json) {
     final endpoints = json['endpoints'] as Map<String, dynamic>? ?? {};
     final featureFlags = json['feature_flags'] as Map<String, dynamic>? ?? {};
     final bannerConfigs = json['banner_configs'] as Map<String, dynamic>? ?? {};
+    final leitnerConfigs = json['leitner_configs'] as Map<String, dynamic>? ?? {};
     final appStyles = json['app_styles'] as Map<String, dynamic>? ?? {};
     final socialLinks = json['social_links'] as Map<String, dynamic>? ?? {};
 
@@ -97,6 +113,21 @@ class RemoteConfig extends Equatable {
       supportId: json['support_id'] as String? ??
           socialLinks['support_id'] as String? ??
           '@RLAppSupport',
+      leitnerBox2Interval: (leitnerConfigs['box2_interval'] as num?)?.toInt() ??
+          (json['leitner_box2_interval'] as num?)?.toInt() ??
+          3,
+      leitnerBox3Interval: (leitnerConfigs['box3_interval'] as num?)?.toInt() ??
+          (json['leitner_box3_interval'] as num?)?.toInt() ??
+          7,
+      leitnerBox4Interval: (leitnerConfigs['box4_interval'] as num?)?.toInt() ??
+          (json['leitner_box4_interval'] as num?)?.toInt() ??
+          16,
+      leitnerBox5Interval: (leitnerConfigs['box5_interval'] as num?)?.toInt() ??
+          (json['leitner_box5_interval'] as num?)?.toInt() ??
+          31,
+      leitnerIntervalUnit: (leitnerConfigs['interval_unit'] as String?) ??
+          (json['leitner_interval_unit'] as String?) ??
+          'days',
     );
   }
 
@@ -109,6 +140,11 @@ class RemoteConfig extends Equatable {
       'eitaa_url': eitaaUrl,
       'support_url': supportUrl,
       'support_id': supportId,
+      'leitner_box2_interval': leitnerBox2Interval,
+      'leitner_box3_interval': leitnerBox3Interval,
+      'leitner_box4_interval': leitnerBox4Interval,
+      'leitner_box5_interval': leitnerBox5Interval,
+      'leitner_interval_unit': leitnerIntervalUnit,
       'endpoints': {
         'api_server': apiServer,
         'content_server': contentServer,
@@ -127,6 +163,13 @@ class RemoteConfig extends Equatable {
       'banner_configs': {
         'rotation_interval_seconds': rotationIntervalSeconds,
         'max_banner_count': maxBannerCount,
+      },
+      'leitner_configs': {
+        'box2_interval': leitnerBox2Interval,
+        'box3_interval': leitnerBox3Interval,
+        'box4_interval': leitnerBox4Interval,
+        'box5_interval': leitnerBox5Interval,
+        'interval_unit': leitnerIntervalUnit,
       },
       'social_links': {
         'telegram_url': telegramUrl,

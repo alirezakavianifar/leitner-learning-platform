@@ -283,6 +283,19 @@
     "bale_url_label": "Bale Messenger URL",
     "eitaa_url_label": "Eitaa Messenger URL",
     "support_url_label": "Direct Support URL (Telegram link)",
-    "support_id_label": "Support Display ID / Handle"
+    "support_id_label": "Support Display ID / Handle",
+    "section_leitner": "Leitner Spaced Repetition Stage Intervals",
+    "leitner_subtitle": "Configure review intervals for each Leitner stage. Use fast verification presets to test the complete progression within ~1 hour.",
+    "leitner_preset_standard": "Standard (Days)",
+    "leitner_preset_fast_hour": "Fast Verification (1 Hour Total)",
+    "leitner_preset_fast_10m": "Ultra-Fast (10 Mins Total)",
+    "leitner_box2_label": "Box 2 Review Interval",
+    "leitner_box3_label": "Box 3 Review Interval",
+    "leitner_box4_label": "Box 4 Review Interval",
+    "leitner_box5_label": "Box 5 Review Interval",
+    "leitner_unit_label": "Stage Interval Time Unit",
+    "unit_seconds": "Seconds",
+    "leitner_summary_label": "Total Time to Finished (Box 7):",
+    "leitner_test_hint": "In 1-Hour Verification Mode, cards in Boxes 2–5 become due in minutes (5m → 10m → 15m → 20m), allowing you to quickly verify the entire learning workflow end-to-end."
   }
 }
