@@ -34,6 +34,7 @@ import 'features/courses/data/repositories/courses_repository_impl.dart';
 import 'features/courses/domain/repositories/courses_repository.dart';
 import 'features/courses/domain/usecases/download_course.dart';
 import 'features/courses/domain/usecases/get_courses.dart';
+import 'features/courses/domain/usecases/get_courses_and_packages.dart';
 import 'features/courses/presentation/bloc/courses_bloc.dart';
 import 'features/flashcards/data/repositories/flashcard_repository_impl.dart';
 import 'features/flashcards/domain/repositories/flashcard_repository.dart';
@@ -82,11 +83,14 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
   final eventBus = EventBus();
   sl.registerSingleton<EventBus>(eventBus);
 
-  // Default development URL (can be customized via Remote Config later)
-  final defaultUrl = (kIsWeb || (!kIsWeb && Platform.isWindows))
-      ? 'http://localhost:5217/api/v1'
-      : 'http://10.0.2.2:5217/api/v1';
-  final fallbackUrl = apiBaseUrl ?? defaultUrl;
+  // Default server endpoint (defaults to production server, can be overridden via --dart-define=API_BASE_URL)
+  final String defaultUrl;
+  if (kIsWeb || (!kIsWeb && Platform.isWindows)) {
+    defaultUrl = 'http://localhost:5217/api/v1';
+  } else {
+    defaultUrl = 'http://45.94.215.188/api/v1';
+  }
+  final fallbackUrl = (apiBaseUrl != null && apiBaseUrl.isNotEmpty) ? apiBaseUrl : defaultUrl;
   final dioInstance = Dio();
   final dioClient = DioClient(
     dio: dioInstance,
@@ -203,6 +207,7 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
 
   // Courses
   sl.registerLazySingleton(() => GetCourses(sl()));
+  sl.registerLazySingleton(() => GetCoursesAndPackages(sl()));
   sl.registerLazySingleton(() => DownloadCourse(sl()));
 
   // 5. BLoC / State Management (registered as factory)
@@ -224,7 +229,7 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
   // Courses
   sl.registerFactory(
     () => CoursesBloc(
-      getCoursesUseCase: sl(),
+      getCoursesAndPackagesUseCase: sl(),
       downloadCourseUseCase: sl(),
     ),
   );

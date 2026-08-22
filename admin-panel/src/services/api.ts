@@ -257,6 +257,22 @@ export const api = {
     purgeCourse: (id: string) => request<{ success: boolean; message: string }>(`/admin/courses/${id}/purge`, {
       method: 'DELETE'
     }),
+
+    getPackages: () => request<{ success: boolean; packages: any[] }>('/admin/packages'),
+
+    createPackage: (data: any) => request<{ success: boolean; message: string; package: any }>('/admin/packages', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+    updatePackage: (id: string, data: any) => request<{ success: boolean; message: string; package: any }>(`/admin/packages/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+    deletePackage: (id: string) => request<{ success: boolean; message: string }>(`/admin/packages/${id}`, {
+      method: 'DELETE'
+    }),
     
     getUsers: (search?: string, page = 1, pageSize = 15) => {
       const params = new URLSearchParams({ page: page.toString(), pageSize: pageSize.toString() });

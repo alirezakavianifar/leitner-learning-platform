@@ -392,70 +392,95 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Color? iconColor,
     required VoidCallback onTap,
   }) {
-    return Card(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBgColor = isDark
+        ? Color.alphaBlend(AppColors.primary.withOpacity(0.14), AppColors.surface)
+        : Color.alphaBlend(AppColors.primary.withOpacity(0.075), AppColors.surface);
+    final borderColor = isDark
+        ? AppColors.primary.withOpacity(0.26)
+        : AppColors.primary.withOpacity(0.18);
+
+    return Container(
       key: key,
-      color: AppColors.surface.withOpacity(0.6),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.border),
+      decoration: BoxDecoration(
+        color: cardBgColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(isDark ? 0.12 : 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      elevation: 0,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14.0),
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
-                child: Column(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          splashColor: AppColors.primary.withOpacity(0.12),
+          highlightColor: AppColors.primary.withOpacity(0.06),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+            child: Stack(
+              children: [
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (imageAsset != null)
                       Image.asset(
                         imageAsset,
-                        width: 48,
-                        height: 48,
+                        width: 60,
+                        height: 60,
                         fit: BoxFit.contain,
                       )
                     else if (icon != null)
-                      Icon(icon, size: 28, color: iconColor ?? AppColors.primary),
-                    const SizedBox(height: 12),
+                      Icon(icon, size: 34, color: iconColor ?? AppColors.primary),
+                    const SizedBox(height: 10),
                     Text(
                       title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 13,
+                        fontSize: 13.5,
                         fontWeight: FontWeight.bold,
+                        height: 1.25,
                       ),
                     ),
                   ],
                 ),
-              ),
-              if (badgeCount != null && badgeCount > 0)
-                PositionedDirectional(
-                  top: 0,
-                  end: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: badgeColor ?? AppColors.primary,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$badgeCount',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                if (badgeCount != null && badgeCount > 0)
+                  PositionedDirectional(
+                    top: 0,
+                    end: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: badgeColor ?? AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (badgeColor ?? AppColors.primary).withOpacity(0.4),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        '$badgeCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1024,7 +1049,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisCount: 2,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
-      childAspectRatio: 1.35,
+      childAspectRatio: 1.20,
       children: [
         _buildGridCard(
           key: widget.coursesListKey,

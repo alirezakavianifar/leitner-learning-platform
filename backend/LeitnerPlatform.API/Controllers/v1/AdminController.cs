@@ -1320,9 +1320,225 @@ namespace LeitnerPlatform.API.Controllers.v1
         }
 
         #endregion
+
+        #region Package Management
+
+        [HttpGet("packages")]
+        public async Task<IActionResult> GetAdminPackages([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 15)
+        {
+            var query = _context.CoursePackages
+                .Include(p => p.Items)
+                    .ThenInclude(i => i.Course)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                var cleanSearch = search.Trim().ToLower();
+                query = query.Where(p => p.Title.ToLower().Contains(cleanSearch) || (p.Category != null && p.Category.ToLower().Contains(cleanSearch)));
+            }
+
+            var totalCount = await query.CountAsync();
+            var packages = await query
+                .OrderBy(p => p.DisplayOrder)
+                .ThenByDescending(p => p.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = packages.Select(pkg => new
+            {
+                id = pkg.Id,
+                title = pkg.Title,
+                description = pkg.Description,
+                category = pkg.Category,
+                price = pkg.Price,
+                original_price = pkg.OriginalPrice,
+                is_published = pkg.IsPublished,
+                is_archived = pkg.IsArchived,
+                display_order = pkg.DisplayOrder,
+                created_at = pkg.CreatedAt,
+                updated_at = pkg.UpdatedAt,
+                courses = pkg.Items.OrderBy(i => i.DisplayOrder).Select(i => new
+                {
+                    id = i.CourseId,
+                    title = i.Course?.Title ?? "Unknown Course",
+                    price = i.Course?.Price ?? 0m,
+                    card_count = i.Course?.CardCount ?? 0,
+                    is_published = i.Course?.IsPublished ?? false
+                }).ToList()
+            });
+
+            return Ok(new
+            {
+                success = true,
+                total_count = totalCount,
+                page = page,
+                page_size = pageSize,
+                packages = result
+            });
+        }
+
+        [HttpPost("packages")]
+        public async Task<IActionResult> CreatePackage([FromBody] CreatePackageInput input)
+        {
+            if (string.IsNullOrWhiteSpace(input.Title))
+            {
+                return BadRequest(new { success = false, message = "Package title is required." });
+            }
+
+            var package = new CoursePackage
+            {
+                Id = Guid.NewGuid(),
+                Title = input.Title.Trim(),
+                Description = input.Description,
+                Category = input.Category,
+                Price = input.Price,
+                OriginalPrice = input.OriginalPrice,
+                IsPublished = input.IsPublished,
+                DisplayOrder = input.DisplayOrder,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            if (input.CourseIds != null && input.CourseIds.Count > 0)
+            {
+                int order = 0;
+                foreach (var courseId in input.CourseIds)
+                {
+                    package.Items.Add(new CoursePackageItem
+                    {
+                        PackageId = package.Id,
+                        CourseId = courseId,
+                        DisplayOrder = order++
+                    });
+                }
+            }
+
+            await _context.CoursePackages.AddAsync(package);
+            await _context.SaveChangesAsync();
+
+            await _auditLogService.LogActionAsync(
+                GetAdminUsername(),
+                "CREATE_PACKAGE",
+                $"Package:{package.Id}",
+                null,
+                JsonSerializer.Serialize(package)
+            );
+
+            return Ok(new { success = true, message = "Package created successfully.", package_id = package.Id });
+        }
+
+        [HttpPut("packages/{id:guid}")]
+        public async Task<IActionResult> UpdatePackage(Guid id, [FromBody] UpdatePackageInput input)
+        {
+            var package = await _context.CoursePackages
+                .Include(p => p.Items)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (package == null)
+            {
+                return NotFound(new { success = false, message = "Package not found." });
+            }
+
+            var beforeJson = JsonSerializer.Serialize(package);
+
+            if (!string.IsNullOrWhiteSpace(input.Title)) package.Title = input.Title.Trim();
+            if (input.Description != null) package.Description = input.Description;
+            if (input.Category != null) package.Category = input.Category;
+            if (input.Price.HasValue) package.Price = input.Price.Value;
+            if (input.OriginalPrice.HasValue) package.OriginalPrice = input.OriginalPrice.Value;
+            if (input.IsPublished.HasValue) package.IsPublished = input.IsPublished.Value;
+            if (input.IsArchived.HasValue) package.IsArchived = input.IsArchived.Value;
+            if (input.DisplayOrder.HasValue) package.DisplayOrder = input.DisplayOrder.Value;
+            package.UpdatedAt = DateTime.UtcNow;
+
+            if (input.CourseIds != null)
+            {
+                _context.CoursePackageItems.RemoveRange(package.Items);
+                int order = 0;
+                foreach (var courseId in input.CourseIds)
+                {
+                    package.Items.Add(new CoursePackageItem
+                    {
+                        PackageId = package.Id,
+                        CourseId = courseId,
+                        DisplayOrder = order++
+                    });
+                }
+            }
+
+            _context.Entry(package).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            var afterJson = JsonSerializer.Serialize(package);
+            await _auditLogService.LogActionAsync(
+                GetAdminUsername(),
+                "UPDATE_PACKAGE",
+                $"Package:{package.Id}",
+                beforeJson,
+                afterJson
+            );
+
+            return Ok(new { success = true, message = "Package updated successfully." });
+        }
+
+        [HttpDelete("packages/{id:guid}")]
+        public async Task<IActionResult> DeletePackage(Guid id)
+        {
+            var package = await _context.CoursePackages.FindAsync(id);
+            if (package == null)
+            {
+                return NotFound(new { success = false, message = "Package not found." });
+            }
+
+            var beforeJson = JsonSerializer.Serialize(package);
+
+            package.IsArchived = true;
+            package.IsPublished = false;
+            package.UpdatedAt = DateTime.UtcNow;
+
+            _context.Entry(package).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            await _auditLogService.LogActionAsync(
+                GetAdminUsername(),
+                "ARCHIVE_PACKAGE",
+                $"Package:{id}",
+                beforeJson,
+                JsonSerializer.Serialize(package)
+            );
+
+            return Ok(new { success = true, message = "Package archived successfully." });
+        }
+
+        #endregion
     }
 
     #region Input DTOs
+
+    public class CreatePackageInput
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Category { get; set; }
+        public decimal Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
+        public bool IsPublished { get; set; } = true;
+        public int DisplayOrder { get; set; } = 0;
+        public System.Collections.Generic.List<Guid>? CourseIds { get; set; }
+    }
+
+    public class UpdatePackageInput
+    {
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public string? Category { get; set; }
+        public decimal? Price { get; set; }
+        public decimal? OriginalPrice { get; set; }
+        public bool? IsPublished { get; set; }
+        public bool? IsArchived { get; set; }
+        public int? DisplayOrder { get; set; }
+        public System.Collections.Generic.List<Guid>? CourseIds { get; set; }
+    }
 
     public class AdminCourseUpdateInput
     {

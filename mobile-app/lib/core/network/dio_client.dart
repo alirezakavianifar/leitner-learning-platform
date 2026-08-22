@@ -192,6 +192,17 @@ class DioClient {
     if (_isFailoverInProgress) return false;
     _isFailoverInProgress = true;
 
+    final currentUrl = dio.options.baseUrl.toLowerCase();
+    final currentIsRemote = !currentUrl.contains('localhost') &&
+                            !currentUrl.contains('10.0.2.2') &&
+                            !currentUrl.contains('127.0.0.1');
+
+    // Never failover a valid remote production server to internal local loopbacks
+    if (currentIsRemote) {
+      _isFailoverInProgress = false;
+      return false;
+    }
+
     final fallbacks = [
       'http://10.0.2.2:5217/api/v1',
       'http://localhost:5217/api/v1',
@@ -199,10 +210,8 @@ class DioClient {
       'http://localhost:8080/api/v1',
     ];
 
-    final currentUrl = dio.options.baseUrl;
-    
     for (final url in fallbacks) {
-      if (url == currentUrl) continue;
+      if (url.toLowerCase() == currentUrl) continue;
       
       try {
         final tempDio = Dio(BaseOptions(

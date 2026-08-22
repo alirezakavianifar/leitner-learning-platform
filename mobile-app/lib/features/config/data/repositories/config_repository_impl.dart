@@ -40,10 +40,10 @@ class ConfigRepositoryImpl implements ConfigRepository {
       // Cache settings locally
       await sharedPreferences.setString(_kCachedConfigKey, jsonEncode(config.toJson()));
       
-      // Update dynamic endpoints (only if not overridden at compile time)
+      // Update dynamic endpoints (only if not overridden at compile time and not a loopback overwriting a remote server)
       const customUrl = String.fromEnvironment('API_BASE_URL');
       if (config.apiServer.isNotEmpty && customUrl.isEmpty) {
-        dioClient.updateBaseUrl(config.apiServer);
+        _applySafeBaseUrl(config.apiServer);
       }
       
       return Right(config);
@@ -54,12 +54,25 @@ class ConfigRepositoryImpl implements ConfigRepository {
         // Still apply endpoints if we had cached values (and no compile-time override)
         const customUrl = String.fromEnvironment('API_BASE_URL');
         if (config.apiServer.isNotEmpty && customUrl.isEmpty) {
-          dioClient.updateBaseUrl(config.apiServer);
+          _applySafeBaseUrl(config.apiServer);
         }
         
         return Right(config);
       }
       return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  void _applySafeBaseUrl(String newApiServer) {
+    final newBase = newApiServer.toLowerCase().trim();
+
+    final newIsLoopback = newBase.contains('localhost') ||
+                          newBase.contains('10.0.2.2') ||
+                          newBase.contains('127.0.0.1');
+
+    // Never let a loopback address from remote config override mobile endpoints
+    if (!newIsLoopback && (newBase.startsWith('http://') || newBase.startsWith('https://'))) {
+      dioClient.updateBaseUrl(newApiServer);
     }
   }
 }

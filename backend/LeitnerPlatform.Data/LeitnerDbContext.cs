@@ -19,10 +19,76 @@ namespace LeitnerPlatform.Data
         public DbSet<Announcement> Announcements => Set<Announcement>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<SystemConfig> SystemConfigs => Set<SystemConfig>();
+        public DbSet<CoursePackage> CoursePackages => Set<CoursePackage>();
+        public DbSet<CoursePackageItem> CoursePackageItems => Set<CoursePackageItem>();
+        public DbSet<PackagePurchase> PackagePurchases => Set<PackagePurchase>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // CoursePackage mapping
+            modelBuilder.Entity<CoursePackage>(entity =>
+            {
+                entity.ToTable("course_packages");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").HasDefaultValueSql("uuid_generate_v4()");
+                entity.Property(e => e.Title).HasColumnName("title").HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Description).HasColumnName("description");
+                entity.Property(e => e.Category).HasColumnName("category").HasMaxLength(100);
+                entity.Property(e => e.Price).HasColumnName("price").HasPrecision(12, 2).HasDefaultValue(0.00);
+                entity.Property(e => e.OriginalPrice).HasColumnName("original_price").HasPrecision(12, 2);
+                entity.Property(e => e.IsPublished).HasColumnName("is_published").HasDefaultValue(true);
+                entity.Property(e => e.IsArchived).HasColumnName("is_archived").HasDefaultValue(false);
+                entity.Property(e => e.DisplayOrder).HasColumnName("display_order").HasDefaultValue(0);
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            });
+
+            // CoursePackageItem mapping
+            modelBuilder.Entity<CoursePackageItem>(entity =>
+            {
+                entity.ToTable("course_package_items");
+                entity.HasKey(e => new { e.PackageId, e.CourseId });
+                entity.Property(e => e.PackageId).HasColumnName("package_id").IsRequired();
+                entity.Property(e => e.CourseId).HasColumnName("course_id").IsRequired();
+                entity.Property(e => e.DisplayOrder).HasColumnName("display_order").HasDefaultValue(0);
+
+                entity.HasOne(e => e.Package)
+                    .WithMany(p => p.Items)
+                    .HasForeignKey(e => e.PackageId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Course)
+                    .WithMany()
+                    .HasForeignKey(e => e.CourseId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // PackagePurchase mapping
+            modelBuilder.Entity<PackagePurchase>(entity =>
+            {
+                entity.ToTable("package_purchases");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").HasDefaultValueSql("uuid_generate_v4()");
+                entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired();
+                entity.Property(e => e.PackageId).HasColumnName("package_id").IsRequired();
+                entity.Property(e => e.AmountPaid).HasColumnName("amount_paid").HasPrecision(12, 2).HasDefaultValue(0.00);
+                entity.Property(e => e.PaymentProvider).HasColumnName("payment_provider").HasMaxLength(50).IsRequired();
+                entity.Property(e => e.TransactionId).HasColumnName("transaction_id").HasMaxLength(150).IsRequired();
+                entity.Property(e => e.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue("PENDING");
+                entity.Property(e => e.PurchasedAt).HasColumnName("purchased_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Package)
+                    .WithMany()
+                    .HasForeignKey(e => e.PackageId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
             // User mapping
             modelBuilder.Entity<User>(entity =>

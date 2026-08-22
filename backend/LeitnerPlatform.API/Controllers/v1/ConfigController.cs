@@ -56,11 +56,38 @@ namespace LeitnerPlatform.API.Controllers.v1
             // Extract values with sensible defaults
             bool maintenanceMode = configs.TryGetValue("maintenance_mode", out var mVal) && bool.TryParse(mVal, out var mBool) && mBool;
             
-            string apiServer = configs.TryGetValue("api_server", out var apiVal) ? apiVal : "http://localhost:5217/api/v1";
-            string contentServer = configs.TryGetValue("content_server", out var contentVal) ? contentVal : "http://localhost:5217/api/v1";
-            string bannerServer = configs.TryGetValue("banner_server", out var bannerVal) ? bannerVal : "http://localhost:5217/api/v1";
+            var request = HttpContext?.Request;
+            string defaultServer = request != null && request.Host.HasValue 
+                ? $"{request.Scheme}://{request.Host}/api/v1" 
+                : "http://localhost:5217/api/v1";
 
-            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+            string apiServer = configs.TryGetValue("api_server", out var apiVal) && !string.IsNullOrWhiteSpace(apiVal) ? apiVal : defaultServer;
+            string contentServer = configs.TryGetValue("content_server", out var contentVal) && !string.IsNullOrWhiteSpace(contentVal) ? contentVal : defaultServer;
+            string bannerServer = configs.TryGetValue("banner_server", out var bannerVal) && !string.IsNullOrWhiteSpace(bannerVal) ? bannerVal : defaultServer;
+
+            var hostStr = request?.Host.Host;
+            bool isRemoteClient = !string.IsNullOrEmpty(hostStr) &&
+                                  !hostStr.Equals("localhost", StringComparison.OrdinalIgnoreCase) &&
+                                  !hostStr.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase) &&
+                                  !hostStr.Equals("10.0.2.2", StringComparison.OrdinalIgnoreCase);
+
+            // If the incoming request is hitting a remote production host, don't serve internal loopback addresses
+            if (isRemoteClient)
+            {
+                if (apiServer.Contains("10.0.2.2") || apiServer.Contains("localhost") || apiServer.Contains("127.0.0.1"))
+                {
+                    apiServer = defaultServer;
+                }
+                if (contentServer.Contains("10.0.2.2") || contentServer.Contains("localhost") || contentServer.Contains("127.0.0.1"))
+                {
+                    contentServer = defaultServer;
+                }
+                if (bannerServer.Contains("10.0.2.2") || bannerServer.Contains("localhost") || bannerServer.Contains("127.0.0.1"))
+                {
+                    bannerServer = defaultServer;
+                }
+            }
+            else if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
             {
                 apiServer = apiServer.Replace("8080", "5217");
                 contentServer = contentServer.Replace("8080", "5217");

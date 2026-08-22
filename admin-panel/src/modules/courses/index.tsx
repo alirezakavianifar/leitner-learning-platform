@@ -2,12 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localizeNumber, formatPrice } from '../../i18n';
 import { api } from '../../services/api';
-import type { Course, AdminModule } from '../../types';
+import type { Course, CoursePackage, AdminModule } from '../../types';
 import { useToast } from '../../components/ToastContext';
 
 export const CoursesView: React.FC = () => {
   const { t } = useTranslation();
   const toast = useToast();
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'courses' | 'packages'>('courses');
+
+  // Courses state
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -18,7 +23,7 @@ export const CoursesView: React.FC = () => {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [includeArchived, setIncludeArchived] = useState(false);
 
-  // Edit Form Fields
+  // Edit Course Form Fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -31,6 +36,22 @@ export const CoursesView: React.FC = () => {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
+  // Packages state
+  const [packages, setPackages] = useState<CoursePackage[]>([]);
+  const [loadingPackages, setLoadingPackages] = useState(false);
+  const [showPackageModal, setShowPackageModal] = useState(false);
+  const [editingPackage, setEditingPackage] = useState<CoursePackage | null>(null);
+  const [allCoursesForPackage, setAllCoursesForPackage] = useState<Course[]>([]);
+
+  // Package Form Fields
+  const [pkgTitle, setPkgTitle] = useState('');
+  const [pkgDescription, setPkgDescription] = useState('');
+  const [pkgCategory, setPkgCategory] = useState('');
+  const [pkgPrice, setPkgPrice] = useState<number>(0);
+  const [pkgOriginalPrice, setPkgOriginalPrice] = useState<number | undefined>(undefined);
+  const [pkgIsPublished, setPkgIsPublished] = useState(true);
+  const [pkgSelectedCourseIds, setPkgSelectedCourseIds] = useState<string[]>([]);
 
   const loadCourses = async () => {
     try {
@@ -45,9 +66,35 @@ export const CoursesView: React.FC = () => {
     }
   };
 
+  const loadPackages = async () => {
+    try {
+      setLoadingPackages(true);
+      const res = await api.admin.getPackages();
+      setPackages(res.packages || []);
+    } catch (err: any) {
+      toast.showError(err.message || 'Failed to load packages.');
+    } finally {
+      setLoadingPackages(false);
+    }
+  };
+
+  const loadAllCoursesForPackageSelection = async () => {
+    try {
+      const res = await api.admin.getCourses('', 1, 100, false);
+      setAllCoursesForPackage(res.courses || []);
+    } catch (err: any) {
+      // ignore
+    }
+  };
+
   useEffect(() => {
-    loadCourses();
-  }, [page, search, includeArchived]);
+    if (activeTab === 'courses') {
+      loadCourses();
+    } else {
+      loadPackages();
+      loadAllCoursesForPackageSelection();
+    }
+  }, [activeTab, page, search, includeArchived]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -179,200 +226,428 @@ export const CoursesView: React.FC = () => {
     }
   };
 
+  // --- Package Handlers ---
+  const openCreatePackage = async () => {
+    await loadAllCoursesForPackageSelection();
+    setEditingPackage(null);
+    setPkgTitle('');
+    setPkgDescription('');
+    setPkgCategory('');
+    setPkgPrice(0);
+    setPkgOriginalPrice(undefined);
+    setPkgIsPublished(true);
+    setPkgSelectedCourseIds([]);
+    setShowPackageModal(true);
+  };
+
+  const openEditPackage = async (pkg: CoursePackage) => {
+    await loadAllCoursesForPackageSelection();
+    setEditingPackage(pkg);
+    setPkgTitle(pkg.title || '');
+    setPkgDescription(pkg.description || '');
+    setPkgCategory(pkg.category || '');
+    setPkgPrice(pkg.price || 0);
+    setPkgOriginalPrice(pkg.original_price);
+    setPkgIsPublished(pkg.is_published);
+    setPkgSelectedCourseIds((pkg.courses || []).map((c) => c.id));
+    setShowPackageModal(true);
+  };
+
+  const toggleCourseSelectionInPackage = (courseId: string) => {
+    setPkgSelectedCourseIds((prev) => {
+      const next = prev.includes(courseId)
+        ? prev.filter((id) => id !== courseId)
+        : [...prev, courseId];
+
+      // Automatically recalculate original sum
+      const sum = allCoursesForPackage
+        .filter((c) => next.includes(c.id))
+        .reduce((acc, c) => acc + (c.price || 0), 0);
+      setPkgOriginalPrice(sum > 0 ? sum : undefined);
+
+      return next;
+    });
+  };
+
+  const handlePackageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pkgSelectedCourseIds.length === 0) {
+      toast.showWarning('حداقل یک دوره باید در بسته آموزشی انتخاب شود.');
+      return;
+    }
+
+    try {
+      const payload = {
+        title: pkgTitle,
+        description: pkgDescription,
+        category: pkgCategory,
+        price: pkgPrice,
+        original_price: pkgOriginalPrice,
+        is_published: pkgIsPublished,
+        course_ids: pkgSelectedCourseIds,
+      };
+
+      if (editingPackage) {
+        await api.admin.updatePackage(editingPackage.id, payload);
+        toast.showSuccess('پکیج آموزشی با موفقیت ویرایش شد.');
+      } else {
+        await api.admin.createPackage(payload);
+        toast.showSuccess('پکیج آموزشی جدید با موفقیت ایجاد شد.');
+      }
+
+      setShowPackageModal(false);
+      loadPackages();
+    } catch (err: any) {
+      toast.showError(err.message || 'خطا در ذخیره پکیج آموزشی.');
+    }
+  };
+
+  const handleDeletePackage = async (id: string) => {
+    const confirmed = await toast.confirm({
+      title: 'حذف پکیج آموزشی',
+      message: 'آیا از حذف این پکیج آموزشی اطمینان دارید؟ دوره‌های موجود در آن حذف نخواهند شد.',
+      confirmText: 'حذف پکیج',
+      cancelText: 'انصراف',
+      type: 'danger',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await api.admin.deletePackage(id);
+      toast.showSuccess('پکیج آموزشی با موفقیت حذف شد.');
+      loadPackages();
+    } catch (err: any) {
+      toast.showError(err.message || 'خطا در حذف پکیج.');
+    }
+  };
+
   return (
     <div>
-      <div className="table-container">
-        <div className="table-header" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <h2>{t('courses.title')}</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-              {t('courses.subtitle', 'Upload ZIP packages, modify pricing, difficulty levels, and publish status.')}
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '12px', marginLeft: 'auto', alignItems: 'center' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={includeArchived}
-                onChange={(e) => { setIncludeArchived(e.target.checked); setPage(1); }}
-                style={{ width: 'auto' }}
-              />
-              {t('courses.show_archived', 'Show archived')}
-            </label>
-            <input
-              type="text"
-              className="search-input"
-              placeholder={t('courses.search_placeholder')}
-              value={search}
-              onChange={handleSearchChange}
-            />
-            <button className="btn" onClick={() => setShowUploadModal(true)}>
-              {t('courses.btn_add')}
-            </button>
-          </div>
-        </div>
+      {/* Top Tab Bar */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <button
+          className={`btn ${activeTab === 'courses' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('courses')}
+        >
+          {t('courses.title')}
+        </button>
+        <button
+          className={`btn ${activeTab === 'packages' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('packages')}
+        >
+          🎁 پکیج‌ها و بسته‌های آموزشی (Bundles)
+        </button>
+      </div>
 
-        {loading ? (
-          <div className="text-center p-24">{t('login.verifying', 'Loading...')}</div>
-        ) : (
-          <div>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>{t('courses.th_title')}</th>
-                  <th>{t('courses.field_category')}</th>
-                  <th>{t('courses.th_difficulty', 'Difficulty')}</th>
-                  <th>{t('courses.th_price')}</th>
-                  <th>{t('courses.th_cards')}</th>
-                  <th>{t('courses.th_version', 'Version')}</th>
-                  <th>{t('users.th_status')}</th>
-                  <th>{t('courses.th_actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {courses.length === 0 ? (
+      {activeTab === 'courses' ? (
+        <div className="table-container">
+          <div className="table-header" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <h2>{t('courses.title')}</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
+                {t('courses.subtitle', 'Upload ZIP packages, modify pricing, difficulty levels, and publish status.')}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', marginLeft: 'auto', alignItems: 'center' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={includeArchived}
+                  onChange={(e) => { setIncludeArchived(e.target.checked); setPage(1); }}
+                  style={{ width: 'auto' }}
+                />
+                {t('courses.show_archived', 'Show archived')}
+              </label>
+              <input
+                type="text"
+                className="search-input"
+                placeholder={t('courses.search_placeholder')}
+                value={search}
+                onChange={handleSearchChange}
+              />
+              <button className="btn" onClick={() => setShowUploadModal(true)}>
+                {t('courses.btn_add')}
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="text-center p-24">{t('login.verifying', 'Loading...')}</div>
+          ) : (
+            <div>
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <td colSpan={8} className="text-center text-muted">{t('courses.no_courses', 'No courses available.')}</td>
+                    <th>{t('courses.th_title')}</th>
+                    <th>{t('courses.field_category')}</th>
+                    <th>{t('courses.th_difficulty', 'Difficulty')}</th>
+                    <th>{t('courses.th_price')}</th>
+                    <th>{t('courses.th_cards')}</th>
+                    <th>{t('courses.th_version', 'Version')}</th>
+                    <th>{t('users.th_status')}</th>
+                    <th>{t('courses.th_actions')}</th>
                   </tr>
-                ) : (
-                  courses.map((course) => (
-                    <tr key={course.id}>
-                      <td>
-                        <div style={{ fontWeight: 600, color: 'var(--text-inverse)' }}>{course.title}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {course.description || t('courses.no_description', 'No description provided')}
-                        </div>
-                      </td>
-                      <td>{course.category || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>{t('banners.status_inactive', 'None')}</span>}</td>
-                      <td>
-                        <span style={{
-                          fontSize: '12px',
-                          fontWeight: 500,
-                          color: course.difficulty === 'Advanced' ? 'var(--accent-red)' : course.difficulty === 'Intermediate' ? 'var(--accent-yellow)' : 'var(--accent-green)'
-                        }}>
-                          {course.difficulty === 'Advanced' 
-                            ? t('courses.difficulty_advanced', 'Advanced')
-                            : course.difficulty === 'Beginner'
-                            ? t('courses.difficulty_beginner', 'Beginner')
-                            : t('courses.difficulty_intermediate', 'Intermediate')}
-                        </span>
-                      </td>
-                      <td>
-                        {course.price === 0 ? (
-                          <span className="badge completed" style={{ fontSize: '10px' }}>{t('courses.status_free')}</span>
-                        ) : (
-                          `${formatPrice(course.price)} ${t('courses.irr', 'Toman')}`
-                        )}
-                      </td>
-                      <td>
-                        <strong style={{ color: 'var(--accent-cyan)' }}>{localizeNumber(course.card_count)}</strong> {t('courses.cards_unit', 'cards')}
-                      </td>
-                      <td>
-                        v{localizeNumber(course.version)}
-                        {course.is_critical_update && (
-                          <span
-                            className="badge pending"
-                            style={{ marginLeft: '6px', fontSize: '9px' }}
-                            title={t('courses.critical_update_flag_desc', 'Flagged as a critical fix - clients will be prompted to update')}
-                          >
-                            {t('courses.critical_update_flag', 'Fix')}
+                </thead>
+                <tbody>
+                  {courses.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center text-muted">{t('courses.no_courses', 'No courses available.')}</td>
+                    </tr>
+                  ) : (
+                    courses.map((course) => (
+                      <tr key={course.id}>
+                        <td>
+                          <div style={{ fontWeight: 600, color: 'var(--text-inverse)' }}>{course.title}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {course.description || t('courses.no_description', 'No description provided')}
+                          </div>
+                        </td>
+                        <td>{course.category || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>{t('banners.status_inactive', 'None')}</span>}</td>
+                        <td>
+                          <span style={{
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            backgroundColor: course.difficulty === 'Beginner' ? 'rgba(76, 175, 80, 0.15)' : course.difficulty === 'Advanced' ? 'rgba(244, 67, 54, 0.15)' : 'rgba(255, 152, 0, 0.15)',
+                            color: course.difficulty === 'Beginner' ? '#4caf50' : course.difficulty === 'Advanced' ? '#f44336' : '#ff9800'
+                          }}>
+                            {course.difficulty || 'Intermediate'}
                           </span>
-                        )}
-                      </td>
-                      <td>
-                        {course.is_archived ? (
-                          <span className="badge pending" title={t('courses.archived_desc', 'Hidden from store; existing buyers keep access')}>
-                            {t('courses.status_archived', 'Archived')}
-                          </span>
-                        ) : (
-                          <button
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: 0
-                            }}
-                            onClick={() => togglePublishStatus(course)}
-                            title="Click to toggle publish status"
-                          >
-                            <span className={`badge ${course.is_published ? 'completed' : 'pending'}`}>
-                              {course.is_published ? t('announcements.th_published', 'Published') : t('courses.status_draft', 'Draft / Private')}
+                        </td>
+                        <td>
+                          {course.price === 0 ? (
+                            <span style={{ color: 'var(--success-color)', fontWeight: 600 }}>{t('courses.free')}</span>
+                          ) : (
+                            formatPrice(course.price)
+                          )}
+                        </td>
+                        <td>{localizeNumber(course.card_count || 0)}</td>
+                        <td>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>v{course.version}</span>
+                          {course.is_critical_update && (
+                            <span style={{ fontSize: '10px', color: 'var(--danger-color)', marginLeft: '4px', border: '1px solid var(--danger-color)', padding: '1px 4px', borderRadius: '4px' }}>
+                              {t('courses.badge_critical', 'Critical')}
                             </span>
-                          </button>
-                        )}
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          <button
-                            className="btn btn-secondary"
-                            style={{ padding: '6px 12px', fontSize: '12px' }}
-                            onClick={() => openEdit(course)}
-                          >
-                            {t('courses.btn_edit')}
-                          </button>
+                          )}
+                        </td>
+                        <td>
                           {course.is_archived ? (
-                            <>
-                              <button
-                                className="btn btn-secondary"
-                                style={{ padding: '6px 12px', fontSize: '12px' }}
-                                onClick={() => handleUnarchive(course.id)}
-                              >
-                                {t('courses.btn_unarchive', 'Unarchive')}
-                              </button>
+                            <span className="badge" style={{ backgroundColor: 'rgba(158, 158, 158, 0.2)', color: '#9e9e9e' }}>
+                              {t('courses.status_archived', 'Archived')}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => togglePublishStatus(course)}
+                              className={`badge ${course.is_published ? 'badge-success' : 'badge-inactive'}`}
+                              style={{ border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              title="برای تغییر وضعیت انتشار کلیک کنید"
+                            >
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: course.is_published ? '#22c55e' : '#eab308' }} />
+                              <span>
+                                {course.is_published ? t('courses.status_published') : t('courses.status_draft')}
+                              </span>
+                            </button>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '6px 12px', fontSize: '12px' }}
+                              onClick={() => openEdit(course)}
+                            >
+                              {t('courses.btn_edit')}
+                            </button>
+                            {course.is_archived ? (
+                              <>
+                                <button
+                                  className="btn btn-secondary"
+                                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                                  onClick={() => handleUnarchive(course.id)}
+                                >
+                                  {t('courses.btn_unarchive', 'Unarchive')}
+                                </button>
+                                <button
+                                  className="btn btn-danger"
+                                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                                  onClick={() => handlePurge(course.id)}
+                                >
+                                  {t('courses.btn_purge', 'Permanently Delete')}
+                                </button>
+                              </>
+                            ) : (
                               <button
                                 className="btn btn-danger"
                                 style={{ padding: '6px 12px', fontSize: '12px' }}
-                                onClick={() => handlePurge(course.id)}
+                                onClick={() => handleDelete(course.id)}
                               >
-                                {t('courses.btn_purge', 'Permanently Delete')}
+                                {t('courses.btn_archive', 'Archive')}
                               </button>
-                            </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '16px', gap: '12px', borderTop: '1px solid var(--border-color)' }}>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ padding: '6px 12px' }}
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                  >
+                    {t('users.prev')}
+                  </button>
+                  <span style={{ alignSelf: 'center', fontSize: '14px', color: 'var(--text-muted)' }}>
+                    {t('courses.pagination_page', 'Page')} {localizeNumber(page)} {t('courses.pagination_of', 'of')} {localizeNumber(totalPages)}
+                  </span>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ padding: '6px 12px' }}
+                    disabled={page === totalPages}
+                    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                  >
+                    {t('users.next')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Packages View */
+        <div className="table-container">
+          <div className="table-header" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
+            <div>
+              <h2>🎁 پکیج‌ها و بسته‌های آموزشی</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
+                ترکیب چند دوره در یک پکیج تخفیف‌دار و امکان خرید یکجای آن‌ها توسط کاربران
+              </p>
+            </div>
+            <div style={{ marginLeft: 'auto' }}>
+              <button className="btn" onClick={openCreatePackage}>
+                + ایجاد پکیج جدید
+              </button>
+            </div>
+          </div>
+
+          {loadingPackages ? (
+            <div className="text-center p-24">درحال بارگذاری پکیج‌ها...</div>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>عنوان پکیج</th>
+                  <th>دسته‌بندی</th>
+                  <th>دوره‌های موجود در بسته</th>
+                  <th>قیمت بسته</th>
+                  <th>قیمت اصلی تکی</th>
+                  <th>تخفیف</th>
+                  <th>وضعیت انتشار</th>
+                  <th>عملیات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {packages.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="text-center text-muted">
+                      هنوز هیچ پکیج آموزشی تعریف نشده است. با کلیک بر روی «ایجاد پکیج جدید» اولین بسته را بسازید.
+                    </td>
+                  </tr>
+                ) : (
+                  packages.map((pkg) => {
+                    const discount =
+                      pkg.original_price && pkg.original_price > pkg.price
+                        ? Math.round(((pkg.original_price - pkg.price) / pkg.original_price) * 100)
+                        : 0;
+
+                    return (
+                      <tr key={pkg.id}>
+                        <td>
+                          <div style={{ fontWeight: 600, color: 'var(--text-inverse)' }}>{pkg.title}</div>
+                          {pkg.description && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {pkg.description}
+                            </div>
+                          )}
+                        </td>
+                        <td>{pkg.category || '—'}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {pkg.courses.map((c) => (
+                              <span
+                                key={c.id}
+                                style={{
+                                  fontSize: '11px',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                                  color: '#3b82f6',
+                                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                                }}
+                              >
+                                {c.title}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td style={{ fontWeight: 600, color: '#ffb300' }}>
+                          {pkg.price === 0 ? 'رایگان' : formatPrice(pkg.price)}
+                        </td>
+                        <td style={{ textDecoration: 'line-through', color: 'var(--text-muted)' }}>
+                          {pkg.original_price ? formatPrice(pkg.original_price) : '—'}
+                        </td>
+                        <td>
+                          {discount > 0 ? (
+                            <span className="badge badge-success">
+                              {discount}٪ تخفیف
+                            </span>
                           ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td>
+                          <span className={`badge ${pkg.is_published ? 'badge-success' : 'badge-inactive'}`}>
+                            {pkg.is_published ? 'منتشر شده' : 'پیش‌نویس'}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '6px 12px', fontSize: '12px' }}
+                              onClick={() => openEditPackage(pkg)}
+                            >
+                              ویرایش
+                            </button>
                             <button
                               className="btn btn-danger"
                               style={{ padding: '6px 12px', fontSize: '12px' }}
-                              onClick={() => handleDelete(course.id)}
+                              onClick={() => handleDeletePackage(pkg.id)}
                             >
-                              {t('courses.btn_archive', 'Archive')}
+                              حذف
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
+          )}
+        </div>
+      )}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '16px', gap: '12px', borderTop: '1px solid var(--border-color)' }}>
-                <button
-                  className="btn btn-secondary"
-                  style={{ padding: '6px 12px' }}
-                  disabled={page === 1}
-                  onClick={() => setPage(p => Math.max(p - 1, 1))}
-                >
-                  {t('users.prev')}
-                </button>
-                <span style={{ alignSelf: 'center', fontSize: '14px', color: 'var(--text-muted)' }}>
-                  {t('courses.pagination_page', 'Page')} {localizeNumber(page)} {t('courses.pagination_of', 'of')} {localizeNumber(totalPages)}
-                </span>
-                <button
-                  className="btn btn-secondary"
-                  style={{ padding: '6px 12px' }}
-                  disabled={page === totalPages}
-                  onClick={() => setPage(p => Math.min(p + 1, totalPages))}
-                >
-                  {t('users.next')}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Edit Modal */}
+      {/* Edit Course Modal */}
       {showEditModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
@@ -443,6 +718,150 @@ export const CoursesView: React.FC = () => {
                 </button>
                 <button type="submit" className="btn">
                   {t('courses.btn_save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Package Create / Edit Modal */}
+      {showPackageModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h3>{editingPackage ? 'ویرایش پکیج آموزشی' : 'ایجاد پکیج آموزشی جدید'}</h3>
+              <button className="refresh-captcha-btn" style={{ fontSize: '20px' }} onClick={() => setShowPackageModal(false)}>&times;</button>
+            </div>
+            <form onSubmit={handlePackageSubmit}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>عنوان بسته آموزشی *</label>
+                  <input
+                    type="text"
+                    value={pkgTitle}
+                    onChange={(e) => setPkgTitle(e.target.value)}
+                    placeholder="مثلا: پکیج طلایی ۳ در ۱ زبان انگلیسی"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>توضیحات بسته</label>
+                  <textarea
+                    rows={2}
+                    value={pkgDescription}
+                    onChange={(e) => setPkgDescription(e.target.value)}
+                    placeholder="توضیحات جامع درباره مزایای خرید این پکیج..."
+                  />
+                </div>
+                <div className="form-group">
+                  <label>دسته‌بندی</label>
+                  <input
+                    type="text"
+                    value={pkgCategory}
+                    onChange={(e) => setPkgCategory(e.target.value)}
+                    placeholder="مثلا: زبان‌های خارجی"
+                  />
+                </div>
+
+                {/* Course Selection Checklist */}
+                <div className="form-group">
+                  <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>انتخاب دوره‌های موجود در این بسته *</span>
+                    <span style={{ fontSize: '12px', color: '#3b82f6' }}>
+                      {pkgSelectedCourseIds.length} دوره انتخاب شده
+                    </span>
+                  </label>
+                  <div
+                    style={{
+                      maxHeight: '160px',
+                      overflowY: 'auto',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '8px',
+                      backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                    }}
+                  >
+                    {allCoursesForPackage.map((c) => {
+                      const isChecked = pkgSelectedCourseIds.includes(c.id);
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => toggleCourseSelectionInPackage(c.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '6px 8px',
+                            cursor: 'pointer',
+                            borderRadius: '4px',
+                            backgroundColor: isChecked ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
+                            marginBottom: '4px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {}}
+                              style={{ width: 'auto' }}
+                            />
+                            <span style={{ fontSize: '13px', fontWeight: isChecked ? 600 : 400 }}>
+                              {c.title}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                            {formatPrice(c.price)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label>قیمت اصلی تکی (مجموع)</label>
+                    <input
+                      type="number"
+                      value={pkgOriginalPrice || ''}
+                      onChange={(e) => setPkgOriginalPrice(parseFloat(e.target.value) || undefined)}
+                      placeholder="خودکار محاسبه می‌شود"
+                    />
+                  </div>
+                  <div>
+                    <label>قیمت نهایی بسته (تومان) *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={pkgPrice}
+                      onChange={(e) => setPkgPrice(parseFloat(e.target.value) || 0)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      id="pkgPublish"
+                      checked={pkgIsPublished}
+                      onChange={(e) => setPkgIsPublished(e.target.checked)}
+                      style={{ width: 'auto' }}
+                    />
+                    <label htmlFor="pkgPublish" style={{ margin: 0, cursor: 'pointer' }}>
+                      انتشار و نمایش فوری در بخش دوره‌های اپلیکیشن
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPackageModal(false)}>
+                  انصراف
+                </button>
+                <button type="submit" className="btn">
+                  ذخیره پکیج آموزشی
                 </button>
               </div>
             </form>

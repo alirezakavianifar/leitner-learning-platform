@@ -6,12 +6,14 @@ import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/core/services/payment_provider.dart';
 import 'package:mobile_app/injection_container.dart';
 import 'package:mobile_app/features/courses/domain/entities/course.dart';
+import 'package:mobile_app/features/courses/domain/entities/course_package.dart';
 import 'package:mobile_app/features/courses/presentation/bloc/courses_bloc.dart';
 import 'package:mobile_app/features/courses/presentation/bloc/courses_event.dart';
 import 'package:mobile_app/features/courses/presentation/bloc/courses_state.dart';
+import 'package:mobile_app/features/courses/presentation/widgets/package_card.dart';
+import 'package:mobile_app/features/courses/presentation/widgets/package_details_modal.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
 import 'package:mobile_app/core/error/error_formatter.dart';
-
 
 class CoursesScreen extends StatefulWidget {
   final ValueNotifier<int>? tabNotifier;
@@ -23,6 +25,7 @@ class CoursesScreen extends StatefulWidget {
 
 class _CoursesScreenState extends State<CoursesScreen> {
   late int _selectedTab;
+  int _catalogFilterIndex = 0; // 0: All, 1: Single Courses, 2: Packages
 
   @override
   void initState() {
@@ -199,6 +202,62 @@ class _CoursesScreenState extends State<CoursesScreen> {
     );
   }
 
+  Widget _buildFilterChips(int packagesCount) {
+    final loc = AppLocalizations.of(context);
+    final chips = [
+      {'index': 0, 'label': loc.translate('filter_all'), 'icon': Icons.grid_view},
+      {'index': 1, 'label': loc.translate('filter_individual'), 'icon': Icons.menu_book},
+      if (packagesCount > 0)
+        {'index': 2, 'label': loc.translate('filter_bundles'), 'icon': Icons.auto_awesome},
+    ];
+
+    return Container(
+      height: 40,
+      margin: const EdgeInsets.only(top: 4, bottom: 8),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: chips.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, idx) {
+          final item = chips[idx];
+          final index = item['index'] as int;
+          final isSelected = _catalogFilterIndex == index;
+          return ChoiceChip(
+            showCheckmark: false,
+            avatar: Icon(
+              item['icon'] as IconData,
+              size: 14,
+              color: isSelected ? Colors.white : AppColors.textSecondary,
+            ),
+            label: Text(
+              item['label'] as String,
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            selected: isSelected,
+            selectedColor: AppColors.primary,
+            backgroundColor: AppColors.surface.withOpacity(0.7),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(
+                color: isSelected ? AppColors.primary : AppColors.border,
+              ),
+            ),
+            onSelected: (val) {
+              if (val) {
+                setState(() => _catalogFilterIndex = index);
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -227,15 +286,18 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 }
 
                 List<Course> courses = [];
+                List<CoursePackage> packages = [];
                 bool isOffline = false;
                 String? downloadingCourseId;
                 double downloadProgress = 0.0;
 
                 if (state is CoursesLoaded) {
                   courses = state.courses;
+                  packages = state.packages;
                   isOffline = state.isOffline;
                 } else if (state is CourseDownloading) {
                   courses = state.currentCourses;
+                  packages = state.currentPackages;
                   isOffline = state.isOffline;
                   downloadingCourseId = state.courseId;
                   downloadProgress = state.progress;
@@ -270,6 +332,16 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   sortedCourses = sortedCourses.where((c) => c.isDownloaded).toList();
                 }
 
+                final shouldShowPackages = _selectedTab == 0 &&
+                    (_catalogFilterIndex == 0 || _catalogFilterIndex == 2) &&
+                    packages.isNotEmpty;
+
+                final shouldShowCourses = _selectedTab == 1 ||
+                    _catalogFilterIndex == 0 ||
+                    _catalogFilterIndex == 1;
+
+                final displayedCourses = shouldShowCourses ? sortedCourses : <Course>[];
+
                 return RefreshIndicator(
                   color: AppColors.primary,
                   backgroundColor: AppColors.surface,
@@ -278,6 +350,10 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   },
                   child: CustomScrollView(
                     slivers: [
+                      if (_selectedTab == 0)
+                        SliverToBoxAdapter(
+                          child: _buildFilterChips(packages.length),
+                        ),
                       if (isOffline)
                         SliverToBoxAdapter(
                           child: Container(
@@ -296,7 +372,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                 Expanded(
                                   child: Text(
                                     loc.translate('offline_catalog_warning'),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Color(0xFFFFB74D),
                                       fontSize: 13,
                                       height: 1.4,
@@ -307,7 +383,33 @@ class _CoursesScreenState extends State<CoursesScreen> {
                             ),
                           ),
                         ),
-                      if (sortedCourses.isEmpty)
+
+                      // Bundles Section (when applicable)
+                      if (shouldShowPackages) ...[
+                        SliverPadding(
+                          padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 4),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final pkg = packages[index];
+                                return PackageCard(
+                                  package: pkg,
+                                  onTap: () => PackageDetailsModal.show(
+                                    context,
+                                    package: pkg,
+                                    onPurchase: () => _purchasePackage(pkg),
+                                  ),
+                                  onPurchase: () => _purchasePackage(pkg),
+                                );
+                              },
+                              childCount: packages.length,
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      // Course List Section
+                      if (displayedCourses.isEmpty && (!shouldShowPackages || packages.isEmpty))
                         SliverFillRemaining(
                           child: Center(
                             child: Text(
@@ -318,21 +420,36 @@ class _CoursesScreenState extends State<CoursesScreen> {
                             ),
                           ),
                         )
-                      else
+                      else if (shouldShowCourses && displayedCourses.isNotEmpty)
                         SliverPadding(
-                          padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 80),
+                          padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 80),
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
-                                final course = sortedCourses[index];
+                                final course = displayedCourses[index];
                                 final isDownloading = downloadingCourseId == course.id;
-                                return _buildCourseCard(course, isDownloading, downloadProgress);
+
+                                // Check if this course belongs to any active package
+                                CoursePackage? parentPackage;
+                                try {
+                                  parentPackage = packages.firstWhere(
+                                    (pkg) => pkg.courses.any((c) => c.id == course.id),
+                                  );
+                                } catch (_) {
+                                  parentPackage = null;
+                                }
+
+                                return _buildCourseCard(
+                                  course,
+                                  isDownloading,
+                                  downloadProgress,
+                                  parentPackage,
+                                );
                               },
-                              childCount: sortedCourses.length,
+                              childCount: displayedCourses.length,
                             ),
                           ),
                         ),
-
                     ],
                   ),
                 );
@@ -342,6 +459,126 @@ class _CoursesScreenState extends State<CoursesScreen> {
         ],
       ),
     );
+  }
+
+  void _purchasePackage(CoursePackage package) async {
+    final config = sl<AppConfig>();
+    final loc = AppLocalizations.of(context);
+
+    if (config.isPremium) {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: AppColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    '${loc.translate('select_payment_method')} (${package.title})',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  ListTile(
+                    leading: Icon(Icons.payment, color: AppColors.primary),
+                    title: Text(loc.translate('zarinpal_gateway'), style: TextStyle(color: AppColors.textPrimary)),
+                    onTap: () => _processPackagePurchase(package, sl<DirectPaymentProvider>()),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.store, color: AppColors.secondary),
+                    title: Text(loc.translate('bazaar_billing'), style: TextStyle(color: AppColors.textPrimary)),
+                    onTap: () => _processPackagePurchase(package, sl<BazaarPaymentProvider>()),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.shopping_bag_outlined, color: AppColors.secondary),
+                    title: Text(loc.translate('myket_billing'), style: TextStyle(color: AppColors.textPrimary)),
+                    onTap: () => _processPackagePurchase(package, sl<MyketPaymentProvider>()),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.shop_two, color: Colors.blue),
+                    title: Text(loc.translate('google_play_iap'), style: TextStyle(color: AppColors.textPrimary)),
+                    onTap: () => _processPackagePurchase(package, sl<GooglePlayPaymentProvider>()),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: Text(
+              loc.translate('purchase_bundle'),
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            content: Text(
+              loc.translate('iap_not_supported_desc'),
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                onPressed: () => Navigator.pop(context),
+                child: Text(loc.translate('visit_website')),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  void _processPackagePurchase(CoursePackage package, PaymentProvider provider) async {
+    final loc = AppLocalizations.of(context);
+    Navigator.pop(context); // Close modal
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+
+    final success = await provider.purchasePackage(package.id);
+    Navigator.pop(context); // Close loading dialog
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.translate('bundle_unlocked_success').replaceAll('{title}', package.title)),
+          backgroundColor: AppColors.courseDownloaded,
+        ),
+      );
+      // Reload courses to reflect newly unlocked courses in both Catalog and My Courses
+      context.read<CoursesBloc>().add(LoadCoursesEvent());
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.translate('purchase_failed')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   void _purchaseCourse(Course course) async {
@@ -470,10 +707,16 @@ class _CoursesScreenState extends State<CoursesScreen> {
     }
   }
 
-  Widget _buildCourseCard(Course course, bool isDownloading, [double downloadProgress = 0.0]) {
+  Widget _buildCourseCard(
+    Course course,
+    bool isDownloading, [
+    double downloadProgress = 0.0,
+    CoursePackage? parentPackage,
+  ]) {
     final borderColor = course.isDownloaded
         ? AppColors.courseDownloaded
         : AppColors.courseNotDownloaded;
+    final loc = AppLocalizations.of(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -549,6 +792,39 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                   ),
                                 ),
                             ],
+                          ),
+                        ],
+                        if (parentPackage != null && !course.isPurchased && !parentPackage.isPurchased) ...[
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () => PackageDetailsModal.show(
+                              context,
+                              package: parentPackage,
+                              onPurchase: () => _purchasePackage(parentPackage),
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFF9800).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFFFF9800).withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.auto_awesome, size: 12, color: Color(0xFFFF9800)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    loc.translate('available_in_bundle').replaceAll('{bundle}', parentPackage.title),
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFB300),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ],

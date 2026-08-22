@@ -209,6 +209,180 @@ namespace LeitnerPlatform.API.Controllers.v1
         }
 
 
+        [HttpPost("package")]
+        public async Task<IActionResult> CreatePackagePurchase([FromBody] CreatePackagePurchaseInput input)
+        {
+            var userId = GetUserId();
+            if (userId == Guid.Empty)
+            {
+                return Unauthorized(new { success = false, message = "User not found or token invalid." });
+            }
+
+            var pkg = await _context.CoursePackages
+                .Include(p => p.Items)
+                .FirstOrDefaultAsync(p => p.Id == input.PackageId);
+
+            if (pkg == null)
+            {
+                return NotFound(new { success = false, message = "Package not found." });
+            }
+
+            var provider = input.PaymentProvider ?? "DIRECT";
+            var transactionId = input.TransactionId ?? $"PKG_TX_{Guid.NewGuid().ToString("N").Substring(0, 10).ToUpper()}";
+
+            var existingPkgPurchase = await _context.PackagePurchases
+                .FirstOrDefaultAsync(p => p.UserId == userId && p.PackageId == input.PackageId);
+
+            if (existingPkgPurchase == null)
+            {
+                existingPkgPurchase = new PackagePurchase
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    PackageId = input.PackageId,
+                    AmountPaid = pkg.Price,
+                    PaymentProvider = provider,
+                    TransactionId = transactionId,
+                    Status = "COMPLETED",
+                    PurchasedAt = DateTime.UtcNow
+                };
+                await _context.PackagePurchases.AddAsync(existingPkgPurchase);
+            }
+            else
+            {
+                existingPkgPurchase.Status = "COMPLETED";
+                existingPkgPurchase.PaymentProvider = provider;
+                existingPkgPurchase.TransactionId = transactionId;
+                existingPkgPurchase.AmountPaid = pkg.Price;
+                existingPkgPurchase.PurchasedAt = DateTime.UtcNow;
+                _context.Entry(existingPkgPurchase).State = EntityState.Modified;
+            }
+
+            // Unlock all constituent courses
+            var courseIds = pkg.Items.Select(i => i.CourseId).ToList();
+            foreach (var courseId in courseIds)
+            {
+                var existingCoursePurchase = await _context.Purchases
+                    .FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == courseId);
+
+                if (existingCoursePurchase == null)
+                {
+                    var coursePurchase = new Purchase
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        CourseId = courseId,
+                        PaymentProvider = $"{provider}_BUNDLE",
+                        TransactionId = $"{transactionId}_{courseId.ToString("N").Substring(0, 6)}",
+                        Status = "COMPLETED",
+                        PurchasedAt = DateTime.UtcNow
+                    };
+                    await _context.Purchases.AddAsync(coursePurchase);
+                    await _eventBus.PublishAsync(new PurchaseCompletedEvent(coursePurchase));
+                }
+                else if (existingCoursePurchase.Status != "COMPLETED")
+                {
+                    existingCoursePurchase.Status = "COMPLETED";
+                    existingCoursePurchase.PaymentProvider = $"{provider}_BUNDLE";
+                    existingCoursePurchase.TransactionId = $"{transactionId}_{courseId.ToString("N").Substring(0, 6)}";
+                    existingCoursePurchase.PurchasedAt = DateTime.UtcNow;
+                    _context.Entry(existingCoursePurchase).State = EntityState.Modified;
+                    await _eventBus.PublishAsync(new PurchaseCompletedEvent(existingCoursePurchase));
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Package purchased successfully and all courses unlocked.",
+                package_purchase = existingPkgPurchase
+            });
+        }
+
+        [HttpPost("zarinpal/package-request")]
+        public async Task<IActionResult> RequestZarinPalPackagePayment([FromBody] ZarinPalPackagePurchaseInput input)
+        {
+            var userId = GetUserId();
+            _logger.LogInformation("PurchaseController: RequestZarinPalPackagePayment: Start. UserId={UserId}, PackageId={PackageId}", userId, input.PackageId);
+
+            if (userId == Guid.Empty)
+            {
+                return Unauthorized(new { success = false, message = "User not found or token invalid." });
+            }
+
+            var pkg = await _context.CoursePackages
+                .Include(p => p.Items)
+                .FirstOrDefaultAsync(p => p.Id == input.PackageId);
+
+            if (pkg == null)
+            {
+                return NotFound(new { success = false, message = "Package not found." });
+            }
+
+            var existingPkgPurchase = await _context.PackagePurchases
+                .FirstOrDefaultAsync(p => p.UserId == userId && p.PackageId == input.PackageId);
+
+            if (existingPkgPurchase != null && existingPkgPurchase.Status == "COMPLETED")
+            {
+                return Ok(new { success = true, message = "Package already purchased.", already_purchased = true, purchase = existingPkgPurchase });
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            var mobile = user?.MobileNumber;
+            string? email = null;
+
+            var callbackUrl = Environment.GetEnvironmentVariable("ZARINPAL_CALLBACK_URL")
+                              ?? _configuration["ZarinPal:CallbackUrl"]
+                              ?? $"{Request.Scheme}://{Request.Host}/api/v1/purchases/zarinpal/callback";
+
+            var amountInToman = pkg.Price;
+            var description = $"Purchase bundle package: {pkg.Title}";
+
+            var requestResult = await _zarinPalService.RequestPaymentAsync(amountInToman, description, callbackUrl, mobile, email);
+
+            if (!requestResult.IsSuccess)
+            {
+                _logger.LogError("PurchaseController: RequestZarinPalPackagePayment: ZarinPal request failed: {Message}", requestResult.Message);
+                return BadRequest(new { success = false, message = requestResult.Message, code = requestResult.Code });
+            }
+
+            if (existingPkgPurchase != null)
+            {
+                existingPkgPurchase.Status = "PENDING";
+                existingPkgPurchase.PaymentProvider = "ZARINPAL";
+                existingPkgPurchase.TransactionId = requestResult.Authority;
+                existingPkgPurchase.AmountPaid = pkg.Price;
+                _context.Entry(existingPkgPurchase).State = EntityState.Modified;
+            }
+            else
+            {
+                existingPkgPurchase = new PackagePurchase
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    PackageId = input.PackageId,
+                    AmountPaid = pkg.Price,
+                    PaymentProvider = "ZARINPAL",
+                    TransactionId = requestResult.Authority,
+                    Status = "PENDING",
+                    PurchasedAt = DateTime.UtcNow
+                };
+                await _context.PackagePurchases.AddAsync(existingPkgPurchase);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                purchase_id = existingPkgPurchase.Id,
+                authority = requestResult.Authority,
+                payment_url = requestResult.PaymentUrl
+            });
+        }
+
         [AllowAnonymous]
         [HttpGet("zarinpal/callback")]
         public async Task<IActionResult> ZarinPalCallback([FromQuery] string? Authority, [FromQuery] string? Status, [FromQuery] string? authority, [FromQuery] string? status)
@@ -224,18 +398,146 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return Content("<html><body><h2>Invalid Payment Response</h2><p>Authority parameter is missing.</p></body></html>", "text/html");
             }
 
-            var purchase = await _context.Purchases
+            // Check if this authority belongs to a Course purchase or a Package purchase
+            var coursePurchase = await _context.Purchases
                 .Include(p => p.Course)
                 .FirstOrDefaultAsync(p => p.TransactionId == auth || p.Id.ToString() == auth);
 
-            if (purchase == null)
+            var packagePurchase = await _context.PackagePurchases
+                .Include(p => p.Package)
+                    .ThenInclude(pkg => pkg!.Items)
+                .FirstOrDefaultAsync(p => p.TransactionId == auth || p.Id.ToString() == auth);
+
+            if (coursePurchase == null && packagePurchase == null)
             {
-                _logger.LogWarning("PurchaseController: ZarinPalCallback: Purchase not found for Authority '{Authority}'", auth);
+                _logger.LogWarning("PurchaseController: ZarinPalCallback: Transaction record not found for Authority '{Authority}'", auth);
                 return Content("<html><body><h2>Transaction Not Found</h2><p>Payment transaction record could not be found.</p></body></html>", "text/html");
             }
 
-            _logger.LogInformation("PurchaseController: ZarinPalCallback: Found purchase {PurchaseId}, status is {Status}", purchase.Id, purchase.Status);
+            // 1. Handle Package Purchase Callback
+            if (packagePurchase != null)
+            {
+                if (packagePurchase.Status == "COMPLETED")
+                {
+                    var successHtml = $@"<!DOCTYPE html>
+<html>
+<head><title>Payment Successful</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
+<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
+  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
+    <h2 style='color:#2e7d32;'>Payment Completed</h2>
+    <p>Your package <strong>{packagePurchase.Package?.Title}</strong> has already been unlocked!</p>
+    <p>Ref ID: <code>{packagePurchase.TransactionId}</code></p>
+    <a href='leitnerapp://payment-result?status=success&ref_id={packagePurchase.TransactionId}' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#1976d2; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
+  </div>
+</body>
+</html>";
+                    return Content(successHtml, "text/html");
+                }
 
+                if (stat != "OK")
+                {
+                    packagePurchase.Status = "CANCELLED";
+                    _context.Entry(packagePurchase).State = EntityState.Modified;
+                    await _context.SaveChangesAsync();
+
+                    var cancelHtml = $@"<!DOCTYPE html>
+<html>
+<head><title>Payment Cancelled</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
+<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
+  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
+    <h2 style='color:#c62828;'>Payment Cancelled</h2>
+    <p>The transaction was cancelled or unsuccessful.</p>
+    <a href='leitnerapp://payment-result?status=cancelled' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#757575; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
+  </div>
+</body>
+</html>";
+                    return Content(cancelHtml, "text/html");
+                }
+
+                var pkgPrice = packagePurchase.Package?.Price ?? packagePurchase.AmountPaid;
+                var verifyResult = await _zarinPalService.VerifyPaymentAsync(pkgPrice, auth);
+
+                if (verifyResult.IsSuccess)
+                {
+                    packagePurchase.Status = "COMPLETED";
+                    packagePurchase.TransactionId = verifyResult.RefId.ToString();
+                    packagePurchase.PurchasedAt = DateTime.UtcNow;
+                    _context.Entry(packagePurchase).State = EntityState.Modified;
+
+                    // Grant all constituent courses
+                    if (packagePurchase.Package?.Items != null)
+                    {
+                        foreach (var item in packagePurchase.Package.Items)
+                        {
+                            var cPurchase = await _context.Purchases
+                                .FirstOrDefaultAsync(p => p.UserId == packagePurchase.UserId && p.CourseId == item.CourseId);
+
+                            if (cPurchase == null)
+                            {
+                                cPurchase = new Purchase
+                                {
+                                    Id = Guid.NewGuid(),
+                                    UserId = packagePurchase.UserId,
+                                    CourseId = item.CourseId,
+                                    PaymentProvider = "ZARINPAL_BUNDLE",
+                                    TransactionId = $"{verifyResult.RefId}_{item.CourseId.ToString("N").Substring(0, 6)}",
+                                    Status = "COMPLETED",
+                                    PurchasedAt = DateTime.UtcNow
+                                };
+                                await _context.Purchases.AddAsync(cPurchase);
+                                await _eventBus.PublishAsync(new PurchaseCompletedEvent(cPurchase));
+                            }
+                            else if (cPurchase.Status != "COMPLETED")
+                            {
+                                cPurchase.Status = "COMPLETED";
+                                cPurchase.PaymentProvider = "ZARINPAL_BUNDLE";
+                                cPurchase.TransactionId = $"{verifyResult.RefId}_{item.CourseId.ToString("N").Substring(0, 6)}";
+                                cPurchase.PurchasedAt = DateTime.UtcNow;
+                                _context.Entry(cPurchase).State = EntityState.Modified;
+                                await _eventBus.PublishAsync(new PurchaseCompletedEvent(cPurchase));
+                            }
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    var successHtml = $@"<!DOCTYPE html>
+<html>
+<head><title>Payment Successful</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
+<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
+  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
+    <h2 style='color:#2e7d32;'>Payment Verified Successfully</h2>
+    <p>Thank you! Access to package <strong>{packagePurchase.Package?.Title}</strong> and all its courses is now active.</p>
+    <p>Reference Code (RefID): <strong style='font-size:18px; color:#1565c0;'>{verifyResult.RefId}</strong></p>
+    <a href='leitnerapp://payment-result?status=success&ref_id={verifyResult.RefId}' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#1976d2; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
+  </div>
+</body>
+</html>";
+                    return Content(successHtml, "text/html");
+                }
+                else
+                {
+                    packagePurchase.Status = "FAILED";
+                    _context.Entry(packagePurchase).State = EntityState.Modified;
+                    await _context.SaveChangesAsync();
+
+                    var failHtml = $@"<!DOCTYPE html>
+<html>
+<head><title>Payment Verification Failed</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
+<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
+  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
+    <h2 style='color:#c62828;'>Payment Verification Failed</h2>
+    <p>{verifyResult.Message}</p>
+    <a href='leitnerapp://payment-result?status=failed' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#757575; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
+  </div>
+</body>
+</html>";
+                    return Content(failHtml, "text/html");
+                }
+            }
+
+            // 2. Handle Individual Course Purchase Callback
+            var purchase = coursePurchase!;
             if (purchase.Status == "COMPLETED")
             {
                 _logger.LogInformation("PurchaseController: ZarinPalCallback: Purchase is already COMPLETED. Directing back to app.");
@@ -277,15 +579,15 @@ namespace LeitnerPlatform.API.Controllers.v1
 
             var coursePrice = purchase.Course?.Price ?? 0m;
             _logger.LogInformation("PurchaseController: ZarinPalCallback: Verifying payment for purchase {PurchaseId}, Price={Price}", purchase.Id, coursePrice);
-            var verifyResult = await _zarinPalService.VerifyPaymentAsync(coursePrice, auth);
+            var singleVerifyResult = await _zarinPalService.VerifyPaymentAsync(coursePrice, auth);
 
             _logger.LogInformation("PurchaseController: ZarinPalCallback: Verify result: Success={Success}, Code={Code}, Message='{Message}', RefId={RefId}",
-                verifyResult.IsSuccess, verifyResult.Code, verifyResult.Message, verifyResult.RefId);
+                singleVerifyResult.IsSuccess, singleVerifyResult.Code, singleVerifyResult.Message, singleVerifyResult.RefId);
 
-            if (verifyResult.IsSuccess)
+            if (singleVerifyResult.IsSuccess)
             {
                 purchase.Status = "COMPLETED";
-                purchase.TransactionId = verifyResult.RefId.ToString();
+                purchase.TransactionId = singleVerifyResult.RefId.ToString();
                 purchase.PurchasedAt = DateTime.UtcNow;
 
                 _context.Entry(purchase).State = EntityState.Modified;
@@ -301,8 +603,8 @@ namespace LeitnerPlatform.API.Controllers.v1
   <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
     <h2 style='color:#2e7d32;'>Payment Verified Successfully</h2>
     <p>Thank you! Access to <strong>{purchase.Course?.Title}</strong> is now active.</p>
-    <p>Reference Code (RefID): <strong style='font-size:18px; color:#1565c0;'>{verifyResult.RefId}</strong></p>
-    <a href='leitnerapp://payment-result?status=success&ref_id={verifyResult.RefId}' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#1976d2; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
+    <p>Reference Code (RefID): <strong style='font-size:18px; color:#1565c0;'>{singleVerifyResult.RefId}</strong></p>
+    <a href='leitnerapp://payment-result?status=success&ref_id={singleVerifyResult.RefId}' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#1976d2; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
   </div>
 </body>
 </html>";
@@ -310,7 +612,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             }
             else
             {
-                _logger.LogError("PurchaseController: ZarinPalCallback: Verification failed: {Message}", verifyResult.Message);
+                _logger.LogError("PurchaseController: ZarinPalCallback: Verification failed: {Message}", singleVerifyResult.Message);
 
                 purchase.Status = "FAILED";
                 _context.Entry(purchase).State = EntityState.Modified;
@@ -322,7 +624,7 @@ namespace LeitnerPlatform.API.Controllers.v1
 <body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
   <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
     <h2 style='color:#c62828;'>Payment Verification Failed</h2>
-    <p>{verifyResult.Message}</p>
+    <p>{singleVerifyResult.Message}</p>
     <a href='leitnerapp://payment-result?status=failed' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#757575; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
   </div>
 </body>
@@ -362,9 +664,21 @@ namespace LeitnerPlatform.API.Controllers.v1
         public string? TransactionId { get; set; }
     }
 
+    public class CreatePackagePurchaseInput
+    {
+        public Guid PackageId { get; set; }
+        public string? PaymentProvider { get; set; }
+        public string? TransactionId { get; set; }
+    }
+
     public class ZarinPalPurchaseInput
     {
         public Guid CourseId { get; set; }
+    }
+
+    public class ZarinPalPackagePurchaseInput
+    {
+        public Guid PackageId { get; set; }
     }
 }
 

@@ -81,7 +81,7 @@ class DatabaseHelper {
     // Using standard sqflite for maximum compatibility across test and local compilation setups:
     return await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -185,6 +185,34 @@ class DatabaseHelper {
         published_at TEXT NOT NULL
       )
     ''');
+
+    // H. packages_cache
+    await db.execute('''
+      CREATE TABLE packages_cache (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        category TEXT,
+        price REAL NOT NULL,
+        original_price REAL,
+        discount_percentage INTEGER NOT NULL DEFAULT 0,
+        total_card_count INTEGER NOT NULL DEFAULT 0,
+        is_purchased INTEGER NOT NULL DEFAULT 0,
+        courses_count INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
+
+    // I. package_courses_cache
+    await db.execute('''
+      CREATE TABLE package_courses_cache (
+        package_id TEXT NOT NULL,
+        course_id TEXT NOT NULL,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (package_id, course_id)
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -259,6 +287,32 @@ class DatabaseHelper {
           await db.execute(ddl);
         } catch (_) {}
       }
+    }
+    if (oldVersion < 7) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS packages_cache (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          category TEXT,
+          price REAL NOT NULL,
+          original_price REAL,
+          discount_percentage INTEGER NOT NULL DEFAULT 0,
+          total_card_count INTEGER NOT NULL DEFAULT 0,
+          is_purchased INTEGER NOT NULL DEFAULT 0,
+          courses_count INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT,
+          updated_at TEXT
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS package_courses_cache (
+          package_id TEXT NOT NULL,
+          course_id TEXT NOT NULL,
+          display_order INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (package_id, course_id)
+        )
+      ''');
     }
   }
 

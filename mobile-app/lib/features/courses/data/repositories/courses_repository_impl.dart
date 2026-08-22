@@ -8,7 +8,9 @@ import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/core/usecase/usecase.dart';
 import 'package:mobile_app/features/courses/data/datasources/courses_local_data_source.dart';
 import 'package:mobile_app/features/courses/data/datasources/courses_remote_data_source.dart';
+import 'package:mobile_app/features/courses/data/models/course_package_model.dart';
 import 'package:mobile_app/features/courses/domain/entities/course.dart';
+import 'package:mobile_app/features/courses/domain/entities/course_package.dart';
 import 'package:mobile_app/features/courses/domain/repositories/courses_repository.dart';
 
 class CoursesRepositoryImpl implements CoursesRepository {
@@ -52,6 +54,83 @@ class CoursesRepositoryImpl implements CoursesRepository {
         return Left(NetworkFailure('No internet connection and no cached courses found.'));
       } catch (cacheErr) {
         return Left(CacheFailure('Failed to load local courses cache: ${cacheErr.toString()}'));
+      }
+    }
+  }
+
+  @override
+  Future<Either<Failure, (List<CoursePackage> packages, bool isOffline)>> getPackages() async {
+    try {
+      final remotePackages = await remoteDataSource.getPackages();
+      if (kIsWeb) {
+        return Right((remotePackages, false));
+      }
+
+      await localDataSource.cachePackages(remotePackages);
+      final cachedPackages = await localDataSource.getCachedPackages();
+      return Right((cachedPackages, false));
+    } catch (e) {
+      if (kIsWeb) {
+        return Left(NetworkFailure('Failed to load packages: ${e.toString()}'));
+      }
+      try {
+        final cachedPackages = await localDataSource.getCachedPackages();
+        if (cachedPackages.isNotEmpty) {
+          return Right((cachedPackages, true));
+        }
+        return Right((const [], true));
+      } catch (cacheErr) {
+        return Left(CacheFailure('Failed to load local packages cache: ${cacheErr.toString()}'));
+      }
+    }
+  }
+
+  @override
+  Future<Either<Failure, (List<Course> courses, List<CoursePackage> packages, bool isOffline)>> getCoursesAndPackages() async {
+    try {
+      // 1. Fetch remote courses (primary source of online connectivity)
+      final remoteCourses = await remoteDataSource.getCourses();
+
+      // 2. Fetch remote packages (safely handle errors/404s)
+      List<CoursePackageModel> remotePackages = [];
+      try {
+        remotePackages = await remoteDataSource.getPackages();
+      } catch (_) {
+        remotePackages = [];
+      }
+
+      if (kIsWeb) {
+        return Right((
+          remoteCourses,
+          remotePackages,
+          false,
+        ));
+      }
+
+      // 3. Cache locally
+      await localDataSource.cacheCourses(remoteCourses);
+      if (remotePackages.isNotEmpty) {
+        await localDataSource.cachePackages(remotePackages);
+      }
+
+      final cachedCourses = await localDataSource.getCachedCourses();
+      final cachedPackages = await localDataSource.getCachedPackages();
+
+      return Right((cachedCourses, cachedPackages, false));
+    } catch (e) {
+      if (kIsWeb) {
+        return Left(NetworkFailure('Failed to load catalog: ${e.toString()}'));
+      }
+      try {
+        final cachedCourses = await localDataSource.getCachedCourses();
+        final cachedPackages = await localDataSource.getCachedPackages();
+
+        if (cachedCourses.isNotEmpty || cachedPackages.isNotEmpty) {
+          return Right((cachedCourses, cachedPackages, true));
+        }
+        return Left(NetworkFailure('No internet connection and no cached courses or packages found.'));
+      } catch (cacheErr) {
+        return Left(CacheFailure('Failed to load offline catalog: ${cacheErr.toString()}'));
       }
     }
   }

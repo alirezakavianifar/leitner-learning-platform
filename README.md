@@ -80,18 +80,25 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
     *   The *Finished Cards* button/icon displays a badge count of completed/learned cards.
 *   **Onboarding Flow Sequence:** The first-run onboarding sequence follows the exact tutorial flow from the PDF: Courses -> Search -> Flashcard -> Know -> Don't Know -> Create Card -> Finished Cards -> Favorites -> My Courses -> Reports -> Today's Cards -> Statistics.
 
-### 3. User-Created Cards Storage
+### 3. Course Bundles & Package Purchases
+*   **Multi-Course Packages:** Multiple related courses can be grouped into promotional packages/bundles and offered at a discounted bundle price.
+*   **Unified Checkout & Atomic Fulfillment:** Purchasing a package automatically and atomically unlocks full access to all individual constituent courses in that bundle.
+*   **Package Discovery & Badges:** Courses belonging to active packages display contextual bundle recommendation chips (*"Available in [Package Name] with XX% discount"*).
+*   **Admin Bundle Management:** Administrators can create, edit, publish, and delete bundles directly in the Web Admin Panel with custom pricing, discount calculation, and multi-course selection.
+
+### 4. User-Created Cards Storage
 *   **User-Created Cards:** Stored strictly locally on the device (device-only for privacy) and support backup/restore after app reinstallation. No server synchronization is performed.
 
-### 4. Admin Management Capabilities
+### 5. Admin Management Capabilities
 *   Manually activate or deactivate course access for users.
 *   Modify user purchase entries.
 *   Upload and manage course metadata and SQLite packages.
+*   Create, publish, and manage multi-course bundles & packages with custom pricing.
 *   Publish, schedule, or hide banners and announcements.
 *   *Flashcard Reports Interface:* Admin review interface to browse and filter submitted flashcard reports by card, course, or user, and flag content issues.
 *   *Dynamic Leitner Stage Intervals & 1-Hour Verification:* Configure review intervals per Leitner stage (Boxes 2–5) and time units (`Seconds`, `Minutes`, `Hours`, `Days`) with one-click presets for standard or fast verification testing (~1 hour total).
 
-### 5. Security & Content Protection
+### 6. Security & Content Protection
 *   Watermarked content displays to discourage piracy.
 *   SQLite course databases and media files are encrypted at rest.
 *   Secure, tokenized single-use download links.

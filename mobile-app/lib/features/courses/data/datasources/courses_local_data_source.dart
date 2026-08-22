@@ -5,10 +5,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:mobile_app/core/database/database_helper.dart';
 import 'package:mobile_app/features/courses/data/models/course_model.dart';
+import 'package:mobile_app/features/courses/data/models/course_package_model.dart';
 
 abstract class CoursesLocalDataSource {
   Future<void> cacheCourses(List<CourseModel> courses);
   Future<List<CourseModel>> getCachedCourses();
+  Future<void> cachePackages(List<CoursePackageModel> packages);
+  Future<List<CoursePackageModel>> getCachedPackages();
   Future<bool> isCourseDownloaded(String courseId);
   Future<String> getCourseDatabasePath(String courseId);
   Future<void> saveDownloadedCourse({
@@ -84,6 +87,68 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
       );
     }
     return list;
+  }
+
+  @override
+  Future<void> cachePackages(List<CoursePackageModel> packages) async {
+    final db = await databaseHelper.localDatabase;
+    await db.transaction((txn) async {
+      await txn.delete('packages_cache');
+      await txn.delete('package_courses_cache');
+
+      for (final pkg in packages) {
+        await txn.insert(
+          'packages_cache',
+          pkg.toCacheMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+
+        int order = 0;
+        for (final c in pkg.courses) {
+          await txn.insert(
+            'package_courses_cache',
+            {
+              'package_id': pkg.id,
+              'course_id': c.id,
+              'display_order': order++,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      }
+    });
+  }
+
+  @override
+  Future<List<CoursePackageModel>> getCachedPackages() async {
+    final db = await databaseHelper.localDatabase;
+    final cachedCourses = await getCachedCourses();
+    final courseMap = {for (final c in cachedCourses) c.id: c};
+
+    final List<Map<String, dynamic>> pkgMaps = await db.query('packages_cache', orderBy: 'title');
+    final List<CoursePackageModel> result = [];
+
+    for (final pkgMap in pkgMaps) {
+      final pkgId = pkgMap['id'] as String;
+      final List<Map<String, dynamic>> itemRows = await db.query(
+        'package_courses_cache',
+        where: 'package_id = ?',
+        whereArgs: [pkgId],
+        orderBy: 'display_order',
+      );
+
+      final List<CourseModel> pkgCourses = [];
+      for (final item in itemRows) {
+        final cId = item['course_id'] as String;
+        if (courseMap.containsKey(cId)) {
+          pkgCourses.add(courseMap[cId]!);
+        }
+      }
+
+      result.add(CoursePackageModel.fromCacheMap(pkgMap, courses: pkgCourses));
+    }
+
+    return result;
   }
 
   @override

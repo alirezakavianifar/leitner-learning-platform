@@ -1,16 +1,18 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/core/usecase/usecase.dart';
+import 'package:mobile_app/features/courses/domain/entities/course.dart';
+import 'package:mobile_app/features/courses/domain/entities/course_package.dart';
 import 'package:mobile_app/features/courses/domain/usecases/download_course.dart';
-import 'package:mobile_app/features/courses/domain/usecases/get_courses.dart';
+import 'package:mobile_app/features/courses/domain/usecases/get_courses_and_packages.dart';
 import 'courses_event.dart';
 import 'courses_state.dart';
 
 class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
-  final GetCourses getCoursesUseCase;
+  final GetCoursesAndPackages getCoursesAndPackagesUseCase;
   final DownloadCourse downloadCourseUseCase;
 
   CoursesBloc({
-    required this.getCoursesUseCase,
+    required this.getCoursesAndPackagesUseCase,
     required this.downloadCourseUseCase,
   }) : super(CoursesInitial()) {
     on<LoadCoursesEvent>(_onLoadCourses);
@@ -22,12 +24,12 @@ class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
     Emitter<CoursesState> emit,
   ) async {
     emit(CoursesLoading());
-    final result = await getCoursesUseCase(NoParams());
+    final result = await getCoursesAndPackagesUseCase(NoParams());
     result.fold(
       (failure) => emit(CoursesError(message: failure.message)),
       (data) {
-        final (courses, isOffline) = data;
-        emit(CoursesLoaded(courses: courses, isOffline: isOffline));
+        final (courses, packages, isOffline) = data;
+        emit(CoursesLoaded(courses: courses, packages: packages, isOffline: isOffline));
       },
     );
   }
@@ -37,20 +39,24 @@ class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
     Emitter<CoursesState> emit,
   ) async {
     final currentState = state;
-    List<dynamic> currentCourses = [];
+    List<Course> currentCourses = [];
+    List<CoursePackage> currentPackages = [];
     bool isOffline = false;
 
     if (currentState is CoursesLoaded) {
       currentCourses = currentState.courses;
+      currentPackages = currentState.packages;
       isOffline = currentState.isOffline;
     } else if (currentState is CourseDownloading) {
       currentCourses = currentState.currentCourses;
+      currentPackages = currentState.currentPackages;
       isOffline = currentState.isOffline;
     }
 
     emit(CourseDownloading(
       courseId: event.courseId,
       currentCourses: List.from(currentCourses),
+      currentPackages: List.from(currentPackages),
       isOffline: isOffline,
       progress: 0.0,
     ));
@@ -77,6 +83,7 @@ class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
             emit(CourseDownloading(
               courseId: event.courseId,
               currentCourses: List.from(currentCourses),
+              currentPackages: List.from(currentPackages),
               isOffline: isOffline,
               progress: progress,
             ));
@@ -91,21 +98,22 @@ class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
         // Put it back to loaded after emitting error state to restore catalog view
         emit(CoursesLoaded(
           courses: List.from(currentCourses),
+          packages: List.from(currentPackages),
           isOffline: isOffline,
         ));
       },
       (_) async {
         // Success: reload the courses to update download flags and borders
-        final reloadResult = await getCoursesUseCase(NoParams());
+        final reloadResult = await getCoursesAndPackagesUseCase(NoParams());
         reloadResult.fold(
           (failure) => emit(CoursesError(message: failure.message)),
           (data) {
-            final (courses, isOffline) = data;
-            emit(CoursesLoaded(courses: courses, isOffline: isOffline));
+            final (courses, packages, isOffline) = data;
+            emit(CoursesLoaded(courses: courses, packages: packages, isOffline: isOffline));
           },
         );
       },
     );
   }
-
 }
+

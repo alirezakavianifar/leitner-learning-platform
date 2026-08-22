@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:mobile_app/core/network/dio_client.dart';
 import 'package:mobile_app/features/courses/data/models/course_model.dart';
+import 'package:mobile_app/features/courses/data/models/course_package_model.dart';
 
 abstract class CoursesRemoteDataSource {
   Future<List<CourseModel>> getCourses();
+  Future<List<CoursePackageModel>> getPackages();
   Future<Map<String, dynamic>> getDownloadToken(String courseId);
 }
 
@@ -27,6 +29,25 @@ class CoursesRemoteDataSourceImpl implements CoursesRemoteDataSource {
   }
 
   @override
+  Future<List<CoursePackageModel>> getPackages() async {
+    try {
+      final response = await dioClient.dio.get('/packages');
+      if (response.statusCode == 200 && response.data != null) {
+        final List<dynamic> data = response.data is List ? response.data : [];
+        return data.map((json) => CoursePackageModel.fromJson(json)).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return [];
+      }
+      rethrow;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
   Future<Map<String, dynamic>> getDownloadToken(String courseId) async {
     final response = await dioClient.dio.post('/courses/$courseId/download-token');
     if (response.statusCode == 200) {
@@ -39,3 +60,4 @@ class CoursesRemoteDataSourceImpl implements CoursesRemoteDataSource {
     }
   }
 }
+

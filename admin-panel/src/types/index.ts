@@ -85,3 +85,25 @@ export interface AuditLog {
   after_value?: string;
   timestamp: string;
 }
+
+export interface CoursePackage {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  price: number;
+  original_price?: number;
+  is_published: boolean;
+  is_archived: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at?: string;
+  courses: {
+    id: string;
+    title: string;
+    price: number;
+    card_count: number;
+    is_published: boolean;
+  }[];
+}
+
