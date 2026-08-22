@@ -8,6 +8,7 @@ import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/core/usecase/usecase.dart';
 import 'package:mobile_app/features/courses/data/datasources/courses_local_data_source.dart';
 import 'package:mobile_app/features/courses/data/datasources/courses_remote_data_source.dart';
+import 'package:mobile_app/features/courses/data/models/course_model.dart';
 import 'package:mobile_app/features/courses/data/models/course_package_model.dart';
 import 'package:mobile_app/features/courses/domain/entities/course.dart';
 import 'package:mobile_app/features/courses/domain/entities/course_package.dart';
@@ -87,10 +88,17 @@ class CoursesRepositoryImpl implements CoursesRepository {
 
   @override
   Future<Either<Failure, (List<Course> courses, List<CoursePackage> packages, bool isOffline)>> getCoursesAndPackages() async {
-    try {
-      // 1. Fetch remote courses (primary source of online connectivity)
-      final remoteCourses = await remoteDataSource.getCourses();
+    List<CourseModel> remoteCourses = [];
+    bool fetchedFromRemote = false;
 
+    try {
+      remoteCourses = await remoteDataSource.getCourses();
+      fetchedFromRemote = true;
+    } catch (_) {
+      fetchedFromRemote = false;
+    }
+
+    if (fetchedFromRemote) {
       // 2. Fetch remote packages (safely handle errors/404s)
       List<CoursePackageModel> remotePackages = [];
       try {
@@ -107,19 +115,29 @@ class CoursesRepositoryImpl implements CoursesRepository {
         ));
       }
 
-      // 3. Cache locally
-      await localDataSource.cacheCourses(remoteCourses);
-      if (remotePackages.isNotEmpty) {
-        await localDataSource.cachePackages(remotePackages);
+      // 3. Cache locally (isolated from network result)
+      try {
+        await localDataSource.cacheCourses(remoteCourses);
+        if (remotePackages.isNotEmpty) {
+          await localDataSource.cachePackages(remotePackages);
+        }
+      } catch (_) {}
+
+      try {
+        final cachedCourses = await localDataSource.getCachedCourses();
+        final cachedPackages = await localDataSource.getCachedPackages();
+        return Right((
+          cachedCourses.isNotEmpty ? cachedCourses : remoteCourses,
+          cachedPackages.isNotEmpty ? cachedPackages : remotePackages,
+          false,
+        ));
+      } catch (_) {
+        return Right((remoteCourses, remotePackages, false));
       }
-
-      final cachedCourses = await localDataSource.getCachedCourses();
-      final cachedPackages = await localDataSource.getCachedPackages();
-
-      return Right((cachedCourses, cachedPackages, false));
-    } catch (e) {
+    } else {
+      // True offline fallback: load from local cache
       if (kIsWeb) {
-        return Left(NetworkFailure('Failed to load catalog: ${e.toString()}'));
+        return Left(NetworkFailure('Failed to load catalog from server.'));
       }
       try {
         final cachedCourses = await localDataSource.getCachedCourses();

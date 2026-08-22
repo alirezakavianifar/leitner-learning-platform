@@ -38,21 +38,22 @@ namespace LeitnerPlatform.API.Controllers.v1
             return Guid.Empty;
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetCourses()
         {
             var userId = GetUserId();
-            if (userId == Guid.Empty)
-            {
-                return Unauthorized(new { success = false, message = "User not found or token invalid." });
-            }
+            var completedPurchases = new List<Guid>();
 
-            // Get user's completed purchases first, so archived-but-purchased courses can
-            // still be included below (buyers keep access even after a course is archived).
-            var completedPurchases = await _context.Purchases
-                .Where(p => p.UserId == userId && p.Status == "COMPLETED")
-                .Select(p => p.CourseId)
-                .ToListAsync();
+            if (userId != Guid.Empty)
+            {
+                // Get user's completed purchases first, so archived-but-purchased courses can
+                // still be included below (buyers keep access even after a course is archived).
+                completedPurchases = await _context.Purchases
+                    .Where(p => p.UserId == userId && p.Status == "COMPLETED")
+                    .Select(p => p.CourseId)
+                    .ToListAsync();
+            }
 
             // Catalog = published, non-archived courses (visible to everyone), plus any
             // course this user has purchased even if it has since been archived/unpublished.

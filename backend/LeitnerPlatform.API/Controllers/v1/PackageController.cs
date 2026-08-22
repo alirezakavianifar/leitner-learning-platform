@@ -38,26 +38,28 @@ namespace LeitnerPlatform.API.Controllers.v1
             return Guid.Empty;
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetPackages()
         {
             var userId = GetUserId();
-            if (userId == Guid.Empty)
+            var completedCoursePurchases = new List<Guid>();
+            var completedPackagePurchases = new List<Guid>();
+
+            if (userId != Guid.Empty)
             {
-                return Unauthorized(new { success = false, message = "User not found or token invalid." });
+                // User's completed individual course purchases
+                completedCoursePurchases = await _context.Purchases
+                    .Where(p => p.UserId == userId && p.Status == "COMPLETED")
+                    .Select(p => p.CourseId)
+                    .ToListAsync();
+
+                // Completed package purchases
+                completedPackagePurchases = await _context.PackagePurchases
+                    .Where(p => p.UserId == userId && p.Status == "COMPLETED")
+                    .Select(p => p.PackageId)
+                    .ToListAsync();
             }
-
-            // User's completed individual course purchases
-            var completedCoursePurchases = await _context.Purchases
-                .Where(p => p.UserId == userId && p.Status == "COMPLETED")
-                .Select(p => p.CourseId)
-                .ToListAsync();
-
-            // Completed package purchases
-            var completedPackagePurchases = await _context.PackagePurchases
-                .Where(p => p.UserId == userId && p.Status == "COMPLETED")
-                .Select(p => p.PackageId)
-                .ToListAsync();
 
             var packages = await _context.CoursePackages
                 .Where(p => p.IsPublished && !p.IsArchived)
@@ -128,14 +130,11 @@ namespace LeitnerPlatform.API.Controllers.v1
             return Ok(result);
         }
 
+        [AllowAnonymous]
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetPackage(Guid id)
         {
             var userId = GetUserId();
-            if (userId == Guid.Empty)
-            {
-                return Unauthorized(new { success = false, message = "User not found or token invalid." });
-            }
 
             var pkg = await _context.CoursePackages
                 .Include(p => p.Items)
@@ -147,13 +146,19 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return NotFound(new { success = false, message = "Package not found." });
             }
 
-            var completedCoursePurchases = await _context.Purchases
-                .Where(p => p.UserId == userId && p.Status == "COMPLETED")
-                .Select(p => p.CourseId)
-                .ToListAsync();
+            var completedCoursePurchases = new List<Guid>();
+            bool isPackagePurchased = false;
 
-            var isPackagePurchased = await _context.PackagePurchases
-                .AnyAsync(p => p.UserId == userId && p.PackageId == id && p.Status == "COMPLETED");
+            if (userId != Guid.Empty)
+            {
+                completedCoursePurchases = await _context.Purchases
+                    .Where(p => p.UserId == userId && p.Status == "COMPLETED")
+                    .Select(p => p.CourseId)
+                    .ToListAsync();
+
+                isPackagePurchased = await _context.PackagePurchases
+                    .AnyAsync(p => p.UserId == userId && p.PackageId == id && p.Status == "COMPLETED");
+            }
 
             var validItems = pkg.Items
                 .Where(i => i.Course != null)
