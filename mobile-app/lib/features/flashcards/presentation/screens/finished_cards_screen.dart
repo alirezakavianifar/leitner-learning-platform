@@ -301,41 +301,45 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                           ],
                         )
                       else
-                        Directionality(
-                          textDirection: TextDirection.ltr,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  AppNavIcons.getLeftIcon(
-                                    context.watch<ConfigBloc>().state is ConfigLoaded
-                                        ? (context.watch<ConfigBloc>().state as ConfigLoaded).config.cardNavIconStyle
-                                        : 'chevron',
+                        Builder(
+                          builder: (context) {
+                            final configState = context.watch<ConfigBloc>().state;
+                            final iconStyle = configState is ConfigLoaded
+                                ? configState.config.cardNavIconStyle
+                                : (configState is ConfigMaintenance ? configState.config.cardNavIconStyle : 'chevron');
+                            final iconSize = configState is ConfigLoaded
+                                ? configState.config.cardNavIconSize
+                                : (configState is ConfigMaintenance ? configState.config.cardNavIconSize : 20.0);
+
+                            return Directionality(
+                              textDirection: TextDirection.ltr,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      AppNavIcons.getLeftIcon(iconStyle),
+                                      color: AppColors.primary,
+                                      size: iconSize,
+                                    ),
+                                    onPressed: _nextCard,
                                   ),
-                                  color: AppColors.primary,
-                                  size: 28,
-                                ),
-                                onPressed: _nextCard,
-                              ),
-                              Text(
-                                loc.tapCardToShowAnswer,
-                                style: TextStyle(color: AppColors.textSecondary),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  AppNavIcons.getRightIcon(
-                                    context.watch<ConfigBloc>().state is ConfigLoaded
-                                        ? (context.watch<ConfigBloc>().state as ConfigLoaded).config.cardNavIconStyle
-                                        : 'chevron',
+                                  Text(
+                                    loc.tapCardToShowAnswer,
+                                    style: TextStyle(color: AppColors.textSecondary),
                                   ),
-                                  color: AppColors.primary,
-                                  size: 28,
-                                ),
-                                onPressed: _prevCard,
+                                  IconButton(
+                                    icon: Icon(
+                                      AppNavIcons.getRightIcon(iconStyle),
+                                      color: AppColors.primary,
+                                      size: iconSize,
+                                    ),
+                                    onPressed: _prevCard,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       const SizedBox(height: 16),
                     ],

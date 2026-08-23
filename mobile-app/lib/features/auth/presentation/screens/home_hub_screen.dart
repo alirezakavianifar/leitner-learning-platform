@@ -24,6 +24,8 @@ import 'about_us_screen.dart';
 import 'statistics_screen.dart';
 import 'support_screen.dart';
 import 'package:mobile_app/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeHubScreen extends StatefulWidget {
@@ -296,6 +298,13 @@ class HomeHubScreenState extends State<HomeHubScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final configState = context.watch<ConfigBloc>().state;
+    final bottomNavIconSize = configState is ConfigLoaded
+        ? configState.config.bottomNavIconSize
+        : (configState is ConfigMaintenance ? configState.config.bottomNavIconSize : 26.0);
+    final appBarIconSize = configState is ConfigLoaded
+        ? configState.config.appBarIconSize
+        : (configState is ConfigMaintenance ? configState.config.appBarIconSize : 24.0);
 
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
@@ -345,7 +354,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.menu, color: Colors.white, size: 22),
+                        child: Icon(Icons.menu, color: Colors.white, size: (appBarIconSize - 2).clamp(18.0, 32.0)),
                       ),
                     ),
                   ),
@@ -363,7 +372,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   actions: [
                     if (_currentIndex == 2)
                       IconButton(
-                        icon: Icon(Icons.search, color: AppColors.primary),
+                        icon: Icon(Icons.search, color: AppColors.primary, size: appBarIconSize),
                         tooltip: 'Search',
                         onPressed: () {
                           _pushNested(const CourseSearchScreen());
@@ -405,7 +414,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   },
                   backgroundColor: Colors.transparent,
                   elevation: 0,
-                  iconSize: 28,
+                  iconSize: bottomNavIconSize + 2,
                   selectedItemColor: AppColors.primary,
                   unselectedItemColor: AppColors.textSecondary,
                   selectedFontSize: 12,
@@ -413,9 +422,9 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
                   items: [
                     BottomNavigationBarItem(
-                      icon: const Padding(
-                        padding: EdgeInsets.only(bottom: 2.0),
-                        child: Icon(Icons.dashboard_outlined, size: 26),
+                      icon: Padding(
+                        padding: const EdgeInsets.only(bottom: 2.0),
+                        child: Icon(Icons.dashboard_outlined, size: bottomNavIconSize),
                       ),
                       activeIcon: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -423,14 +432,14 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                           color: AppColors.primary.withOpacity(0.18),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(Icons.dashboard_rounded, size: 28, color: AppColors.primary),
+                        child: Icon(Icons.dashboard_rounded, size: bottomNavIconSize + 2, color: AppColors.primary),
                       ),
                       label: loc.home,
                     ),
                     BottomNavigationBarItem(
-                      icon: const Padding(
-                        padding: EdgeInsets.only(bottom: 2.0),
-                        child: Icon(Icons.style_outlined, size: 26),
+                      icon: Padding(
+                        padding: const EdgeInsets.only(bottom: 2.0),
+                        child: Icon(Icons.style_outlined, size: bottomNavIconSize),
                       ),
                       activeIcon: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -438,14 +447,14 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                           color: AppColors.primary.withOpacity(0.18),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(Icons.style_rounded, size: 28, color: AppColors.primary),
+                        child: Icon(Icons.style_rounded, size: bottomNavIconSize + 2, color: AppColors.primary),
                       ),
                       label: loc.review,
                     ),
                     BottomNavigationBarItem(
-                      icon: const Padding(
-                        padding: EdgeInsets.only(bottom: 2.0),
-                        child: Icon(Icons.school_outlined, size: 26),
+                      icon: Padding(
+                        padding: const EdgeInsets.only(bottom: 2.0),
+                        child: Icon(Icons.school_outlined, size: bottomNavIconSize),
                       ),
                       activeIcon: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -453,7 +462,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                           color: AppColors.primary.withOpacity(0.18),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(Icons.school_rounded, size: 28, color: AppColors.primary),
+                        child: Icon(Icons.school_rounded, size: bottomNavIconSize + 2, color: AppColors.primary),
                       ),
                       label: loc.courses,
                     ),

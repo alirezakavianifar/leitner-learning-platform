@@ -495,6 +495,11 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
     final iconStyle = configState is ConfigLoaded
         ? configState.config.cardNavIconStyle
         : (configState is ConfigMaintenance ? configState.config.cardNavIconStyle : 'chevron');
+    final iconSize = configState is ConfigLoaded
+        ? configState.config.cardNavIconSize
+        : (configState is ConfigMaintenance ? configState.config.cardNavIconSize : 20.0);
+    final buttonDiameter = (iconSize + 12.0).clamp(32.0, 48.0);
+    final tapZoneWidth = (buttonDiameter + 12.0).clamp(44.0, 60.0);
     final card = _customCards[_studyIndex];
     final imgPath = card['image_path'] as String?;
     final audPath = card['audio_path'] as String?;
@@ -574,7 +579,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                       left: 0,
                       top: 0,
                       bottom: 0,
-                      width: 48,
+                      width: tapZoneWidth,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: _studyIndex < _customCards.length - 1 ? _goToNextCard : null,
@@ -582,8 +587,8 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                           color: Colors.transparent,
                           child: Center(
                             child: Container(
-                              width: 36,
-                              height: 36,
+                              width: buttonDiameter,
+                              height: buttonDiameter,
                               decoration: BoxDecoration(
                                 color: (_studyIndex < _customCards.length - 1 ? AppColors.primary : Colors.grey).withOpacity(0.2),
                                 shape: BoxShape.circle,
@@ -592,7 +597,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                                 textDirection: TextDirection.ltr,
                                 child: Icon(
                                   AppNavIcons.getLeftIcon(iconStyle),
-                                  size: 24,
+                                  size: iconSize,
                                   color: _studyIndex < _customCards.length - 1 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
                                 ),
                               ),
@@ -607,7 +612,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                       right: 0,
                       top: 0,
                       bottom: 0,
-                      width: 48,
+                      width: tapZoneWidth,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: _studyIndex > 0 ? _goToPrevCard : null,
@@ -615,8 +620,8 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                           color: Colors.transparent,
                           child: Center(
                             child: Container(
-                              width: 36,
-                              height: 36,
+                              width: buttonDiameter,
+                              height: buttonDiameter,
                               decoration: BoxDecoration(
                                 color: (_studyIndex > 0 ? AppColors.primary : Colors.grey).withOpacity(0.2),
                                 shape: BoxShape.circle,
@@ -625,7 +630,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                                 textDirection: TextDirection.ltr,
                                 child: Icon(
                                   AppNavIcons.getRightIcon(iconStyle),
-                                  size: 24,
+                                  size: iconSize,
                                   color: _studyIndex > 0 ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
                                 ),
                               ),

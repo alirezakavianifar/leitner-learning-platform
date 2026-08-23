@@ -419,19 +419,15 @@ namespace LeitnerPlatform.API.Controllers.v1
             {
                 if (packagePurchase.Status == "COMPLETED")
                 {
-                    var successHtml = $@"<!DOCTYPE html>
-<html>
-<head><title>Payment Successful</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
-<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
-  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
-    <h2 style='color:#2e7d32;'>Payment Completed</h2>
-    <p>Your package <strong>{packagePurchase.Package?.Title}</strong> has already been unlocked!</p>
-    <p>Ref ID: <code>{packagePurchase.TransactionId}</code></p>
-    <a href='leitnerapp://payment-result?status=success&ref_id={packagePurchase.TransactionId}' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#1976d2; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
-  </div>
-</body>
-</html>";
-                    return Content(successHtml, "text/html");
+                    var html = BuildPaymentResponseHtml(
+                        isSuccess: true,
+                        titleFa: "پرداخت قبلاً تکمیل شده است",
+                        titleEn: "Payment Already Completed",
+                        descriptionFa: $"دسترسی به بسته «{packagePurchase.Package?.Title}» فعال است.",
+                        descriptionEn: $"Access to package '{packagePurchase.Package?.Title}' is already active.",
+                        refId: packagePurchase.TransactionId
+                    );
+                    return Content(html, "text/html; charset=utf-8");
                 }
 
                 if (stat != "OK")
@@ -440,18 +436,14 @@ namespace LeitnerPlatform.API.Controllers.v1
                     _context.Entry(packagePurchase).State = EntityState.Modified;
                     await _context.SaveChangesAsync();
 
-                    var cancelHtml = $@"<!DOCTYPE html>
-<html>
-<head><title>Payment Cancelled</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
-<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
-  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
-    <h2 style='color:#c62828;'>Payment Cancelled</h2>
-    <p>The transaction was cancelled or unsuccessful.</p>
-    <a href='leitnerapp://payment-result?status=cancelled' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#757575; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
-  </div>
-</body>
-</html>";
-                    return Content(cancelHtml, "text/html");
+                    var html = BuildPaymentResponseHtml(
+                        isSuccess: false,
+                        titleFa: "پرداخت لغو شد",
+                        titleEn: "Payment Cancelled",
+                        descriptionFa: "تراکنش توسط کاربر لغو گردید یا پرداخت ناموفق بود.",
+                        descriptionEn: "The transaction was cancelled or unsuccessful."
+                    );
+                    return Content(html, "text/html; charset=utf-8");
                 }
 
                 var pkgPrice = packagePurchase.Package?.Price ?? packagePurchase.AmountPaid;
@@ -501,19 +493,15 @@ namespace LeitnerPlatform.API.Controllers.v1
 
                     await _context.SaveChangesAsync();
 
-                    var successHtml = $@"<!DOCTYPE html>
-<html>
-<head><title>Payment Successful</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
-<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
-  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
-    <h2 style='color:#2e7d32;'>Payment Verified Successfully</h2>
-    <p>Thank you! Access to package <strong>{packagePurchase.Package?.Title}</strong> and all its courses is now active.</p>
-    <p>Reference Code (RefID): <strong style='font-size:18px; color:#1565c0;'>{verifyResult.RefId}</strong></p>
-    <a href='leitnerapp://payment-result?status=success&ref_id={verifyResult.RefId}' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#1976d2; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
-  </div>
-</body>
-</html>";
-                    return Content(successHtml, "text/html");
+                    var html = BuildPaymentResponseHtml(
+                        isSuccess: true,
+                        titleFa: "پرداخت با موفقیت انجام شد",
+                        titleEn: "Payment Verified Successfully",
+                        descriptionFa: $"دسترسی به بسته «{packagePurchase.Package?.Title}» و تمامی دوره‌های آن با موفقیت فعال شد.",
+                        descriptionEn: $"Access to package '{packagePurchase.Package?.Title}' and all included courses is now active.",
+                        refId: verifyResult.RefId.ToString()
+                    );
+                    return Content(html, "text/html; charset=utf-8");
                 }
                 else
                 {
@@ -521,18 +509,15 @@ namespace LeitnerPlatform.API.Controllers.v1
                     _context.Entry(packagePurchase).State = EntityState.Modified;
                     await _context.SaveChangesAsync();
 
-                    var failHtml = $@"<!DOCTYPE html>
-<html>
-<head><title>Payment Verification Failed</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
-<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
-  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
-    <h2 style='color:#c62828;'>Payment Verification Failed</h2>
-    <p>{verifyResult.Message}</p>
-    <a href='leitnerapp://payment-result?status=failed' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#757575; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
-  </div>
-</body>
-</html>";
-                    return Content(failHtml, "text/html");
+                    var html = BuildPaymentResponseHtml(
+                        isSuccess: false,
+                        titleFa: "خطا در تایید تراکنش",
+                        titleEn: "Payment Verification Failed",
+                        descriptionFa: "تایید پرداخت با خطا مواجه شد. در صورت کسر وجه از حساب، ظرف ۷۲ ساعت بازگشت داده خواهد شد.",
+                        descriptionEn: "Payment verification failed. If money was deducted, it will be refunded within 72 hours.",
+                        errorMessage: verifyResult.Message
+                    );
+                    return Content(html, "text/html; charset=utf-8");
                 }
             }
 
@@ -541,19 +526,15 @@ namespace LeitnerPlatform.API.Controllers.v1
             if (purchase.Status == "COMPLETED")
             {
                 _logger.LogInformation("PurchaseController: ZarinPalCallback: Purchase is already COMPLETED. Directing back to app.");
-                var successHtml = $@"<!DOCTYPE html>
-<html>
-<head><title>Payment Successful</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
-<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
-  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
-    <h2 style='color:#2e7d32;'>Payment Completed</h2>
-    <p>Your course <strong>{purchase.Course?.Title}</strong> has already been unlocked!</p>
-    <p>Ref ID: <code>{purchase.TransactionId}</code></p>
-    <a href='leitnerapp://payment-result?status=success&ref_id={purchase.TransactionId}' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#1976d2; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
-  </div>
-</body>
-</html>";
-                return Content(successHtml, "text/html");
+                var html = BuildPaymentResponseHtml(
+                    isSuccess: true,
+                    titleFa: "پرداخت قبلاً تکمیل شده است",
+                    titleEn: "Payment Already Completed",
+                    descriptionFa: $"دوره «{purchase.Course?.Title}» قبلاً برای شما فعال شده است.",
+                    descriptionEn: $"Course '{purchase.Course?.Title}' is already unlocked.",
+                    refId: purchase.TransactionId
+                );
+                return Content(html, "text/html; charset=utf-8");
             }
 
             if (stat != "OK")
@@ -563,18 +544,14 @@ namespace LeitnerPlatform.API.Controllers.v1
                 _context.Entry(purchase).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
-                var cancelHtml = $@"<!DOCTYPE html>
-<html>
-<head><title>Payment Cancelled</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
-<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
-  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
-    <h2 style='color:#c62828;'>Payment Cancelled</h2>
-    <p>The transaction was cancelled or unsuccessful.</p>
-    <a href='leitnerapp://payment-result?status=cancelled' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#757575; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
-  </div>
-</body>
-</html>";
-                return Content(cancelHtml, "text/html");
+                var html = BuildPaymentResponseHtml(
+                    isSuccess: false,
+                    titleFa: "پرداخت لغو شد",
+                    titleEn: "Payment Cancelled",
+                    descriptionFa: "تراکنش توسط کاربر لغو گردید یا پرداخت ناموفق بود.",
+                    descriptionEn: "The transaction was cancelled or unsuccessful."
+                );
+                return Content(html, "text/html; charset=utf-8");
             }
 
             var coursePrice = purchase.Course?.Price ?? 0m;
@@ -596,19 +573,15 @@ namespace LeitnerPlatform.API.Controllers.v1
                 // Publish event for backup replication
                 await _eventBus.PublishAsync(new PurchaseCompletedEvent(purchase));
 
-                var successHtml = $@"<!DOCTYPE html>
-<html>
-<head><title>Payment Successful</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
-<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
-  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
-    <h2 style='color:#2e7d32;'>Payment Verified Successfully</h2>
-    <p>Thank you! Access to <strong>{purchase.Course?.Title}</strong> is now active.</p>
-    <p>Reference Code (RefID): <strong style='font-size:18px; color:#1565c0;'>{singleVerifyResult.RefId}</strong></p>
-    <a href='leitnerapp://payment-result?status=success&ref_id={singleVerifyResult.RefId}' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#1976d2; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
-  </div>
-</body>
-</html>";
-                return Content(successHtml, "text/html");
+                var html = BuildPaymentResponseHtml(
+                    isSuccess: true,
+                    titleFa: "پرداخت با موفقیت انجام شد",
+                    titleEn: "Payment Verified Successfully",
+                    descriptionFa: $"دوره «{purchase.Course?.Title}» برای شما فعال گردید و هم‌اکنون در اپلیکیشن قابل دانلود است.",
+                    descriptionEn: $"Course '{purchase.Course?.Title}' is now unlocked and available for download.",
+                    refId: singleVerifyResult.RefId.ToString()
+                );
+                return Content(html, "text/html; charset=utf-8");
             }
             else
             {
@@ -618,19 +591,161 @@ namespace LeitnerPlatform.API.Controllers.v1
                 _context.Entry(purchase).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
-                var failHtml = $@"<!DOCTYPE html>
-<html>
-<head><title>Payment Verification Failed</title><meta name='viewport' content='width=device-width, initial-scale=1'></head>
-<body style='font-family:sans-serif; text-align:center; padding:40px; background:#f4f6f9;'>
-  <div style='max-width:500px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1);'>
-    <h2 style='color:#c62828;'>Payment Verification Failed</h2>
-    <p>{singleVerifyResult.Message}</p>
-    <a href='leitnerapp://payment-result?status=failed' style='display:inline-block; margin-top:20px; padding:10px 20px; background:#757575; color:white; border-radius:6px; text-decoration:none;'>Return to App</a>
-  </div>
+                var html = BuildPaymentResponseHtml(
+                    isSuccess: false,
+                    titleFa: "خطا در تایید تراکنش",
+                    titleEn: "Payment Verification Failed",
+                    descriptionFa: "تایید پرداخت با خطا مواجه شد. در صورت کسر وجه از حساب، ظرف ۷۲ ساعت توسط بانک بازگشت داده خواهد شد.",
+                    descriptionEn: "Payment verification failed. Deducted funds will be returned within 72 hours by your bank.",
+                    errorMessage: singleVerifyResult.Message
+                );
+                return Content(html, "text/html; charset=utf-8");
+            }
+        }
+
+        private static string BuildPaymentResponseHtml(
+            bool isSuccess,
+            string titleFa,
+            string titleEn,
+            string descriptionFa,
+            string descriptionEn,
+            string? refId = null,
+            string? errorMessage = null)
+        {
+            var status = isSuccess ? "success" : "failed";
+            var deepLink = string.IsNullOrEmpty(refId)
+                ? $"leitnerapp://payment-result?status={status}"
+                : $"leitnerapp://payment-result?status={status}&ref_id={refId}";
+
+            var primaryColor = isSuccess ? "#16a34a" : "#dc2626";
+            var iconBg = isSuccess ? "#dcfce7" : "#fee2e2";
+            var iconSvg = isSuccess
+                ? @"<svg width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='#16a34a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M22 11.08V12a10 10 0 1 1-5.93-9.14'></path><polyline points='22 4 12 14.01 9 11.01'></polyline></svg>"
+                : @"<svg width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='#dc2626' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><line x1='15' y1='9' x2='9' y2='15'></line><line x1='9' y1='9' x2='15' y2='15'></line></svg>";
+
+            var refIdBlock = !string.IsNullOrEmpty(refId)
+                ? $@"<div style='background:#f8fafc; border-radius:12px; padding:14px 20px; margin:20px 0; border:1.5px dashed #cbd5e1;'>
+                        <div style='font-size:13px; color:#64748b;'>کد پیگیری تراکنش / Ref ID</div>
+                        <div style='font-size:22px; font-weight:bold; color:#0f172a; letter-spacing:1px; margin-top:4px; font-family:monospace;'>{refId}</div>
+                     </div>"
+                : "";
+
+            var errorBlock = !string.IsNullOrEmpty(errorMessage)
+                ? $@"<div style='background:#fef2f2; color:#991b1b; padding:12px; border-radius:10px; font-size:13px; margin:16px 0; border:1px solid #fee2e2;'>{errorMessage}</div>"
+                : "";
+
+            return $@"<!DOCTYPE html>
+<html lang='fa' dir='rtl'>
+<head>
+    <meta charset='utf-8'>
+    <title>{titleFa}</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Tahoma, Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #1e293b;
+        }}
+        .card {{
+            background: #ffffff;
+            width: 100%;
+            max-width: 440px;
+            border-radius: 24px;
+            padding: 36px 28px;
+            text-align: center;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.4s ease-out;
+        }}
+        @keyframes fadeIn {{
+            from {{ opacity: 0; transform: translateY(15px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+        .icon-box {{
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: {iconBg};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }}
+        h2 {{
+            color: {primaryColor};
+            font-size: 22px;
+            margin-bottom: 6px;
+            font-weight: 800;
+        }}
+        .sub-title {{
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }}
+        .desc {{
+            font-size: 15px;
+            color: #334155;
+            line-height: 1.6;
+            margin-bottom: 6px;
+        }}
+        .btn {{
+            display: inline-block;
+            width: 100%;
+            padding: 14px 20px;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 14px;
+            text-decoration: none;
+            transition: all 0.2s;
+            margin-top: 14px;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }}
+        .btn:hover {{
+            background: #1d4ed8;
+        }}
+        .btn:active {{
+            transform: scale(0.98);
+        }}
+        .redirect-notice {{
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 16px;
+        }}
+    </style>
+    <script>
+        window.addEventListener('DOMContentLoaded', function() {{
+            setTimeout(function() {{
+                try {{
+                    window.location.href = '{deepLink}';
+                }} catch (e) {{}}
+            }}, 1200);
+        }});
+    </script>
+</head>
+<body>
+    <div class='card'>
+        <div class='icon-box'>
+            {iconSvg}
+        </div>
+        <h2>{titleFa}</h2>
+        <div class='sub-title'>{titleEn}</div>
+        <p class='desc'>{descriptionFa}</p>
+        <p class='desc' style='font-size:13px; color:#64748b; direction:ltr;'>{descriptionEn}</p>
+        {refIdBlock}
+        {errorBlock}
+        <a href='{deepLink}' class='btn'>بازگشت به اپلیکیشن / Return to App</a>
+        <div class='redirect-notice'>در حال انتقال خودکار به اپلیکیشن...<br>Automatically redirecting to the app...</div>
+    </div>
 </body>
 </html>";
-                return Content(failHtml, "text/html");
-            }
         }
 
         [HttpGet("{id:guid}/status")]

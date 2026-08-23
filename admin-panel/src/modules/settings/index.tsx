@@ -25,6 +25,11 @@ export const SettingsView: React.FC = () => {
   const [rotationInterval, setRotationInterval] = useState(4);
   const [maxBannerCount, setMaxBannerCount] = useState(5);
   const [cardNavIconStyle, setCardNavIconStyle] = useState('chevron');
+  const [globalIconScale, setGlobalIconScale] = useState(1.0);
+  const [cardNavIconSize, setCardNavIconSize] = useState(20);
+  const [bottomNavIconSize, setBottomNavIconSize] = useState(26);
+  const [appBarIconSize, setAppBarIconSize] = useState(24);
+  const [appLogoSize, setAppLogoSize] = useState(110);
 
   // States for Authentication & Session Validity
   const [jwtLifetimeValue, setJwtLifetimeValue] = useState(1);
@@ -46,6 +51,31 @@ export const SettingsView: React.FC = () => {
   const [leitnerBox4Interval, setLeitnerBox4Interval] = useState(16);
   const [leitnerBox5Interval, setLeitnerBox5Interval] = useState(31);
   const [leitnerIntervalUnit, setLeitnerIntervalUnit] = useState('days');
+
+  const applyIconScalePreset = (scale: number) => {
+    setGlobalIconScale(scale);
+    if (scale === 0.85) {
+      setCardNavIconSize(16);
+      setBottomNavIconSize(22);
+      setAppBarIconSize(20);
+      setAppLogoSize(90);
+    } else if (scale === 1.0) {
+      setCardNavIconSize(20);
+      setBottomNavIconSize(26);
+      setAppBarIconSize(24);
+      setAppLogoSize(110);
+    } else if (scale === 1.15) {
+      setCardNavIconSize(24);
+      setBottomNavIconSize(30);
+      setAppBarIconSize(28);
+      setAppLogoSize(130);
+    } else if (scale === 1.3) {
+      setCardNavIconSize(28);
+      setBottomNavIconSize(34);
+      setAppBarIconSize(32);
+      setAppLogoSize(150);
+    }
+  };
 
   const applyLeitnerPreset = (preset: 'standard' | 'fast_hour' | 'fast_10m') => {
     if (preset === 'standard') {
@@ -111,6 +141,21 @@ export const SettingsView: React.FC = () => {
               break;
             case 'card_nav_icon_style':
               setCardNavIconStyle(cfg.value || 'chevron');
+              break;
+            case 'global_icon_scale':
+              setGlobalIconScale(parseFloat(cfg.value) || 1.0);
+              break;
+            case 'card_nav_icon_size':
+              setCardNavIconSize(parseInt(cfg.value) || 20);
+              break;
+            case 'bottom_nav_icon_size':
+              setBottomNavIconSize(parseInt(cfg.value) || 26);
+              break;
+            case 'app_bar_icon_size':
+              setAppBarIconSize(parseInt(cfg.value) || 24);
+              break;
+            case 'app_logo_size':
+              setAppLogoSize(parseInt(cfg.value) || 110);
               break;
             case 'jwt_lifetime_value':
               setJwtLifetimeValue(parseInt(cfg.value) || 1);
@@ -190,6 +235,11 @@ export const SettingsView: React.FC = () => {
         { key: 'rotation_interval_seconds', value: rotationInterval.toString() },
         { key: 'max_banner_count', value: maxBannerCount.toString() },
         { key: 'card_nav_icon_style', value: cardNavIconStyle },
+        { key: 'global_icon_scale', value: globalIconScale.toString() },
+        { key: 'card_nav_icon_size', value: cardNavIconSize.toString() },
+        { key: 'bottom_nav_icon_size', value: bottomNavIconSize.toString() },
+        { key: 'app_bar_icon_size', value: appBarIconSize.toString() },
+        { key: 'app_logo_size', value: appLogoSize.toString() },
         { key: 'jwt_lifetime_value', value: jwtLifetimeValue.toString() },
         { key: 'jwt_lifetime_unit', value: jwtLifetimeUnit },
         { key: 'refresh_token_lifetime_value', value: refreshTokenLifetimeValue.toString() },
@@ -574,20 +624,191 @@ export const SettingsView: React.FC = () => {
                 })}
               </div>
 
+              {/* Icon Sizing & Visual Scale Controls */}
+              <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <h4 style={{ margin: '0 0 4px 0', color: 'var(--primary-hover)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="15 3 21 3 21 9" />
+                    <polyline points="9 21 3 21 3 15" />
+                    <line x1="21" y1="3" x2="14" y2="10" />
+                    <line x1="3" y1="21" x2="10" y2="14" />
+                  </svg>
+                  {t('settings.icon_sizing_title', 'Icon Sizing & Visual Scaling')}
+                </h4>
+                <p className="text-muted" style={{ fontSize: '12px', margin: '0 0 14px 0' }}>
+                  {t('settings.icon_sizing_subtitle', 'Configure global icon scaling and specific icon sizes for card navigation, bottom navigation bar, and app headers.')}
+                </p>
+
+                {/* Quick Presets */}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                  {[
+                    { label: t('settings.preset_compact', 'Compact (85%)'), scale: 0.85 },
+                    { label: t('settings.preset_standard', 'Standard (100%)'), scale: 1.0 },
+                    { label: t('settings.preset_large', 'Large (115%)'), scale: 1.15 },
+                    { label: t('settings.preset_xlarge', 'Extra Large (130%)'), scale: 1.3 },
+                  ].map((preset) => {
+                    const isSelected = Math.abs(globalIconScale - preset.scale) < 0.01;
+                    return (
+                      <button
+                        key={preset.scale}
+                        type="button"
+                        className="btn"
+                        onClick={() => applyIconScalePreset(preset.scale)}
+                        style={{
+                          fontSize: '12px',
+                          padding: '6px 12px',
+                          background: isSelected ? 'var(--primary)' : 'rgba(255,255,255,0.08)',
+                          borderColor: isSelected ? 'var(--primary)' : 'var(--border-color)',
+                          color: isSelected ? '#fff' : 'inherit',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🔍 {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Sizing Numeric Fields */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('settings.global_icon_scale_label', 'Global Icon Scale')}</label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      min="0.7"
+                      max="1.5"
+                      value={globalIconScale}
+                      onChange={(e) => setGlobalIconScale(Math.max(0.5, Math.min(2.0, parseFloat(e.target.value) || 1.0)))}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('settings.card_nav_icon_size_label', 'Card Nav Icon (px)')}</label>
+                    <input
+                      type="number"
+                      min="12"
+                      max="40"
+                      value={cardNavIconSize}
+                      onChange={(e) => setCardNavIconSize(Math.max(12, Math.min(48, parseInt(e.target.value) || 20)))}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('settings.bottom_nav_icon_size_label', 'Bottom Bar Icon (px)')}</label>
+                    <input
+                      type="number"
+                      min="16"
+                      max="44"
+                      value={bottomNavIconSize}
+                      onChange={(e) => setBottomNavIconSize(Math.max(16, Math.min(48, parseInt(e.target.value) || 26)))}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('settings.app_bar_icon_size_label', 'App Bar Action Icon (px)')}</label>
+                    <input
+                      type="number"
+                      min="16"
+                      max="44"
+                      value={appBarIconSize}
+                      onChange={(e) => setAppBarIconSize(Math.max(16, Math.min(48, parseInt(e.target.value) || 24)))}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>{t('settings.app_logo_size_label', 'In-App Logo / Branding Size (px)')}</label>
+                    <input
+                      type="number"
+                      min="60"
+                      max="220"
+                      value={appLogoSize}
+                      onChange={(e) => setAppLogoSize(Math.max(50, Math.min(260, parseInt(e.target.value) || 110)))}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Live Preview Card */}
-              <div style={{ padding: '12px 16px', background: 'rgba(0, 0, 0, 0.25)', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
-                <span className="text-muted" style={{ fontSize: '12px', display: 'block', marginBottom: '8px' }}>
-                  {t('settings.preview_label', 'Live Preview in RTL:')}
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--card-bg, #1e293b)', padding: '12px 20px', borderRadius: '8px', direction: 'ltr' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(var(--primary-rgb, 79, 70, 229), 0.2)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px' }}>
-                    {cardNavIconStyle === 'arrow' ? '←' : cardNavIconStyle === 'double_chevron' ? '«' : cardNavIconStyle === 'circle_arrow' ? '⮜' : cardNavIconStyle === 'triangle' ? '◀' : '‹'}
+              <div style={{ padding: '14px 16px', background: 'rgba(0, 0, 0, 0.25)', borderRadius: '8px', border: '1px dashed var(--border-color)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <span className="text-muted" style={{ fontSize: '12px', display: 'block', marginBottom: '8px' }}>
+                    {t('settings.preview_label', 'Live Preview in RTL (Flashcard Study):')} ({cardNavIconSize}px)
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--card-bg, #1e293b)', padding: '12px 20px', borderRadius: '8px', direction: 'ltr' }}>
+                    <div style={{ width: `${Math.max(32, cardNavIconSize + 12)}px`, height: `${Math.max(32, cardNavIconSize + 12)}px`, borderRadius: '50%', background: 'rgba(var(--primary-rgb, 79, 70, 229), 0.2)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: `${cardNavIconSize}px` }}>
+                      {cardNavIconStyle === 'arrow' ? '←' : cardNavIconStyle === 'double_chevron' ? '«' : cardNavIconStyle === 'circle_arrow' ? '⮜' : cardNavIconStyle === 'triangle' ? '◀' : '‹'}
+                    </div>
+                    <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                      [ Flashcard Study Canvas ]
+                    </div>
+                    <div style={{ width: `${Math.max(32, cardNavIconSize + 12)}px`, height: `${Math.max(32, cardNavIconSize + 12)}px`, borderRadius: '50%', background: 'rgba(var(--primary-rgb, 79, 70, 229), 0.2)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: `${cardNavIconSize}px` }}>
+                      {cardNavIconStyle === 'arrow' ? '→' : cardNavIconStyle === 'double_chevron' ? '»' : cardNavIconStyle === 'circle_arrow' ? '⮞' : cardNavIconStyle === 'triangle' ? '▶' : '›'}
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                    [ Flashcard Study Canvas ]
+                </div>
+
+                {/* Bottom Navigation Live Preview */}
+                <div>
+                  <span className="text-muted" style={{ fontSize: '12px', display: 'block', marginBottom: '8px' }}>
+                    {t('settings.bottom_nav_preview_label', 'Bottom Navigation Bar Preview:')} ({bottomNavIconSize}px)
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', background: 'rgba(15, 23, 42, 0.95)', padding: '10px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: 'var(--primary)' }}>
+                      <svg width={bottomNavIconSize} height={bottomNavIconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                      </svg>
+                      <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{t('sidebar.dashboard', 'Home')}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: '#94a3b8' }}>
+                      <svg width={bottomNavIconSize} height={bottomNavIconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                      <span style={{ fontSize: '11px' }}>{t('sidebar.cards', 'Review')}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: '#94a3b8' }}>
+                      <svg width={bottomNavIconSize} height={bottomNavIconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                        <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                      </svg>
+                      <span style={{ fontSize: '11px' }}>{t('sidebar.courses', 'Courses')}</span>
+                    </div>
                   </div>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(var(--primary-rgb, 79, 70, 229), 0.2)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px' }}>
-                    {cardNavIconStyle === 'arrow' ? '→' : cardNavIconStyle === 'double_chevron' ? '»' : cardNavIconStyle === 'circle_arrow' ? '⮞' : cardNavIconStyle === 'triangle' ? '▶' : '›'}
+                </div>
+
+                {/* App Logo & Branding Live Preview */}
+                <div>
+                  <span className="text-muted" style={{ fontSize: '12px', display: 'block', marginBottom: '8px' }}>
+                    {t('settings.app_logo_preview_label', 'In-App Logo & Branding Preview (About Us / Headers):')} ({appLogoSize}px)
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.6)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div
+                      style={{
+                        width: `${appLogoSize}px`,
+                        height: `${appLogoSize}px`,
+                        borderRadius: `${Math.round(appLogoSize * 0.25)}px`,
+                        background: 'linear-gradient(135deg, var(--primary) 0%, #a855f7 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        boxShadow: '0 8px 24px rgba(79, 70, 229, 0.35)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <svg width={Math.round(appLogoSize * 0.55)} height={Math.round(appLogoSize * 0.55)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                        <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                      </svg>
+                    </div>
+                    <span style={{ marginTop: '10px', fontSize: '13px', fontWeight: 'bold', color: 'var(--primary-hover)' }}>
+                      {t('settings.app_name_preview', 'Leitner Learning Platform')}
+                    </span>
                   </div>
                 </div>
               </div>

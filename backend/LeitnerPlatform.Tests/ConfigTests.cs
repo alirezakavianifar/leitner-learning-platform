@@ -48,9 +48,19 @@ namespace LeitnerPlatform.Tests
             var bannerConfigs = type.GetProperty("banner_configs")?.GetValue(okResult.Value);
 
             var cardNavIconStyle = (string?)type.GetProperty("card_nav_icon_style")?.GetValue(okResult.Value);
+            var globalIconScale = (double?)type.GetProperty("global_icon_scale")?.GetValue(okResult.Value);
+            var cardNavIconSize = (int?)type.GetProperty("card_nav_icon_size")?.GetValue(okResult.Value);
+            var bottomNavIconSize = (int?)type.GetProperty("bottom_nav_icon_size")?.GetValue(okResult.Value);
+            var appBarIconSize = (int?)type.GetProperty("app_bar_icon_size")?.GetValue(okResult.Value);
+            var appLogoSize = (int?)type.GetProperty("app_logo_size")?.GetValue(okResult.Value);
 
             Assert.False(maintenanceMode);
             Assert.Equal("chevron", cardNavIconStyle);
+            Assert.Equal(1.0, globalIconScale);
+            Assert.Equal(20, cardNavIconSize);
+            Assert.Equal(26, bottomNavIconSize);
+            Assert.Equal(24, appBarIconSize);
+            Assert.Equal(110, appLogoSize);
             Assert.NotNull(endpoints);
             Assert.NotNull(featureFlags);
             Assert.NotNull(bannerConfigs);
@@ -63,6 +73,16 @@ namespace LeitnerPlatform.Tests
             Assert.True((bool?)flagType.GetProperty("enable_custom_themes")?.GetValue(featureFlags));
             Assert.True((bool?)flagType.GetProperty("enable_screenshot_protection")?.GetValue(featureFlags));
 
+            var appStyles = type.GetProperty("app_styles")?.GetValue(okResult.Value);
+            Assert.NotNull(appStyles);
+            var styleType = appStyles.GetType();
+            Assert.Equal("chevron", (string?)styleType.GetProperty("card_nav_icon_style")?.GetValue(appStyles));
+            Assert.Equal(1.0, (double?)styleType.GetProperty("global_icon_scale")?.GetValue(appStyles));
+            Assert.Equal(20, (int?)styleType.GetProperty("card_nav_icon_size")?.GetValue(appStyles));
+            Assert.Equal(26, (int?)styleType.GetProperty("bottom_nav_icon_size")?.GetValue(appStyles));
+            Assert.Equal(24, (int?)styleType.GetProperty("app_bar_icon_size")?.GetValue(appStyles));
+            Assert.Equal(110, (int?)styleType.GetProperty("app_logo_size")?.GetValue(appStyles));
+
             var socialLinks = type.GetProperty("social_links")?.GetValue(okResult.Value);
             Assert.NotNull(socialLinks);
             var socialType = socialLinks.GetType();
@@ -74,7 +94,7 @@ namespace LeitnerPlatform.Tests
         }
 
         [Fact]
-        public async Task ConfigController_GetConfigFeatures_ShouldReturnDbValues_WhenDbHasConfig()
+        public async Task ConfigController_GetConfigFeatures_ShouldReturnCustomValues_WhenDbHasEntries()
         {
             // Arrange
             using var context = GetInMemoryDbContext();
@@ -85,6 +105,11 @@ namespace LeitnerPlatform.Tests
                 new SystemConfig { Key = "enable_ai_tutor", Value = "true" },
                 new SystemConfig { Key = "enable_screenshot_protection", Value = "false" },
                 new SystemConfig { Key = "card_nav_icon_style", Value = "arrow" },
+                new SystemConfig { Key = "global_icon_scale", Value = "1.2" },
+                new SystemConfig { Key = "card_nav_icon_size", Value = "28" },
+                new SystemConfig { Key = "bottom_nav_icon_size", Value = "32" },
+                new SystemConfig { Key = "app_bar_icon_size", Value = "22" },
+                new SystemConfig { Key = "app_logo_size", Value = "140" },
                 new SystemConfig { Key = "telegram_url", Value = "https://t.me/CustomChannel" },
                 new SystemConfig { Key = "support_url", Value = "https://t.me/CustomSupport" },
                 new SystemConfig { Key = "leitner_box2_interval", Value = "5" },
@@ -105,6 +130,11 @@ namespace LeitnerPlatform.Tests
             var type = okResult.Value!.GetType();
             var maintenanceMode = (bool?)type.GetProperty("maintenance_mode")?.GetValue(okResult.Value);
             var cardNavIconStyle = (string?)type.GetProperty("card_nav_icon_style")?.GetValue(okResult.Value);
+            var globalIconScale = (double?)type.GetProperty("global_icon_scale")?.GetValue(okResult.Value);
+            var cardNavIconSize = (int?)type.GetProperty("card_nav_icon_size")?.GetValue(okResult.Value);
+            var bottomNavIconSize = (int?)type.GetProperty("bottom_nav_icon_size")?.GetValue(okResult.Value);
+            var appBarIconSize = (int?)type.GetProperty("app_bar_icon_size")?.GetValue(okResult.Value);
+            var appLogoSize = (int?)type.GetProperty("app_logo_size")?.GetValue(okResult.Value);
             var endpoints = type.GetProperty("endpoints")?.GetValue(okResult.Value);
             var featureFlags = type.GetProperty("feature_flags")?.GetValue(okResult.Value);
             var socialLinks = type.GetProperty("social_links")?.GetValue(okResult.Value);
@@ -112,6 +142,11 @@ namespace LeitnerPlatform.Tests
 
             Assert.True(maintenanceMode);
             Assert.Equal("arrow", cardNavIconStyle);
+            Assert.Equal(1.2, globalIconScale);
+            Assert.Equal(28, cardNavIconSize);
+            Assert.Equal(32, bottomNavIconSize);
+            Assert.Equal(22, appBarIconSize);
+            Assert.Equal(140, appLogoSize);
             Assert.NotNull(endpoints);
             Assert.NotNull(featureFlags);
             Assert.NotNull(socialLinks);

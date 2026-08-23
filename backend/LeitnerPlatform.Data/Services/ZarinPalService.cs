@@ -119,8 +119,8 @@ namespace LeitnerPlatform.Data.Services
 
                 if (root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
                 {
-                    var code = data.GetProperty("code").GetInt32();
-                    var authority = data.GetProperty("authority").GetString() ?? string.Empty;
+                    var code = data.TryGetProperty("code", out var cProp) ? cProp.GetInt32() : 0;
+                    var authority = data.TryGetProperty("authority", out var aProp) ? aProp.GetString() ?? string.Empty : string.Empty;
 
                     _logger.LogInformation("ZarinPal: Request parsed data code={Code}, authority='{Authority}'", code, authority);
 
@@ -143,6 +143,18 @@ namespace LeitnerPlatform.Data.Services
                         IsSuccess = false,
                         Code = code,
                         Message = message ?? "ZarinPal returned non-100 code."
+                    };
+                }
+                else if (root.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Object)
+                {
+                    var code = errors.TryGetProperty("code", out var cProp) ? cProp.GetInt32() : -1;
+                    var message = errors.TryGetProperty("message", out var mProp) ? mProp.GetString() : "ZarinPal error";
+                    _logger.LogWarning("ZarinPal: Request returned error object code={Code}, message='{Message}'", code, message);
+                    return new ZarinPalRequestResponse
+                    {
+                        IsSuccess = false,
+                        Code = code,
+                        Message = message ?? "ZarinPal error response."
                     };
                 }
 
@@ -210,7 +222,7 @@ namespace LeitnerPlatform.Data.Services
 
                 if (root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
                 {
-                    var code = data.GetProperty("code").GetInt32();
+                    var code = data.TryGetProperty("code", out var cProp) ? cProp.GetInt32() : 0;
                     var refId = data.TryGetProperty("ref_id", out var refProp) && refProp.ValueKind == JsonValueKind.Number 
                         ? refProp.GetInt64() 
                         : 0L;
@@ -238,6 +250,18 @@ namespace LeitnerPlatform.Data.Services
                         IsSuccess = false,
                         Code = code,
                         Message = message ?? "ZarinPal verification failed."
+                    };
+                }
+                else if (root.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Object)
+                {
+                    var code = errors.TryGetProperty("code", out var cProp) ? cProp.GetInt32() : -1;
+                    var message = errors.TryGetProperty("message", out var mProp) ? mProp.GetString() : "ZarinPal verification error";
+                    _logger.LogWarning("ZarinPal: Verify returned error object code={Code}, message='{Message}'", code, message);
+                    return new ZarinPalVerifyResponse
+                    {
+                        IsSuccess = false,
+                        Code = code,
+                        Message = message ?? "ZarinPal verification error response."
                     };
                 }
 

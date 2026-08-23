@@ -5,6 +5,7 @@ import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/features/config/domain/entities/remote_config.dart';
+import 'package:mobile_app/core/constants/app_icon_sizes.dart';
 import '../widgets/social_messenger_tile.dart';
 import 'support_screen.dart';
 
@@ -23,20 +24,26 @@ class AboutUsScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.arrow_back, color: AppColors.primary),
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           loc.aboutUs,
-          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+          style: textTheme.titleLarge?.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        centerTitle: true,
       ),
-      body: SafeArea(
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
           child: BlocBuilder<ConfigBloc, ConfigState>(
             builder: (context, state) {
               final RemoteConfig? config = state.config;
+              final double logoSize = AppIconSizes.getAppLogoSize(config);
+              final double borderRadius = (logoSize * 0.25).clamp(16.0, 36.0);
               final telegramUrl = config?.telegramUrl ?? 'https://t.me/RightlearnApp';
               final baleUrl = config?.baleUrl ?? 'https://ble.ir/rightlearnapp';
               final eitaaUrl = config?.eitaaUrl ?? 'https://eitaa.com/RightLearnApp';
@@ -48,26 +55,26 @@ class AboutUsScreen extends StatelessWidget {
                 children: [
                   Center(
                     child: Container(
-                      width: 80,
-                      height: 80,
+                      width: logoSize,
+                      height: logoSize,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(borderRadius),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.2),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
+                            color: AppColors.primary.withOpacity(0.25),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(borderRadius),
                         child: Image.asset(
                           'assets/images/app_icon.png',
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => Container(
                             color: AppColors.primary,
-                            child: const Icon(Icons.school, size: 40, color: Colors.white),
+                            child: Icon(Icons.school, size: logoSize * 0.5, color: Colors.white),
                           ),
                         ),
                       ),

@@ -145,7 +145,15 @@ class DirectPaymentProvider implements PaymentProvider {
         final paymentUrl = data['payment_url'] as String?;
         if (paymentUrl != null && paymentUrl.isNotEmpty) {
           final uri = Uri.parse(paymentUrl);
-          final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          bool launched = false;
+          try {
+            launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } catch (_) {
+            launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+          }
+          if (!launched) {
+            launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+          }
           return launched;
         }
       }
@@ -172,7 +180,15 @@ class DirectPaymentProvider implements PaymentProvider {
         final paymentUrl = data['payment_url'] as String?;
         if (paymentUrl != null && paymentUrl.isNotEmpty) {
           final uri = Uri.parse(paymentUrl);
-          final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          bool launched = false;
+          try {
+            launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } catch (_) {
+            launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+          }
+          if (!launched) {
+            launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+          }
           return launched;
         }
       }

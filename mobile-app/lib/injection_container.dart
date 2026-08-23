@@ -12,6 +12,7 @@ import 'core/network/dio_client.dart';
 import 'core/services/storage_service.dart';
 import 'core/services/payment_provider.dart';
 import 'core/services/backup_service.dart';
+import 'core/services/deep_link_service.dart';
 import 'features/auth/data/datasources/auth_local_data_source.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
@@ -111,6 +112,12 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
   sl.registerSingleton<Dio>(dioInstance);
   sl.registerSingleton<DioClient>(dioClient);
 
+  final deepLinkService = DeepLinkService();
+  sl.registerSingleton<DeepLinkService>(deepLinkService);
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    deepLinkService.init();
+  }
+
   sl.registerLazySingleton<GooglePlayPaymentProvider>(() => GooglePlayPaymentProvider(sl()));
   sl.registerLazySingleton<BazaarPaymentProvider>(() => BazaarPaymentProvider(sl()));
   sl.registerLazySingleton<MyketPaymentProvider>(() => MyketPaymentProvider(sl()));
@@ -155,6 +162,7 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
     () => AuthRepositoryImpl(
       remoteDataSource: sl(),
       localDataSource: sl(),
+      databaseHelper: sl(),
     ),
   );
 

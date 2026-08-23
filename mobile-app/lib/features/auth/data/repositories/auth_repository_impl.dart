@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:mobile_app/core/database/database_helper.dart';
 import 'package:mobile_app/core/error/exceptions.dart';
 import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/core/usecase/usecase.dart';
@@ -12,10 +13,12 @@ import 'package:mobile_app/features/auth/domain/repositories/auth_repository.dar
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
   final AuthLocalDataSource localDataSource;
+  final DatabaseHelper databaseHelper;
 
   AuthRepositoryImpl({
     required this.remoteDataSource,
     required this.localDataSource,
+    required this.databaseHelper,
   });
 
   @override
@@ -65,14 +68,19 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // Cache minimal user profile immediately to prevent cold boot null states
       final existingUser = await localDataSource.getCachedUser();
+      String activeId;
       if (existingUser == null) {
+        activeId = 'user_${mobileNumber.replaceAll('+', '').replaceAll(' ', '')}';
         await localDataSource.cacheUserProfile(
-          id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+          id: activeId,
           username: 'User_${mobileNumber.replaceAll('+', '').replaceAll(' ', '')}',
           mobileNumber: mobileNumber,
           createdAt: DateTime.now(),
         );
+      } else {
+        activeId = existingUser.id;
       }
+      await databaseHelper.switchUser(activeId);
 
       return Right(result);
     } on ServerException catch (e) {
@@ -86,6 +94,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, User>> getProfile() async {
     try {
       final profile = await remoteDataSource.getProfile();
+      await databaseHelper.switchUser(profile.id);
       await localDataSource.cacheUserProfile(
         id: profile.id,
         username: profile.username,
@@ -101,6 +110,7 @@ class AuthRepositoryImpl implements AuthRepository {
       if (e.errorCode != 'UNAUTHORIZED' && e.errorCode != 'INVALID_TOKEN' && e.errorCode != 'SESSION_EXPIRED') {
         final cached = await localDataSource.getCachedUser();
         if (cached != null) {
+          await databaseHelper.switchUser(cached.id);
           return Right(cached);
         }
       }
@@ -108,6 +118,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (e) {
       final cached = await localDataSource.getCachedUser();
       if (cached != null) {
+        await databaseHelper.switchUser(cached.id);
         return Right(cached);
       }
       return Left(ServerFailure(e.toString()));
@@ -130,6 +141,7 @@ class AuthRepositoryImpl implements AuthRepository {
         educationalLevel: educationalLevel,
       );
 
+      await databaseHelper.switchUser(profile.id);
       await localDataSource.cacheUserProfile(
         id: profile.id,
         username: profile.username,
@@ -180,6 +192,8 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, bool>> logout() async {
     try {
       await localDataSource.clearCache();
+      await databaseHelper.switchUser(null);
+      await databaseHelper.closeAll();
       return const Right(true);
     } catch (e) {
       return Left(CacheFailure(e.toString()));

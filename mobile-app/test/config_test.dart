@@ -41,6 +41,14 @@ void main() {
           'rotation_interval_seconds': 6,
           'max_banner_count': 4,
         },
+        'app_styles': {
+          'card_nav_icon_style': 'arrow',
+          'global_icon_scale': 1.15,
+          'card_nav_icon_size': 24.0,
+          'bottom_nav_icon_size': 30.0,
+          'app_bar_icon_size': 28.0,
+          'app_logo_size': 140.0,
+        },
         'social_links': {
           'telegram_url': 'https://t.me/CustomApp',
           'bale_url': 'https://ble.ir/customapp',
@@ -70,7 +78,12 @@ void main() {
       expect(config.enableScreenshotProtection, false);
       expect(config.rotationIntervalSeconds, 6);
       expect(config.maxBannerCount, 4);
-      expect(config.cardNavIconStyle, 'chevron');
+      expect(config.cardNavIconStyle, 'arrow');
+      expect(config.globalIconScale, 1.15);
+      expect(config.cardNavIconSize, 24.0);
+      expect(config.bottomNavIconSize, 30.0);
+      expect(config.appBarIconSize, 28.0);
+      expect(config.appLogoSize, 140.0);
       expect(config.telegramUrl, 'https://t.me/CustomApp');
       expect(config.baleUrl, 'https://ble.ir/customapp');
       expect(config.eitaaUrl, 'https://eitaa.com/customapp');
@@ -94,6 +107,11 @@ void main() {
       expect(config.enableGamifiedLayout, false);
       expect(config.enableScreenshotProtection, true);
       expect(config.cardNavIconStyle, 'chevron');
+      expect(config.globalIconScale, 1.0);
+      expect(config.cardNavIconSize, 20.0);
+      expect(config.bottomNavIconSize, 26.0);
+      expect(config.appBarIconSize, 24.0);
+      expect(config.appLogoSize, 110.0);
       expect(config.telegramUrl, 'https://t.me/RightlearnApp');
       expect(config.baleUrl, 'https://ble.ir/rightlearnapp');
       expect(config.eitaaUrl, 'https://eitaa.com/RightLearnApp');

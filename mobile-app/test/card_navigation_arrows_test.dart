@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/core/constants/app_nav_icons.dart';
+import 'package:mobile_app/core/constants/app_icon_sizes.dart';
+import 'package:mobile_app/features/config/domain/entities/remote_config.dart';
 
 void main() {
   group('Card Navigation Arrows Direction Verification in RTL', () {
@@ -75,6 +77,38 @@ void main() {
       // Fallback
       expect(AppNavIcons.getLeftIcon(null), Icons.chevron_left);
       expect(AppNavIcons.getRightIcon(null), Icons.chevron_right);
+    });
+
+    test('AppIconSizes returns correct sizes and scale calculations', () {
+      const config = RemoteConfig(
+        maintenanceMode: false,
+        apiServer: 'http://test',
+        contentServer: 'http://test',
+        bannerServer: 'http://test',
+        enableAiTutor: false,
+        enableCustomThemes: true,
+        enableSearchV2: true,
+        rotationIntervalSeconds: 4,
+        maxBannerCount: 5,
+        globalIconScale: 1.25,
+        cardNavIconSize: 28.0,
+        bottomNavIconSize: 32.0,
+        appBarIconSize: 26.0,
+        appLogoSize: 130.0,
+      );
+
+      expect(AppIconSizes.getCardNavIconSize(config), 28.0);
+      expect(AppIconSizes.getBottomNavIconSize(config), 32.0);
+      expect(AppIconSizes.getAppBarIconSize(config), 26.0);
+      expect(AppIconSizes.getAppLogoSize(config), 130.0);
+      expect(AppIconSizes.scale(20.0, config), 25.0);
+
+      // Null fallback tests
+      expect(AppIconSizes.getCardNavIconSize(null), AppIconSizes.defaultCardNavSize);
+      expect(AppIconSizes.getBottomNavIconSize(null), AppIconSizes.defaultBottomNavSize);
+      expect(AppIconSizes.getAppBarIconSize(null), AppIconSizes.defaultAppBarIconSize);
+      expect(AppIconSizes.getAppLogoSize(null), AppIconSizes.defaultAppLogoSize);
+      expect(AppIconSizes.scale(20.0, null), 20.0);
     });
   });
 }

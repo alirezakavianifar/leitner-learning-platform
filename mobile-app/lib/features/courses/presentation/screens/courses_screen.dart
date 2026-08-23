@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/core/services/payment_provider.dart';
+import 'package:mobile_app/core/services/deep_link_service.dart';
 import 'package:mobile_app/injection_container.dart';
 import 'package:mobile_app/features/courses/domain/entities/course.dart';
 import 'package:mobile_app/features/courses/domain/entities/course_package.dart';
@@ -23,17 +25,130 @@ class CoursesScreen extends StatefulWidget {
   State<CoursesScreen> createState() => _CoursesScreenState();
 }
 
-class _CoursesScreenState extends State<CoursesScreen> {
+class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserver {
   late int _selectedTab;
   int _catalogFilterIndex = 0; // 0: All, 1: Single Courses, 2: Packages
+  StreamSubscription<PaymentResult>? _paymentSub;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _selectedTab = widget.tabNotifier?.value ?? 0;
     widget.tabNotifier?.addListener(_handleTabNotifierChange);
+    
+    // Subscribe to incoming deep link payment callbacks
+    _paymentSub = sl<DeepLinkService>().paymentResults.listen(_handlePaymentResult);
+
     // Load courses on entry
     context.read<CoursesBloc>().add(LoadCoursesEvent());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Reload courses when user returns to app from browser or other apps
+      context.read<CoursesBloc>().add(LoadCoursesEvent());
+    }
+  }
+
+  void _handlePaymentResult(PaymentResult result) {
+    if (!mounted) return;
+    final loc = AppLocalizations.of(context);
+
+    if (result.isSuccess) {
+      // Trigger catalog & my courses reload
+      context.read<CoursesBloc>().add(LoadCoursesEvent());
+
+      // Show success modal with Ref ID
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.courseDownloaded.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.check_circle_outline, color: AppColors.courseDownloaded, size: 28),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  loc.translate('payment_successful_title'),
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                loc.translate('payment_successful_desc'),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+              ),
+              if (result.refId != null && result.refId!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.background.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        loc.translate('payment_ref_id').replaceAll('{ref}', result.refId!),
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                setState(() => _selectedTab = 1); // Switch to My Courses tab
+              },
+              child: Text(loc.translate('view_courses'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+    } else if (result.isCancelled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.translate('payment_cancelled')),
+          backgroundColor: AppColors.textSecondary,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.translate('payment_failed')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   void _handleTabNotifierChange() {
@@ -46,18 +161,22 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _paymentSub?.cancel();
     widget.tabNotifier?.removeListener(_handleTabNotifierChange);
     super.dispose();
   }
 
-  /// Sorts courses: courses needing an update go first, then downloaded, then purchased, then unpaid.
+  /// Sorts courses: courses needing an update go first, then downloaded & purchased, then purchased, then unpaid.
   List<Course> _sortCourses(List<Course> courses) {
     final list = List<Course>.from(courses);
     list.sort((a, b) {
       if (a.updateAvailable && !b.updateAvailable) return -1;
       if (!a.updateAvailable && b.updateAvailable) return 1;
-      if (a.isDownloaded && !b.isDownloaded) return -1;
-      if (!a.isDownloaded && b.isDownloaded) return 1;
+      final aDownloadedOwned = a.isPurchased && a.isDownloaded;
+      final bDownloadedOwned = b.isPurchased && b.isDownloaded;
+      if (aDownloadedOwned && !bDownloadedOwned) return -1;
+      if (!aDownloadedOwned && bDownloadedOwned) return 1;
       if (a.isPurchased && !b.isPurchased) return -1;
       if (!a.isPurchased && b.isPurchased) return 1;
       return a.title.compareTo(b.title);
@@ -329,7 +448,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
                 var sortedCourses = _sortCourses(courses);
                 if (_selectedTab == 1) {
-                  sortedCourses = sortedCourses.where((c) => c.isDownloaded).toList();
+                  sortedCourses = sortedCourses
+                      .where((c) => (c.isPurchased && c.isDownloaded) || (kIsWeb && c.isPurchased))
+                      .toList();
                 }
 
                 final shouldShowPackages = _selectedTab == 0 &&
@@ -468,11 +589,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
     if (config.isPremium) {
       showModalBottomSheet(
         context: context,
+        useRootNavigator: false,
         backgroundColor: AppColors.surface,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        builder: (context) {
+        builder: (sheetCtx) {
           return SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
@@ -493,22 +615,34 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   ListTile(
                     leading: Icon(Icons.payment, color: AppColors.primary),
                     title: Text(loc.translate('zarinpal_gateway'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () => _processPackagePurchase(package, sl<DirectPaymentProvider>()),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _processPackagePurchase(package, sl<DirectPaymentProvider>());
+                    },
                   ),
                   ListTile(
                     leading: Icon(Icons.store, color: AppColors.secondary),
                     title: Text(loc.translate('bazaar_billing'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () => _processPackagePurchase(package, sl<BazaarPaymentProvider>()),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _processPackagePurchase(package, sl<BazaarPaymentProvider>());
+                    },
                   ),
                   ListTile(
                     leading: Icon(Icons.shopping_bag_outlined, color: AppColors.secondary),
                     title: Text(loc.translate('myket_billing'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () => _processPackagePurchase(package, sl<MyketPaymentProvider>()),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _processPackagePurchase(package, sl<MyketPaymentProvider>());
+                    },
                   ),
                   ListTile(
                     leading: const Icon(Icons.shop_two, color: Colors.blue),
                     title: Text(loc.translate('google_play_iap'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () => _processPackagePurchase(package, sl<GooglePlayPaymentProvider>()),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _processPackagePurchase(package, sl<GooglePlayPaymentProvider>());
+                    },
                   ),
                 ],
               ),
@@ -549,10 +683,10 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   void _processPackagePurchase(CoursePackage package, PaymentProvider provider) async {
     final loc = AppLocalizations.of(context);
-    Navigator.pop(context); // Close modal
 
     showDialog(
       context: context,
+      useRootNavigator: true,
       barrierDismissible: false,
       builder: (context) => Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -560,24 +694,46 @@ class _CoursesScreenState extends State<CoursesScreen> {
     );
 
     final success = await provider.purchasePackage(package.id);
-    Navigator.pop(context); // Close loading dialog
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop(); // Close loading dialog safely
+    }
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(loc.translate('bundle_unlocked_success').replaceAll('{title}', package.title)),
-          backgroundColor: AppColors.courseDownloaded,
-        ),
-      );
-      // Reload courses to reflect newly unlocked courses in both Catalog and My Courses
-      context.read<CoursesBloc>().add(LoadCoursesEvent());
+    if (!mounted) return;
+
+    if (provider is DirectPaymentProvider) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('redirecting_to_gateway')),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('purchase_failed')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(loc.translate('purchase_failed')),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('bundle_unlocked_success').replaceAll('{title}', package.title)),
+            backgroundColor: AppColors.courseDownloaded,
+          ),
+        );
+        // Reload courses to reflect newly unlocked courses in both Catalog and My Courses
+        context.read<CoursesBloc>().add(LoadCoursesEvent());
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('purchase_failed')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -589,11 +745,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
       // Show payment selector modal sheet
       showModalBottomSheet(
         context: context,
+        useRootNavigator: false,
         backgroundColor: AppColors.surface,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        builder: (context) {
+        builder: (sheetCtx) {
           return SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
@@ -614,22 +771,34 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   ListTile(
                     leading: Icon(Icons.payment, color: AppColors.primary),
                     title: Text(loc.translate('zarinpal_gateway'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () => _processPurchase(course, sl<DirectPaymentProvider>()),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _processPurchase(course, sl<DirectPaymentProvider>());
+                    },
                   ),
                   ListTile(
                     leading: Icon(Icons.store, color: AppColors.secondary),
                     title: Text(loc.translate('bazaar_billing'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () => _processPurchase(course, sl<BazaarPaymentProvider>()),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _processPurchase(course, sl<BazaarPaymentProvider>());
+                    },
                   ),
                   ListTile(
                     leading: Icon(Icons.shopping_bag_outlined, color: AppColors.secondary),
                     title: Text(loc.translate('myket_billing'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () => _processPurchase(course, sl<MyketPaymentProvider>()),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _processPurchase(course, sl<MyketPaymentProvider>());
+                    },
                   ),
                   ListTile(
                     leading: const Icon(Icons.shop_two, color: Colors.blue),
                     title: Text(loc.translate('google_play_iap'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () => _processPurchase(course, sl<GooglePlayPaymentProvider>()),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _processPurchase(course, sl<GooglePlayPaymentProvider>());
+                    },
                   ),
                 ],
               ),
@@ -673,11 +842,11 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
   void _processPurchase(Course course, PaymentProvider provider) async {
     final loc = AppLocalizations.of(context);
-    Navigator.pop(context); // Close bottom sheet
     
     // Show progress loading
     showDialog(
       context: context,
+      useRootNavigator: true,
       barrierDismissible: false,
       builder: (context) => Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -686,24 +855,46 @@ class _CoursesScreenState extends State<CoursesScreen> {
 
     final success = await provider.purchaseCourse(course.id);
     
-    Navigator.pop(context); // Close loading dialog
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop(); // Close loading dialog safely
+    }
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(loc.translate('course_unlocked_success').replaceAll('{title}', course.title)),
-          backgroundColor: AppColors.courseDownloaded,
-        ),
-      );
-      // Reload courses to update purchased status
-      context.read<CoursesBloc>().add(LoadCoursesEvent());
+    if (!mounted) return;
+
+    if (provider is DirectPaymentProvider) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('redirecting_to_gateway')),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('purchase_failed')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(loc.translate('purchase_failed')),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('course_unlocked_success').replaceAll('{title}', course.title)),
+            backgroundColor: AppColors.courseDownloaded,
+          ),
+        );
+        // Reload courses to update purchased status
+        context.read<CoursesBloc>().add(LoadCoursesEvent());
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('purchase_failed')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -953,7 +1144,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
       );
     }
 
-    if (course.isDownloaded || (kIsWeb && course.isPurchased)) {
+    if ((course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased)) {
       return ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         backgroundColor: isDark 

@@ -97,6 +97,7 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
 *   Publish, schedule, or hide banners and announcements.
 *   *Flashcard Reports Interface:* Admin review interface to browse and filter submitted flashcard reports by card, course, or user, and flag content issues.
 *   *Dynamic Leitner Stage Intervals & 1-Hour Verification:* Configure review intervals per Leitner stage (Boxes 2–5) and time units (`Seconds`, `Minutes`, `Hours`, `Days`) with one-click presets for standard or fast verification testing (~1 hour total).
+*   *Icon Sizing & Visual Scaling:* Remotely configure global icon scaling (0.85x–1.30x), in-app logo/branding size (`app_logo_size` default `110px`), and section-specific icon sizes (Card Navigation arrows, Bottom Navigation Bar tabs, and App Header action icons) with instant live preview in the Web Admin Panel.
 
 ### 6. Security & Content Protection
 *   Watermarked content displays to discourage piracy.
@@ -151,8 +152,7 @@ The entire backend infrastructure (Database, Cache, API, Background Worker, and 
     SMS_PATTERN_CODE=your_approved_pattern_code
     ZARINPAL_MERCHANT_ID=167ccd1b-f5d3-407d-85d1-a73c4f2ba3eb
     ZARINPAL_SANDBOX=false
-    ZARINPAL_CALLBACK_URL=https://rightlearn.ir/api/v1/purchases/zarinpal/callback
-
+    ZARINPAL_CALLBACK_URL=http://45.94.215.188/api/v1/purchases/zarinpal/callback
     ```
 
 #### Running the Stack

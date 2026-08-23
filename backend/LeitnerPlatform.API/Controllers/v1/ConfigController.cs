@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -103,6 +104,11 @@ namespace LeitnerPlatform.API.Controllers.v1
             int rotationInterval = configs.TryGetValue("rotation_interval_seconds", out var rotVal) && int.TryParse(rotVal, out var rotInt) ? rotInt : 4;
             int maxBannerCount = configs.TryGetValue("max_banner_count", out var maxVal) && int.TryParse(maxVal, out var maxInt) ? maxInt : 5;
             string cardNavIconStyle = configs.TryGetValue("card_nav_icon_style", out var iconStyleVal) && !string.IsNullOrWhiteSpace(iconStyleVal) ? iconStyleVal : "chevron";
+            double globalIconScale = configs.TryGetValue("global_icon_scale", out var gisVal) && double.TryParse(gisVal, NumberStyles.Any, CultureInfo.InvariantCulture, out var gisDbl) ? gisDbl : 1.0;
+            int cardNavIconSize = configs.TryGetValue("card_nav_icon_size", out var cnsVal) && int.TryParse(cnsVal, out var cnsInt) ? cnsInt : 20;
+            int bottomNavIconSize = configs.TryGetValue("bottom_nav_icon_size", out var bnsVal) && int.TryParse(bnsVal, out var bnsInt) ? bnsInt : 26;
+            int appBarIconSize = configs.TryGetValue("app_bar_icon_size", out var absVal) && int.TryParse(absVal, out var absInt) ? absInt : 24;
+            int appLogoSize = configs.TryGetValue("app_logo_size", out var alsVal) && int.TryParse(alsVal, out var alsInt) ? alsInt : 110;
 
             int jwtLifetimeValue = configs.TryGetValue("jwt_lifetime_value", out var jwtVal) && int.TryParse(jwtVal, out var jv) ? jv : 1;
             string jwtLifetimeUnit = configs.TryGetValue("jwt_lifetime_unit", out var jwtUnit) ? jwtUnit : "days";
@@ -126,6 +132,11 @@ namespace LeitnerPlatform.API.Controllers.v1
             {
                 maintenance_mode = maintenanceMode,
                 card_nav_icon_style = cardNavIconStyle,
+                global_icon_scale = globalIconScale,
+                card_nav_icon_size = cardNavIconSize,
+                bottom_nav_icon_size = bottomNavIconSize,
+                app_bar_icon_size = appBarIconSize,
+                app_logo_size = appLogoSize,
                 endpoints = new
                 {
                     api_server = apiServer,
@@ -142,7 +153,12 @@ namespace LeitnerPlatform.API.Controllers.v1
                 },
                 app_styles = new
                 {
-                    card_nav_icon_style = cardNavIconStyle
+                    card_nav_icon_style = cardNavIconStyle,
+                    global_icon_scale = globalIconScale,
+                    card_nav_icon_size = cardNavIconSize,
+                    bottom_nav_icon_size = bottomNavIconSize,
+                    app_bar_icon_size = appBarIconSize,
+                    app_logo_size = appLogoSize
                 },
                 banner_configs = new
                 {

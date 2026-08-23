@@ -53,6 +53,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Future<void> clearCache() async {
     await storageService.deleteSecure('jwt_token');
     await storageService.deleteSecure('refresh_token');
+    await storageService.deleteSecure('active_user_id');
     await sharedPreferences.remove('terms_accepted');
     await sharedPreferences.remove('user_id');
     await sharedPreferences.remove('user_username');
@@ -86,6 +87,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     required DateTime createdAt,
     String? profilePictureUrl,
   }) async {
+    await storageService.writeSecure('active_user_id', id);
     await sharedPreferences.setString('user_id', id);
     await sharedPreferences.setString('user_username', username);
     await sharedPreferences.setString('user_mobile_number', mobileNumber);

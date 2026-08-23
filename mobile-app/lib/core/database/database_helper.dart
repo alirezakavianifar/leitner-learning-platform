@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
@@ -7,20 +8,60 @@ import 'package:mobile_app/core/services/storage_service.dart';
 class DatabaseHelper {
   final StorageService _storageService;
   Database? _localDatabase;
+  String? _currentUserId;
 
   DatabaseHelper(this._storageService);
 
-  /// Gets the path to the app's local database.
+  /// Gets the currently active user ID.
+  String? get currentUserId => _currentUserId;
+
+  /// Switches the active user context and resets active database connection.
+  Future<void> switchUser(String? userId) async {
+    if (_currentUserId != userId) {
+      await closeAll();
+      _currentUserId = userId;
+    }
+  }
+
+  /// Gets the path to the user's local database.
   Future<String> getLocalDatabasePath() async {
     final databasesPath = await getDatabasesPath();
-    return p.join(databasesPath, 'app_local.db');
+    var userId = _currentUserId;
+    if (userId == null || userId.isEmpty) {
+      userId = await _storageService.readSecure('active_user_id');
+      _currentUserId = userId;
+    }
+
+    if (userId != null && userId.isNotEmpty) {
+      final safeId = userId.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+      final userDbPath = p.join(databasesPath, 'app_local_$safeId.db');
+
+      // Backward compatibility: migrate legacy un-scoped app_local.db to first active user if needed
+      final legacyPath = p.join(databasesPath, 'app_local.db');
+      try {
+        final legacyFile = File(legacyPath);
+        final userDbFile = File(userDbPath);
+        if (legacyFile.existsSync() && !userDbFile.existsSync()) {
+          legacyFile.copySync(userDbPath);
+          legacyFile.deleteSync();
+        }
+      } catch (_) {}
+
+      return userDbPath;
+    }
+
+    return p.join(databasesPath, 'app_local_guest.db');
   }
 
   /// Derives or retrieves the database encryption key.
   /// Follows the design: Key = PBKDF2(DeviceUniqueID, UserSalt, Iterations=10000)
   Future<String> getOrCreateEncryptionKey() async {
+    final userSuffix = (_currentUserId != null && _currentUserId!.isNotEmpty)
+        ? '_${_currentUserId!.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_')}'
+        : '';
+
     // 1. Check if key is already cached in secure storage
-    var key = await _storageService.readSecure('db_encryption_key');
+    var key = await _storageService.readSecure('db_encryption_key$userSuffix');
     if (key != null) {
       return key;
     }
@@ -33,10 +74,10 @@ class DatabaseHelper {
     }
 
     // 3. Get or generate UserSalt
-    var salt = await _storageService.readSecure('user_salt');
+    var salt = await _storageService.readSecure('user_salt$userSuffix');
     if (salt == null) {
       salt = _generateRandomId(16);
-      await _storageService.writeSecure('user_salt', salt);
+      await _storageService.writeSecure('user_salt$userSuffix', salt);
     }
 
     // 4. Derive key using PBKDF2-HMAC-SHA256
@@ -48,12 +89,12 @@ class DatabaseHelper {
     );
 
     final derivedKeyHex = derivedKeyBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-    await _storageService.writeSecure('db_encryption_key', derivedKeyHex);
+    await _storageService.writeSecure('db_encryption_key$userSuffix', derivedKeyHex);
 
     return derivedKeyHex;
   }
 
-  /// Opens the shared local database.
+  /// Opens the active user's local database.
   Future<Database> get localDatabase async {
     if (_localDatabase != null) {
       return _localDatabase!;
@@ -333,6 +374,42 @@ class DatabaseHelper {
     if (_localDatabase != null) {
       await _localDatabase!.close();
       _localDatabase = null;
+    }
+  }
+
+  /// Wipes all tables in the currently active database.
+  Future<void> clearAllData() async {
+    final db = await localDatabase;
+    await db.transaction((txn) async {
+      await txn.delete('client_progress');
+      await txn.delete('user_created_cards');
+      await txn.delete('user_created_courses');
+      await txn.delete('favorites');
+      await txn.delete('courses_cache');
+      await txn.delete('packages_cache');
+      await txn.delete('package_courses_cache');
+      await txn.delete('banners_cache');
+      await txn.delete('announcements_cache');
+      await txn.delete('settings');
+    });
+  }
+
+  /// Deletes a specific user's database file completely if needed.
+  Future<void> deleteUserData(String userId) async {
+    final safeId = userId.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    final databasesPath = await getDatabasesPath();
+    final userDbPath = p.join(databasesPath, 'app_local_$safeId.db');
+    
+    if (_currentUserId == userId) {
+      await closeAll();
+      _currentUserId = null;
+    }
+    
+    final file = File(userDbPath);
+    if (file.existsSync()) {
+      try {
+        file.deleteSync();
+      } catch (_) {}
     }
   }
 }

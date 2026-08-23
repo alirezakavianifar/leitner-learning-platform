@@ -51,6 +51,9 @@ services:
       - SMS_PROVIDER=${SMS_PROVIDER:-Kavenegar}
       - SMS_SENDER=${SMS_SENDER}
       - SMS_PATTERN_CODE=${SMS_PATTERN_CODE}
+      - ZARINPAL_MERCHANT_ID=${ZARINPAL_MERCHANT_ID}
+      - ZARINPAL_SANDBOX=${ZARINPAL_SANDBOX:-false}
+      - ZARINPAL_CALLBACK_URL=${ZARINPAL_CALLBACK_URL:-http://45.94.215.188/api/v1/purchases/zarinpal/callback}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     networks:

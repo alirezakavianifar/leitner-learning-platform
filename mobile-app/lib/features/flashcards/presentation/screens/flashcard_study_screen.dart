@@ -582,6 +582,11 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
               final iconStyle = configState is ConfigLoaded
                   ? configState.config.cardNavIconStyle
                   : (configState is ConfigMaintenance ? configState.config.cardNavIconStyle : 'chevron');
+              final iconSize = configState is ConfigLoaded
+                  ? configState.config.cardNavIconSize
+                  : (configState is ConfigMaintenance ? configState.config.cardNavIconSize : 20.0);
+              final buttonDiameter = (iconSize + 12.0).clamp(32.0, 48.0);
+              final tapZoneWidth = (buttonDiameter + 12.0).clamp(44.0, 60.0);
 
               final card = state.currentCard;
               if (card == null) return const SizedBox.shrink();
@@ -747,7 +752,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                         left: 0,
                                         top: 0,
                                         bottom: 0,
-                                        width: 44,
+                                        width: tapZoneWidth,
                                         child: GestureDetector(
                                           behavior: HitTestBehavior.opaque,
                                           onTap: state.currentIndex < state.queue.length - 1
@@ -757,8 +762,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                             color: Colors.transparent,
                                             child: Center(
                                               child: Container(
-                                                width: 32,
-                                                height: 32,
+                                                width: buttonDiameter,
+                                                height: buttonDiameter,
                                                 decoration: BoxDecoration(
                                                   color: (state.currentIndex < state.queue.length - 1
                                                           ? AppColors.primary
@@ -770,7 +775,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                                   textDirection: TextDirection.ltr,
                                                   child: Icon(
                                                     AppNavIcons.getLeftIcon(iconStyle),
-                                                    size: 20,
+                                                    size: iconSize,
                                                     color: state.currentIndex < state.queue.length - 1
                                                         ? AppColors.primary
                                                         : AppColors.textSecondary.withOpacity(0.3),
@@ -787,7 +792,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                         right: 0,
                                         top: 0,
                                         bottom: 0,
-                                        width: 44,
+                                        width: tapZoneWidth,
                                         child: GestureDetector(
                                           behavior: HitTestBehavior.opaque,
                                           onTap: state.currentIndex > 0
@@ -797,8 +802,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                             color: Colors.transparent,
                                             child: Center(
                                               child: Container(
-                                                width: 32,
-                                                height: 32,
+                                                width: buttonDiameter,
+                                                height: buttonDiameter,
                                                 decoration: BoxDecoration(
                                                   color: (state.currentIndex > 0
                                                           ? AppColors.primary
@@ -810,7 +815,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                                   textDirection: TextDirection.ltr,
                                                   child: Icon(
                                                     AppNavIcons.getRightIcon(iconStyle),
-                                                    size: 20,
+                                                    size: iconSize,
                                                     color: state.currentIndex > 0
                                                         ? AppColors.primary
                                                         : AppColors.textSecondary.withOpacity(0.3),
