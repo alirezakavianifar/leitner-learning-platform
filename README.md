@@ -152,7 +152,7 @@ The entire backend infrastructure (Database, Cache, API, Background Worker, and 
     SMS_PATTERN_CODE=your_approved_pattern_code
     ZARINPAL_MERCHANT_ID=167ccd1b-f5d3-407d-85d1-a73c4f2ba3eb
     ZARINPAL_SANDBOX=false
-    ZARINPAL_CALLBACK_URL=http://45.94.215.188/api/v1/purchases/zarinpal/callback
+    ZARINPAL_CALLBACK_URL=https://api.rightlearn.ir/api/v1/purchases/zarinpal/callback
     ```
 
 #### Running the Stack
@@ -259,9 +259,9 @@ powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms OFF
            powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "http://45.94.215.188"
 
            # Or target local/ngrok backend:
-           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1
+           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir"
            ```
-        The compiled APK will be automatically copied to the repository root as `app-premium-release.apk`. (Note: The app is configured with `android:usesCleartextTraffic="true"` in `AndroidManifest.xml` to support HTTP endpoints like `http://45.94.215.188`).
+        The compiled APK will be automatically copied to the repository root as `app-premium-release.apk` (connected to `https://api.rightlearn.ir`). (Note: The app is configured with `android:usesCleartextTraffic="true"` in `AndroidManifest.xml` to support HTTP endpoints like `http://45.94.215.188`).
 
 
 ---

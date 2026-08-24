@@ -53,7 +53,7 @@ services:
       - SMS_PATTERN_CODE=${SMS_PATTERN_CODE}
       - ZARINPAL_MERCHANT_ID=${ZARINPAL_MERCHANT_ID}
       - ZARINPAL_SANDBOX=${ZARINPAL_SANDBOX:-false}
-      - ZARINPAL_CALLBACK_URL=${ZARINPAL_CALLBACK_URL:-http://45.94.215.188/api/v1/purchases/zarinpal/callback}
+      - ZARINPAL_CALLBACK_URL=${ZARINPAL_CALLBACK_URL:-https://api.rightlearn.ir/api/v1/purchases/zarinpal/callback}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     networks:

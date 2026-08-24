@@ -20,6 +20,7 @@ using LeitnerPlatform.Data.Repositories;
 using LeitnerPlatform.Data.Services;
 using Serilog;
 using LeitnerPlatform.API.Middleware;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -213,6 +214,11 @@ eventBus.Subscribe<PurchaseCompletedEvent>(async @event =>
 });
 
 // 14. Configure request pipeline
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
+});
+
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSerilogRequestLogging();

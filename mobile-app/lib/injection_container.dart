@@ -89,7 +89,7 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
   if (kIsWeb || (!kIsWeb && Platform.isWindows)) {
     defaultUrl = 'http://localhost:5217/api/v1';
   } else {
-    defaultUrl = 'http://45.94.215.188/api/v1';
+    defaultUrl = 'https://api.rightlearn.ir/api/v1';
   }
   final fallbackUrl = (apiBaseUrl != null && apiBaseUrl.isNotEmpty) ? apiBaseUrl : defaultUrl;
   final dioInstance = Dio();

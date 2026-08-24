@@ -5,7 +5,7 @@
 
 param (
     [string]$Flavor = "premium",
-    [string]$TargetUrl = "http://45.94.215.188"
+    [string]$TargetUrl = "https://api.rightlearn.ir"
 )
 
 $ErrorActionPreference = "Stop"
