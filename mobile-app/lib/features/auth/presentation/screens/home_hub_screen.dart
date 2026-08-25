@@ -385,19 +385,16 @@ class HomeHubScreenState extends State<HomeHubScreen> {
             index: _currentIndex,
             children: _tabs,
           ),
-          extendBody: true, // Enables transparent/blur bottom navigation styling
-          bottomNavigationBar: ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-              child: Container(
-                height: 72,
-                decoration: BoxDecoration(
-                  color: AppColors.background.withOpacity(0.85),
-                  border: Border(
-                    top: BorderSide(color: AppColors.border, width: 1),
-                  ),
-                ),
-                child: BottomNavigationBar(
+          extendBody: false,
+          bottomNavigationBar: Container(
+            height: 68,
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              border: Border(
+                top: BorderSide(color: AppColors.border, width: 1),
+              ),
+            ),
+            child: BottomNavigationBar(
                   key: _bottomNavKey,
                   currentIndex: _currentIndex,
                   onTap: (index) {
@@ -469,8 +466,6 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   ],
                 ),
               ),
-            ),
-          ),
         ),
       ),
     );

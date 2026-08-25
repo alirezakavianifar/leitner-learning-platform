@@ -365,73 +365,114 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: RefreshIndicator(
-        color: AppColors.primary,
-        backgroundColor: AppColors.surface,
-        onRefresh: _onRefresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: enableGamifiedLayout
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Greeting & VIP Header
-                    _buildTopGamifiedHeader(context, loc),
-                    const SizedBox(height: 16),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxH = constraints.maxHeight;
 
-                    // Gamified 3D Learning Hero Banner
-                    _buildGamifiedHeroBanner(context, loc),
-                    const SizedBox(height: 20),
+          // Responsive measurements to fit all items seamlessly on any screen height
+          final bannerHeight = (maxH * 0.165).clamp(80.0, 108.0);
+          const horizontalPadding = 12.0;
+          const topPadding = 6.0;
+          const bottomPadding = 6.0;
+          const titleHeight = 22.0;
+          final bannerWithDotsHeight = bannerHeight + 9.0;
+          const betweenBannerAndTitle = 6.0;
+          const betweenTitleAndGrid = 6.0;
 
-                    // Practice More Section Title
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          final nonGridHeight = topPadding +
+              bannerWithDotsHeight +
+              betweenBannerAndTitle +
+              titleHeight +
+              betweenTitleAndGrid +
+              bottomPadding;
+          final availableGridHeight = maxH - nonGridHeight;
+          const mainAxisSpacing = 8.0;
+          const crossAxisSpacing = 10.0;
+
+          final screenWidth = MediaQuery.of(context).size.width;
+          final cardWidth = (screenWidth - (horizontalPadding * 2) - crossAxisSpacing) / 2;
+          final singleCardHeight = (availableGridHeight - (mainAxisSpacing * 2)) / 3;
+
+          double childAspectRatio = 1.32;
+          if (singleCardHeight > 0 && cardWidth > 0) {
+            childAspectRatio = (cardWidth / singleCardHeight).clamp(1.15, 1.48);
+          }
+          final imageSize = (singleCardHeight * 0.56).clamp(52.0, 72.0);
+
+          return RefreshIndicator(
+            color: AppColors.primary,
+            backgroundColor: AppColors.surface,
+            onRefresh: _onRefresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              padding: const EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: topPadding),
+              child: enableGamifiedLayout
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Top Greeting & VIP Header
+                        _buildTopGamifiedHeader(context, loc),
+                        const SizedBox(height: 16),
+
+                        // Gamified 3D Learning Hero Banner
+                        _buildGamifiedHeroBanner(context, loc),
+                        const SizedBox(height: 20),
+
+                        // Practice More Section Title
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              loc.translate('practice_more'),
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Daily Practice Orange Review Banner Card
+                        _buildDailyPracticeCard(context, loc),
+                        const SizedBox(height: 20),
+
+                        // Dynamic Real Course Accordion & Lesson Progress Tree
+                        _buildCourseAccordionTree(context, loc),
+                        const SizedBox(height: 48),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Classic Carousel Banner Layout
+                        _buildClassicBannerCarousel(context, loc, bannerHeight: bannerHeight),
+                        const SizedBox(height: betweenBannerAndTitle),
+
                         Text(
-                          loc.translate('practice_more'),
+                          loc.quickHub,
                           style: TextStyle(
                             color: AppColors.textPrimary,
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        const SizedBox(height: betweenTitleAndGrid),
+
+                        // Classic Feature Grid (6 Cards)
+                        _buildClassicFeatureGrid(
+                          context,
+                          loc,
+                          childAspectRatio: childAspectRatio,
+                          imageSize: imageSize,
+                        ),
+                        const SizedBox(height: bottomPadding),
                       ],
                     ),
-                    const SizedBox(height: 10),
-
-                    // Daily Practice Orange Review Banner Card
-                    _buildDailyPracticeCard(context, loc),
-                    const SizedBox(height: 20),
-
-                    // Dynamic Real Course Accordion & Lesson Progress Tree
-                    _buildCourseAccordionTree(context, loc),
-                    const SizedBox(height: 48),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Classic Carousel Banner Layout
-                    _buildClassicBannerCarousel(context, loc),
-                    const SizedBox(height: 16),
-
-                    Text(
-                      loc.quickHub,
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Classic Feature Grid (6 Cards)
-                    _buildClassicFeatureGrid(context, loc),
-                    const SizedBox(height: 64),
-                  ],
-                ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -444,6 +485,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     int? badgeCount,
     Color? badgeColor,
     Color? iconColor,
+    double imageSize = 64.0,
     required VoidCallback onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -460,27 +502,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       key: key,
       decoration: BoxDecoration(
         color: cardBgColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor, width: 1.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1.2),
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withOpacity(0.3)
-                : const Color(0xFF6C63FF).withOpacity(0.10),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+                ? Colors.black.withOpacity(0.25)
+                : const Color(0xFF6C63FF).withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           splashColor: AppColors.primary.withOpacity(0.18),
           highlightColor: AppColors.primary.withOpacity(0.08),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10.0),
+            padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -493,13 +535,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       if (imageAsset != null)
                         Image.asset(
                           imageAsset,
-                          width: 88,
-                          height: 88,
+                          width: imageSize,
+                          height: imageSize,
                           fit: BoxFit.contain,
                         )
                       else if (icon != null)
-                        Icon(icon, size: 54, color: iconColor ?? AppColors.primary),
-                      const SizedBox(height: 6),
+                        Icon(icon, size: imageSize * 0.8, color: iconColor ?? AppColors.primary),
+                      const SizedBox(height: 3),
                       Text(
                         title,
                         textAlign: TextAlign.center,
@@ -507,9 +549,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: isDark ? Colors.white : const Color(0xFF261D4E),
-                          fontSize: 14.5,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.bold,
-                          height: 1.2,
+                          height: 1.15,
                         ),
                       ),
                     ],
@@ -517,17 +559,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 if (badgeCount != null && badgeCount > 0)
                   PositionedDirectional(
-                    top: 0,
-                    end: 0,
+                    top: 2,
+                    end: 2,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
                         color: badgeColor ?? AppColors.primary,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: (badgeColor ?? AppColors.primary).withOpacity(0.45),
-                            blurRadius: 6,
+                            color: (badgeColor ?? AppColors.primary).withOpacity(0.4),
+                            blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
                         ],
@@ -536,7 +578,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         '$badgeCount',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 11.5,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -550,13 +592,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildClassicBannerCarousel(BuildContext context, AppLocalizations loc) {
+  Widget _buildClassicBannerCarousel(BuildContext context, AppLocalizations loc, {double bannerHeight = 98.0}) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: 125,
+          height: bannerHeight,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             child: PageView.builder(
               controller: _pageController,
               itemCount: _bannerList.isNotEmpty ? _bannerList.length : _defaultBanners.length,
@@ -592,9 +635,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.broken_image, color: AppColors.textSecondary, size: 36),
-                                const SizedBox(height: 8),
-                                Text(loc.failedLoadBanner, style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                                Icon(Icons.broken_image, color: AppColors.textSecondary, size: 28),
+                                const SizedBox(height: 4),
+                                Text(loc.failedLoadBanner, style: TextStyle(color: AppColors.textSecondary, fontSize: 10)),
                               ],
                             ),
                           );
@@ -626,7 +669,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         end: Alignment.bottomRight,
                       ),
                     ),
-                    padding: const EdgeInsets.all(20.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
                     child: Row(
                       children: [
                         Expanded(
@@ -638,26 +681,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 title,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 18,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 4),
                               Text(
                                 subtitle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.white70,
-                                  fontSize: 12,
-                                  height: 1.4,
+                                  fontSize: 11,
+                                  height: 1.3,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Icon(
                           defaultBanner['icon'] as IconData,
-                          size: 48,
+                          size: 38,
                           color: Colors.white.withOpacity(0.4),
                         ),
                       ],
@@ -668,15 +713,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
             _bannerList.isNotEmpty ? _bannerList.length : _defaultBanners.length,
             (index) => Container(
-              width: 6,
-              height: 6,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: 5,
+              height: 5,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: _currentBannerIndex == index
@@ -1105,19 +1150,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildClassicFeatureGrid(BuildContext context, AppLocalizations loc) {
+  Widget _buildClassicFeatureGrid(
+    BuildContext context,
+    AppLocalizations loc, {
+    double childAspectRatio = 1.32,
+    double imageSize = 64.0,
+  }) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      crossAxisSpacing: 14,
-      mainAxisSpacing: 14,
-      childAspectRatio: 1.0,
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 8,
+      childAspectRatio: childAspectRatio,
       children: [
         _buildGridCard(
           key: widget.coursesListKey,
           title: loc.courses,
           imageAsset: 'assets/images/courses_list.png',
+          imageSize: imageSize,
           onTap: () {
             widget.coursesTabNotifier?.value = 0;
             widget.onTabChange(2);
@@ -1127,6 +1178,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           key: widget.todayReviewsKey,
           title: loc.reviewToday,
           imageAsset: 'assets/images/today_cards.png',
+          imageSize: imageSize,
           badgeCount: _dueCount,
           badgeColor: AppColors.error,
           onTap: () => widget.onTabChange(1),
@@ -1135,6 +1187,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           key: widget.myCoursesKey,
           title: loc.myCourses,
           imageAsset: 'assets/images/my_courses.png',
+          imageSize: imageSize,
           onTap: () {
             widget.coursesTabNotifier?.value = 1;
             widget.onTabChange(2);
@@ -1144,6 +1197,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           key: widget.createCardKey,
           title: loc.customCards,
           imageAsset: 'assets/images/create_card.png',
+          imageSize: imageSize,
           onTap: () {
             Navigator.push(
               context,
@@ -1155,6 +1209,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           key: widget.finishedCardsKey,
           title: loc.finishedCards,
           imageAsset: 'assets/images/finished_cards.png',
+          imageSize: imageSize,
           badgeCount: _finishedCount,
           badgeColor: const Color(0xFFFFD700),
           onTap: () {
@@ -1168,6 +1223,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           key: widget.favoritesKey,
           title: loc.favorites,
           imageAsset: 'assets/images/favorite_cards.png',
+          imageSize: imageSize,
           onTap: () {
             Navigator.push(
               context,
