@@ -69,30 +69,74 @@ class AppTheme {
         displayLarge: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.bold,
+          fontFamily: 'Vazirmatn',
         ),
         displayMedium: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.bold,
+          fontFamily: 'Vazirmatn',
         ),
         displaySmall: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.bold,
+          fontFamily: 'Vazirmatn',
+        ),
+        headlineLarge: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Vazirmatn',
         ),
         headlineMedium: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w600,
+          fontFamily: 'Vazirmatn',
+        ),
+        headlineSmall: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Vazirmatn',
         ),
         titleLarge: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w600,
+          fontFamily: 'Vazirmatn',
+        ),
+        titleMedium: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Vazirmatn',
+        ),
+        titleSmall: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Vazirmatn',
         ),
         bodyLarge: TextStyle(
           color: AppColors.textSecondary,
+          fontFamily: 'Vazirmatn',
         ),
         bodyMedium: TextStyle(
           color: AppColors.textSecondary,
+          fontFamily: 'Vazirmatn',
         ),
-      ),
+        bodySmall: TextStyle(
+          color: AppColors.textSecondary,
+          fontFamily: 'Vazirmatn',
+        ),
+        labelLarge: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Vazirmatn',
+        ),
+        labelMedium: TextStyle(
+          color: AppColors.textSecondary,
+          fontFamily: 'Vazirmatn',
+        ),
+        labelSmall: TextStyle(
+          color: AppColors.textSecondary,
+          fontFamily: 'Vazirmatn',
+        ),
+      ).apply(fontFamily: 'Vazirmatn'),
       cardTheme: CardThemeData(
         color: AppColors.surfaceWithOpacity,
         shape: RoundedRectangleBorder(
@@ -103,8 +147,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceWithOpacity,
-        hintStyle: TextStyle(color: AppColors.textSecondary),
-        labelStyle: TextStyle(color: AppColors.textPrimary),
+        hintStyle: TextStyle(color: AppColors.textSecondary, fontFamily: 'Vazirmatn'),
+        labelStyle: TextStyle(color: AppColors.textPrimary, fontFamily: 'Vazirmatn'),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: AppColors.border),
@@ -129,7 +173,24 @@ class AppTheme {
           foregroundColor: Colors.white,
           backgroundColor: AppColors.primary,
           textStyle: const TextStyle(
+            fontFamily: 'Vazirmatn',
             color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          textStyle: const TextStyle(
+            fontFamily: 'Vazirmatn',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          textStyle: const TextStyle(
+            fontFamily: 'Vazirmatn',
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -154,30 +215,74 @@ class AppTheme {
         displayLarge: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.bold,
+          fontFamily: 'Vazirmatn',
         ),
         displayMedium: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.bold,
+          fontFamily: 'Vazirmatn',
         ),
         displaySmall: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.bold,
+          fontFamily: 'Vazirmatn',
+        ),
+        headlineLarge: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Vazirmatn',
         ),
         headlineMedium: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w600,
+          fontFamily: 'Vazirmatn',
+        ),
+        headlineSmall: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Vazirmatn',
         ),
         titleLarge: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w600,
+          fontFamily: 'Vazirmatn',
+        ),
+        titleMedium: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Vazirmatn',
+        ),
+        titleSmall: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Vazirmatn',
         ),
         bodyLarge: TextStyle(
           color: AppColors.textSecondary,
+          fontFamily: 'Vazirmatn',
         ),
         bodyMedium: TextStyle(
           color: AppColors.textSecondary,
+          fontFamily: 'Vazirmatn',
         ),
-      ),
+        bodySmall: TextStyle(
+          color: AppColors.textSecondary,
+          fontFamily: 'Vazirmatn',
+        ),
+        labelLarge: TextStyle(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Vazirmatn',
+        ),
+        labelMedium: TextStyle(
+          color: AppColors.textSecondary,
+          fontFamily: 'Vazirmatn',
+        ),
+        labelSmall: TextStyle(
+          color: AppColors.textSecondary,
+          fontFamily: 'Vazirmatn',
+        ),
+      ).apply(fontFamily: 'Vazirmatn'),
       cardTheme: CardThemeData(
         color: AppColors.surface,
         shape: RoundedRectangleBorder(
@@ -188,8 +293,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
-        hintStyle: TextStyle(color: AppColors.textSecondary),
-        labelStyle: TextStyle(color: AppColors.textPrimary),
+        hintStyle: TextStyle(color: AppColors.textSecondary, fontFamily: 'Vazirmatn'),
+        labelStyle: TextStyle(color: AppColors.textPrimary, fontFamily: 'Vazirmatn'),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: AppColors.border),
@@ -214,7 +319,24 @@ class AppTheme {
           foregroundColor: Colors.white,
           backgroundColor: AppColors.primary,
           textStyle: const TextStyle(
+            fontFamily: 'Vazirmatn',
             color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          textStyle: const TextStyle(
+            fontFamily: 'Vazirmatn',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          textStyle: const TextStyle(
+            fontFamily: 'Vazirmatn',
             fontWeight: FontWeight.bold,
           ),
         ),
