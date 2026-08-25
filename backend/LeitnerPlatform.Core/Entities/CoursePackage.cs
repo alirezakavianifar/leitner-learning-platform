@@ -11,6 +11,7 @@ namespace LeitnerPlatform.Core.Entities
         public string? Category { get; set; }
         public decimal Price { get; set; }
         public decimal? OriginalPrice { get; set; }
+        public string? ImageUrl { get; set; }
         public bool IsPublished { get; set; } = true;
         public bool IsArchived { get; set; } = false;
         public int DisplayOrder { get; set; } = 0;

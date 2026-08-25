@@ -86,16 +86,25 @@ class PackageDetailsModal extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
               child: Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      borderRadius: BorderRadius.circular(12),
+                      child: package.imageUrl != null && package.imageUrl!.trim().isNotEmpty
+                          ? Image.network(
+                              package.imageUrl!.trim(),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
+                            )
+                          : const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
                     ),
-                    child: const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
                   ),
                   const SizedBox(width: 14),
                   Expanded(

@@ -36,6 +36,7 @@ export const CoursesView: React.FC = () => {
   const [category, setCategory] = useState('');
   const [difficulty, setDifficulty] = useState('Intermediate');
   const [price, setPrice] = useState<number>(0);
+  const [imageUrl, setImageUrl] = useState('');
   const [isPublished, setIsPublished] = useState(false);
   const [isCriticalUpdate, setIsCriticalUpdate] = useState(false);
 
@@ -57,6 +58,7 @@ export const CoursesView: React.FC = () => {
   const [pkgCategory, setPkgCategory] = useState('');
   const [pkgPrice, setPkgPrice] = useState<number>(0);
   const [pkgOriginalPrice, setPkgOriginalPrice] = useState<number | undefined>(undefined);
+  const [pkgImageUrl, setPkgImageUrl] = useState('');
   const [pkgIsPublished, setPkgIsPublished] = useState(true);
   const [pkgSelectedCourseIds, setPkgSelectedCourseIds] = useState<string[]>([]);
 
@@ -115,6 +117,7 @@ export const CoursesView: React.FC = () => {
     setCategory(course.category || '');
     setDifficulty(course.difficulty || 'Intermediate');
     setPrice(course.price || 0);
+    setImageUrl(course.image_url || '');
     setIsPublished(course.is_published || false);
     setIsCriticalUpdate(course.is_critical_update || false);
     setShowEditModal(true);
@@ -131,6 +134,7 @@ export const CoursesView: React.FC = () => {
         category,
         difficulty,
         price,
+        image_url: imageUrl.trim() || null,
         is_published: isPublished,
         is_critical_update: isCriticalUpdate
       });
@@ -256,6 +260,7 @@ export const CoursesView: React.FC = () => {
     setPkgCategory('');
     setPkgPrice(0);
     setPkgOriginalPrice(undefined);
+    setPkgImageUrl('');
     setPkgIsPublished(true);
     setPkgSelectedCourseIds([]);
     setShowPackageModal(true);
@@ -269,6 +274,7 @@ export const CoursesView: React.FC = () => {
     setPkgCategory(pkg.category || '');
     setPkgPrice(pkg.price || 0);
     setPkgOriginalPrice(pkg.original_price);
+    setPkgImageUrl(pkg.image_url || '');
     setPkgIsPublished(pkg.is_published);
     setPkgSelectedCourseIds((pkg.courses || []).map((c) => c.id));
     setShowPackageModal(true);
@@ -304,6 +310,7 @@ export const CoursesView: React.FC = () => {
         category: pkgCategory,
         price: pkgPrice,
         original_price: pkgOriginalPrice,
+        image_url: pkgImageUrl.trim() || null,
         is_published: pkgIsPublished,
         course_ids: pkgSelectedCourseIds,
       };
@@ -433,9 +440,21 @@ export const CoursesView: React.FC = () => {
                     courses.map((course) => (
                       <tr key={course.id}>
                         <td>
-                          <div style={{ fontWeight: 600, color: 'var(--text-inverse)' }}>{course.title}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {course.description || t('courses.no_description', 'No description provided')}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {course.image_url && (
+                              <img
+                                src={course.image_url}
+                                alt="thumb"
+                                style={{ width: '38px', height: '38px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--border-color)', flexShrink: 0 }}
+                                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                              />
+                            )}
+                            <div>
+                              <div style={{ fontWeight: 600, color: 'var(--text-inverse)' }}>{course.title}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {course.description || t('courses.no_description', 'No description provided')}
+                              </div>
+                            </div>
                           </div>
                         </td>
                         <td>{course.category || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>{t('banners.status_inactive', 'None')}</span>}</td>
@@ -616,12 +635,24 @@ export const CoursesView: React.FC = () => {
                     return (
                       <tr key={pkg.id}>
                         <td>
-                          <div style={{ fontWeight: 600, color: 'var(--text-inverse)' }}>{pkg.title}</div>
-                          {pkg.description && (
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {pkg.description}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {pkg.image_url && (
+                              <img
+                                src={pkg.image_url}
+                                alt="pkg thumb"
+                                style={{ width: '38px', height: '38px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--border-color)', flexShrink: 0 }}
+                                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                              />
+                            )}
+                            <div>
+                              <div style={{ fontWeight: 600, color: 'var(--text-inverse)' }}>{pkg.title}</div>
+                              {pkg.description && (
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {pkg.description}
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
                         </td>
                         <td>{pkg.category || '—'}</td>
                         <td>
@@ -732,6 +763,25 @@ export const CoursesView: React.FC = () => {
                     </select>
                   </div>
                 </div>
+                <div className="form-group">
+                  <label>{t('banners.field_image', 'Image / Cover URL')}</label>
+                  <input
+                    type="url"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://... (banner or cover image URL)"
+                  />
+                  {imageUrl.trim() && (
+                    <div style={{ marginTop: '8px' }}>
+                      <img
+                        src={imageUrl.trim()}
+                        alt="Preview"
+                        style={{ maxHeight: '80px', borderRadius: '6px', border: '1px solid var(--border-color)', objectFit: 'cover' }}
+                        onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
+                </div>
                 <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
                     <label>{t('courses.field_price')}</label>
@@ -815,6 +865,25 @@ export const CoursesView: React.FC = () => {
                     onChange={(e) => setPkgCategory(e.target.value)}
                     placeholder="مثلا: زبان‌های خارجی"
                   />
+                </div>
+                <div className="form-group">
+                  <label>تصویر بنر / کاور پکیج (URL)</label>
+                  <input
+                    type="url"
+                    value={pkgImageUrl}
+                    onChange={(e) => setPkgImageUrl(e.target.value)}
+                    placeholder="https://... (آدرس مستقیم تصویر بنر)"
+                  />
+                  {pkgImageUrl.trim() && (
+                    <div style={{ marginTop: '8px' }}>
+                      <img
+                        src={pkgImageUrl.trim()}
+                        alt="Preview"
+                        style={{ maxHeight: '80px', borderRadius: '6px', border: '1px solid var(--border-color)', objectFit: 'cover' }}
+                        onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Course Selection Checklist */}

@@ -121,6 +121,8 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
     *   *Purple:* Box 5 cards
     *   *Gold:* Finished Cards
 *   **Banner Rotation & Management:** Displays a carousel of up to 5 banners on the main dashboard, rotating automatically every 4 seconds. Banners refresh from the server once every 24 hours.
+*   **Banner Deep-Linking & In-App Routing:** Carousel banners support both external URLs (`https://...`) and rich internal in-app navigation routes (`course://<course_id>`, `package://<package_id>`, `tab://courses`, `tab://my_courses`, `tab://reviews`). Tapping an internal link navigates the user directly to the targeted course/package details inside the app.
+*   **Course & Package Banner/Cover Images:** Courses and Course Packages support custom cover/banner image URLs (`image_url`) manageable directly through the Admin Panel and rendered in the mobile catalog and details modal with fallback gradients.
 *   **Notification Ordering:** Inside the notification center, the latest notifications must appear at the top of the list.
 *   **Flashcard Report System:** Users submit feedback storing User ID, Course ID/title, Card number, Report text, and Timestamp.
 

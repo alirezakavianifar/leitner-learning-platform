@@ -234,7 +234,9 @@
     "alert_save_failed": "Failed to save banner details.",
     "confirm_delete": "Are you sure you want to delete this promotional banner?",
     "alert_delete_success": "Banner deleted.",
-    "alert_delete_failed": "Failed to delete banner."
+    "alert_delete_failed": "Failed to delete banner.",
+    "select_target": "Or pick an In-App Course / Package",
+    "link_hint": "Enter external web link (https://...) or in-app course deep link (course://<id> / package://<id>)."
   },
   "audit": {
     "title": "Security & System Audit Trails",

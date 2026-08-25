@@ -18,6 +18,21 @@ export const BannersView: React.FC = () => {
   const [linkUrl, setLinkUrl] = useState('');
   const [displayOrder, setDisplayOrder] = useState<number>(0);
   const [isActive, setIsActive] = useState(true);
+  const [availableCourses, setAvailableCourses] = useState<{ id: string; title: string }[]>([]);
+  const [availablePackages, setAvailablePackages] = useState<{ id: string; title: string }[]>([]);
+
+  const loadCoursesAndPackages = async () => {
+    try {
+      const [coursesRes, packagesRes] = await Promise.all([
+        api.admin.getCourses('', 1, 100, false),
+        api.admin.getPackages()
+      ]);
+      setAvailableCourses((coursesRes.courses || []).map((c: any) => ({ id: c.id, title: c.title })));
+      setAvailablePackages((packagesRes.packages || []).map((p: any) => ({ id: p.id, title: p.title })));
+    } catch {
+      // ignore
+    }
+  };
 
   const loadBanners = async () => {
     try {
@@ -44,6 +59,7 @@ export const BannersView: React.FC = () => {
   }, []);
 
   const openCreate = () => {
+    loadCoursesAndPackages();
     setEditingItem(null);
     setImageUrl('');
     setLinkUrl('');
@@ -53,6 +69,7 @@ export const BannersView: React.FC = () => {
   };
 
   const openEdit = (item: Banner) => {
+    loadCoursesAndPackages();
     setEditingItem(item);
     setImageUrl(item.image_url);
     setLinkUrl(item.link_url || '');
@@ -184,10 +201,61 @@ export const BannersView: React.FC = () => {
                 <div className="form-group">
                   <label>{t('banners.field_image')}</label>
                   <input type="url" placeholder="https://..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} required />
+                  {imageUrl.trim() && (
+                    <div style={{ marginTop: '8px' }}>
+                      <img
+                        src={imageUrl.trim()}
+                        alt="Preview"
+                        style={{ width: '100%', maxHeight: '110px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+                        onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
-                  <label>{t('banners.field_link')}</label>
-                  <input type="url" placeholder="https://..." value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
+                  <label>{t('banners.field_link', 'Action Link URL / In-App Course Target')}</label>
+                  <input
+                    type="text"
+                    placeholder="https://... or course://<id> or package://<id>"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                  />
+                  {(availableCourses.length > 0 || availablePackages.length > 0) && (
+                    <div style={{ marginTop: '6px' }}>
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            setLinkUrl(e.target.value);
+                          }
+                        }}
+                        defaultValue=""
+                        style={{ fontSize: '12px', padding: '6px' }}
+                      >
+                        <option value="" disabled>-- {t('banners.select_target', 'Or pick an In-App Course / Package')} --</option>
+                        {availableCourses.length > 0 && (
+                          <optgroup label="📚 دوره‌های تکی (Courses)">
+                            {availableCourses.map((c) => (
+                              <option key={c.id} value={`course://${c.id}`}>
+                                📖 {c.title}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {availablePackages.length > 0 && (
+                          <optgroup label="📦 بسته‌های آموزشی (Packages)">
+                            {availablePackages.map((p) => (
+                              <option key={p.id} value={`package://${p.id}`}>
+                                🎁 {p.title}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </select>
+                    </div>
+                  )}
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    {t('banners.link_hint', 'Enter external web link (https://...) or in-app course deep link (course://<id> / package://<id>).')}
+                  </div>
                 </div>
                 <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>

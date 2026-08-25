@@ -83,6 +83,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     difficulty = c.Difficulty,
                     price = c.Price,
                     card_count = c.CardCount,
+                    image_url = c.ImageUrl,
                     is_purchased = isPurchased,
                     download_url = downloadUrl,
                     version = c.Version,

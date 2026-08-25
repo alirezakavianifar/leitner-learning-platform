@@ -176,7 +176,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _launchUrl(String urlString) async {
-    final uri = Uri.parse(urlString);
+    final trimmed = urlString.trim();
+    if (trimmed.isEmpty) return;
+
+    final lower = trimmed.toLowerCase();
+
+    // 1. In-app Course Deep Link: course://<id>, leitner://course/<id>, /courses/<id>, courses/<id>
+    if (lower.startsWith('course://') ||
+        lower.startsWith('leitner://course/') ||
+        lower.startsWith('/courses/') ||
+        lower.startsWith('courses/')) {
+      widget.coursesTabNotifier?.value = 0;
+      widget.onTabChange(2);
+      return;
+    }
+
+    // 2. In-app Package Deep Link: package://<id>, leitner://package/<id>, /packages/<id>, packages/<id>
+    if (lower.startsWith('package://') ||
+        lower.startsWith('leitner://package/') ||
+        lower.startsWith('/packages/') ||
+        lower.startsWith('packages/')) {
+      widget.coursesTabNotifier?.value = 0;
+      widget.onTabChange(2);
+      return;
+    }
+
+    // 3. Tab Navigation Shortcuts
+    if (lower == 'tab://courses' || lower == 'courses' || lower == 'courses_list') {
+      widget.coursesTabNotifier?.value = 0;
+      widget.onTabChange(2);
+      return;
+    }
+
+    if (lower == 'tab://my_courses' || lower == 'my_courses') {
+      widget.coursesTabNotifier?.value = 1;
+      widget.onTabChange(2);
+      return;
+    }
+
+    if (lower == 'tab://reviews' || lower == 'tab://leitner' || lower == 'reviews') {
+      widget.onTabChange(1);
+      return;
+    }
+
+    // 4. Raw GUID Link (interpreted as course target)
+    final isGuid = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(trimmed);
+    if (isGuid) {
+      widget.coursesTabNotifier?.value = 0;
+      widget.onTabChange(2);
+      return;
+    }
+
+    // 5. External Web URL
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null) return;
+
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);

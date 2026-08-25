@@ -8,6 +8,7 @@ class CoursePackageModel extends CoursePackage {
     required String title,
     String? description,
     String? category,
+    String? imageUrl,
     required double price,
     double? originalPrice,
     int discountPercentage = 0,
@@ -23,6 +24,7 @@ class CoursePackageModel extends CoursePackage {
           title: title,
           description: description,
           category: category,
+          imageUrl: imageUrl,
           price: price,
           originalPrice: originalPrice,
           discountPercentage: discountPercentage,
@@ -48,6 +50,7 @@ class CoursePackageModel extends CoursePackage {
       title: json['title'] as String,
       description: json['description'] as String?,
       category: json['category'] as String?,
+      imageUrl: (json['image_url'] ?? json['imageUrl'] ?? json['image']) as String?,
       price: (json['price'] as num).toDouble(),
       originalPrice: json['original_price'] != null
           ? (json['original_price'] as num).toDouble()
@@ -73,6 +76,7 @@ class CoursePackageModel extends CoursePackage {
       'title': title,
       'description': description,
       'category': category,
+      'image_url': imageUrl,
       'price': price,
       'original_price': originalPrice,
       'discount_percentage': discountPercentage,
@@ -113,6 +117,7 @@ class CoursePackageModel extends CoursePackage {
       title: map['title'] as String,
       description: map['description'] as String?,
       category: map['category'] as String?,
+      imageUrl: (map['image_url'] ?? map['imageUrl']) as String?,
       price: (map['price'] as num).toDouble(),
       originalPrice: map['original_price'] != null
           ? (map['original_price'] as num).toDouble()
@@ -138,6 +143,7 @@ class CoursePackageModel extends CoursePackage {
       'title': title,
       'description': description,
       'category': category,
+      'image_url': imageUrl,
       'price': price,
       'original_price': originalPrice,
       'discount_percentage': discountPercentage,

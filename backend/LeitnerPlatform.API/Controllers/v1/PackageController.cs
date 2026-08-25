@@ -89,6 +89,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                         difficulty = c.Difficulty,
                         price = c.Price,
                         card_count = c.CardCount,
+                        image_url = c.ImageUrl,
                         is_purchased = isCoursePurchased,
                         version = c.Version
                     };
@@ -116,6 +117,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     category = pkg.Category,
                     price = pkg.Price,
                     original_price = originalPrice,
+                    image_url = pkg.ImageUrl,
                     discount_percentage = discountPercent,
                     total_card_count = totalCardCount,
                     is_purchased = isPackagePurchased,
@@ -178,6 +180,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     difficulty = c.Difficulty,
                     price = c.Price,
                     card_count = c.CardCount,
+                    image_url = c.ImageUrl,
                     is_purchased = isCoursePurchased,
                     version = c.Version
                 };
@@ -204,6 +207,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 category = pkg.Category,
                 price = pkg.Price,
                 original_price = originalPrice,
+                image_url = pkg.ImageUrl,
                 discount_percentage = discountPercent,
                 total_card_count = totalCardCount,
                 is_purchased = isPackagePurchased || isFullyOwned,

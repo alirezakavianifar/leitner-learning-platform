@@ -195,10 +195,16 @@ try {
     Show-BuildProgress "Flutter Dependencies" "Fetching packages (pub get)..." 35
     Write-Step "Fetching flutter packages..."
     flutter pub get
+    if ($LASTEXITCODE -ne 0) {
+        throw "flutter pub get failed with exit code $LASTEXITCODE"
+    }
 
     Show-BuildProgress "Flutter Compilation" "Compiling release APK for flavor '$Flavor'..." 45
     Write-Step "Building release APK for flavor '$Flavor' with API_BASE_URL=$apiBaseUrl ..."
     flutter build apk --release --flavor $Flavor -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
+    if ($LASTEXITCODE -ne 0) {
+        throw "flutter build apk failed with exit code $LASTEXITCODE"
+    }
 
     $apkPath = "$MOBILE_DIR\build\app\outputs\flutter-apk\app-$Flavor-release.apk"
     $destPath = "$OUTPUT_DIR\app-$Flavor-release.apk"

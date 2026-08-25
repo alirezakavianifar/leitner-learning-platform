@@ -1561,6 +1561,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             if (input.Price.HasValue) course.Price = input.Price.Value;
             if (input.IsPublished.HasValue) course.IsPublished = input.IsPublished.Value;
             if (input.IsCriticalUpdate.HasValue) course.IsCriticalUpdate = input.IsCriticalUpdate.Value;
+            if (input.ImageUrl != null) course.ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim();
             course.UpdatedAt = DateTime.UtcNow;
 
             _context.Entry(course).State = EntityState.Modified;
@@ -1793,6 +1794,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 category = pkg.Category,
                 price = pkg.Price,
                 original_price = pkg.OriginalPrice,
+                image_url = pkg.ImageUrl,
                 is_published = pkg.IsPublished,
                 is_archived = pkg.IsArchived,
                 display_order = pkg.DisplayOrder,
@@ -1804,6 +1806,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     title = i.Course?.Title ?? "Unknown Course",
                     price = i.Course?.Price ?? 0m,
                     card_count = i.Course?.CardCount ?? 0,
+                    image_url = i.Course?.ImageUrl,
                     is_published = i.Course?.IsPublished ?? false
                 }).ToList()
             });
@@ -1834,6 +1837,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 Category = input.Category,
                 Price = input.Price,
                 OriginalPrice = input.OriginalPrice,
+                ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim(),
                 IsPublished = input.IsPublished,
                 DisplayOrder = input.DisplayOrder,
                 CreatedAt = DateTime.UtcNow
@@ -1886,6 +1890,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             if (input.Category != null) package.Category = input.Category;
             if (input.Price.HasValue) package.Price = input.Price.Value;
             if (input.OriginalPrice.HasValue) package.OriginalPrice = input.OriginalPrice.Value;
+            if (input.ImageUrl != null) package.ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim();
             if (input.IsPublished.HasValue) package.IsPublished = input.IsPublished.Value;
             if (input.IsArchived.HasValue) package.IsArchived = input.IsArchived.Value;
             if (input.DisplayOrder.HasValue) package.DisplayOrder = input.DisplayOrder.Value;
@@ -1962,6 +1967,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         public string? Category { get; set; }
         public decimal Price { get; set; }
         public decimal? OriginalPrice { get; set; }
+        public string? ImageUrl { get; set; }
         public bool IsPublished { get; set; } = true;
         public int DisplayOrder { get; set; } = 0;
         public System.Collections.Generic.List<Guid>? CourseIds { get; set; }
@@ -1974,6 +1980,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         public string? Category { get; set; }
         public decimal? Price { get; set; }
         public decimal? OriginalPrice { get; set; }
+        public string? ImageUrl { get; set; }
         public bool? IsPublished { get; set; }
         public bool? IsArchived { get; set; }
         public int? DisplayOrder { get; set; }
@@ -1987,6 +1994,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         public string? Category { get; set; }
         public string? Difficulty { get; set; }
         public decimal? Price { get; set; }
+        public string? ImageUrl { get; set; }
         public bool? IsPublished { get; set; }
         public bool? IsCriticalUpdate { get; set; }
     }

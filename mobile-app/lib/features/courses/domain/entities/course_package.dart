@@ -6,6 +6,7 @@ class CoursePackage extends Equatable {
   final String title;
   final String? description;
   final String? category;
+  final String? imageUrl;
   final double price;
   final double? originalPrice;
   final int discountPercentage;
@@ -22,6 +23,7 @@ class CoursePackage extends Equatable {
     required this.title,
     this.description,
     this.category,
+    this.imageUrl,
     required this.price,
     this.originalPrice,
     this.discountPercentage = 0,
@@ -51,6 +53,7 @@ class CoursePackage extends Equatable {
     String? title,
     String? description,
     String? category,
+    String? imageUrl,
     double? price,
     double? originalPrice,
     int? discountPercentage,
@@ -67,6 +70,7 @@ class CoursePackage extends Equatable {
       title: title ?? this.title,
       description: description ?? this.description,
       category: category ?? this.category,
+      imageUrl: imageUrl ?? this.imageUrl,
       price: price ?? this.price,
       originalPrice: originalPrice ?? this.originalPrice,
       discountPercentage: discountPercentage ?? this.discountPercentage,
@@ -86,6 +90,7 @@ class CoursePackage extends Equatable {
         title,
         description,
         category,
+        imageUrl,
         price,
         originalPrice,
         discountPercentage,

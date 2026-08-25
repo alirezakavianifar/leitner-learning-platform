@@ -28,6 +28,7 @@ export interface Course {
   is_published: boolean;
   version: number;
   card_count: number;
+  image_url?: string;
   created_at: string;
   updated_at?: string;
   is_archived: boolean;
@@ -105,6 +106,7 @@ export interface CoursePackage {
   category?: string;
   price: number;
   original_price?: number;
+  image_url?: string;
   is_published: boolean;
   is_archived: boolean;
   display_order: number;
@@ -115,6 +117,7 @@ export interface CoursePackage {
     title: string;
     price: number;
     card_count: number;
+    image_url?: string;
     is_published: boolean;
   }[];
 }

@@ -15,6 +15,7 @@ namespace LeitnerPlatform.Core.Entities
         public string? ChecksumSha256 { get; set; }
         public string? DownloadUrl { get; set; }
         public int CardCount { get; set; }
+        public string? ImageUrl { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
