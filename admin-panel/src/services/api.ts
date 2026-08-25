@@ -376,6 +376,18 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify({ grant_access: grantAccess, reason })
       }),
+
+    togglePackageAccess: (userId: string, packageId: string, grantAccess: boolean, reason: string) => 
+      request<{ success: boolean; message: string }>(`/admin/users/${userId}/packages/${packageId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ grant_access: grantAccess, reason })
+      }),
+
+    quickGrantAccess: (data: { mobile_number: string; course_id?: string; package_id?: string; reason?: string }) =>
+      request<{ success: boolean; message: string; user: any; item: any }>('/admin/grants/quick', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }),
       
     getReports: (status?: string) => {
       const path = status ? `/admin/reports?status=${status}` : '/admin/reports';

@@ -4,12 +4,14 @@ import { localizeNumber, formatPrice } from '../../i18n';
 import { api } from '../../services/api';
 import type { Purchase, AdminModule } from '../../types';
 import { useToast } from '../../components/ToastContext';
+import { QuickGrantModal } from '../../components/QuickGrantModal';
 
 export const PurchasesView: React.FC = () => {
   const { t } = useTranslation();
   const toast = useToast();
 
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [showQuickGrantModal, setShowQuickGrantModal] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [totalCount, setTotalCount] = useState(0);
@@ -169,6 +171,16 @@ export const PurchasesView: React.FC = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setShowQuickGrantModal(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <span>🎁</span>
+              <span>{t('quick_grant.btn_open', 'اعطای رایگان دوره / پکیج')}</span>
+            </button>
+
+            <button
               className="btn btn-secondary"
               onClick={handleExportCsv}
               disabled={exporting || totalCount === 0}
@@ -247,6 +259,7 @@ export const PurchasesView: React.FC = () => {
               <option value="ZARINPAL">{t('purchases.gateway_zarinpal', 'ZarinPal')}</option>
               <option value="BAZAAR">{t('purchases.gateway_bazaar', 'Cafe Bazaar')}</option>
               <option value="MYKET">{t('purchases.gateway_myket', 'Myket')}</option>
+              <option value="ADMIN_GRANT">{t('quick_grant.filter_admin_grant', 'Admin Grant / Manual')}</option>
               <option value="DIRECT">{t('purchases.gateway_direct', 'Direct (Manual)')}</option>
             </select>
           </div>
@@ -370,12 +383,18 @@ export const PurchasesView: React.FC = () => {
                       <span
                         className="badge admin"
                         style={{
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          color: 'var(--text-main)',
+                          background: purchase.payment_provider.toUpperCase().includes('ADMIN_GRANT') || purchase.payment_provider.toUpperCase().includes('DIRECT')
+                            ? 'rgba(52, 152, 219, 0.15)'
+                            : 'rgba(255, 255, 255, 0.05)',
+                          color: purchase.payment_provider.toUpperCase().includes('ADMIN_GRANT') || purchase.payment_provider.toUpperCase().includes('DIRECT')
+                            ? '#3498db'
+                            : 'var(--text-main)',
                           border: '1px solid var(--border-color)'
                         }}
                       >
-                        {purchase.payment_provider.toUpperCase().includes('DIRECT')
+                        {purchase.payment_provider.toUpperCase().includes('ADMIN_GRANT')
+                          ? `🎁 ${t('quick_grant.provider_admin_grant', 'Admin Grant')}`
+                          : purchase.payment_provider.toUpperCase().includes('DIRECT')
                           ? t('purchases.direct')
                           : purchase.payment_provider.toUpperCase().includes('BAZAAR') || purchase.payment_provider.toUpperCase().includes('CAF')
                           ? t('purchases.bazaar')
@@ -592,6 +611,13 @@ export const PurchasesView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Quick Grant Modal */}
+      <QuickGrantModal
+        isOpen={showQuickGrantModal}
+        onClose={() => setShowQuickGrantModal(false)}
+        onSuccess={loadPurchases}
+      />
     </div>
   );
 };

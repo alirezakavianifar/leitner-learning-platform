@@ -120,11 +120,26 @@ namespace LeitnerPlatform.API.Controllers.v1
                 })
                 .ToListAsync();
 
+            var packagePurchases = await _context.PackagePurchases
+                .Where(p => p.UserId == id)
+                .Join(_context.CoursePackages, p => p.PackageId, pkg => pkg.Id, (p, pkg) => new
+                {
+                    purchase_id = p.Id,
+                    package_id = pkg.Id,
+                    package_title = pkg.Title,
+                    status = p.Status,
+                    purchased_at = p.PurchasedAt,
+                    payment_provider = p.PaymentProvider,
+                    amount_paid = p.AmountPaid
+                })
+                .ToListAsync();
+
             return Ok(new
             {
                 success = true,
                 user = user,
-                purchases = purchases
+                purchases = purchases,
+                package_purchases = packagePurchases
             });
         }
 
@@ -358,7 +373,16 @@ namespace LeitnerPlatform.API.Controllers.v1
             }
 
             var purchase = await _context.Purchases.FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == courseId);
-            string? beforeJson = purchase != null ? JsonSerializer.Serialize(purchase) : null;
+            string? beforeJson = purchase != null ? JsonSerializer.Serialize(new
+            {
+                purchase.Id,
+                purchase.UserId,
+                purchase.CourseId,
+                purchase.Status,
+                purchase.PaymentProvider,
+                purchase.TransactionId,
+                purchase.PurchasedAt
+            }) : null;
             string? afterJson = null;
 
             if (input.GrantAccess)
@@ -370,7 +394,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                         Id = Guid.NewGuid(),
                         UserId = userId,
                         CourseId = courseId,
-                        PaymentProvider = "DIRECT",
+                        PaymentProvider = "ADMIN_GRANT",
                         TransactionId = $"MANUAL_{Guid.NewGuid().ToString("N").Substring(0, 10).ToUpper()}",
                         Status = "COMPLETED",
                         PurchasedAt = DateTime.UtcNow
@@ -380,11 +404,30 @@ namespace LeitnerPlatform.API.Controllers.v1
                 else
                 {
                     purchase.Status = "COMPLETED";
+                    if (purchase.PaymentProvider != "ZARINPAL" && purchase.PaymentProvider != "CAFE_BAZAAR")
+                    {
+                        purchase.PaymentProvider = "ADMIN_GRANT";
+                    }
                     _context.Entry(purchase).State = EntityState.Modified;
                 }
 
                 await _context.SaveChangesAsync();
-                afterJson = JsonSerializer.Serialize(purchase);
+                afterJson = JsonSerializer.Serialize(new
+                {
+                    purchase = new
+                    {
+                        purchase.Id,
+                        purchase.UserId,
+                        purchase.CourseId,
+                        purchase.Status,
+                        purchase.PaymentProvider,
+                        purchase.TransactionId,
+                        purchase.PurchasedAt
+                    },
+                    reason = input.Reason,
+                    granted_by = GetAdminUsername(),
+                    granted_at = DateTime.UtcNow
+                });
 
                 // Publish Event Bus payload (triggers S3 backup replication)
                 await _eventBus.PublishAsync(new PurchaseCompletedEvent(purchase));
@@ -404,7 +447,22 @@ namespace LeitnerPlatform.API.Controllers.v1
                     purchase.Status = "REFUNDED";
                     _context.Entry(purchase).State = EntityState.Modified;
                     await _context.SaveChangesAsync();
-                    afterJson = JsonSerializer.Serialize(purchase);
+                    afterJson = JsonSerializer.Serialize(new
+                    {
+                        purchase = new
+                        {
+                            purchase.Id,
+                            purchase.UserId,
+                            purchase.CourseId,
+                            purchase.Status,
+                            purchase.PaymentProvider,
+                            purchase.TransactionId,
+                            purchase.PurchasedAt
+                        },
+                        reason = input.Reason,
+                        revoked_by = GetAdminUsername(),
+                        revoked_at = DateTime.UtcNow
+                    });
 
                     await _auditLogService.LogActionAsync(
                         GetAdminUsername(),
@@ -417,6 +475,240 @@ namespace LeitnerPlatform.API.Controllers.v1
             }
 
             return Ok(new { success = true, message = "Course access state toggled successfully." });
+        }
+
+        [HttpPatch("users/{userId}/packages/{packageId}")]
+        public async Task<IActionResult> TogglePackageAccess(Guid userId, Guid packageId, [FromBody] ToggleCourseAccessInput input)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { success = false, message = "User not found." });
+            }
+
+            var package = await _context.CoursePackages
+                .Include(p => p.Items)
+                .FirstOrDefaultAsync(p => p.Id == packageId);
+
+            if (package == null)
+            {
+                return NotFound(new { success = false, message = "Course package not found." });
+            }
+
+            var pkgPurchase = await _context.PackagePurchases
+                .FirstOrDefaultAsync(p => p.UserId == userId && p.PackageId == packageId);
+
+            string? beforeJson = pkgPurchase != null ? JsonSerializer.Serialize(new
+            {
+                pkgPurchase.Id,
+                pkgPurchase.UserId,
+                pkgPurchase.PackageId,
+                pkgPurchase.AmountPaid,
+                pkgPurchase.Status,
+                pkgPurchase.PaymentProvider,
+                pkgPurchase.TransactionId,
+                pkgPurchase.PurchasedAt
+            }) : null;
+            string? afterJson = null;
+
+            if (input.GrantAccess)
+            {
+                if (pkgPurchase == null)
+                {
+                    pkgPurchase = new PackagePurchase
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        PackageId = packageId,
+                        AmountPaid = 0,
+                        PaymentProvider = "ADMIN_GRANT",
+                        TransactionId = $"MANUAL_PKG_{Guid.NewGuid().ToString("N").Substring(0, 10).ToUpper()}",
+                        Status = "COMPLETED",
+                        PurchasedAt = DateTime.UtcNow
+                    };
+                    await _context.PackagePurchases.AddAsync(pkgPurchase);
+                }
+                else
+                {
+                    pkgPurchase.Status = "COMPLETED";
+                    pkgPurchase.PurchasedAt = DateTime.UtcNow;
+                    _context.Entry(pkgPurchase).State = EntityState.Modified;
+                }
+
+                // Grant access to all constituent courses in package
+                if (package.Items != null && package.Items.Count > 0)
+                {
+                    foreach (var item in package.Items)
+                    {
+                        var cPurchase = await _context.Purchases
+                            .FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == item.CourseId);
+
+                        if (cPurchase == null)
+                        {
+                            cPurchase = new Purchase
+                            {
+                                Id = Guid.NewGuid(),
+                                UserId = userId,
+                                CourseId = item.CourseId,
+                                PaymentProvider = "ADMIN_GRANT_BUNDLE",
+                                TransactionId = $"MANUAL_PKG_{pkgPurchase.Id.ToString("N").Substring(0, 8)}_{item.CourseId.ToString("N").Substring(0, 6)}",
+                                Status = "COMPLETED",
+                                PurchasedAt = DateTime.UtcNow
+                            };
+                            await _context.Purchases.AddAsync(cPurchase);
+                        }
+                        else
+                        {
+                            cPurchase.Status = "COMPLETED";
+                            _context.Entry(cPurchase).State = EntityState.Modified;
+                        }
+
+                        await _eventBus.PublishAsync(new PurchaseCompletedEvent(cPurchase));
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                afterJson = JsonSerializer.Serialize(new
+                {
+                    packagePurchase = new
+                    {
+                        pkgPurchase.Id,
+                        pkgPurchase.UserId,
+                        pkgPurchase.PackageId,
+                        pkgPurchase.AmountPaid,
+                        pkgPurchase.Status,
+                        pkgPurchase.PaymentProvider,
+                        pkgPurchase.TransactionId,
+                        pkgPurchase.PurchasedAt
+                    },
+                    reason = input.Reason,
+                    granted_by = GetAdminUsername(),
+                    granted_at = DateTime.UtcNow
+                });
+
+                await _auditLogService.LogActionAsync(
+                    GetAdminUsername(),
+                    "GRANT_PACKAGE_ACCESS",
+                    $"User:{userId}|Package:{packageId}",
+                    beforeJson,
+                    afterJson
+                );
+            }
+            else
+            {
+                if (pkgPurchase != null)
+                {
+                    pkgPurchase.Status = "REFUNDED";
+                    _context.Entry(pkgPurchase).State = EntityState.Modified;
+
+                    // Revoke constituent courses granted under bundle
+                    if (package.Items != null && package.Items.Count > 0)
+                    {
+                        foreach (var item in package.Items)
+                        {
+                            var cPurchase = await _context.Purchases
+                                .FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == item.CourseId);
+                            if (cPurchase != null && (cPurchase.PaymentProvider == "ADMIN_GRANT_BUNDLE" || cPurchase.PaymentProvider == "ADMIN_GRANT"))
+                            {
+                                cPurchase.Status = "REFUNDED";
+                                _context.Entry(cPurchase).State = EntityState.Modified;
+                            }
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                    afterJson = JsonSerializer.Serialize(new
+                    {
+                        packagePurchase = new
+                        {
+                            pkgPurchase.Id,
+                            pkgPurchase.UserId,
+                            pkgPurchase.PackageId,
+                            pkgPurchase.AmountPaid,
+                            pkgPurchase.Status,
+                            pkgPurchase.PaymentProvider,
+                            pkgPurchase.TransactionId,
+                            pkgPurchase.PurchasedAt
+                        },
+                        reason = input.Reason,
+                        revoked_by = GetAdminUsername(),
+                        revoked_at = DateTime.UtcNow
+                    });
+
+                    await _auditLogService.LogActionAsync(
+                        GetAdminUsername(),
+                        "REVOKE_PACKAGE_ACCESS",
+                        $"User:{userId}|Package:{packageId}",
+                        beforeJson,
+                        afterJson
+                    );
+                }
+            }
+
+            return Ok(new { success = true, message = "Package access state toggled successfully." });
+        }
+
+        [HttpPost("grants/quick")]
+        public async Task<IActionResult> QuickGrantAccess([FromBody] QuickGrantInput input)
+        {
+            if (string.IsNullOrWhiteSpace(input.MobileNumber))
+            {
+                return BadRequest(new { success = false, message = "Mobile number is required." });
+            }
+
+            var cleanMobile = input.MobileNumber.Trim();
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.MobileNumber == cleanMobile);
+            if (user == null)
+            {
+                return NotFound(new { success = false, message = $"User with mobile number '{cleanMobile}' was not found in the system." });
+            }
+
+            if (input.CourseId.HasValue && input.CourseId.Value != Guid.Empty)
+            {
+                var course = await _context.Courses.FindAsync(input.CourseId.Value);
+                if (course == null)
+                {
+                    return NotFound(new { success = false, message = "Selected course not found." });
+                }
+
+                await ToggleCourseAccess(user.Id, course.Id, new ToggleCourseAccessInput
+                {
+                    GrantAccess = true,
+                    Reason = input.Reason ?? "Direct admin quick-grant"
+                });
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Successfully granted course '{course.Title}' to user '{user.Username}' ({user.MobileNumber}).",
+                    user = new { user.Id, user.Username, user.MobileNumber },
+                    item = new { type = "COURSE", id = course.Id, title = course.Title }
+                });
+            }
+            else if (input.PackageId.HasValue && input.PackageId.Value != Guid.Empty)
+            {
+                var package = await _context.CoursePackages.FindAsync(input.PackageId.Value);
+                if (package == null)
+                {
+                    return NotFound(new { success = false, message = "Selected package not found." });
+                }
+
+                await TogglePackageAccess(user.Id, package.Id, new ToggleCourseAccessInput
+                {
+                    GrantAccess = true,
+                    Reason = input.Reason ?? "Direct admin quick-grant"
+                });
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Successfully granted package '{package.Title}' to user '{user.Username}' ({user.MobileNumber}).",
+                    user = new { user.Id, user.Username, user.MobileNumber },
+                    item = new { type = "PACKAGE", id = package.Id, title = package.Title }
+                });
+            }
+
+            return BadRequest(new { success = false, message = "Either CourseId or PackageId must be specified." });
         }
 
         #endregion
@@ -1711,6 +2003,14 @@ namespace LeitnerPlatform.API.Controllers.v1
     public class ToggleCourseAccessInput
     {
         public bool GrantAccess { get; set; }
+        public string? Reason { get; set; }
+    }
+
+    public class QuickGrantInput
+    {
+        public string MobileNumber { get; set; } = string.Empty;
+        public Guid? CourseId { get; set; }
+        public Guid? PackageId { get; set; }
         public string? Reason { get; set; }
     }
 

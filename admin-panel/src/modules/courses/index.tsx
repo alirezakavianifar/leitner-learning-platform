@@ -4,6 +4,7 @@ import { localizeNumber, formatPrice } from '../../i18n';
 import { api } from '../../services/api';
 import type { Course, CoursePackage, AdminModule } from '../../types';
 import { useToast } from '../../components/ToastContext';
+import { QuickGrantModal } from '../../components/QuickGrantModal';
 
 export const CoursesView: React.FC = () => {
   const { t } = useTranslation();
@@ -11,6 +12,12 @@ export const CoursesView: React.FC = () => {
   
   // Tab state
   const [activeTab, setActiveTab] = useState<'courses' | 'packages'>('courses');
+
+  // Quick grant state
+  const [showQuickGrantModal, setShowQuickGrantModal] = useState(false);
+  const [quickGrantTargetType, setQuickGrantTargetType] = useState<'COURSE' | 'PACKAGE'>('COURSE');
+  const [quickGrantCourseId, setQuickGrantCourseId] = useState<string | undefined>(undefined);
+  const [quickGrantPackageId, setQuickGrantPackageId] = useState<string | undefined>(undefined);
 
   // Courses state
   const [courses, setCourses] = useState<Course[]>([]);
@@ -226,6 +233,20 @@ export const CoursesView: React.FC = () => {
     }
   };
 
+  const openQuickGrantCourse = (course: Course) => {
+    setQuickGrantTargetType('COURSE');
+    setQuickGrantCourseId(course.id);
+    setQuickGrantPackageId(undefined);
+    setShowQuickGrantModal(true);
+  };
+
+  const openQuickGrantPackage = (pkg: CoursePackage) => {
+    setQuickGrantTargetType('PACKAGE');
+    setQuickGrantCourseId(undefined);
+    setQuickGrantPackageId(pkg.id);
+    setShowQuickGrantModal(true);
+  };
+
   // --- Package Handlers ---
   const openCreatePackage = async () => {
     await loadAllCoursesForPackageSelection();
@@ -366,6 +387,20 @@ export const CoursesView: React.FC = () => {
                 value={search}
                 onChange={handleSearchChange}
               />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setQuickGrantTargetType('COURSE');
+                  setQuickGrantCourseId(undefined);
+                  setQuickGrantPackageId(undefined);
+                  setShowQuickGrantModal(true);
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span>🎁</span>
+                <span>{t('quick_grant.btn_open', 'اعطای رایگان')}</span>
+              </button>
               <button className="btn" onClick={() => setShowUploadModal(true)}>
                 {t('courses.btn_add')}
               </button>
@@ -454,6 +489,15 @@ export const CoursesView: React.FC = () => {
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '6px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              onClick={() => openQuickGrantCourse(course)}
+                              title="اعطای دسترسی رایگان این دوره به کاربر"
+                            >
+                              <span>🎁</span>
+                              <span>اعطا</span>
+                            </button>
                             <button
                               className="btn btn-secondary"
                               style={{ padding: '6px 12px', fontSize: '12px' }}
@@ -620,7 +664,16 @@ export const CoursesView: React.FC = () => {
                           </span>
                         </td>
                         <td>
-                          <div style={{ display: 'flex', gap: '8px' }}>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '6px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              onClick={() => openQuickGrantPackage(pkg)}
+                              title="اعطای دسترسی رایگان این پکیج به کاربر"
+                            >
+                              <span>🎁</span>
+                              <span>اعطا</span>
+                            </button>
                             <button
                               className="btn btn-secondary"
                               style={{ padding: '6px 12px', fontSize: '12px' }}
@@ -911,6 +964,21 @@ export const CoursesView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Quick Grant Modal */}
+      <QuickGrantModal
+        isOpen={showQuickGrantModal}
+        onClose={() => setShowQuickGrantModal(false)}
+        initialType={quickGrantTargetType}
+        initialCourseId={quickGrantCourseId}
+        initialPackageId={quickGrantPackageId}
+        coursesList={courses}
+        packagesList={packages}
+        onSuccess={() => {
+          if (activeTab === 'courses') loadCourses();
+          else loadPackages();
+        }}
+      />
     </div>
   );
 };

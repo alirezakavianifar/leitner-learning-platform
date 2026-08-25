@@ -90,9 +90,9 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
 *   **User-Created Cards:** Stored strictly locally on the device (device-only for privacy) and support backup/restore after app reinstallation. No server synchronization is performed.
 
 ### 5. Admin Management Capabilities
-*   Manually activate or deactivate course access for users.
-*   Modify user purchase entries.
-*   Upload and manage course metadata and SQLite packages.
+*   **Complimentary Course & Package Activations:** Manually grant free access to any paid single course or course package bundle directly for any user by mobile number or user profile, complete with mandatory audit logging and reason tracking.
+*   **Access Revocation & Purchase Management:** Modify user purchase entries, revoke access, and filter transactions by gateway (including `ADMIN_GRANT`).
+*   **Course & Package Management:** Upload and manage course metadata and SQLite packages; create, publish, and manage multi-course bundles & packages with custom pricing.
 *   Create, publish, and manage multi-course bundles & packages with custom pricing.
 *   Publish, schedule, or hide banners and announcements.
 *   *Flashcard Reports Interface:* Admin review interface to browse and filter submitted flashcard reports by card, course, or user, and flag content issues.

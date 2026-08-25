@@ -159,5 +159,139 @@ namespace LeitnerPlatform.Tests
             Assert.Contains("Mastering 504", csvContent);
             Assert.Contains("300000", csvContent);
         }
+
+        [Fact]
+        public async Task ToggleCourseAccess_Grant_ShouldCreateAdminGrantPurchase()
+        {
+            var db = GetDatabaseContext();
+            var user = new User { Id = Guid.NewGuid(), Username = "GiftedUser", MobileNumber = "09120003344", CreatedAt = DateTime.UtcNow };
+            await db.Users.AddAsync(user);
+
+            var course = new Course { Id = Guid.NewGuid(), Title = "Advanced English", Price = 500000, CreatedAt = DateTime.UtcNow };
+            await db.Courses.AddAsync(course);
+            await db.SaveChangesAsync();
+
+            var controller = CreateController(db);
+
+            var result = Assert.IsType<OkObjectResult>(await controller.ToggleCourseAccess(user.Id, course.Id, new ToggleCourseAccessInput
+            {
+                GrantAccess = true,
+                Reason = "VIP Scholarship Grant"
+            }));
+
+            var purchase = await db.Purchases.FirstOrDefaultAsync(p => p.UserId == user.Id && p.CourseId == course.Id);
+            Assert.NotNull(purchase);
+            Assert.Equal("COMPLETED", purchase.Status);
+            Assert.Equal("ADMIN_GRANT", purchase.PaymentProvider);
+            Assert.StartsWith("MANUAL_", purchase.TransactionId);
+        }
+
+        [Fact]
+        public async Task ToggleCourseAccess_Revoke_ShouldSetStatusToRefunded()
+        {
+            var db = GetDatabaseContext();
+            var user = new User { Id = Guid.NewGuid(), Username = "RevokeUser", MobileNumber = "09120005566", CreatedAt = DateTime.UtcNow };
+            await db.Users.AddAsync(user);
+
+            var course = new Course { Id = Guid.NewGuid(), Title = "Grammar 101", Price = 100000, CreatedAt = DateTime.UtcNow };
+            await db.Courses.AddAsync(course);
+
+            var purchase = new Purchase
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                CourseId = course.Id,
+                PaymentProvider = "ADMIN_GRANT",
+                TransactionId = "MANUAL_TEST",
+                Status = "COMPLETED",
+                PurchasedAt = DateTime.UtcNow
+            };
+            await db.Purchases.AddAsync(purchase);
+            await db.SaveChangesAsync();
+
+            var controller = CreateController(db);
+
+            var result = Assert.IsType<OkObjectResult>(await controller.ToggleCourseAccess(user.Id, course.Id, new ToggleCourseAccessInput
+            {
+                GrantAccess = false,
+                Reason = "Fraud check / Access revoked"
+            }));
+
+            var updatedPurchase = await db.Purchases.FirstOrDefaultAsync(p => p.Id == purchase.Id);
+            Assert.NotNull(updatedPurchase);
+            Assert.Equal("REFUNDED", updatedPurchase.Status);
+        }
+
+        [Fact]
+        public async Task TogglePackageAccess_Grant_ShouldUnlockAllConstituentCourses()
+        {
+            var db = GetDatabaseContext();
+            var user = new User { Id = Guid.NewGuid(), Username = "BundleUser", MobileNumber = "09127778899", CreatedAt = DateTime.UtcNow };
+            await db.Users.AddAsync(user);
+
+            var c1 = new Course { Id = Guid.NewGuid(), Title = "Course A", Price = 100000, CreatedAt = DateTime.UtcNow };
+            var c2 = new Course { Id = Guid.NewGuid(), Title = "Course B", Price = 150000, CreatedAt = DateTime.UtcNow };
+            await db.Courses.AddRangeAsync(c1, c2);
+
+            var package = new CoursePackage
+            {
+                Id = Guid.NewGuid(),
+                Title = "Mega English Bundle",
+                Price = 200000,
+                CreatedAt = DateTime.UtcNow
+            };
+            package.Items.Add(new CoursePackageItem { PackageId = package.Id, CourseId = c1.Id, DisplayOrder = 0 });
+            package.Items.Add(new CoursePackageItem { PackageId = package.Id, CourseId = c2.Id, DisplayOrder = 1 });
+            await db.CoursePackages.AddAsync(package);
+            await db.SaveChangesAsync();
+
+            var controller = CreateController(db);
+
+            var result = Assert.IsType<OkObjectResult>(await controller.TogglePackageAccess(user.Id, package.Id, new ToggleCourseAccessInput
+            {
+                GrantAccess = true,
+                Reason = "Special Package Promotion"
+            }));
+
+            var pkgPurchase = await db.PackagePurchases.FirstOrDefaultAsync(p => p.UserId == user.Id && p.PackageId == package.Id);
+            Assert.NotNull(pkgPurchase);
+            Assert.Equal("COMPLETED", pkgPurchase.Status);
+            Assert.Equal("ADMIN_GRANT", pkgPurchase.PaymentProvider);
+
+            var p1 = await db.Purchases.FirstOrDefaultAsync(p => p.UserId == user.Id && p.CourseId == c1.Id);
+            var p2 = await db.Purchases.FirstOrDefaultAsync(p => p.UserId == user.Id && p.CourseId == c2.Id);
+            Assert.NotNull(p1);
+            Assert.NotNull(p2);
+            Assert.Equal("COMPLETED", p1.Status);
+            Assert.Equal("COMPLETED", p2.Status);
+            Assert.Equal("ADMIN_GRANT_BUNDLE", p1.PaymentProvider);
+            Assert.Equal("ADMIN_GRANT_BUNDLE", p2.PaymentProvider);
+        }
+
+        [Fact]
+        public async Task QuickGrantAccess_ByMobile_ShouldFindUserAndGrantCourse()
+        {
+            var db = GetDatabaseContext();
+            var user = new User { Id = Guid.NewGuid(), Username = "MobileUser", MobileNumber = "09301112233", CreatedAt = DateTime.UtcNow };
+            await db.Users.AddAsync(user);
+
+            var course = new Course { Id = Guid.NewGuid(), Title = "Quick Course", Price = 250000, CreatedAt = DateTime.UtcNow };
+            await db.Courses.AddAsync(course);
+            await db.SaveChangesAsync();
+
+            var controller = CreateController(db);
+
+            var result = Assert.IsType<OkObjectResult>(await controller.QuickGrantAccess(new QuickGrantInput
+            {
+                MobileNumber = " 09301112233 ",
+                CourseId = course.Id,
+                Reason = "Quick grant by phone"
+            }));
+
+            var purchase = await db.Purchases.FirstOrDefaultAsync(p => p.UserId == user.Id && p.CourseId == course.Id);
+            Assert.NotNull(purchase);
+            Assert.Equal("COMPLETED", purchase.Status);
+            Assert.Equal("ADMIN_GRANT", purchase.PaymentProvider);
+        }
     }
 }

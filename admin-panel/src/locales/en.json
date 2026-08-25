@@ -330,5 +330,32 @@
     "unit_seconds": "Seconds",
     "leitner_summary_label": "Total Time to Finished (Box 7):",
     "leitner_test_hint": "In 1-Hour Verification Mode, cards in Boxes 2–5 become due in minutes (5m → 10m → 15m → 20m), allowing you to quickly verify the entire learning workflow end-to-end."
+  },
+  "quick_grant": {
+    "title": "Grant Free Course Access",
+    "subtitle": "Activate complimentary access to a course or package for a user",
+    "btn_open": "Grant Free Access",
+    "tab_course": "Single Course",
+    "tab_package": "Package Bundle",
+    "label_mobile": "Recipient Mobile Number:",
+    "placeholder_mobile": "User's registered mobile number...",
+    "label_course": "Target Course:",
+    "select_course": "-- Select Course --",
+    "label_package": "Target Package:",
+    "select_package": "-- Select Package --",
+    "label_reason": "Audit / Override Reason:",
+    "placeholder_reason": "e.g. VIP gift, scholarship, support resolution...",
+    "btn_submit": "Confirm & Grant Access",
+    "err_mobile_req": "Recipient mobile number is required.",
+    "err_course_req": "Please select a target course.",
+    "err_package_req": "Please select a target package.",
+    "success": "Complimentary access granted successfully.",
+    "error": "Failed to grant course access",
+    "provider_admin_grant": "Admin Grant (Free)",
+    "filter_admin_grant": "Admin Grant / Manual",
+    "suggestions_title": "Suggested Users:",
+    "searching_users": "Searching users...",
+    "no_users_found": "No matching users found",
+    "user_selected": "Selected User:"
   }
 }
