@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localizeNumber, formatPrice } from '../../i18n';
-import { api, getBaseUrl } from '../../services/api';
+import { api } from '../../services/api';
 import type { User, AdminModule } from '../../types';
 import { useToast } from '../../components/ToastContext';
 
@@ -64,13 +64,9 @@ export const UsersView: React.FC = () => {
         setEditIsAdmin(res.user.is_admin || false);
         setPurchases(res.purchases || []);
 
-        const token = localStorage.getItem('leitner_admin_token');
-        const coursesRes = await fetch(`${getBaseUrl()}/admin/courses?page=1&pageSize=100`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (coursesRes.ok) {
-          const list = await coursesRes.json();
-          setCourses(list.courses || []);
+        const coursesRes = await api.admin.getCourses(undefined, 1, 100);
+        if (coursesRes.success) {
+          setCourses(coursesRes.courses || []);
         }
 
         setShowEditModal(true);

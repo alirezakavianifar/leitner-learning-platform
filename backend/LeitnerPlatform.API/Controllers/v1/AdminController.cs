@@ -159,7 +159,15 @@ namespace LeitnerPlatform.API.Controllers.v1
         #region Course Access & Purchases
 
         [HttpGet("purchases")]
-        public async Task<IActionResult> GetPurchases([FromQuery] int page = 1, [FromQuery] int pageSize = 15)
+        public async Task<IActionResult> GetPurchases(
+            [FromQuery] string? search,
+            [FromQuery] string? status,
+            [FromQuery] string? gateway,
+            [FromQuery] Guid? courseId,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 15)
         {
             var query = _context.Purchases
                 .Join(_context.Users, p => p.UserId, u => u.Id, (p, u) => new { p, u })
@@ -171,13 +179,61 @@ namespace LeitnerPlatform.API.Controllers.v1
                     mobile_number = pu.u.MobileNumber,
                     course_id = c.Id,
                     course_title = c.Title,
+                    course_price = c.Price,
                     payment_provider = pu.p.PaymentProvider,
                     transaction_id = pu.p.TransactionId,
                     status = pu.p.Status,
                     purchased_at = pu.p.PurchasedAt
                 });
 
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var cleanSearch = search.Trim().ToLower();
+                query = query.Where(x =>
+                    x.mobile_number.Contains(cleanSearch) ||
+                    x.username.ToLower().Contains(cleanSearch) ||
+                    x.transaction_id.ToLower().Contains(cleanSearch) ||
+                    x.course_title.ToLower().Contains(cleanSearch));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status) && status.ToUpper() != "ALL")
+            {
+                var st = status.Trim().ToUpper();
+                query = query.Where(x => x.status == st);
+            }
+
+            if (!string.IsNullOrWhiteSpace(gateway) && gateway.ToUpper() != "ALL")
+            {
+                var gw = gateway.Trim().ToUpper();
+                query = query.Where(x => x.payment_provider.ToUpper().Contains(gw));
+            }
+
+            if (courseId.HasValue && courseId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.course_id == courseId.Value);
+            }
+
+            if (fromDate.HasValue)
+            {
+                var fromUtc = fromDate.Value.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc)
+                    : fromDate.Value.ToUniversalTime();
+                query = query.Where(x => x.purchased_at >= fromUtc);
+            }
+
+            if (toDate.HasValue)
+            {
+                var toUtc = toDate.Value.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(toDate.Value, DateTimeKind.Utc)
+                    : toDate.Value.ToUniversalTime();
+                query = query.Where(x => x.purchased_at <= toUtc);
+            }
+
             var totalPurchases = await query.CountAsync();
+            var totalRevenue = await query
+                .Where(x => x.status == "COMPLETED")
+                .SumAsync(x => (long)x.course_price);
+
             var purchases = await query
                 .OrderByDescending(p => p.purchased_at)
                 .Skip((page - 1) * pageSize)
@@ -188,10 +244,102 @@ namespace LeitnerPlatform.API.Controllers.v1
             {
                 success = true,
                 total_count = totalPurchases,
+                total_revenue = totalRevenue,
                 page = page,
                 page_size = pageSize,
                 purchases = purchases
             });
+        }
+
+        [HttpGet("purchases/export")]
+        public async Task<IActionResult> ExportPurchases(
+            [FromQuery] string? search,
+            [FromQuery] string? status,
+            [FromQuery] string? gateway,
+            [FromQuery] Guid? courseId,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate)
+        {
+            var query = _context.Purchases
+                .Join(_context.Users, p => p.UserId, u => u.Id, (p, u) => new { p, u })
+                .Join(_context.Courses, pu => pu.p.CourseId, c => c.Id, (pu, c) => new
+                {
+                    purchase_id = pu.p.Id,
+                    user_id = pu.u.Id,
+                    username = pu.u.Username,
+                    mobile_number = pu.u.MobileNumber,
+                    course_id = c.Id,
+                    course_title = c.Title,
+                    course_price = c.Price,
+                    payment_provider = pu.p.PaymentProvider,
+                    transaction_id = pu.p.TransactionId,
+                    status = pu.p.Status,
+                    purchased_at = pu.p.PurchasedAt
+                });
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var cleanSearch = search.Trim().ToLower();
+                query = query.Where(x =>
+                    x.mobile_number.Contains(cleanSearch) ||
+                    x.username.ToLower().Contains(cleanSearch) ||
+                    x.transaction_id.ToLower().Contains(cleanSearch) ||
+                    x.course_title.ToLower().Contains(cleanSearch));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status) && status.ToUpper() != "ALL")
+            {
+                var st = status.Trim().ToUpper();
+                query = query.Where(x => x.status == st);
+            }
+
+            if (!string.IsNullOrWhiteSpace(gateway) && gateway.ToUpper() != "ALL")
+            {
+                var gw = gateway.Trim().ToUpper();
+                query = query.Where(x => x.payment_provider.ToUpper().Contains(gw));
+            }
+
+            if (courseId.HasValue && courseId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.course_id == courseId.Value);
+            }
+
+            if (fromDate.HasValue)
+            {
+                var fromUtc = fromDate.Value.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc)
+                    : fromDate.Value.ToUniversalTime();
+                query = query.Where(x => x.purchased_at >= fromUtc);
+            }
+
+            if (toDate.HasValue)
+            {
+                var toUtc = toDate.Value.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(toDate.Value, DateTimeKind.Utc)
+                    : toDate.Value.ToUniversalTime();
+                query = query.Where(x => x.purchased_at <= toUtc);
+            }
+
+            var list = await query
+                .OrderByDescending(p => p.purchased_at)
+                .Take(5000)
+                .ToListAsync();
+
+            var csvBuilder = new System.Text.StringBuilder();
+            // UTF-8 BOM for Persian Excel compatibility
+            csvBuilder.Append('\uFEFF');
+            csvBuilder.AppendLine("شناسه خرید,نام کاربر,شماره همراه,دوره,مبلغ (تومان),درگاه پرداخت,شناسه تراکنش,وضعیت,تاریخ خرید");
+
+            foreach (var item in list)
+            {
+                var cleanCourse = item.course_title.Replace("\"", "\"\"");
+                var cleanUser = item.username.Replace("\"", "\"\"");
+                csvBuilder.AppendLine($"\"{item.purchase_id}\",\"{cleanUser}\",\"{item.mobile_number}\",\"{cleanCourse}\",{item.course_price},\"{item.payment_provider}\",\"{item.transaction_id}\",\"{item.status}\",\"{item.purchased_at:yyyy-MM-dd HH:mm:ss}\"");
+            }
+
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csvBuilder.ToString());
+            var fileName = $"purchases_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+            return File(bytes, "text/csv; charset=utf-8", fileName);
         }
 
         [HttpPatch("users/{userId}/courses/{courseId}")]

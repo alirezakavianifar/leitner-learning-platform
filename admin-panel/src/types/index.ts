@@ -42,10 +42,22 @@ export interface Purchase {
   mobile_number: string;
   course_id: string;
   course_title: string;
+  course_price: number;
   payment_provider: string;
   transaction_id: string;
   status: string;
   purchased_at: string;
+}
+
+export interface PurchaseFilterParams {
+  search?: string;
+  status?: string;
+  gateway?: string;
+  courseId?: string;
+  fromDate?: string;
+  toDate?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface FlashcardReport {

@@ -287,7 +287,89 @@ export const api = {
       body: JSON.stringify(data)
     }),
     
-    getPurchases: (page = 1, pageSize = 15) => request<{ success: boolean; total_count: number; purchases: any[] }>(`/admin/purchases?page=${page}&pageSize=${pageSize}`),
+    getPurchases: (params?: {
+      search?: string;
+      status?: string;
+      gateway?: string;
+      courseId?: string;
+      fromDate?: string;
+      toDate?: string;
+      page?: number;
+      pageSize?: number;
+    }) => {
+      const q = new URLSearchParams();
+      if (params?.page) q.set('page', params.page.toString());
+      if (params?.pageSize) q.set('pageSize', params.pageSize.toString());
+      if (params?.search) q.set('search', params.search);
+      if (params?.status) q.set('status', params.status);
+      if (params?.gateway) q.set('gateway', params.gateway);
+      if (params?.courseId) q.set('courseId', params.courseId);
+      if (params?.fromDate) q.set('fromDate', params.fromDate);
+      if (params?.toDate) q.set('toDate', params.toDate);
+      return request<{ success: boolean; total_count: number; total_revenue: number; purchases: any[] }>(`/admin/purchases?${q.toString()}`);
+    },
+
+    exportPurchases: async (params?: {
+      search?: string;
+      status?: string;
+      gateway?: string;
+      courseId?: string;
+      fromDate?: string;
+      toDate?: string;
+      fallbackData?: any[];
+    }) => {
+      const q = new URLSearchParams();
+      if (params?.search) q.set('search', params.search);
+      if (params?.status) q.set('status', params.status);
+      if (params?.gateway) q.set('gateway', params.gateway);
+      if (params?.courseId) q.set('courseId', params.courseId);
+      if (params?.fromDate) q.set('fromDate', params.fromDate);
+      if (params?.toDate) q.set('toDate', params.toDate);
+
+      const token = getToken();
+      try {
+        const res = await fetch(`${getBaseUrl()}/admin/purchases/export?${q.toString()}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `purchases_report_${new Date().toISOString().slice(0, 10)}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          a.remove();
+          return;
+        }
+      } catch (err) {
+        console.warn('Backend export failed or unreachable, attempting client-side fallback...', err);
+      }
+
+      // If backend export endpoint fails or is unreachable, generate CSV from loaded dataset
+      if (params?.fallbackData && params.fallbackData.length > 0) {
+        const csvRows = ['\uFEFFشناسه خرید,نام کاربر,شماره همراه,دوره,مبلغ (تومان),درگاه پرداخت,شناسه تراکنش,وضعیت,تاریخ خرید'];
+        for (const item of params.fallbackData) {
+          const course = (item.course_title || '').replace(/"/g, '""');
+          const user = (item.username || '').replace(/"/g, '""');
+          csvRows.push(`"${item.purchase_id}","${user}","${item.mobile_number}","${course}",${item.course_price || 0},"${item.payment_provider}","${item.transaction_id}","${item.status}","${new Date(item.purchased_at).toLocaleString()}"`);
+        }
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `purchases_report_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        return;
+      }
+
+      throw new Error('خطا در دریافت فایل اکسل از سرور');
+    },
     
     toggleCourseAccess: (userId: string, courseId: string, grantAccess: boolean, reason: string) => 
       request<{ success: boolean; message: string }>(`/admin/users/${userId}/courses/${courseId}`, {
