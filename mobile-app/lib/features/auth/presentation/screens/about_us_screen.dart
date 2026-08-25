@@ -82,7 +82,7 @@ class AboutUsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    isFa ? 'سامانه یادگیری لایتنر' : 'Leitner Learning Platform',
+                    isFa ? 'رایت لرن' : 'RightLearn',
                     style: textTheme.headlineMedium?.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
@@ -92,7 +92,7 @@ class AboutUsScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     isFa
-                        ? 'درباره تیم تولید و اهداف سامانه یادگیری لایتنر'
+                        ? 'درباره تیم تولید و اهداف رایت لرن'
                         : 'About our development team and educational mission',
                     style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
                     textAlign: TextAlign.center,

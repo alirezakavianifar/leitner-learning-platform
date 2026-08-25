@@ -61,7 +61,7 @@ class _SupportScreenState extends State<SupportScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          loc.helpAndSupport,
+          loc.support,
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
@@ -72,13 +72,15 @@ class _SupportScreenState extends State<SupportScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Direct Telegram & Messenger Support
+              // Direct Messengers & Support
               BlocBuilder<ConfigBloc, ConfigState>(
                 builder: (context, state) {
                   final config = state.config;
                   final supportUrl = config?.supportUrl ?? 'https://t.me/RLAppSupport';
                   final supportId = config?.supportId ?? '@RLAppSupport';
                   final telegramUrl = config?.telegramUrl ?? 'https://t.me/RightlearnApp';
+                  final baleUrl = config?.baleUrl ?? 'https://ble.ir/rightlearnapp';
+                  final eitaaUrl = config?.eitaaUrl ?? 'https://eitaa.com/RightLearnApp';
                   final isFa = Localizations.localeOf(context).languageCode == 'fa';
 
                   return Column(
@@ -95,39 +97,23 @@ class _SupportScreenState extends State<SupportScreen> {
                         subtitle: telegramUrl,
                         url: telegramUrl,
                       ),
+                      SocialMessengerTile(
+                        type: MessengerType.bale,
+                        title: isFa ? 'کانال اطلاع‌رسانی بله' : 'Official Bale Channel',
+                        subtitle: baleUrl,
+                        url: baleUrl,
+                      ),
+                      SocialMessengerTile(
+                        type: MessengerType.eitaa,
+                        title: isFa ? 'کانال اطلاع‌رسانی ایتا' : 'Official Eitaa Channel',
+                        subtitle: eitaaUrl,
+                        url: eitaaUrl,
+                      ),
                     ],
                   );
                 },
               ),
-              const SizedBox(height: 12),
-
-              // Contact details
-              Card(
-                color: AppColors.surface.withOpacity(0.6),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: AppColors.border),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: Icon(Icons.email, color: AppColors.primary),
-                        title: Text(loc.emailSupport, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-                        subtitle: Text('support@leitnerplatform.com', style: TextStyle(color: AppColors.textSecondary)),
-                      ),
-                      const Divider(color: Color(0xFF333E56), height: 1),
-                      ListTile(
-                        leading: Icon(Icons.phone, color: AppColors.primary),
-                        title: Text(loc.phoneSupport, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-                        subtitle: Text('+98 21 8888 8888', textDirection: TextDirection.ltr, style: TextStyle(color: AppColors.textSecondary)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
               Text(
                 loc.submitATicket,

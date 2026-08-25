@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -910,48 +911,332 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     final loc = AppLocalizations.of(context);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: 1.5),
+        color: AppColors.surface.withOpacity(0.65),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor.withOpacity(0.6), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.18),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          course.title,
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () {
+            if ((course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased)) {
+              FlashcardStudyScreen.open(
+                context,
+                courseId: course.id,
+                courseTitle: course.title,
+                isTodayReview: false,
+              );
+            } else {
+              _showCourseDetailsModal(course, isDownloading, downloadProgress, parentPackage);
+            }
+          },
+          onLongPress: () {
+            _showCourseDetailsModal(course, isDownloading, downloadProgress, parentPackage);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 1. Course Image / Thumbnail
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 66,
+                    height: 66,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: borderColor.withOpacity(0.35),
+                        width: 1,
+                      ),
+                    ),
+                    child: _buildCourseThumbnail(course),
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // 2. Course Meta & Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Title & Status Icon
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              course.title,
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            course.updateAvailable
+                                ? Icons.system_update
+                                : (course.isDownloaded ? Icons.offline_pin : Icons.cloud_download),
+                            color: course.updateAvailable
+                                ? (course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800))
+                                : borderColor,
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Meta row (Category, cards count, price)
+                      Row(
+                        children: [
+                          if (course.category != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                course.category!,
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Text(
+                            '${course.cardCount} ${loc.cardsCount}',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            _formatPrice(course.price, context),
+                            style: TextStyle(
+                              color: course.price == 0 ? AppColors.secondary : AppColors.textSecondary,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Bottom actions row: Description hint or bundle badge + Action button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (parentPackage != null && !course.isPurchased && !parentPackage.isPurchased)
+                            GestureDetector(
+                              onTap: () => PackageDetailsModal.show(
+                                context,
+                                package: parentPackage,
+                                onPurchase: () => _purchasePackage(parentPackage),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.auto_awesome, size: 12, color: Color(0xFFFF9800)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    loc.translate('in_bundle'),
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFB300),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            GestureDetector(
+                              onTap: () => _showCourseDetailsModal(course, isDownloading, downloadProgress, parentPackage),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.info_outline, size: 12, color: AppColors.textSecondary.withOpacity(0.7)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    loc.translate('more_info_hint'),
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary.withOpacity(0.7),
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          _buildCompactActionButton(course, isDownloading, downloadProgress),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCourseThumbnail(Course course) {
+    if (course.imageUrl != null && course.imageUrl!.trim().isNotEmpty) {
+      final img = course.imageUrl!.trim();
+      if (img.startsWith('http://') || img.startsWith('https://')) {
+        return Image.network(
+          img,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildFallbackThumbnail(course),
+        );
+      } else if (img.startsWith('assets/')) {
+        return Image.asset(
+          img,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildFallbackThumbnail(course),
+        );
+      } else if (!kIsWeb) {
+        try {
+          final file = File(img);
+          if (file.existsSync()) {
+            return Image.file(
+              file,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _buildFallbackThumbnail(course),
+            );
+          }
+        } catch (_) {}
+      }
+    }
+    return _buildFallbackThumbnail(course);
+  }
+
+  Widget _buildFallbackThumbnail(Course course) {
+    final hash = course.id.hashCode;
+    final gradients = [
+      [const Color(0xFF6C63FF), const Color(0xFF3F3D56)],
+      [const Color(0xFF00B4D8), const Color(0xFF0077B6)],
+      [const Color(0xFFFF758C), const Color(0xFFFF7EB3)],
+      [const Color(0xFF43E97B), const Color(0xFF38F9D7)],
+      [const Color(0xFFFA709A), const Color(0xFFFEE140)],
+      [const Color(0xFF30CFD0), const Color(0xFF330867)],
+    ];
+    final colorPair = gradients[hash.abs() % gradients.length];
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [colorPair[0].withOpacity(0.4), colorPair[1].withOpacity(0.6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.menu_book_rounded,
+          color: Colors.white.withOpacity(0.9),
+          size: 28,
+        ),
+      ),
+    );
+  }
+
+  void _showCourseDetailsModal(
+    Course course,
+    bool isDownloading,
+    double downloadProgress,
+    CoursePackage? parentPackage,
+  ) {
+    final loc = AppLocalizations.of(context);
+    final borderColor = course.isDownloaded
+        ? AppColors.courseDownloaded
+        : AppColors.courseNotDownloaded;
+
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: false,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.textSecondary.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: borderColor, width: 1.5),
                         ),
-                        if (course.category != null || course.difficulty != null) ...[
+                        child: _buildCourseThumbnail(course),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            course.title,
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           Row(
                             children: [
-                              if (course.category != null)
+                              if (course.category != null) ...[
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
                                     color: AppColors.primary.withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(6),
@@ -965,11 +1250,11 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                                     ),
                                   ),
                                 ),
-                              if (course.category != null && course.difficulty != null)
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 6),
+                              ],
                               if (course.difficulty != null)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.08),
                                     borderRadius: BorderRadius.circular(6),
@@ -984,191 +1269,110 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                                 ),
                             ],
                           ),
-                        ],
-                        if (parentPackage != null && !course.isPurchased && !parentPackage.isPurchased) ...[
-                          const SizedBox(height: 8),
-                          GestureDetector(
-                            onTap: () => PackageDetailsModal.show(
-                              context,
-                              package: parentPackage,
-                              onPurchase: () => _purchasePackage(parentPackage),
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFF9800).withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFFFF9800).withOpacity(0.45)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.auto_awesome, size: 14, color: Color(0xFFFF9800)),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      loc.translate('available_in_bundle').replaceAll('{bundle}', parentPackage.title),
-                                      style: const TextStyle(
-                                        color: Color(0xFFFFB300),
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.35,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      softWrap: true,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${course.cardCount} ${loc.cardsCount}  •  ${_formatPrice(course.price, context)}',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Border label helper
-                  Icon(
-                    course.updateAvailable
-                        ? Icons.system_update
-                        : (course.isDownloaded ? Icons.offline_pin : Icons.cloud_download),
-                    color: course.updateAvailable
-                        ? (course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800))
-                        : borderColor,
-                    size: 24,
-                  ),
-                ],
-              ),
-              if (course.updateAvailable) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: (course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800)).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    course.isCriticalUpdate
-                        ? AppLocalizations.of(context).translate('critical_update_desc')
-                        : AppLocalizations.of(context).updateAvailable,
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: Color(0xFF333E56), height: 1),
+                const SizedBox(height: 14),
+
+                if (course.description != null && course.description!.isNotEmpty) ...[
+                  Text(
+                    loc.description,
                     style: TextStyle(
-                      color: course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ],
-              if (course.isArchived && course.isPurchased) ...[
-                const SizedBox(height: 8),
-                Text(
-                  AppLocalizations.of(context).translate('course_no_longer_in_store'),
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              if (course.description != null) ...[
-                Text(
-                  course.description!,
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 12),
-              ],
-              const Divider(color: Color(0xFF333E56), height: 1),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${course.cardCount} ${AppLocalizations.of(context).cardsCount}',
+                  const SizedBox(height: 6),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 180),
+                    child: SingleChildScrollView(
+                      child: Text(
+                        course.description!,
                         style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                          fontSize: 13.5,
+                          height: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatPrice(course.price, context),
-                        style: TextStyle(
-                          color: course.price == 0 ? AppColors.secondary : AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                  _buildActionButton(course, isDownloading, downloadProgress),
+                  const SizedBox(height: 16),
                 ],
-              ),
-            ],
+
+                _buildModalActionButton(course, isDownloading, downloadProgress, parentPackage, sheetCtx),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildActionButton(Course course, bool isDownloading, [double downloadProgress = 0.0]) {
+  Widget _buildModalActionButton(
+    Course course,
+    bool isDownloading,
+    double downloadProgress,
+    CoursePackage? parentPackage,
+    BuildContext sheetCtx,
+  ) {
     final loc = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (!isDownloading && !kIsWeb && course.updateAvailable) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           backgroundColor: course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800),
           foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
         ),
         onPressed: () {
+          Navigator.pop(sheetCtx);
           context.read<CoursesBloc>().add(DownloadCourseEvent(courseId: course.id));
         },
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.system_update, size: 16),
-            const SizedBox(width: 6),
-            Text(loc.updateNow),
+            const Icon(Icons.system_update, size: 18),
+            const SizedBox(width: 8),
+            Text(loc.updateNow, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
           ],
         ),
       );
     }
 
     if ((course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased)) {
-      return ElevatedButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        backgroundColor: isDark 
-            ? const Color(0xFF1B5E20).withOpacity(0.3) 
-            : const Color(0xFFE8F5E9),
-        foregroundColor: isDark 
-            ? const Color(0xFF81C784) 
-            : const Color(0xFF2E7D32),
-        side: BorderSide(
-          color: isDark ? const Color(0xFF2E7D32) : const Color(0xFF81C784), 
-          width: 1,
-        ),
-        elevation: 0,
-      ).build(
-        context,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(kIsWeb ? Icons.play_arrow : Icons.check, size: 16),
-            const SizedBox(width: 6),
-            Text(loc.readyToStudy),
-          ],
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: isDark 
+              ? const Color(0xFF1B5E20).withOpacity(0.4) 
+              : const Color(0xFFE8F5E9),
+          foregroundColor: isDark 
+              ? const Color(0xFF81C784) 
+              : const Color(0xFF2E7D32),
+          side: BorderSide(
+            color: isDark ? const Color(0xFF2E7D32) : const Color(0xFF81C784), 
+            width: 1.5,
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 14),
         ),
         onPressed: () {
+          Navigator.pop(sheetCtx);
           FlashcardStudyScreen.open(
             context,
             courseId: course.id,
@@ -1176,37 +1380,160 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
             isTodayReview: false,
           );
         },
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(kIsWeb ? Icons.play_arrow : Icons.check, size: 18),
+            const SizedBox(width: 8),
+            Text(loc.readyToStudy, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          ],
+        ),
+      );
+    }
+
+    if (course.isPurchased) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+        onPressed: () {
+          Navigator.pop(sheetCtx);
+          context.read<CoursesBloc>().add(DownloadCourseEvent(courseId: course.id));
+        },
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.download, size: 18),
+            const SizedBox(width: 8),
+            Text(loc.downloadNow, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          ],
+        ),
+      );
+    }
+
+    // Unpurchased
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: AppColors.secondary,
+        foregroundColor: const Color(0xFF181837),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      onPressed: () {
+        Navigator.pop(sheetCtx);
+        _purchaseCourse(course);
+      },
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.payment, size: 18),
+          const SizedBox(width: 8),
+          Text(loc.purchase, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactActionButton(Course course, bool isDownloading, [double downloadProgress = 0.0]) {
+    final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (!isDownloading && !kIsWeb && course.updateAvailable) {
+      return SizedBox(
+        height: 28,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            backgroundColor: course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800),
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () {
+            context.read<CoursesBloc>().add(DownloadCourseEvent(courseId: course.id));
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.system_update, size: 13),
+              const SizedBox(width: 4),
+              Text(loc.updateNow, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if ((course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased)) {
+      return SizedBox(
+        height: 28,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            backgroundColor: isDark 
+                ? const Color(0xFF1B5E20).withOpacity(0.3) 
+                : const Color(0xFFE8F5E9),
+            foregroundColor: isDark 
+                ? const Color(0xFF81C784) 
+                : const Color(0xFF2E7D32),
+            side: BorderSide(
+              color: isDark ? const Color(0xFF2E7D32) : const Color(0xFF81C784), 
+              width: 1,
+            ),
+            elevation: 0,
+          ),
+          onPressed: () {
+            FlashcardStudyScreen.open(
+              context,
+              courseId: course.id,
+              courseTitle: course.title,
+              isTodayReview: false,
+            );
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(kIsWeb ? Icons.play_arrow : Icons.check, size: 13),
+              const SizedBox(width: 4),
+              Text(loc.readyToStudy, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
       );
     }
 
     if (isDownloading) {
       final percent = (downloadProgress * 100).clamp(0, 100).toInt();
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        height: 28,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           color: AppColors.primary.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: AppColors.primary.withOpacity(0.5)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 16,
-              height: 16,
+              width: 12,
+              height: 12,
               child: CircularProgressIndicator(
                 value: downloadProgress > 0 ? downloadProgress : null,
                 color: AppColors.primary,
                 backgroundColor: AppColors.primary.withOpacity(0.2),
-                strokeWidth: 2.5,
+                strokeWidth: 2,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               '$percent%',
               style: TextStyle(
                 color: AppColors.primary,
-                fontSize: 13,
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1215,45 +1542,52 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
       );
     }
 
-
     if (course.isPurchased) {
-      return ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-        ),
-        onPressed: () {
-          context.read<CoursesBloc>().add(DownloadCourseEvent(courseId: course.id));
-        },
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.download, size: 16),
-            const SizedBox(width: 6),
-            Text(loc.downloadNow),
-          ],
+      return SizedBox(
+        height: 28,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () {
+            context.read<CoursesBloc>().add(DownloadCourseEvent(courseId: course.id));
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.download, size: 13),
+              const SizedBox(width: 4),
+              Text(loc.downloadNow, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            ],
+          ),
         ),
       );
     }
 
     // Unpurchased course
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        backgroundColor: AppColors.secondary,
-        foregroundColor: const Color(0xFF181837),
-      ),
-      onPressed: () {
-        _purchaseCourse(course);
-      },
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.payment, size: 16),
-          const SizedBox(width: 6),
-          Text(loc.purchase),
-        ],
+    return SizedBox(
+      height: 28,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          backgroundColor: AppColors.secondary,
+          foregroundColor: const Color(0xFF181837),
+        ),
+        onPressed: () {
+          _purchaseCourse(course);
+        },
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.payment, size: 13),
+            const SizedBox(width: 4),
+            Text(loc.purchase, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }

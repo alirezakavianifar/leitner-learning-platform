@@ -13,7 +13,7 @@ class AppLocalizations {
 
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
-      'app_title': 'Leitner Platform',
+      'app_title': 'RightLearn',
       'enter_mobile_otp': 'Enter your mobile number to receive an OTP',
       'mobile_number': 'Mobile Number',
       'captcha_answer': 'CAPTCHA Answer',
@@ -25,9 +25,11 @@ class AppLocalizations {
       'enter_code_validation_error': 'Please enter the 5-digit verification code',
       'resend_code_in': 'Resend code in',
       'seconds': 'seconds',
-      'terms_conditions': 'Terms & Conditions',
-      'accept_terms_prompt': 'Please read and accept the terms to proceed.',
-      'accept_and_continue': 'I Accept & Continue',
+      'terms_conditions': 'Terms of Use',
+      'accept_terms_prompt': 'Please read and accept the terms of use to proceed.',
+      'accept_and_continue': 'Accept & Continue',
+      'official_terms_title': 'Terms of Use',
+      'official_terms_text': 'All intellectual and material property rights of this software and its educational contents belong to its owner. Any copying, reproduction, or unauthorized alteration of the software and its contents is legally prohibited and subject to prosecution. Please note that completed payments are non-refundable. For troubleshooting, criticisms, and suggestions, please contact the admin support account.',
       'complete_profile': 'Complete Profile',
       'tell_us_profile': 'Tell us about yourself to personalize your studies',
       'mobile_readonly': 'Mobile Number (Read-only)',
@@ -193,7 +195,7 @@ class AppLocalizations {
       'reviewing_mastered_cards': 'Reviewing Mastered Cards',
       'tap_card_to_flip': 'Tap card to flip',
       'tap_card_to_show_answer': 'Tap card to show answer',
-      'help_and_support': 'Help & Support',
+      'help_and_support': 'Support',
       'email_support': 'Email Support',
       'phone_support': 'Phone Support',
       'submit_a_ticket': 'Submit a Ticket',
@@ -256,6 +258,10 @@ class AppLocalizations {
       'no_downloaded_courses_found': 'No downloaded courses found.',
       'step_search_cards': 'Step 2: Search Cards Inside Selection',
       'select_courses_first': 'Please select one or more courses first',
+      'course_details': 'Course Details',
+      'description': 'Description',
+      'more_info_hint': 'Details (Long Press)',
+      'in_bundle': 'In Bundle',
       'search_cards_hint': 'Search card contents or numbers...',
       'select_courses_begin': 'Select courses above to begin searching.',
       'type_to_search': 'Type keywords or card number to show results.',
@@ -263,7 +269,7 @@ class AppLocalizations {
       'finished_box': 'Finished',
       'box_label_prefix': 'Box ',
       'course_label_prefix': 'Course: ',
-      'security_block_desc': 'For security and content protection reasons, the Leitner Learning Platform cannot be run on rooted or jailbroken devices.\n\nPlease use a secure, non-rooted device to access your courses and learning progress.',
+      'security_block_desc': 'For security and content protection reasons, RightLearn cannot be run on rooted or jailbroken devices.\n\nPlease use a secure, non-rooted device to access your courses and learning progress.',
       'check_again': 'Check Again',
       'yes_label': 'Yes',
       'no_label': 'No',
@@ -349,7 +355,7 @@ class AppLocalizations {
       'leitner_step_6_desc': 'Graduated / Archived.',
     },
     'fa': {
-      'app_title': 'سامانه لایتنر',
+      'app_title': 'رایت لرن',
       'enter_mobile_otp': 'شماره موبایل خود را جهت دریافت کد تایید وارد کنید',
       'mobile_number': 'شماره موبایل',
       'captcha_answer': 'پاسخ کد امنیتی',
@@ -361,9 +367,11 @@ class AppLocalizations {
       'enter_code_validation_error': 'لطفاً کد تأیید ۵ رقمی را وارد کنید',
       'resend_code_in': 'ارسال مجدد کد پس از',
       'seconds': 'ثانیه',
-      'terms_conditions': 'قوانین و مقررات',
-      'accept_terms_prompt': 'لطفا جهت ادامه، قوانین و مقررات را مطالعه و تایید کنید.',
-      'accept_and_continue': 'مطالعه کردم و می‌پذیرم',
+      'terms_conditions': 'قوانین و شرایط استفاده',
+      'accept_terms_prompt': 'لطفا جهت ادامه، قوانین و شرایط استفاده را مطالعه و تایید کنید.',
+      'accept_and_continue': 'تایید و ادامه',
+      'official_terms_title': 'قوانین و شرایط استفاده',
+      'official_terms_text': 'کلیه حقوق مادی و معنوی این نرم افزار و محتواهای آموزشی آن متعلق به مالک آن میباشد. هرگونه کپی برداری و دخل و تصرف در نرم افزار و محتواهای آن قانونا و شرعا غیر مجاز و قابل پیگرد میباشد. لطفا دقت بفرمایید،واریزهای انجام شده قابل عودت نمیباشد. برای رفع مشکلات،ارائه انتقاد و پیشنهادات با اکانت ادمین پشتیبانی در تماس باشید.',
       'complete_profile': 'تکمیل پروفایل',
       'tell_us_profile': 'اطلاعات خود را جهت شخصی‌سازی یادگیری وارد کنید',
       'mobile_readonly': 'شماره موبایل (غیرقابل تغییر)',
@@ -529,7 +537,7 @@ class AppLocalizations {
       'reviewing_mastered_cards': 'مرور کارت‌های تثبیت‌شده',
       'tap_card_to_flip': 'برای چرخاندن کارت ضربه بزنید',
       'tap_card_to_show_answer': 'برای مشاهده پاسخ، روی کارت ضربه بزنید',
-      'help_and_support': 'راهنما و پشتیبانی',
+      'help_and_support': 'پشتیبانی',
       'email_support': 'پشتیبانی ایمیلی',
       'phone_support': 'پشتیبانی تلفنی',
       'submit_a_ticket': 'ثبت تیکت پشتیبانی',
@@ -596,6 +604,10 @@ class AppLocalizations {
       'no_downloaded_courses_found': 'هیچ دوره دانلود شده‌ای یافت نشد.',
       'step_search_cards': 'گام ۲: جستجوی کارت‌ها در دوره‌های انتخاب‌شده',
       'select_courses_first': 'لطفاً ابتدا یک یا چند دوره را انتخاب کنید',
+      'course_details': 'جزئیات دوره',
+      'description': 'توضیحات دوره',
+      'more_info_hint': 'توضیحات (لمس طولانی)',
+      'in_bundle': 'در بسته',
       'search_cards_hint': 'جستجو در محتوا یا شماره کارت...',
       'select_courses_begin': 'برای شروع جستجو، دوره‌های بالا را انتخاب کنید.',
       'type_to_search': 'کلمه کلیدی یا شماره کارت را جهت جستجو وارد کنید.',
@@ -603,7 +615,7 @@ class AppLocalizations {
       'finished_box': 'پایان یافته',
       'box_label_prefix': 'جعبه ',
       'course_label_prefix': 'دوره: ',
-      'security_block_desc': 'به دلایل امنیتی و حفاظت از محتوای آموزشی، امکان اجرای سامانه لایتنر روی دستگاه‌های روت‌شده یا جیلبریک‌شده وجود ندارد.\n\nلطفاً از یک دستگاه امن و غیر روت‌شده برای دسترسی به دوره‌ها و پیشرفت یادگیری خود استفاده کنید.',
+      'security_block_desc': 'به دلایل امنیتی و حفاظت از محتوای آموزشی، امکان اجرای رایت لرن روی دستگاه‌های روت‌شده یا جیلبریک‌شده وجود ندارد.\n\nلطفاً از یک دستگاه امن و غیر روت‌شده برای دسترسی به دوره‌ها و پیشرفت یادگیری خود استفاده کنید.',
       'check_again': 'بررسی مجدد',
       'yes_label': 'بله',
       'no_label': 'خیر',
@@ -707,8 +719,11 @@ class AppLocalizations {
   String get resendCodeIn => translate('resend_code_in');
   String get seconds => translate('seconds');
   String get termsConditions => translate('terms_conditions');
+  String get description => translate('description');
   String get acceptTermsPrompt => translate('accept_terms_prompt');
   String get acceptAndContinue => translate('accept_and_continue');
+  String get officialTermsTitle => translate('official_terms_title');
+  String get officialTermsText => translate('official_terms_text');
   String get completeProfile => translate('complete_profile');
   String get tellUsProfile => translate('tell_us_profile');
   String get mobileReadonly => translate('mobile_readonly');

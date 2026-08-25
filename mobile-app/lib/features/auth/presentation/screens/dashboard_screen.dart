@@ -393,22 +393,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required VoidCallback onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Distinct soft light purple in light mode, rich deep purple in dark mode
     final cardBgColor = isDark
-        ? Color.alphaBlend(AppColors.primary.withOpacity(0.14), AppColors.surface)
-        : Color.alphaBlend(AppColors.primary.withOpacity(0.075), AppColors.surface);
+        ? const Color(0xFF1F1B35)
+        : const Color(0xFFF1EAFF);
     final borderColor = isDark
-        ? AppColors.primary.withOpacity(0.26)
-        : AppColors.primary.withOpacity(0.18);
+        ? const Color(0xFF6C63FF).withOpacity(0.35)
+        : const Color(0xFFD7C7F7);
 
     return Container(
       key: key,
       decoration: BoxDecoration(
         color: cardBgColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor, width: 1.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor, width: 1.3),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(isDark ? 0.12 : 0.06),
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : const Color(0xFF6C63FF).withOpacity(0.10),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -417,40 +421,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          splashColor: AppColors.primary.withOpacity(0.12),
-          highlightColor: AppColors.primary.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(20),
+          splashColor: AppColors.primary.withOpacity(0.18),
+          highlightColor: AppColors.primary.withOpacity(0.08),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10.0),
             child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (imageAsset != null)
-                      Image.asset(
-                        imageAsset,
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.contain,
-                      )
-                    else if (icon != null)
-                      Icon(icon, size: 34, color: iconColor ?? AppColors.primary),
-                    const SizedBox(height: 10),
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.bold,
-                        height: 1.25,
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (imageAsset != null)
+                        Image.asset(
+                          imageAsset,
+                          width: 88,
+                          height: 88,
+                          fit: BoxFit.contain,
+                        )
+                      else if (icon != null)
+                        Icon(icon, size: 54, color: iconColor ?? AppColors.primary),
+                      const SizedBox(height: 6),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : const Color(0xFF261D4E),
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.bold,
+                          height: 1.2,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 if (badgeCount != null && badgeCount > 0)
                   PositionedDirectional(
@@ -463,7 +472,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: (badgeColor ?? AppColors.primary).withOpacity(0.4),
+                            color: (badgeColor ?? AppColors.primary).withOpacity(0.45),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -473,7 +482,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         '$badgeCount',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1047,9 +1056,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: 1.20,
+      crossAxisSpacing: 14,
+      mainAxisSpacing: 14,
+      childAspectRatio: 1.0,
       children: [
         _buildGridCard(
           key: widget.coursesListKey,

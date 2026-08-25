@@ -96,7 +96,7 @@ class MyApp extends StatelessWidget {
           return BlocBuilder<ThemeBloc, ThemeState>(
             builder: (context, themeState) {
               return MaterialApp(
-                title: 'Leitner Learning Platform',
+                title: 'RightLearn',
                 theme: themeState.themeData,
                 debugShowCheckedModeBanner: false,
                 locale: localeState.locale,

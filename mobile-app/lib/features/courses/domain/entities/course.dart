@@ -10,6 +10,7 @@ class Course extends Equatable {
   final int cardCount;
   final bool isPurchased;
   final String? downloadUrl;
+  final String? imageUrl;
   final int version;
 
   // Server-side content lifecycle metadata
@@ -34,6 +35,7 @@ class Course extends Equatable {
     required this.cardCount,
     required this.isPurchased,
     this.downloadUrl,
+    this.imageUrl,
     required this.version,
     this.isArchived = false,
     this.isCriticalUpdate = false,
@@ -58,6 +60,7 @@ class Course extends Equatable {
     int? cardCount,
     bool? isPurchased,
     String? downloadUrl,
+    String? imageUrl,
     int? version,
     bool? isArchived,
     bool? isCriticalUpdate,
@@ -76,6 +79,7 @@ class Course extends Equatable {
       cardCount: cardCount ?? this.cardCount,
       isPurchased: isPurchased ?? this.isPurchased,
       downloadUrl: downloadUrl ?? this.downloadUrl,
+      imageUrl: imageUrl ?? this.imageUrl,
       version: version ?? this.version,
       isArchived: isArchived ?? this.isArchived,
       isCriticalUpdate: isCriticalUpdate ?? this.isCriticalUpdate,
@@ -97,6 +101,7 @@ class Course extends Equatable {
         cardCount,
         isPurchased,
         downloadUrl,
+        imageUrl,
         version,
         isArchived,
         isCriticalUpdate,

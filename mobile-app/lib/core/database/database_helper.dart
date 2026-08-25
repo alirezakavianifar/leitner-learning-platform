@@ -122,7 +122,7 @@ class DatabaseHelper {
     // Using standard sqflite for maximum compatibility across test and local compilation setups:
     return await openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -198,6 +198,7 @@ class DatabaseHelper {
         card_count INTEGER NOT NULL,
         is_purchased INTEGER NOT NULL DEFAULT 0,
         download_url TEXT,
+        image_url TEXT,
         version INTEGER NOT NULL DEFAULT 1,
         is_archived INTEGER NOT NULL DEFAULT 0,
         is_critical_update INTEGER NOT NULL DEFAULT 0,
@@ -354,6 +355,11 @@ class DatabaseHelper {
           PRIMARY KEY (package_id, course_id)
         )
       ''');
+    }
+    if (oldVersion < 8) {
+      try {
+        await db.execute('ALTER TABLE courses_cache ADD COLUMN image_url TEXT');
+      } catch (_) {}
     }
   }
 

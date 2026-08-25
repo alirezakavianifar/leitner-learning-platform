@@ -154,11 +154,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.cancel)),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
+            ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
               onPressed: () => Navigator.pop(context, controller.text),
-              child: Text(loc.translate('restore_db')),
+              child: Text(
+                loc.translate('restore_db'),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         );
@@ -193,11 +204,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text(loc.translate('delete_backup_title'), style: TextStyle(color: AppColors.textPrimary)),
         content: Text(loc.translate('delete_backup_confirm'), style: TextStyle(color: AppColors.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(loc.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(isFa ? 'حذف' : 'Delete'),
+            child: Text(
+              isFa ? 'حذف' : 'Delete',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -558,14 +580,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 12),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                foregroundColor: AppColors.background,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: _exportBackup,
-              icon: const Icon(Icons.download),
-              label: Text(loc.exportNewBackup, style: const TextStyle(fontWeight: FontWeight.bold)),
+              icon: const Icon(Icons.download, color: Colors.white),
+              label: Text(
+                loc.exportNewBackup,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+              ),
             ),
             const SizedBox(height: 24),
 

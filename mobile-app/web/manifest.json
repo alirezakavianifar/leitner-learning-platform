@@ -1,11 +1,11 @@
 {
-    "name": "Leitner Box",
-    "short_name": "Leitner Box",
+    "name": "RightLearn - رایت لرن",
+    "short_name": "RightLearn",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Leitner Learning Platform - Spaced Repetition Flashcards",
+    "description": "RightLearn - رایت لرن",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
