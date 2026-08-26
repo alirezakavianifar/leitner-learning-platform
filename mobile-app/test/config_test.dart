@@ -48,6 +48,7 @@ void main() {
           'bottom_nav_icon_size': 30.0,
           'app_bar_icon_size': 28.0,
           'app_logo_size': 140.0,
+          'app_logo_url': '/uploads/branding/custom.png',
         },
         'social_links': {
           'telegram_url': 'https://t.me/CustomApp',
@@ -84,6 +85,7 @@ void main() {
       expect(config.bottomNavIconSize, 30.0);
       expect(config.appBarIconSize, 28.0);
       expect(config.appLogoSize, 140.0);
+      expect(config.appLogoUrl, '/uploads/branding/custom.png');
       expect(config.telegramUrl, 'https://t.me/CustomApp');
       expect(config.baleUrl, 'https://ble.ir/customapp');
       expect(config.eitaaUrl, 'https://eitaa.com/customapp');
@@ -112,6 +114,7 @@ void main() {
       expect(config.bottomNavIconSize, 26.0);
       expect(config.appBarIconSize, 24.0);
       expect(config.appLogoSize, 110.0);
+      expect(config.appLogoUrl, isNull);
       expect(config.telegramUrl, 'https://t.me/RightlearnApp');
       expect(config.baleUrl, 'https://ble.ir/rightlearnapp');
       expect(config.eitaaUrl, 'https://eitaa.com/RightLearnApp');

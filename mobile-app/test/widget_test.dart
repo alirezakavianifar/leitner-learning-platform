@@ -4,6 +4,8 @@ import 'package:mobile_app/features/auth/data/models/user_model.dart';
 import 'package:mobile_app/features/courses/data/models/course_model.dart';
 import 'package:mobile_app/features/courses/data/models/course_package_model.dart';
 
+import 'package:mobile_app/core/utils/image_url_resolver.dart';
+
 void main() {
   group('Either Utility Tests', () {
     test('Right should return the right value when folded', () {
@@ -31,22 +33,22 @@ void main() {
 
   group('UserModel Parsing Tests', () {
     test('should parse user model from json correctly', () {
-      final jsonMap = {
-        'id': 'test-uuid-12345',
-        'username': 'student_test',
-        'mobile_number': '+989123456789',
-        'interests': 'computer science',
+      final json = {
+        'id': '123',
+        'mobile_number': '09123456789',
+        'username': 'testuser',
+        'interests': 'Tech, AI',
         'educational_field': 'Engineering',
         'educational_level': 'BSc',
         'created_at': '2026-06-21T07:50:37.000Z',
       };
 
-      final result = UserModel.fromJson(jsonMap);
+      final result = UserModel.fromJson(json);
 
-      expect(result.id, 'test-uuid-12345');
-      expect(result.username, 'student_test');
-      expect(result.mobileNumber, '+989123456789');
-      expect(result.interests, 'computer science');
+      expect(result.id, '123');
+      expect(result.mobileNumber, '09123456789');
+      expect(result.username, 'testuser');
+      expect(result.interests, 'Tech, AI');
       expect(result.educationalField, 'Engineering');
       expect(result.educationalLevel, 'BSc');
       expect(result.createdAt, DateTime.parse('2026-06-21T07:50:37.000Z'));
@@ -70,6 +72,10 @@ void main() {
       expect(course.title, 'Test Course with Banner');
       expect(course.imageUrl, 'https://example.com/banner.jpg');
       expect(course.toJson()['image_url'], 'https://example.com/banner.jpg');
+      expect(course.toCacheMap()['image_url'], 'https://example.com/banner.jpg');
+
+      final fromCache = CourseModel.fromCacheMap(course.toCacheMap());
+      expect(fromCache.imageUrl, 'https://example.com/banner.jpg');
     });
 
     test('CoursePackageModel should parse image_url from json correctly', () {
@@ -101,6 +107,36 @@ void main() {
       expect(pkg.courses.length, 1);
       expect(pkg.courses.first.imageUrl, 'https://example.com/c1.jpg');
       expect(pkg.toJson()['image_url'], 'https://example.com/package-banner.png');
+      expect(pkg.toCacheMap()['image_url'], 'https://example.com/package-banner.png');
+
+      final fromCache = CoursePackageModel.fromCacheMap(pkg.toCacheMap());
+      expect(fromCache.imageUrl, 'https://example.com/package-banner.png');
+    });
+  });
+
+  group('ImageUrlResolver Tests', () {
+    test('should return null for null, empty or whitespace strings', () {
+      expect(resolveImageUrl(null), isNull);
+      expect(resolveImageUrl(''), isNull);
+      expect(resolveImageUrl('   '), isNull);
+    });
+
+    test('should preserve absolute HTTP/HTTPS URLs', () {
+      expect(resolveImageUrl('https://cdn.example.com/images/course.png'), 'https://cdn.example.com/images/course.png');
+      expect(resolveImageUrl('http://myhost.org/banner.jpg'), 'http://myhost.org/banner.jpg');
+    });
+
+    test('should preserve asset, file, and data paths', () {
+      expect(resolveImageUrl('assets/images/placeholder.png'), 'assets/images/placeholder.png');
+      expect(resolveImageUrl('file:///data/local/img.png'), 'file:///data/local/img.png');
+      expect(resolveImageUrl('data:image/png;base64,iVBORw0KGgo='), 'data:image/png;base64,iVBORw0KGgo=');
+    });
+
+    test('should resolve relative URLs properly', () {
+      final resolved = resolveImageUrl('/uploads/courses/banner1.jpg');
+      expect(resolved, isNotNull);
+      expect(resolved!.endsWith('/uploads/courses/banner1.jpg'), isTrue);
+      expect(resolved.startsWith('http://') || resolved.startsWith('https://'), isTrue);
     });
   });
 }

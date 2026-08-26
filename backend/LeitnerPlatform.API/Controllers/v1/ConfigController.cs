@@ -109,6 +109,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             int bottomNavIconSize = configs.TryGetValue("bottom_nav_icon_size", out var bnsVal) && int.TryParse(bnsVal, out var bnsInt) ? bnsInt : 26;
             int appBarIconSize = configs.TryGetValue("app_bar_icon_size", out var absVal) && int.TryParse(absVal, out var absInt) ? absInt : 24;
             int appLogoSize = configs.TryGetValue("app_logo_size", out var alsVal) && int.TryParse(alsVal, out var alsInt) ? alsInt : 110;
+            string appLogoUrl = configs.TryGetValue("app_logo_url", out var aluVal) && !string.IsNullOrWhiteSpace(aluVal) ? aluVal : "";
 
             int jwtLifetimeValue = configs.TryGetValue("jwt_lifetime_value", out var jwtVal) && int.TryParse(jwtVal, out var jv) ? jv : 1;
             string jwtLifetimeUnit = configs.TryGetValue("jwt_lifetime_unit", out var jwtUnit) ? jwtUnit : "days";
@@ -137,6 +138,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 bottom_nav_icon_size = bottomNavIconSize,
                 app_bar_icon_size = appBarIconSize,
                 app_logo_size = appLogoSize,
+                app_logo_url = appLogoUrl,
                 endpoints = new
                 {
                     api_server = apiServer,
@@ -158,7 +160,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                     card_nav_icon_size = cardNavIconSize,
                     bottom_nav_icon_size = bottomNavIconSize,
                     app_bar_icon_size = appBarIconSize,
-                    app_logo_size = appLogoSize
+                    app_logo_size = appLogoSize,
+                    app_logo_url = appLogoUrl
                 },
                 banner_configs = new
                 {

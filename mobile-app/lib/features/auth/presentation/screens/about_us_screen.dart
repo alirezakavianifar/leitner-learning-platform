@@ -6,6 +6,7 @@ import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/features/config/domain/entities/remote_config.dart';
 import 'package:mobile_app/core/constants/app_icon_sizes.dart';
+import 'package:mobile_app/core/widgets/app_logo.dart';
 import '../widgets/social_messenger_tile.dart';
 import 'support_screen.dart';
 
@@ -54,30 +55,9 @@ class AboutUsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Center(
-                    child: Container(
-                      width: logoSize,
-                      height: logoSize,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(borderRadius),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.25),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(borderRadius),
-                        child: Image.asset(
-                          'assets/images/app_icon.png',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: AppColors.primary,
-                            child: Icon(Icons.school, size: logoSize * 0.5, color: Colors.white),
-                          ),
-                        ),
-                      ),
+                    child: AppLogo(
+                      size: logoSize,
+                      borderRadius: borderRadius,
                     ),
                   ),
                   const SizedBox(height: 12),

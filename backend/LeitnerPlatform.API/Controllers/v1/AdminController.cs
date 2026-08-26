@@ -600,52 +600,136 @@ namespace LeitnerPlatform.API.Controllers.v1
                 {
                     pkgPurchase.Status = "REFUNDED";
                     _context.Entry(pkgPurchase).State = EntityState.Modified;
+                }
 
-                    // Revoke constituent courses granted under bundle
-                    if (package.Items != null && package.Items.Count > 0)
+                // Revoke constituent courses
+                if (package.Items != null && package.Items.Count > 0)
+                {
+                    foreach (var item in package.Items)
                     {
-                        foreach (var item in package.Items)
+                        var cPurchase = await _context.Purchases
+                            .FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == item.CourseId);
+                        if (cPurchase != null && cPurchase.Status == "COMPLETED")
                         {
-                            var cPurchase = await _context.Purchases
-                                .FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == item.CourseId);
-                            if (cPurchase != null && (cPurchase.PaymentProvider == "ADMIN_GRANT_BUNDLE" || cPurchase.PaymentProvider == "ADMIN_GRANT"))
-                            {
-                                cPurchase.Status = "REFUNDED";
-                                _context.Entry(cPurchase).State = EntityState.Modified;
-                            }
+                            cPurchase.Status = "REFUNDED";
+                            _context.Entry(cPurchase).State = EntityState.Modified;
                         }
                     }
-
-                    await _context.SaveChangesAsync();
-                    afterJson = JsonSerializer.Serialize(new
-                    {
-                        packagePurchase = new
-                        {
-                            pkgPurchase.Id,
-                            pkgPurchase.UserId,
-                            pkgPurchase.PackageId,
-                            pkgPurchase.AmountPaid,
-                            pkgPurchase.Status,
-                            pkgPurchase.PaymentProvider,
-                            pkgPurchase.TransactionId,
-                            pkgPurchase.PurchasedAt
-                        },
-                        reason = input.Reason,
-                        revoked_by = GetAdminUsername(),
-                        revoked_at = DateTime.UtcNow
-                    });
-
-                    await _auditLogService.LogActionAsync(
-                        GetAdminUsername(),
-                        "REVOKE_PACKAGE_ACCESS",
-                        $"User:{userId}|Package:{packageId}",
-                        beforeJson,
-                        afterJson
-                    );
                 }
+
+                await _context.SaveChangesAsync();
+                afterJson = JsonSerializer.Serialize(new
+                {
+                    packagePurchase = pkgPurchase != null ? new
+                    {
+                        pkgPurchase.Id,
+                        pkgPurchase.UserId,
+                        pkgPurchase.PackageId,
+                        pkgPurchase.AmountPaid,
+                        pkgPurchase.Status,
+                        pkgPurchase.PaymentProvider,
+                        pkgPurchase.TransactionId,
+                        pkgPurchase.PurchasedAt
+                    } : null,
+                    reason = input.Reason,
+                    revoked_by = GetAdminUsername(),
+                    revoked_at = DateTime.UtcNow
+                });
+
+                await _auditLogService.LogActionAsync(
+                    GetAdminUsername(),
+                    "REVOKE_PACKAGE_ACCESS",
+                    $"User:{userId}|Package:{packageId}",
+                    beforeJson,
+                    afterJson
+                );
             }
 
             return Ok(new { success = true, message = "Package access state toggled successfully." });
+        }
+
+        [HttpPost("users/{userId:guid}/wipe-purchases")]
+        public async Task<IActionResult> WipeUserPurchases(Guid userId, [FromBody] WipeUserPurchasesInput input)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { success = false, message = "User not found." });
+            }
+
+            var reason = string.IsNullOrWhiteSpace(input.Reason)
+                ? "Admin wiped all user purchases."
+                : input.Reason.Trim();
+
+            // Find all active course purchases
+            var activePurchases = await _context.Purchases
+                .Include(p => p.Course)
+                .Where(p => p.UserId == userId && (p.Status == "COMPLETED" || p.Status == "PENDING"))
+                .ToListAsync();
+
+            // Find all active package purchases
+            var activePackagePurchases = await _context.PackagePurchases
+                .Include(p => p.Package)
+                .Where(p => p.UserId == userId && (p.Status == "COMPLETED" || p.Status == "PENDING"))
+                .ToListAsync();
+
+            if (activePurchases.Count == 0 && activePackagePurchases.Count == 0)
+            {
+                return Ok(new
+                {
+                    success = true,
+                    message = "No active course or package purchases found for this user.",
+                    wiped_courses_count = 0,
+                    wiped_packages_count = 0
+                });
+            }
+
+            var beforeState = new
+            {
+                user_id = userId,
+                active_courses = activePurchases.Select(p => new { p.Id, p.CourseId, CourseTitle = p.Course?.Title, p.Status, p.PaymentProvider, p.PurchasedAt }),
+                active_packages = activePackagePurchases.Select(p => new { p.Id, p.PackageId, PackageTitle = p.Package?.Title, p.Status, p.PaymentProvider, p.PurchasedAt })
+            };
+
+            foreach (var p in activePurchases)
+            {
+                p.Status = "REFUNDED";
+                _context.Entry(p).State = EntityState.Modified;
+            }
+
+            foreach (var pkg in activePackagePurchases)
+            {
+                pkg.Status = "REFUNDED";
+                _context.Entry(pkg).State = EntityState.Modified;
+            }
+
+            await _context.SaveChangesAsync();
+
+            var afterState = new
+            {
+                user_id = userId,
+                reason = reason,
+                wiped_by = GetAdminUsername(),
+                wiped_at = DateTime.UtcNow,
+                wiped_courses_count = activePurchases.Count,
+                wiped_packages_count = activePackagePurchases.Count
+            };
+
+            await _auditLogService.LogActionAsync(
+                GetAdminUsername(),
+                "WIPE_USER_PURCHASES",
+                $"User:{userId}",
+                JsonSerializer.Serialize(beforeState),
+                JsonSerializer.Serialize(afterState)
+            );
+
+            return Ok(new
+            {
+                success = true,
+                message = $"Successfully wiped {activePurchases.Count} active courses and {activePackagePurchases.Count} packages for this user.",
+                wiped_courses_count = activePurchases.Count,
+                wiped_packages_count = activePackagePurchases.Count
+            });
         }
 
         [HttpPost("grants/quick")]
@@ -1760,6 +1844,126 @@ namespace LeitnerPlatform.API.Controllers.v1
             return Ok(new { success = true, message = "System configuration updated successfully." });
         }
 
+        [HttpPost("config/upload-logo")]
+        [RequestSizeLimit(10_000_000)] // 10MB limit
+        public async Task<IActionResult> UploadAppLogo([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { success = false, message = "No image file uploaded." });
+            }
+
+            var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico" };
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(ext))
+            {
+                return BadRequest(new { success = false, message = "Invalid file type. Allowed formats: PNG, JPG, WEBP, SVG, ICO." });
+            }
+
+            if (file.Length > 5 * 1024 * 1024)
+            {
+                return BadRequest(new { success = false, message = "File size exceeds the 5MB limit." });
+            }
+
+            try
+            {
+                var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var brandingDir = Path.Combine(wwwrootPath, "uploads", "branding");
+                if (!Directory.Exists(brandingDir))
+                {
+                    Directory.CreateDirectory(brandingDir);
+                }
+
+                var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                var fileName = $"app_logo_{timestamp}{ext}";
+                var targetPath = Path.Combine(brandingDir, fileName);
+
+                using (var stream = new FileStream(targetPath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Also save a master_icon.png for launcher rebuild workflows
+                var masterIconPath = Path.Combine(brandingDir, "master_icon.png");
+                try
+                {
+                    System.IO.File.Copy(targetPath, masterIconPath, true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to copy master icon in branding directory");
+                }
+
+                var relativeUrl = $"/uploads/branding/{fileName}";
+
+                // Update app_logo_url in SystemConfig
+                var existing = await _context.SystemConfigs.FindAsync("app_logo_url");
+                var beforeValue = existing?.Value;
+                if (existing != null)
+                {
+                    existing.Value = relativeUrl;
+                    existing.UpdatedAt = DateTime.UtcNow;
+                    _context.Entry(existing).State = EntityState.Modified;
+                }
+                else
+                {
+                    var newConfig = new SystemConfig
+                    {
+                        Key = "app_logo_url",
+                        Value = relativeUrl,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    await _context.SystemConfigs.AddAsync(newConfig);
+                }
+
+                await _context.SaveChangesAsync();
+
+                await _auditLogService.LogActionAsync(
+                    GetAdminUsername(),
+                    "UPLOAD_APP_LOGO",
+                    "SystemSettings:app_logo_url",
+                    beforeValue,
+                    relativeUrl
+                );
+
+                return Ok(new
+                {
+                    success = true,
+                    logo_url = relativeUrl,
+                    message = "App icon / branding logo uploaded successfully."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to upload app logo");
+                return StatusCode(500, new { success = false, message = $"Failed to save logo: {ex.Message}" });
+            }
+        }
+
+        [HttpPost("config/reset-logo")]
+        public async Task<IActionResult> ResetAppLogo()
+        {
+            var existing = await _context.SystemConfigs.FindAsync("app_logo_url");
+            var beforeValue = existing?.Value;
+            if (existing != null)
+            {
+                existing.Value = "";
+                existing.UpdatedAt = DateTime.UtcNow;
+                _context.Entry(existing).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+            }
+
+            await _auditLogService.LogActionAsync(
+                GetAdminUsername(),
+                "RESET_APP_LOGO",
+                "SystemSettings:app_logo_url",
+                beforeValue,
+                ""
+            );
+
+            return Ok(new { success = true, message = "App logo reset to default successfully." });
+        }
+
         #endregion
 
         #region Package Management
@@ -2011,6 +2215,11 @@ namespace LeitnerPlatform.API.Controllers.v1
     public class ToggleCourseAccessInput
     {
         public bool GrantAccess { get; set; }
+        public string? Reason { get; set; }
+    }
+
+    public class WipeUserPurchasesInput
+    {
         public string? Reason { get; set; }
     }
 

@@ -134,7 +134,7 @@ export const CoursesView: React.FC = () => {
         category,
         difficulty,
         price,
-        image_url: imageUrl.trim() || null,
+        image_url: imageUrl.trim(),
         is_published: isPublished,
         is_critical_update: isCriticalUpdate
       });
@@ -310,7 +310,7 @@ export const CoursesView: React.FC = () => {
         category: pkgCategory,
         price: pkgPrice,
         original_price: pkgOriginalPrice,
-        image_url: pkgImageUrl.trim() || null,
+        image_url: pkgImageUrl.trim(),
         is_published: pkgIsPublished,
         course_ids: pkgSelectedCourseIds,
       };

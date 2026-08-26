@@ -30,6 +30,8 @@ export const SettingsView: React.FC = () => {
   const [bottomNavIconSize, setBottomNavIconSize] = useState(26);
   const [appBarIconSize, setAppBarIconSize] = useState(24);
   const [appLogoSize, setAppLogoSize] = useState(110);
+  const [appLogoUrl, setAppLogoUrl] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // States for Authentication & Session Validity
   const [jwtLifetimeValue, setJwtLifetimeValue] = useState(1);
@@ -157,6 +159,9 @@ export const SettingsView: React.FC = () => {
             case 'app_logo_size':
               setAppLogoSize(parseInt(cfg.value) || 110);
               break;
+            case 'app_logo_url':
+              setAppLogoUrl(cfg.value || '');
+              break;
             case 'jwt_lifetime_value':
               setJwtLifetimeValue(parseInt(cfg.value) || 1);
               break;
@@ -207,11 +212,61 @@ export const SettingsView: React.FC = () => {
           }
         });
       }
-    } catch (err) {
-      console.error('Failed to load system settings', err);
+    } catch {
+      toast.showError(t('settings.load_failed', 'Failed to load configuration settings.'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.showError(t('settings.file_too_large', 'File size exceeds the 5MB limit.'));
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const res = await api.admin.uploadAppLogo(file);
+      if (res.success) {
+        setAppLogoUrl(res.logo_url);
+        toast.showSuccess(t('settings.logo_upload_success', 'New app icon / logo uploaded and propagated successfully!'));
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      toast.showError(errorMsg || 'Failed to upload app logo.');
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleLogoReset = async () => {
+    if (!confirm(t('settings.confirm_reset_logo', 'Are you sure you want to reset the in-app logo to the default bundled asset?'))) return;
+    setUploadingLogo(true);
+    try {
+      const res = await api.admin.resetAppLogo();
+      if (res.success) {
+        setAppLogoUrl('');
+        toast.showSuccess(t('settings.logo_reset_success', 'App icon / logo reset to default successfully!'));
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      toast.showError(errorMsg || 'Failed to reset logo.');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const getResolvedLogoUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+    const base = ((import.meta as any).env?.VITE_API_BASE_URL as string || 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
+    const clean = url.startsWith('/') ? url : `/${url}`;
+    return `${base}${clean}`;
   };
 
   useEffect(() => {
@@ -220,8 +275,8 @@ export const SettingsView: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
-      setSaving(true);
       const payload = [
         { key: 'maintenance_mode', value: maintenanceMode.toString() },
         { key: 'api_server', value: apiServer },
@@ -240,6 +295,7 @@ export const SettingsView: React.FC = () => {
         { key: 'bottom_nav_icon_size', value: bottomNavIconSize.toString() },
         { key: 'app_bar_icon_size', value: appBarIconSize.toString() },
         { key: 'app_logo_size', value: appLogoSize.toString() },
+        { key: 'app_logo_url', value: appLogoUrl },
         { key: 'jwt_lifetime_value', value: jwtLifetimeValue.toString() },
         { key: 'jwt_lifetime_unit', value: jwtLifetimeUnit },
         { key: 'refresh_token_lifetime_value', value: refreshTokenLifetimeValue.toString() },
@@ -781,12 +837,29 @@ export const SettingsView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* App Logo & Branding Live Preview */}
-                <div>
-                  <span className="text-muted" style={{ fontSize: '12px', display: 'block', marginBottom: '8px' }}>
-                    {t('settings.app_logo_preview_label', 'In-App Logo & Branding Preview (About Us / Headers):')} ({appLogoSize}px)
-                  </span>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.6)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                {/* App Logo & Branding Live Preview & Upload */}
+                <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span className="text-muted" style={{ fontSize: '12px', fontWeight: 'bold' }}>
+                      {t('settings.app_logo_preview_label', 'In-App Logo & Branding Preview (About Us / Headers):')} ({appLogoSize}px)
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        background: appLogoUrl ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                        color: appLogoUrl ? '#10b981' : '#818cf8',
+                        border: appLogoUrl ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(99, 102, 241, 0.3)',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {appLogoUrl ? t('settings.custom_logo_active', 'Custom Logo Active') : t('settings.default_logo_active', 'Default Bundled Icon Active')}
+                    </span>
+                  </div>
+
+                  {/* Logo Display */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.3)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '16px' }}>
                     <div
                       style={{
                         width: `${appLogoSize}px`,
@@ -799,17 +872,95 @@ export const SettingsView: React.FC = () => {
                         color: '#ffffff',
                         boxShadow: '0 8px 24px rgba(79, 70, 229, 0.35)',
                         transition: 'all 0.2s ease',
+                        overflow: 'hidden',
+                        position: 'relative'
                       }}
                     >
-                      <svg width={Math.round(appLogoSize * 0.55)} height={Math.round(appLogoSize * 0.55)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-                        <path d="M6 12v5c3 3 9 3 12 0v-5" />
-                      </svg>
+                      {appLogoUrl ? (
+                        <img
+                          src={getResolvedLogoUrl(appLogoUrl)}
+                          alt="App Logo"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            // Fallback to icon if network image fails
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <svg width={Math.round(appLogoSize * 0.55)} height={Math.round(appLogoSize * 0.55)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                          <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                        </svg>
+                      )}
                     </div>
-                    <span style={{ marginTop: '10px', fontSize: '13px', fontWeight: 'bold', color: 'var(--primary-hover)' }}>
+                    <span style={{ marginTop: '12px', fontSize: '13px', fontWeight: 'bold', color: 'var(--primary-hover)' }}>
                       {t('settings.app_name_preview', 'Leitner Learning Platform')}
                     </span>
+                    {appLogoUrl && (
+                      <span className="text-muted" style={{ fontSize: '11px', marginTop: '4px', wordBreak: 'break-all' }}>
+                        {appLogoUrl}
+                      </span>
+                    )}
                   </div>
+
+                  {/* Logo Actions */}
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <label
+                      className="btn btn-primary"
+                      style={{
+                        cursor: uploadingLogo ? 'not-allowed' : 'pointer',
+                        opacity: uploadingLogo ? 0.7 : 1,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        margin: 0,
+                        fontSize: '13px',
+                        padding: '8px 16px'
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                      {uploadingLogo ? t('settings.uploading_logo', 'Uploading...') : t('settings.upload_logo_btn', 'Upload New Icon / Logo')}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon"
+                        onChange={handleLogoUpload}
+                        disabled={uploadingLogo}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+
+                    {appLogoUrl && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={handleLogoReset}
+                        disabled={uploadingLogo}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '13px',
+                          padding: '8px 16px',
+                          color: '#ef4444',
+                          borderColor: 'rgba(239, 68, 68, 0.3)'
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="1 4 1 10 7 10" />
+                          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                        </svg>
+                        {t('settings.reset_logo_btn', 'Reset to Default Icon')}
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-muted" style={{ fontSize: '11px', margin: '8px 0 0 0' }}>
+                    {t('settings.upload_logo_subtitle', 'Upload a custom high-resolution logo (PNG/WebP/SVG/ICO, max 5MB). Changes are propagated instantly to all mobile app instances over-the-air.')}
+                  </p>
                 </div>
               </div>
             </div>

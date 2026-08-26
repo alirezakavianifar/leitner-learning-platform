@@ -293,5 +293,104 @@ namespace LeitnerPlatform.Tests
             Assert.Equal("COMPLETED", purchase.Status);
             Assert.Equal("ADMIN_GRANT", purchase.PaymentProvider);
         }
+
+        [Fact]
+        public async Task WipeUserPurchases_ShouldSetAllActiveCoursesAndPackagesToRefunded()
+        {
+            var db = GetDatabaseContext();
+            var user1 = new User { Id = Guid.NewGuid(), Username = "User1", MobileNumber = "09121111111", CreatedAt = DateTime.UtcNow };
+            var user2 = new User { Id = Guid.NewGuid(), Username = "User2", MobileNumber = "09122222222", CreatedAt = DateTime.UtcNow };
+            await db.Users.AddRangeAsync(user1, user2);
+
+            var c1 = new Course { Id = Guid.NewGuid(), Title = "Course 1", Price = 100000, CreatedAt = DateTime.UtcNow };
+            var c2 = new Course { Id = Guid.NewGuid(), Title = "Course 2", Price = 150000, CreatedAt = DateTime.UtcNow };
+            await db.Courses.AddRangeAsync(c1, c2);
+
+            var pkg = new CoursePackage { Id = Guid.NewGuid(), Title = "Pkg 1", Price = 200000, CreatedAt = DateTime.UtcNow };
+            pkg.Items.Add(new CoursePackageItem { PackageId = pkg.Id, CourseId = c1.Id, DisplayOrder = 0 });
+            await db.CoursePackages.AddAsync(pkg);
+
+            // User 1 has 2 completed course purchases and 1 package purchase
+            var u1_p1 = new Purchase { Id = Guid.NewGuid(), UserId = user1.Id, CourseId = c1.Id, Status = "COMPLETED", PaymentProvider = "ZARINPAL", TransactionId = "TX1", PurchasedAt = DateTime.UtcNow };
+            var u1_p2 = new Purchase { Id = Guid.NewGuid(), UserId = user1.Id, CourseId = c2.Id, Status = "COMPLETED", PaymentProvider = "ADMIN_GRANT", TransactionId = "TX2", PurchasedAt = DateTime.UtcNow };
+            var u1_pkg = new PackagePurchase { Id = Guid.NewGuid(), UserId = user1.Id, PackageId = pkg.Id, Status = "COMPLETED", PaymentProvider = "ZARINPAL", TransactionId = "PKG1", PurchasedAt = DateTime.UtcNow };
+
+            // User 2 has 1 completed course purchase
+            var u2_p1 = new Purchase { Id = Guid.NewGuid(), UserId = user2.Id, CourseId = c1.Id, Status = "COMPLETED", PaymentProvider = "ZARINPAL", TransactionId = "TX3", PurchasedAt = DateTime.UtcNow };
+
+            await db.Purchases.AddRangeAsync(u1_p1, u1_p2, u2_p1);
+            await db.PackagePurchases.AddAsync(u1_pkg);
+            await db.SaveChangesAsync();
+
+            var controller = CreateController(db);
+
+            // Wipe User 1 purchases
+            var result = Assert.IsType<OkObjectResult>(await controller.WipeUserPurchases(user1.Id, new WipeUserPurchasesInput
+            {
+                Reason = "Violation of terms or manual reset"
+            }));
+
+            // Check User 1 purchases are all REFUNDED
+            var u1_p1_after = await db.Purchases.FindAsync(u1_p1.Id);
+            var u1_p2_after = await db.Purchases.FindAsync(u1_p2.Id);
+            var u1_pkg_after = await db.PackagePurchases.FindAsync(u1_pkg.Id);
+
+            Assert.NotNull(u1_p1_after);
+            Assert.NotNull(u1_p2_after);
+            Assert.NotNull(u1_pkg_after);
+            Assert.Equal("REFUNDED", u1_p1_after.Status);
+            Assert.Equal("REFUNDED", u1_p2_after.Status);
+            Assert.Equal("REFUNDED", u1_pkg_after.Status);
+
+            // Check User 2 purchases remain intact (COMPLETED)
+            var u2_p1_after = await db.Purchases.FindAsync(u2_p1.Id);
+            Assert.NotNull(u2_p1_after);
+            Assert.Equal("COMPLETED", u2_p1_after.Status);
+        }
+
+        [Fact]
+        public async Task TogglePackageAccess_Revoke_ShouldRevokeAllConstituentCourses()
+        {
+            var db = GetDatabaseContext();
+            var user = new User { Id = Guid.NewGuid(), Username = "PkgRevokeUser", MobileNumber = "09129998877", CreatedAt = DateTime.UtcNow };
+            await db.Users.AddAsync(user);
+
+            var c1 = new Course { Id = Guid.NewGuid(), Title = "Bundle Course 1", Price = 100000, CreatedAt = DateTime.UtcNow };
+            var c2 = new Course { Id = Guid.NewGuid(), Title = "Bundle Course 2", Price = 150000, CreatedAt = DateTime.UtcNow };
+            await db.Courses.AddRangeAsync(c1, c2);
+
+            var pkg = new CoursePackage { Id = Guid.NewGuid(), Title = "Test Bundle", Price = 200000, CreatedAt = DateTime.UtcNow };
+            pkg.Items.Add(new CoursePackageItem { PackageId = pkg.Id, CourseId = c1.Id, DisplayOrder = 0 });
+            pkg.Items.Add(new CoursePackageItem { PackageId = pkg.Id, CourseId = c2.Id, DisplayOrder = 1 });
+            await db.CoursePackages.AddAsync(pkg);
+
+            var pkgPurchase = new PackagePurchase { Id = Guid.NewGuid(), UserId = user.Id, PackageId = pkg.Id, Status = "COMPLETED", PaymentProvider = "ZARINPAL", TransactionId = "TXP1", PurchasedAt = DateTime.UtcNow };
+            var p1 = new Purchase { Id = Guid.NewGuid(), UserId = user.Id, CourseId = c1.Id, Status = "COMPLETED", PaymentProvider = "ZARINPAL", TransactionId = "TXC1", PurchasedAt = DateTime.UtcNow };
+            var p2 = new Purchase { Id = Guid.NewGuid(), UserId = user.Id, CourseId = c2.Id, Status = "COMPLETED", PaymentProvider = "ZARINPAL", TransactionId = "TXC2", PurchasedAt = DateTime.UtcNow };
+
+            await db.PackagePurchases.AddAsync(pkgPurchase);
+            await db.Purchases.AddRangeAsync(p1, p2);
+            await db.SaveChangesAsync();
+
+            var controller = CreateController(db);
+
+            // Revoke package access
+            var result = Assert.IsType<OkObjectResult>(await controller.TogglePackageAccess(user.Id, pkg.Id, new ToggleCourseAccessInput
+            {
+                GrantAccess = false,
+                Reason = "Refunded package"
+            }));
+
+            var pkgAfter = await db.PackagePurchases.FindAsync(pkgPurchase.Id);
+            var p1After = await db.Purchases.FindAsync(p1.Id);
+            var p2After = await db.Purchases.FindAsync(p2.Id);
+
+            Assert.NotNull(pkgAfter);
+            Assert.NotNull(p1After);
+            Assert.NotNull(p2After);
+            Assert.Equal("REFUNDED", pkgAfter.Status);
+            Assert.Equal("REFUNDED", p1After.Status);
+            Assert.Equal("REFUNDED", p2After.Status);
+        }
     }
 }

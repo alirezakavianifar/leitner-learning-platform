@@ -17,6 +17,7 @@ import 'package:mobile_app/features/courses/presentation/widgets/package_card.da
 import 'package:mobile_app/features/courses/presentation/widgets/package_details_modal.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
 import 'package:mobile_app/core/error/error_formatter.dart';
+import 'package:mobile_app/core/utils/image_url_resolver.dart';
 
 class CoursesScreen extends StatefulWidget {
   final ValueNotifier<int>? tabNotifier;
@@ -468,6 +469,8 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                   color: AppColors.primary,
                   backgroundColor: AppColors.surface,
                   onRefresh: () async {
+                    PaintingBinding.instance.imageCache.clear();
+                    PaintingBinding.instance.imageCache.clearLiveImages();
                     context.read<CoursesBloc>().add(LoadCoursesEvent());
                   },
                   child: CustomScrollView(
@@ -955,14 +958,14 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                     width: 66,
                     height: 66,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.12),
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: borderColor.withOpacity(0.35),
                         width: 1,
                       ),
                     ),
-                    child: _buildCourseThumbnail(course),
+                    child: _buildCourseThumbnail(course, fit: BoxFit.contain),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1102,28 +1105,31 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     );
   }
 
-  Widget _buildCourseThumbnail(Course course) {
-    if (course.imageUrl != null && course.imageUrl!.trim().isNotEmpty) {
-      final img = course.imageUrl!.trim();
-      if (img.startsWith('http://') || img.startsWith('https://')) {
+  Widget _buildCourseThumbnail(Course course, {BoxFit fit = BoxFit.contain}) {
+    final resolvedUrl = resolveImageUrl(course.imageUrl);
+    if (resolvedUrl != null && resolvedUrl.isNotEmpty) {
+      if (resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://')) {
         return Image.network(
-          img,
-          fit: BoxFit.cover,
+          resolvedUrl,
+          fit: fit,
+          alignment: Alignment.center,
           errorBuilder: (_, __, ___) => _buildFallbackThumbnail(course),
         );
-      } else if (img.startsWith('assets/')) {
+      } else if (resolvedUrl.startsWith('assets/')) {
         return Image.asset(
-          img,
-          fit: BoxFit.cover,
+          resolvedUrl,
+          fit: fit,
+          alignment: Alignment.center,
           errorBuilder: (_, __, ___) => _buildFallbackThumbnail(course),
         );
       } else if (!kIsWeb) {
         try {
-          final file = File(img);
+          final file = File(resolvedUrl);
           if (file.existsSync()) {
             return Image.file(
               file,
-              fit: BoxFit.cover,
+              fit: fit,
+              alignment: Alignment.center,
               errorBuilder: (_, __, ___) => _buildFallbackThumbnail(course),
             );
           }
@@ -1211,11 +1217,11 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                         width: 76,
                         height: 76,
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.15),
+                          color: AppColors.surface,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: borderColor, width: 1.5),
                         ),
-                        child: _buildCourseThumbnail(course),
+                        child: _buildCourseThumbnail(course, fit: BoxFit.contain),
                       ),
                     ),
                     const SizedBox(width: 14),

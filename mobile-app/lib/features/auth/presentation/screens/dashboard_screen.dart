@@ -21,6 +21,7 @@ import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
 import 'package:mobile_app/features/courses/presentation/widgets/lesson_stage_pot.dart';
 import 'package:mobile_app/core/utils/scroll_physics.dart';
+import 'package:mobile_app/core/utils/image_url_resolver.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int) onTabChange;
@@ -341,6 +342,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _onRefresh() async {
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
     await _loadProfile();
     await _loadStats();
     await _loadBanners(force: true);
@@ -615,6 +618,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 if (isRealBanner) {
                   final realBanner = banner as entity.Banner;
+                  final resolvedBannerUrl = resolveImageUrl(realBanner.imageUrl) ?? realBanner.imageUrl;
                   return GestureDetector(
                     onTap: () {
                       if (realBanner.linkUrl != null && realBanner.linkUrl!.isNotEmpty) {
@@ -626,7 +630,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: AppColors.surface,
                       ),
                       child: Image.network(
-                        realBanner.imageUrl,
+                        resolvedBannerUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(

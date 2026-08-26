@@ -122,7 +122,7 @@ class DatabaseHelper {
     // Using standard sqflite for maximum compatibility across test and local compilation setups:
     return await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -235,6 +235,7 @@ class DatabaseHelper {
         title TEXT NOT NULL,
         description TEXT,
         category TEXT,
+        image_url TEXT,
         price REAL NOT NULL,
         original_price REAL,
         discount_percentage INTEGER NOT NULL DEFAULT 0,
@@ -357,6 +358,14 @@ class DatabaseHelper {
       ''');
     }
     if (oldVersion < 8) {
+      try {
+        await db.execute('ALTER TABLE courses_cache ADD COLUMN image_url TEXT');
+      } catch (_) {}
+    }
+    if (oldVersion < 9) {
+      try {
+        await db.execute('ALTER TABLE packages_cache ADD COLUMN image_url TEXT');
+      } catch (_) {}
       try {
         await db.execute('ALTER TABLE courses_cache ADD COLUMN image_url TEXT');
       } catch (_) {}

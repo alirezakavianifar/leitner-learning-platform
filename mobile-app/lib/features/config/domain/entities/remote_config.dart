@@ -18,6 +18,7 @@ class RemoteConfig extends Equatable {
   final double bottomNavIconSize;
   final double appBarIconSize;
   final double appLogoSize;
+  final String? appLogoUrl;
   final String telegramUrl;
   final String baleUrl;
   final String eitaaUrl;
@@ -47,6 +48,7 @@ class RemoteConfig extends Equatable {
     this.bottomNavIconSize = 26.0,
     this.appBarIconSize = 24.0,
     this.appLogoSize = 110.0,
+    this.appLogoUrl,
     this.telegramUrl = 'https://t.me/RightlearnApp',
     this.baleUrl = 'https://ble.ir/rightlearnapp',
     this.eitaaUrl = 'https://eitaa.com/RightLearnApp',
@@ -78,6 +80,7 @@ class RemoteConfig extends Equatable {
         bottomNavIconSize,
         appBarIconSize,
         appLogoSize,
+        appLogoUrl,
         telegramUrl,
         baleUrl,
         eitaaUrl,
@@ -128,6 +131,8 @@ class RemoteConfig extends Equatable {
       appLogoSize: (json['app_logo_size'] as num?)?.toDouble() ??
           (appStyles['app_logo_size'] as num?)?.toDouble() ??
           110.0,
+      appLogoUrl: json['app_logo_url'] as String? ??
+          appStyles['app_logo_url'] as String?,
       telegramUrl: json['telegram_url'] as String? ??
           socialLinks['telegram_url'] as String? ??
           'https://t.me/RightlearnApp',
@@ -170,6 +175,7 @@ class RemoteConfig extends Equatable {
       'bottom_nav_icon_size': bottomNavIconSize,
       'app_bar_icon_size': appBarIconSize,
       'app_logo_size': appLogoSize,
+      'app_logo_url': appLogoUrl,
       'telegram_url': telegramUrl,
       'bale_url': baleUrl,
       'eitaa_url': eitaaUrl,
@@ -198,6 +204,8 @@ class RemoteConfig extends Equatable {
         'card_nav_icon_size': cardNavIconSize,
         'bottom_nav_icon_size': bottomNavIconSize,
         'app_bar_icon_size': appBarIconSize,
+        'app_logo_size': appLogoSize,
+        'app_logo_url': appLogoUrl,
       },
       'banner_configs': {
         'rotation_interval_seconds': rotationIntervalSeconds,

@@ -92,7 +92,9 @@ def generate_icons(source_path, mobile_app_dir):
     print("Generated mobile-app assets/images/app_icon.png (512x512)")
 
 if __name__ == "__main__":
+    import sys
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    source = os.path.join(root_dir, "icon.png")
+    source_arg = sys.argv[1] if len(sys.argv) > 1 else "icon.png"
+    source = os.path.join(root_dir, source_arg) if not os.path.isabs(source_arg) else source_arg
     mobile_dir = os.path.join(root_dir, "mobile-app")
     generate_icons(source, mobile_dir)

@@ -26,6 +26,7 @@ import 'support_screen.dart';
 import 'package:mobile_app/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
+import 'package:mobile_app/core/widgets/app_logo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeHubScreen extends StatefulWidget {
@@ -820,6 +821,26 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                     Navigator.pop(context); // Close drawer
                     _showHelpSelectionDialog(context);
                   },
+                ),
+              ],
+            ),
+          ),
+
+          // App Logo Branding in Drawer
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const AppLogo(size: 26, showShadow: false),
+                const SizedBox(width: 8),
+                Text(
+                  loc.appTitle,
+                  style: TextStyle(
+                    color: AppColors.textSecondary.withOpacity(0.7),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),

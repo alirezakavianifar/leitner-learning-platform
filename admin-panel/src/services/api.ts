@@ -383,6 +383,12 @@ export const api = {
         body: JSON.stringify({ grant_access: grantAccess, reason })
       }),
 
+    wipeUserPurchases: (userId: string, reason: string) =>
+      request<{ success: boolean; message: string; wiped_courses_count: number; wiped_packages_count: number }>(`/admin/users/${userId}/wipe-purchases`, {
+        method: 'POST',
+        body: JSON.stringify({ reason })
+      }),
+
     quickGrantAccess: (data: { mobile_number: string; course_id?: string; package_id?: string; reason?: string }) =>
       request<{ success: boolean; message: string; user: any; item: any }>('/admin/grants/quick', {
         method: 'POST',
@@ -430,6 +436,17 @@ export const api = {
     updateConfig: (configs: { key: string; value: string }[]) => request<{ success: boolean; message: string }>('/admin/config', {
       method: 'PUT',
       body: JSON.stringify({ configs })
+    }),
+    uploadAppLogo: (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return request<{ success: boolean; logo_url: string; message: string }>('/admin/config/upload-logo', {
+        method: 'POST',
+        body: formData
+      });
+    },
+    resetAppLogo: () => request<{ success: boolean; message: string }>('/admin/config/reset-logo', {
+      method: 'POST'
     }),
 
     getAuditLogs: (page = 1, pageSize = 30) => request<{ success: boolean; total_count: number; logs: any[] }>(`/admin/audit-logs?page=${page}&pageSize=${pageSize}`)

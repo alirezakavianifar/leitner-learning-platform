@@ -256,5 +256,85 @@ namespace LeitnerPlatform.Tests
                 It.IsAny<string>()
             ), Times.Once);
         }
+
+        [Fact]
+        public async Task AdminController_UploadAppLogo_ShouldSaveLogoAndUpdateSystemConfig()
+        {
+            // Arrange
+            using var context = GetInMemoryDbContext();
+            var mockEventBus = new Mock<IEventBus>();
+            var mockAudit = new Mock<IAuditLogService>();
+            var mockLogger = new Mock<ILogger<AdminController>>();
+
+            var controller = new AdminController(context, mockEventBus.Object, mockAudit.Object, mockLogger.Object);
+            var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.Name, "admin_user")
+            }, "TestAuth"));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            };
+
+            var content = "dummy image data"u8.ToArray();
+            var stream = new System.IO.MemoryStream(content);
+            var file = new FormFile(stream, 0, content.Length, "file", "custom_logo.png")
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = "image/png"
+            };
+
+            // Act
+            var result = await controller.UploadAppLogo(file);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var propType = okResult.Value!.GetType();
+            var success = (bool?)propType.GetProperty("success")?.GetValue(okResult.Value);
+            var logoUrl = (string?)propType.GetProperty("logo_url")?.GetValue(okResult.Value);
+
+            Assert.True(success);
+            Assert.NotNull(logoUrl);
+            Assert.StartsWith("/uploads/branding/app_logo_", logoUrl);
+            Assert.EndsWith(".png", logoUrl);
+
+            var savedConfig = await context.SystemConfigs.FindAsync("app_logo_url");
+            Assert.NotNull(savedConfig);
+            Assert.Equal(logoUrl, savedConfig!.Value);
+        }
+
+        [Fact]
+        public async Task AdminController_ResetAppLogo_ShouldClearLogoConfig()
+        {
+            // Arrange
+            using var context = GetInMemoryDbContext();
+            await context.SystemConfigs.AddAsync(new SystemConfig { Key = "app_logo_url", Value = "/uploads/branding/custom.png" });
+            await context.SaveChangesAsync();
+
+            var mockEventBus = new Mock<IEventBus>();
+            var mockAudit = new Mock<IAuditLogService>();
+            var mockLogger = new Mock<ILogger<AdminController>>();
+
+            var controller = new AdminController(context, mockEventBus.Object, mockAudit.Object, mockLogger.Object);
+            var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.Name, "admin_user")
+            }, "TestAuth"));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            };
+
+            // Act
+            var result = await controller.ResetAppLogo();
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var savedConfig = await context.SystemConfigs.FindAsync("app_logo_url");
+            Assert.NotNull(savedConfig);
+            Assert.Equal("", savedConfig!.Value);
+        }
     }
 }

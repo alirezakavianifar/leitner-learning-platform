@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/courses/domain/entities/course_package.dart';
+import 'package:mobile_app/core/utils/image_url_resolver.dart';
 
 class PackageDetailsModal extends StatelessWidget {
   final CoursePackage package;
@@ -97,13 +98,18 @@ class PackageDetailsModal extends StatelessWidget {
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: package.imageUrl != null && package.imageUrl!.trim().isNotEmpty
-                          ? Image.network(
-                              package.imageUrl!.trim(),
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
-                            )
-                          : const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
+                      child: () {
+                        final resolvedImg = resolveImageUrl(package.imageUrl);
+                        if (resolvedImg != null && resolvedImg.isNotEmpty) {
+                          return Image.network(
+                            resolvedImg,
+                            fit: BoxFit.contain,
+                            alignment: Alignment.center,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
+                          );
+                        }
+                        return const Icon(Icons.auto_awesome, color: Colors.white, size: 24);
+                      }(),
                     ),
                   ),
                   const SizedBox(width: 14),

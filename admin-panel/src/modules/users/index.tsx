@@ -43,6 +43,11 @@ export const UsersView: React.FC = () => {
   const [grantState, setGrantState] = useState(true);
   const [overrideReason, setOverrideReason] = useState('');
 
+  // Wipe all purchases state
+  const [showWipeModal, setShowWipeModal] = useState(false);
+  const [wipeReason, setWipeReason] = useState('');
+  const [wiping, setWiping] = useState(false);
+
   const loadUsers = async () => {
     try {
       setLoading(true);
@@ -171,6 +176,36 @@ export const UsersView: React.FC = () => {
       }
     } catch (err: any) {
       toast.showError(err.message || 'خطا در تغییر دسترسی.');
+    }
+  };
+
+  const handleWipeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    if (!wipeReason.trim()) {
+      toast.showWarning('ثبت دلیل پاکسازی دسترسی‌ها جهت ثبت در سیستم نظارت الزامی است.');
+      return;
+    }
+
+    try {
+      setWiping(true);
+      const res = await api.admin.wipeUserPurchases(selectedUser.id, wipeReason.trim());
+      if (res.success) {
+        toast.showSuccess(res.message || 'کلیه دوره‌ها و بسته‌های فعال کاربر با موفقیت لغو و پاکسازی شد.');
+        setShowWipeModal(false);
+        setWipeReason('');
+
+        // Reload user access states
+        const userData = await api.admin.getUser(selectedUser.id);
+        if (userData.success) {
+          setPurchases(userData.purchases || []);
+          setPackagePurchases((userData as any).package_purchases || []);
+        }
+      }
+    } catch (err: any) {
+      toast.showError(err.message || 'خطا در پاکسازی دوره‌های کاربر.');
+    } finally {
+      setWiping(false);
     }
   };
 
@@ -327,8 +362,25 @@ export const UsersView: React.FC = () => {
 
               {/* Course & Package Access Matrix */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <h4 style={{ margin: 0, color: 'var(--accent-cyan)' }}>مدیریت دسترسی‌های کاربر</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h4 style={{ margin: 0, color: 'var(--accent-cyan)' }}>مدیریت دسترسی‌های کاربر</h4>
+                    {(purchases.some(p => p.status === 'COMPLETED') || packagePurchases.some(p => p.status === 'COMPLETED')) && (
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        style={{ padding: '3px 8px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        onClick={() => {
+                          setWipeReason('');
+                          setShowWipeModal(true);
+                        }}
+                        title="پاکسازی و لغو یکجای کلیه دوره‌ها و بسته‌های خریداری شده این کاربر"
+                      >
+                        <span>🧹</span>
+                        <span>پاکسازی کلیه دوره‌ها</span>
+                      </button>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', gap: '4px', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: '6px' }}>
                     <button
                       type="button"
@@ -487,6 +539,48 @@ export const UsersView: React.FC = () => {
                 </button>
                 <button type="submit" className={`btn ${grantState ? 'btn-success' : 'btn-danger'}`}>
                   {t('users.confirm_override_btn', 'Confirm Override')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Wipe All Purchases Modal */}
+      {showWipeModal && selectedUser && (
+        <div className="modal-overlay" style={{ zIndex: 1260 }}>
+          <div className="modal-content" style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <h3 style={{ color: 'var(--danger-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>⚠️</span>
+                <span>پاکسازی و لغو کلیه دوره‌های کاربر</span>
+              </h3>
+              <button className="refresh-captcha-btn" style={{ fontSize: '20px' }} onClick={() => setShowWipeModal(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleWipeSubmit}>
+              <div className="modal-body">
+                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', marginBottom: '16px' }}>
+                  <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.6, color: '#fca5a5' }}>
+                    <strong>هشدار مهم:</strong> این عملیات تمام دوره‌ها و بسته‌های فعال کاربر (<strong>{selectedUser.username || selectedUser.mobile_number}</strong>) را به وضعیت لغو شده (مرجوعی) تغییر داده و دسترسی او را به طور کامل قطع می‌کند. کاربر برای دسترسی مجدد، <strong>مجبور به خرید دوباره دوره‌ها</strong> خواهد بود.
+                  </p>
+                </div>
+                <div className="form-group">
+                  <label>دلیل پاکسازی دسترسی‌ها (جهت ثبت در سیستم نظارت ادمین) *</label>
+                  <textarea
+                    rows={3}
+                    placeholder="مثال: نقض قوانین، درخواست بازگشت وجه، تست سیستم یا ریست دوره‌ها..."
+                    value={wipeReason}
+                    onChange={(e) => setWipeReason(e.target.value)}
+                    required
+                  ></textarea>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowWipeModal(false)} disabled={wiping}>
+                  انصراف
+                </button>
+                <button type="submit" className="btn btn-danger" disabled={wiping}>
+                  {wiping ? 'درحال پاکسازی...' : 'تأیید و قطع دسترسی کامل'}
                 </button>
               </div>
             </form>
