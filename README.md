@@ -53,15 +53,14 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
     *   *Box 3:* Default 7 days (or configured value/unit).
     *   *Box 4:* Default 16 days (or configured value/unit).
     *   *Box 5:* Default 31 days (or configured value/unit).
-    *   *Box 6:* Due immediately for final review upon promotion from Box 5.
-    *   *Box 7 (Finished Cards):* Cards successfully reviewed in Box 6 move to the Finished pool.
+    *   *Box 6 (Finished / Completed Cards):* Cards successfully reviewed in Box 5 graduate to Box 6 (Finished). Completed cards in Box 6 are excluded from the "Today's Cards" (کارت‌های امروز) review queue and due counters.
     *   *Dynamic Admin Configuration & Fast Verification Mode:* All box stage review intervals (Boxes 2, 3, 4, 5) and time units (`Seconds`, `Minutes`, `Hours`, `Days`) are fully configurable by the administrator in the Web Admin Panel. Admins can select presets such as **Fast Verification Mode (1 Hour Total)** (Box 2: 5m, Box 3: 10m, Box 4: 15m, Box 5: 20m) to verify the entire end-to-end Leitner lifecycle in ~50 minutes without waiting days.
 *   **Incorrect Reset:** Answering incorrectly during review resets the card's progress back to Box 1 immediately.
-*   **Overdue Reset (Rule A):** If a card is due on a given day/window and the user does NOT review it within that window, the card's progress resets, and it returns to Box 1.
-*   **Favorites Reset (Rule B):** Viewing a card from the "Favorites" screen resets its Leitner stage to Box 1 after user confirmation.
+*   **Overdue Reset (Rule A):** If a card is due on a given day/window and the user does NOT review it within that window, the card's progress resets, and it returns to Box 1. (Does not apply to Box 6 Finished cards).
+*   **Favorites Reset (Rule B):** Viewing a card currently in active Leitner boxes (Boxes 2–5) from the "Favorites" screen prompts a reset warning to Box 1. Box 1 and Box 6 (Finished) cards open without reset warnings.
 *   **Direct View & Navigation Reset (Rule C):** Users can enter a card number to jump directly to it. If the card is in active Leitner boxes (2–5), a warning confirmation is displayed, and upon confirmation, its Leitner progress is reset to Box 1.
 *   **Finished Cards Action:** When viewing Finished Cards, pressing "Know It" does nothing; pressing "Don't Know" resets the card's progress, sending it back to Box 1.
-*   **Only Due Cards Restriction:** Standard study navigation prevents browsing Box 2–5 cards before their due dates. Only Box 1 or due cards are shown in the study queue.
+*   **Only Due Cards Restriction:** Standard study navigation prevents browsing Box 2–5 cards before their due dates. Only Box 1 or due cards are shown in the study queue; Box 6 completed cards are accessed via the dedicated Finished Cards section.
 
 ### 2. UI Layout & Navigation
 *   **Global Bottom Navigation:** A persistent bottom navigation bar (Home, Review, Courses) visible on all main screens.

@@ -71,7 +71,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
       );
 
       final box = currentCard.progress.currentBox;
-      if (box >= 2 && box <= 6 && (event.isFromFavorites || event.initialCardNumber != null)) {
+      if (box >= 2 && box <= 5 && (event.isFromFavorites || event.initialCardNumber != null)) {
         emit(FlashcardQueueLoaded(
           courseId: event.courseId,
           queue: finalQueue,
@@ -141,7 +141,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           nextIndex = newQueue.indexWhere((c) =>
               c.cardNumber > currentCard.cardNumber &&
               (c.progress.currentBox == 1 ||
-                  c.progress.currentBox == 7 ||
+                  c.progress.currentBox >= 6 ||
                   (c.progress.nextReviewDue != null &&
                       c.progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1))))));
 
@@ -149,7 +149,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
             nextIndex = newQueue.indexWhere((c) =>
                 c.cardNumber != currentCard.cardNumber &&
                 (c.progress.currentBox == 1 ||
-                    c.progress.currentBox == 7 ||
+                    c.progress.currentBox >= 6 ||
                     (c.progress.nextReviewDue != null &&
                         c.progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1))))));
           }
@@ -173,7 +173,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         );
 
         final box = nextCard.progress.currentBox;
-        if (box >= 2 && box <= 6 && currentState.isFromFavorites) {
+        if (box >= 2 && box <= 5 && currentState.isFromFavorites) {
           emit(currentState.copyWith(
             queue: newQueue,
             currentIndex: nextIndex,
@@ -243,7 +243,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         }
 
         final box = card.progress.currentBox;
-        if (box >= 2 && box <= 6 && !event.forceReset) {
+        if (box >= 2 && box <= 5 && !event.forceReset) {
           emit(currentState.copyWith(
             jumpWarningCardNumber: card.cardNumber,
             jumpTargetCard: card,
@@ -327,7 +327,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         );
 
         final box = card.progress.currentBox;
-        if (box >= 2 && box <= 6 && currentState.isFromFavorites) {
+        if (box >= 2 && box <= 5 && currentState.isFromFavorites) {
           emit(currentState.copyWith(
             currentIndex: nextIndex,
             isFlipped: false,
@@ -363,7 +363,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         );
 
         final box = card.progress.currentBox;
-        if (box >= 2 && box <= 6 && currentState.isFromFavorites) {
+        if (box >= 2 && box <= 5 && currentState.isFromFavorites) {
           emit(currentState.copyWith(
             currentIndex: prevIndex,
             isFlipped: false,

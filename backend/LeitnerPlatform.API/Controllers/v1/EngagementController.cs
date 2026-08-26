@@ -23,6 +23,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             _context = context;
         }
 
+        [AllowAnonymous]
         [HttpGet("banners")]
         public async Task<IActionResult> GetActiveBanners()
         {
@@ -34,6 +35,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             return Ok(activeBanners);
         }
 
+        [AllowAnonymous]
         [HttpGet("announcements")]
         public async Task<IActionResult> GetAnnouncements()
         {

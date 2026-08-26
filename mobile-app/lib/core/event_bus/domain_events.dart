@@ -67,3 +67,41 @@ class LeitnerProgressReset extends DomainEvent {
   @override
   List<Object?> get props => [courseId, cardNumber, resetAt, reason];
 }
+
+class CourseDownloaded extends DomainEvent {
+  final String courseId;
+
+  const CourseDownloaded({required this.courseId});
+
+  @override
+  List<Object?> get props => [courseId];
+}
+
+class CourseProgressChanged extends DomainEvent {
+  final String courseId;
+
+  const CourseProgressChanged({required this.courseId});
+
+  @override
+  List<Object?> get props => [courseId];
+}
+
+class StatsRefreshRequested extends DomainEvent {
+  const StatsRefreshRequested();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class AnnouncementsUpdated extends DomainEvent {
+  final int unreadCount;
+  final int totalCount;
+
+  const AnnouncementsUpdated({
+    required this.unreadCount,
+    required this.totalCount,
+  });
+
+  @override
+  List<Object?> get props => [unreadCount, totalCount];
+}

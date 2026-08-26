@@ -12,17 +12,21 @@ import 'package:mobile_app/features/courses/data/models/course_model.dart';
 import 'package:mobile_app/features/courses/data/models/course_package_model.dart';
 import 'package:mobile_app/features/courses/domain/entities/course.dart';
 import 'package:mobile_app/features/courses/domain/entities/course_package.dart';
+import 'package:mobile_app/core/event_bus/event_bus.dart';
+import 'package:mobile_app/core/event_bus/domain_events.dart';
 import 'package:mobile_app/features/courses/domain/repositories/courses_repository.dart';
 
 class CoursesRepositoryImpl implements CoursesRepository {
   final CoursesRemoteDataSource remoteDataSource;
   final CoursesLocalDataSource localDataSource;
   final Dio dio; // Direct dio instance for downloading files
+  final EventBus? eventBus;
 
   CoursesRepositoryImpl({
     required this.remoteDataSource,
     required this.localDataSource,
     required this.dio,
+    this.eventBus,
   });
 
   @override
@@ -271,6 +275,7 @@ class CoursesRepositoryImpl implements CoursesRepository {
         if (downloadedVersion != null) {
           await localDataSource.markCourseVersionDownloaded(courseId, downloadedVersion);
         }
+        eventBus?.fire(CourseDownloaded(courseId: courseId));
       } catch (e) {
         // The package failed to extract/process. Clean up so a retry starts from a clean slate.
         try {

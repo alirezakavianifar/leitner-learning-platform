@@ -216,6 +216,11 @@ class AppLocalizations {
       'notification_center': 'Notification Center',
       'failed_load_notifications': 'Failed to load system notifications.',
       'no_notifications_found': 'No notifications found.',
+      'mark_all_read': 'Mark All as Read',
+      'unread_notifications': 'Unread Notifications',
+      'new_badge': 'NEW',
+      'all_caught_up': 'You are all caught up!',
+      'all_marked_read_msg': 'All notifications marked as read.',
       'retry': 'Retry',
       'no_custom_cards_found': 'No Custom Cards Found',
       'create_custom_cards_empty_desc': 'Create your own custom cards with images and voice recording, and study them locally.',
@@ -563,6 +568,11 @@ class AppLocalizations {
       'notification_center': 'مرکز اعلان‌ها',
       'failed_load_notifications': 'خطا در دریافت اعلان‌های سیستم.',
       'no_notifications_found': 'هیچ اعلانی یافت نشد.',
+      'mark_all_read': 'خواندن همه',
+      'unread_notifications': 'اعلان‌های جدید',
+      'new_badge': 'جدید',
+      'all_caught_up': 'تمام اعلان‌ها را مشاهده کرده‌اید!',
+      'all_marked_read_msg': 'همه اعلان‌ها به عنوان خوانده شده علامت‌گذاری شدند.',
       'retry': 'تلاش مجدد',
       'no_custom_cards_found': 'هیچ کارت اختصاصی یافت نشد',
       'create_custom_cards_empty_desc': 'کارت‌های اختصاصی دلخواه خود را همراه با تصویر و ضبط صدا ایجاد کرده و به صورت محلی مطالعه کنید.',
@@ -894,6 +904,11 @@ class AppLocalizations {
   String get notificationCenter => translate('notification_center');
   String get failedLoadNotifications => translate('failed_load_notifications');
   String get noNotificationsFound => translate('no_notifications_found');
+  String get markAllRead => translate('mark_all_read');
+  String get unreadNotifications => translate('unread_notifications');
+  String get newBadge => translate('new_badge');
+  String get allCaughtUp => translate('all_caught_up');
+  String get allMarkedReadMsg => translate('all_marked_read_msg');
   String get retry => translate('retry');
 
   String get noCustomCardsFound => translate('no_custom_cards_found');

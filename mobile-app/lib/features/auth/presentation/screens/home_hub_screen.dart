@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/event_bus/event_bus.dart';
+import 'package:mobile_app/core/event_bus/domain_events.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
@@ -23,6 +26,7 @@ import 'rules_screen.dart';
 import 'about_us_screen.dart';
 import 'statistics_screen.dart';
 import 'support_screen.dart';
+import 'package:mobile_app/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:mobile_app/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
@@ -36,16 +40,21 @@ class HomeHubScreen extends StatefulWidget {
   State<HomeHubScreen> createState() => HomeHubScreenState();
 }
 
-class HomeHubScreenState extends State<HomeHubScreen> {
+class HomeHubScreenState extends State<HomeHubScreen> with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentIndex = 0;
   late final List<Widget> _tabs;
+  late final NotificationsRepository _notificationsRepository;
+  late final EventBus _eventBus;
+  StreamSubscription<DomainEvent>? _eventSubscription;
+  int _unreadNotificationsCount = 0;
 
   final GlobalKey<NavigatorState> _dashboardNavigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<NavigatorState> _reviewNavigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<NavigatorState> _coursesNavigatorKey = GlobalKey<NavigatorState>();
 
   final ValueNotifier<int> _coursesTabNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<int> _activeTabNotifier = ValueNotifier<int>(0);
 
   final GlobalKey _menuKey = GlobalKey();
   final GlobalKey _bottomNavKey = GlobalKey();
@@ -168,6 +177,22 @@ class HomeHubScreenState extends State<HomeHubScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    _notificationsRepository = di.sl<NotificationsRepository>();
+    _eventBus = di.sl<EventBus>();
+
+    _loadUnreadNotifications();
+
+    _eventSubscription = _eventBus.on<DomainEvent>().listen((event) {
+      if (event is AnnouncementsUpdated) {
+        if (mounted) {
+          setState(() {
+            _unreadNotificationsCount = event.unreadCount;
+          });
+        }
+      }
+    });
     
     _observers = [
       _NestedNavigatorObserver(() {
@@ -191,10 +216,12 @@ class HomeHubScreenState extends State<HomeHubScreen> {
               if (mounted) {
                 setState(() {
                   _currentIndex = index;
+                  _activeTabNotifier.value = index;
                 });
               }
             },
             coursesTabNotifier: _coursesTabNotifier,
+            activeTabNotifier: _activeTabNotifier,
             todayReviewsKey: _todayReviewsKey,
             favoritesKey: _favoritesKey,
             finishedCardsKey: _finishedCardsKey,
@@ -213,10 +240,12 @@ class HomeHubScreenState extends State<HomeHubScreen> {
               if (mounted) {
                 setState(() {
                   _currentIndex = 2;
+                  _activeTabNotifier.value = 2;
                   _coursesTabNotifier.value = 0;
                 });
               }
             },
+            activeTabNotifier: _activeTabNotifier,
           ),
         ),
       ),
@@ -232,8 +261,10 @@ class HomeHubScreenState extends State<HomeHubScreen> {
       ),
     ];
 
-    // Auto-trigger onboarding tutorial on first app startup
+    // Auto-trigger onboarding tutorial on first app startup and sync notifications
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _syncNotifications();
+
       final prefs = di.sl<SharedPreferences>();
       final completed = prefs.getBool('first_run_completed') ?? false;
       if (!completed) {
@@ -246,9 +277,37 @@ class HomeHubScreenState extends State<HomeHubScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncNotifications();
+    }
+  }
+
+  Future<void> _loadUnreadNotifications() async {
+    try {
+      final unread = await _notificationsRepository.getUnreadCount();
+      if (mounted) {
+        setState(() {
+          _unreadNotificationsCount = unread;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _syncNotifications() async {
+    try {
+      await _notificationsRepository.getAnnouncements();
+      await _loadUnreadNotifications();
+    } catch (_) {}
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _eventSubscription?.cancel();
     _tourOverlayEntry?.remove();
     _coursesTabNotifier.dispose();
+    _activeTabNotifier.dispose();
     super.dispose();
   }
 
@@ -338,6 +397,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
           if (_currentIndex != 0) {
             setState(() {
               _currentIndex = 0;
+              _activeTabNotifier.value = 0;
             });
           } else {
             // Minimize or pop from platform system navigator
@@ -388,6 +448,48 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                           _pushNested(const CourseSearchScreen());
                         },
                       ),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            _unreadNotificationsCount > 0 ? Icons.notifications_active : Icons.notifications_none_outlined,
+                            color: _unreadNotificationsCount > 0 ? AppColors.primary : AppColors.textSecondary,
+                            size: appBarIconSize,
+                          ),
+                          tooltip: loc.notificationCenter,
+                          onPressed: () {
+                            _pushGlobal(const NotificationsScreen());
+                          },
+                        ),
+                        if (_unreadNotificationsCount > 0)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                _unreadNotificationsCount > 9 ? '9+' : '$_unreadNotificationsCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(width: 6),
                   ],
                 )
               : null,
@@ -416,6 +518,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                     } else {
                       setState(() {
                         _currentIndex = index;
+                        _activeTabNotifier.value = index;
                       });
                     }
                   },
@@ -777,6 +880,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
                   icon: Icons.notifications,
                   iconColor: AppColors.box4,
                   title: loc.notifications,
+                  badgeCount: _unreadNotificationsCount,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
                     _pushGlobal(const NotificationsScreen());
@@ -878,6 +982,7 @@ class HomeHubScreenState extends State<HomeHubScreen> {
     required Color iconColor,
     required String title,
     required VoidCallback onTap,
+    int badgeCount = 0,
   }) {
     return ListTile(
       leading: Icon(icon, color: iconColor),
@@ -889,7 +994,30 @@ class HomeHubScreenState extends State<HomeHubScreen> {
           fontWeight: FontWeight.w600,
         ),
       ),
-      trailing: Icon(Icons.chevron_right, color: AppColors.border, size: 18),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (badgeCount > 0) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                badgeCount > 9 ? '9+' : '$badgeCount',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
+          Icon(Icons.chevron_right, color: AppColors.border, size: 18),
+        ],
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),

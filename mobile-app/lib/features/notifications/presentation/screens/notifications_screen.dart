@@ -16,6 +16,7 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   late NotificationsRepository _notificationsRepository;
   List<Announcement> _announcements = [];
+  Set<String> _readIds = {};
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -34,9 +35,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     try {
       final data = await _notificationsRepository.getAnnouncements(forceRefresh: force);
+      final readIds = await _notificationsRepository.getReadAnnouncementIds();
       if (mounted) {
         setState(() {
           _announcements = data;
+          _readIds = readIds;
           _isLoading = false;
         });
       }
@@ -51,9 +54,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Future<void> _markAllAsRead() async {
+    await _notificationsRepository.markAllAsRead();
+    if (mounted) {
+      final readIds = await _notificationsRepository.getReadAnnouncementIds();
+      final loc = AppLocalizations.of(context);
+      setState(() {
+        _readIds = readIds;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.allMarkedReadMsg),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _toggleItemRead(String id) async {
+    if (!_readIds.contains(id)) {
+      await _notificationsRepository.markAsRead(id);
+      if (mounted) {
+        final readIds = await _notificationsRepository.getReadAnnouncementIds();
+        setState(() {
+          _readIds = readIds;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final unreadCount = _announcements.where((a) => !_readIds.contains(a.id)).length;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -67,6 +102,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           loc.notificationCenter,
           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          if (_announcements.isNotEmpty && unreadCount > 0)
+            TextButton.icon(
+              onPressed: _markAllAsRead,
+              icon: Icon(Icons.done_all, size: 18, color: AppColors.primary),
+              label: Text(
+                loc.markAllRead,
+                style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+        ],
       ),
       body: RefreshIndicator(
         color: AppColors.primary,
@@ -139,43 +185,77 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       itemCount: _announcements.length,
       itemBuilder: (context, index) {
         final item = _announcements[index];
+        final isUnread = !_readIds.contains(item.id);
         final formattedDate = DateFormat.yMMMd().add_jm().format(item.publishedAt.toLocal());
         
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          color: AppColors.surface.withOpacity(0.6),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.border),
-          ),
-          child: Padding(
+        return InkWell(
+          onTap: () => _toggleItemRead(item.id),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: isUnread
+                  ? AppColors.primary.withOpacity(0.08)
+                  : AppColors.surface.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isUnread ? AppColors.primary.withOpacity(0.5) : AppColors.border,
+                width: isUnread ? 1.5 : 1.0,
+              ),
+            ),
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (isUnread) ...[
+                      Container(
+                        width: 8,
+                        height: 8,
+                        margin: const EdgeInsetsDirectional.only(top: 6, end: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
                     Expanded(
                       child: Text(
                         item.title,
                         style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
+                          color: isUnread ? AppColors.textPrimary : AppColors.textPrimary.withOpacity(0.85),
+                          fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,
                           fontSize: 15,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    if (isUnread)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        margin: const EdgeInsets.only(left: 6, right: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          loc.newBadge,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     Text(
                       formattedDate,
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: isUnread ? AppColors.primary : AppColors.textSecondary,
                         fontSize: 11,
                       ),
                     ),
@@ -185,8 +265,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 Text(
                   item.content,
                   style: TextStyle(
-                    color: AppColors.textSecondary,
-                    height: 1.4,
+                    color: isUnread ? AppColors.textPrimary.withOpacity(0.9) : AppColors.textSecondary,
+                    height: 1.45,
                     fontSize: 13,
                   ),
                 ),
@@ -198,3 +278,4 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 }
+

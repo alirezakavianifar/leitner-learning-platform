@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
+import 'package:mobile_app/core/event_bus/event_bus.dart';
+import 'package:mobile_app/core/event_bus/domain_events.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 import 'package:mobile_app/features/flashcards/presentation/screens/finished_cards_screen.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/custom_courses_screen.dart';
 import 'package:mobile_app/features/notifications/domain/entities/banner.dart' as entity;
+import 'package:mobile_app/features/notifications/domain/entities/announcement.dart' as entity;
 import 'package:mobile_app/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/favorites_courses_screen.dart';
@@ -27,6 +30,7 @@ import 'package:mobile_app/core/utils/image_url_resolver.dart';
 class DashboardScreen extends StatefulWidget {
   final Function(int) onTabChange;
   final ValueNotifier<int>? coursesTabNotifier;
+  final ValueNotifier<int>? activeTabNotifier;
   final Key? todayReviewsKey;
   final Key? favoritesKey;
   final Key? finishedCardsKey;
@@ -38,6 +42,7 @@ class DashboardScreen extends StatefulWidget {
     Key? key,
     required this.onTabChange,
     this.coursesTabNotifier,
+    this.activeTabNotifier,
     this.todayReviewsKey,
     this.favoritesKey,
     this.finishedCardsKey,
@@ -80,10 +85,12 @@ class _LessonBlockInfo {
   });
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingObserver {
   late FlashcardRepository _flashcardRepository;
   late NotificationsRepository _notificationsRepository;
   late CoursesRepository _coursesRepository;
+  late EventBus _eventBus;
+  StreamSubscription<DomainEvent>? _eventSubscription;
   
   int _dueCount = 0;
   int _finishedCount = 0;
@@ -124,10 +131,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _flashcardRepository = di.sl<FlashcardRepository>();
     _notificationsRepository = di.sl<NotificationsRepository>();
     _coursesRepository = di.sl<CoursesRepository>();
+    _eventBus = di.sl<EventBus>();
     _pageController = PageController(initialPage: 0);
+
+    _eventSubscription = _eventBus.on<DomainEvent>().listen((event) {
+      if (event is CardReviewed ||
+          event is CardFinished ||
+          event is DueDateOverdueReset ||
+          event is LeitnerProgressReset ||
+          event is CourseDownloaded ||
+          event is CourseProgressChanged ||
+          event is StatsRefreshRequested) {
+        _loadStats();
+        _loadCoursesData();
+      }
+    });
+
+    widget.activeTabNotifier?.addListener(_onActiveTabChanged);
+
     _loadProfile();
     _loadStats();
     _loadBanners();
@@ -135,8 +160,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _startBannerRotation();
   }
 
+  void _onActiveTabChanged() {
+    if (widget.activeTabNotifier?.value == 0) {
+      _loadStats();
+      _loadCoursesData();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadStats();
+      _loadCoursesData();
+      _loadBanners();
+    }
+  }
+
+  @override
+  void didUpdateWidget(DashboardScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeTabNotifier != widget.activeTabNotifier) {
+      oldWidget.activeTabNotifier?.removeListener(_onActiveTabChanged);
+      widget.activeTabNotifier?.addListener(_onActiveTabChanged);
+    }
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    widget.activeTabNotifier?.removeListener(_onActiveTabChanged);
+    _eventSubscription?.cancel();
     _bannerTimer?.cancel();
     _pageController.dispose();
     super.dispose();
@@ -161,6 +214,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadBanners({bool force = false}) async {
     try {
       final data = await _notificationsRepository.getBanners(forceRefresh: force);
+      // Also background-sync announcements to update unread badge
+      _notificationsRepository.getAnnouncements(forceRefresh: force).catchError((_) => <entity.Announcement>[]);
       if (mounted) {
         setState(() {
           _bannerList = data.take(5).toList();

@@ -13,17 +13,19 @@ import 'package:mobile_app/injection_container.dart' as di;
 
 class ReviewTab extends StatefulWidget {
   final VoidCallback? onNavigateToCatalog;
+  final ValueNotifier<int>? activeTabNotifier;
 
   const ReviewTab({
     Key? key,
     this.onNavigateToCatalog,
+    this.activeTabNotifier,
   }) : super(key: key);
 
   @override
   State<ReviewTab> createState() => _ReviewTabState();
 }
 
-class _ReviewTabState extends State<ReviewTab> {
+class _ReviewTabState extends State<ReviewTab> with WidgetsBindingObserver {
   late CoursesRepository _coursesRepository;
   late FlashcardRepository _flashcardRepository;
   late EventBus _eventBus;
@@ -38,6 +40,7 @@ class _ReviewTabState extends State<ReviewTab> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _coursesRepository = di.sl<CoursesRepository>();
     _flashcardRepository = di.sl<FlashcardRepository>();
     _eventBus = di.sl<EventBus>();
@@ -46,16 +49,45 @@ class _ReviewTabState extends State<ReviewTab> {
       if (event is CardReviewed ||
           event is CardFinished ||
           event is DueDateOverdueReset ||
-          event is LeitnerProgressReset) {
+          event is LeitnerProgressReset ||
+          event is CourseDownloaded ||
+          event is CourseProgressChanged ||
+          event is StatsRefreshRequested) {
         _loadData(showLoading: false);
       }
     });
 
+    widget.activeTabNotifier?.addListener(_onActiveTabChanged);
+
     _loadData();
+  }
+
+  void _onActiveTabChanged() {
+    if (widget.activeTabNotifier?.value == 1) {
+      _loadData(showLoading: false);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadData(showLoading: false);
+    }
+  }
+
+  @override
+  void didUpdateWidget(ReviewTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeTabNotifier != widget.activeTabNotifier) {
+      oldWidget.activeTabNotifier?.removeListener(_onActiveTabChanged);
+      widget.activeTabNotifier?.addListener(_onActiveTabChanged);
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    widget.activeTabNotifier?.removeListener(_onActiveTabChanged);
     _eventSubscription?.cancel();
     super.dispose();
   }

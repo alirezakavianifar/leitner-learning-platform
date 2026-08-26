@@ -328,7 +328,6 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
       case 5:
         return AppColors.box5;
       case 6:
-        return AppColors.box6;
       case 7:
         return AppColors.finished;
       default:
@@ -350,7 +349,6 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
       case 5:
         return loc.box5;
       case 6:
-        return loc.box6;
       case 7:
         return loc.finished;
       default:

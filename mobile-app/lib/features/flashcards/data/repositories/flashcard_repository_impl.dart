@@ -135,18 +135,18 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       }
 
       // Progression filter:
-      // 1. In Today's Reviews: Box 2-6 (if nextReviewDue <= now). Box 1 is NOT included (only enters Leitner on success).
-      // 2. In Direct Course Study: Box 1 + Box 2-6 (if due today) are shown. Non-due Box 2-6 and Finished Cards (Box 7) are hidden.
+      // 1. In Today's Reviews: Active Leitner boxes 2-5 (if nextReviewDue <= now). Box 1 is NOT included (only enters Leitner on success). Box 6 (Finished) is completed and excluded.
+      // 2. In Direct Course Study: Box 1 + Box 2-5 (if due today) are shown. Non-due Box 2-5 and Completed Cards (Box 6+) are hidden.
       final bool included;
       if (isTodayReview) {
         included = progress.currentBox >= 2 &&
-            progress.currentBox <= 6 &&
+            progress.currentBox <= 5 &&
             progress.nextReviewDue != null &&
             progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1)));
       } else {
         included = progress.currentBox == 1 ||
             (progress.currentBox >= 2 &&
-                progress.currentBox <= 6 &&
+                progress.currentBox <= 5 &&
                 progress.nextReviewDue != null &&
                 progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1))));
       }
@@ -224,14 +224,40 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     String? trigger;
 
     if (isCorrect) {
-      if (currentProgress.currentBox == 7) {
+      if (currentProgress.currentBox >= 6) {
         // Finished cards remain finished, no action
         return;
       }
 
+      final config = configRepository?.getCachedConfig();
+      final unit = config?.leitnerIntervalUnit.toLowerCase() ?? 'days';
+
+      // Rule 5 & 8: Promotion for Boxes 2–5 is only valid if the card is reviewed on its
+      // scheduled day/time. Box 1 is always eligible (first success enters Leitner immediately).
+      if (currentProgress.currentBox >= 2 && currentProgress.currentBox <= 5) {
+        final dueDate = currentProgress.nextReviewDue;
+        if (dueDate != null) {
+          if (unit == 'days') {
+            final dueDateLocal = DateTime(dueDate.toLocal().year, dueDate.toLocal().month, dueDate.toLocal().day);
+            final todayLocal = DateTime(now.year, now.month, now.day);
+            if (dueDateLocal.isAfter(todayLocal)) {
+              // Card is not due today — silently abort promotion to enforce the Leitner schedule.
+              return;
+            }
+          } else {
+            // Sub-day units (minutes, hours, seconds):
+            if (dueDate.isAfter(now)) {
+              // Card is not due yet — silently abort promotion.
+              return;
+            }
+          }
+        }
+      }
+
       trigger = 'REVIEW_CORRECT';
-      if (currentProgress.currentBox == 6) {
-        newBox = 7;
+      if (currentProgress.currentBox == 5) {
+        // Promoted from Box 5 to Box 6 (Finished / Completed)
+        newBox = 6;
         newNextReviewDue = null;
         eventBus.fire(CardFinished(
           courseId: courseId,
@@ -239,44 +265,13 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
           finishedAt: now,
         ));
       } else {
-        final config = configRepository?.getCachedConfig();
-        final unit = config?.leitnerIntervalUnit.toLowerCase() ?? 'days';
-
-        // Rule 5 & 8: Promotion for Boxes 2–5 is only valid if the card is reviewed on its
-        // scheduled day/time. Box 1 is always eligible (first success enters Leitner immediately).
-        // Box 6 is always eligible (it becomes due immediately after being promoted into it).
-        if (currentProgress.currentBox >= 2 && currentProgress.currentBox <= 5) {
-          final dueDate = currentProgress.nextReviewDue;
-          if (dueDate != null) {
-            if (unit == 'days') {
-              final dueDateLocal = DateTime(dueDate.toLocal().year, dueDate.toLocal().month, dueDate.toLocal().day);
-              final todayLocal = DateTime(now.year, now.month, now.day);
-              if (dueDateLocal.isAfter(todayLocal)) {
-                // Card is not due today — silently abort promotion to enforce the Leitner schedule.
-                return;
-              }
-            } else {
-              // Sub-day units (minutes, hours, seconds):
-              if (dueDate.isAfter(now)) {
-                // Card is not due yet — silently abort promotion.
-                return;
-              }
-            }
-          }
-        }
-
         newBox = currentProgress.currentBox + 1;
-        
-        if (newBox == 6) {
-          newNextReviewDue = now; // Box 6 is due immediately for review to move to Finished
+        final duration = _getDurationForBox(newBox, config);
+        if (unit == 'days') {
+          final startOfToday = DateTime(now.year, now.month, now.day);
+          newNextReviewDue = startOfToday.add(duration);
         } else {
-          final duration = _getDurationForBox(newBox, config);
-          if (unit == 'days') {
-            final startOfToday = DateTime(now.year, now.month, now.day);
-            newNextReviewDue = startOfToday.add(duration);
-          } else {
-            newNextReviewDue = now.add(duration);
-          }
+          newNextReviewDue = now.add(duration);
         }
         
         eventBus.fire(CardReviewed(
@@ -335,8 +330,8 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     if (maps.isEmpty) return;
 
     final currentProgress = CardProgressModel.fromMap(maps.first);
-    // Guard: do not reset Box 1 (already there) or Box 7 (Finished Cards are excluded from Leitner resets)
-    if (currentProgress.currentBox == 1 || currentProgress.currentBox == 7) return;
+    // Guard: do not reset Box 1 (already there) or Box >= 6 (Finished Cards are excluded from Leitner resets)
+    if (currentProgress.currentBox == 1 || currentProgress.currentBox >= 6) return;
 
     final now = DateTime.now();
     final trigger = reason.toUpperCase() == 'FAVORITES' ? 'FAVORITES_RESET' : 'JUMP_RESET';
@@ -384,10 +379,10 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       overdueUtcStr = now.subtract(graceDuration).toUtc().toIso8601String();
     }
 
-    // Query active Leitner cards (Boxes 2-6) whose nextReviewDue is strictly before the overdue threshold
+    // Query active Leitner cards (Boxes 2-5) whose nextReviewDue is strictly before the overdue threshold
     final List<Map<String, dynamic>> overdueMaps = await localDb.query(
       'client_progress',
-      where: 'course_id = ? AND current_box >= 2 AND current_box <= 6 AND next_review_due < ?',
+      where: 'course_id = ? AND current_box >= 2 AND current_box <= 5 AND next_review_due < ?',
       whereArgs: [courseId, overdueUtcStr],
     );
 
@@ -479,11 +474,13 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       groupBy: 'current_box',
     );
 
-    final stats = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
+    final stats = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0};
     for (final map in maps) {
       final box = map['current_box'] as int;
       final count = map['count'] as int;
-      if (stats.containsKey(box)) {
+      if (box >= 6) {
+        stats[6] = (stats[6] ?? 0) + count;
+      } else if (stats.containsKey(box)) {
         stats[box] = count;
       }
     }
@@ -712,7 +709,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
 
     final List<Map<String, dynamic>> results = await localDb.rawQuery('''
       SELECT COUNT(*) as count FROM client_progress
-      WHERE current_box >= 2 AND current_box <= 6 AND next_review_due <= ?
+      WHERE current_box >= 2 AND current_box <= 5 AND next_review_due <= ?
     ''', [nowUtc]);
 
     if (results.isEmpty) return 0;
@@ -724,7 +721,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     final localDb = await databaseHelper.localDatabase;
     final List<Map<String, dynamic>> results = await localDb.rawQuery('''
       SELECT COUNT(*) as count FROM client_progress
-      WHERE current_box = 7
+      WHERE current_box >= 6
     ''');
     return Sqflite.firstIntValue(results) ?? 0;
   }
@@ -734,7 +731,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     final localDb = await databaseHelper.localDatabase;
     final List<Map<String, dynamic>> progressMaps = await localDb.query(
       'client_progress',
-      where: 'current_box = 7',
+      where: 'current_box >= 6',
     );
 
     final List<Flashcard> finishedList = [];

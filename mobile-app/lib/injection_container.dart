@@ -172,6 +172,7 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
       remoteDataSource: sl(),
       localDataSource: sl(),
       dio: sl(),
+      eventBus: sl(),
     ),
   );
 
@@ -191,6 +192,7 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
       localDataSource: sl(),
       remoteDataSource: sl(),
       sharedPreferences: sl(),
+      eventBus: sl(),
     ),
   );
 

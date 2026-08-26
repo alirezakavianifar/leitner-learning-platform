@@ -55,13 +55,13 @@ class FakeDatabase implements Database {
     var list = tables[table] ?? [];
     
     if (where != null && whereArgs != null) {
-      if (where.contains('course_id = ? AND current_box >= 2 AND current_box <= 6 AND next_review_due < ?')) {
+      if (where.contains('current_box >= 2 AND current_box <= 5')) {
         final courseId = whereArgs[0] as String;
         final startOfToday = DateTime.parse(whereArgs[1] as String);
         list = list.where((row) {
           if (row['course_id'] != courseId) return false;
           final box = row['current_box'] as int;
-          if (box < 2 || box > 6) return false;
+          if (box < 2 || box > 5) return false;
           if (row['next_review_due'] == null) return false;
           final due = DateTime.parse(row['next_review_due'] as String);
           return due.isBefore(startOfToday);
@@ -98,21 +98,21 @@ class FakeDatabase implements Database {
   Future<List<Map<String, dynamic>>> rawQuery(String sql, [List<Object?>? arguments]) async {
     if (sql.contains('SELECT COUNT(*) as count FROM client_progress')) {
       var list = tables['client_progress'] ?? [];
-      if (sql.contains('current_box >= 2') || sql.contains('current_box >= 1')) {
+      if (sql.contains('current_box >= 2 AND current_box <= 5') || sql.contains('current_box >= 1')) {
         final nowUtcStr = arguments![0] as String;
         final nowUtc = DateTime.parse(nowUtcStr);
         final isOldQuery = sql.contains('current_box >= 1');
         final minBox = isOldQuery ? 1 : 2;
         final count = list.where((row) {
           final box = row['current_box'] as int;
-          if (box < minBox || box > 6) return false;
+          if (box < minBox || box > 5) return false;
           if (row['next_review_due'] == null) return false;
           final due = DateTime.parse(row['next_review_due'] as String);
           return due.isBefore(nowUtc) || due.isAtSameMomentAs(nowUtc);
         }).length;
         return [{'count': count}];
-      } else if (sql.contains('current_box = 7')) {
-        final count = list.where((row) => row['current_box'] == 7).length;
+      } else if (sql.contains('current_box >= 6') || sql.contains('current_box = 7') || sql.contains('current_box = 6')) {
+        final count = list.where((row) => (row['current_box'] as int) >= 6).length;
         return [{'count': count}];
       }
     }
@@ -423,7 +423,7 @@ void main() {
       expect(progress.isSynced, false);
     });
 
-    test('Correct review: Box 5 to Box 6 should schedule review immediately', () async {
+    test('Correct review: Box 5 to Finished (Box 6) should clear review due date', () async {
       // Arrange - Box 5 progress
       final id = '${courseId}_3';
       localDb.tables['client_progress']!.add({
@@ -431,29 +431,6 @@ void main() {
         'course_id': courseId,
         'card_number': 3,
         'current_box': 5,
-        'last_reviewed_at': DateTime.now().toIso8601String(),
-        'next_review_due': DateTime.now().toIso8601String(),
-        'last_trigger': 'REVIEW_CORRECT',
-        'is_synced': 1,
-      });
-
-      // Act
-      await repository.submitReview(courseId: courseId, cardNumber: 3, isCorrect: true);
-
-      // Assert
-      final progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
-      expect(progress.currentBox, 6);
-      expect(progress.nextReviewDue!.difference(progress.lastReviewedAt!).inSeconds <= 1, isTrue);
-    });
-
-    test('Correct review: Box 6 to Finished (Box 7) should clear review due date', () async {
-      // Arrange - Box 6 progress
-      final id = '${courseId}_3';
-      localDb.tables['client_progress']!.add({
-        'id': id,
-        'course_id': courseId,
-        'card_number': 3,
-        'current_box': 6,
         'last_reviewed_at': DateTime.now().toIso8601String(),
         'next_review_due': DateTime.now().toIso8601String(),
         'last_trigger': 'REVIEW_CORRECT',
@@ -469,7 +446,7 @@ void main() {
 
       // Assert
       final progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
-      expect(progress.currentBox, 7);
+      expect(progress.currentBox, 6);
       expect(progress.nextReviewDue, isNull);
       expect(finishedEvent, isNotNull);
       expect(finishedEvent!.cardNumber, 3);
@@ -510,7 +487,7 @@ void main() {
         'id': id,
         'course_id': courseId,
         'card_number': 1,
-        'current_box': 7,
+        'current_box': 6,
         'last_reviewed_at': DateTime.now().toIso8601String(),
         'next_review_due': null,
         'last_trigger': 'REVIEW_CORRECT',
@@ -522,7 +499,7 @@ void main() {
 
       // Assert - unchanged
       final progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
-      expect(progress.currentBox, 7);
+      expect(progress.currentBox, 6);
       expect(progress.nextReviewDue, isNull);
     });
 
@@ -533,7 +510,7 @@ void main() {
         'id': id,
         'course_id': courseId,
         'card_number': 1,
-        'current_box': 7,
+        'current_box': 6,
         'last_reviewed_at': DateTime.now().toIso8601String(),
         'next_review_due': null,
         'last_trigger': 'REVIEW_CORRECT',
@@ -717,7 +694,7 @@ void main() {
       expect(queue[1].cardNumber, 2);
     });
 
-    test('Review queue: conditional session filtering for Box 2-6 due today', () async {
+    test('Review queue: conditional session filtering for Box 2-5 due today', () async {
       // Setup progress in local DB
       // Card 1: Box 1 (Due, but has NOT entered Leitner yet)
       localDb.tables['client_progress']!.add({
@@ -742,12 +719,12 @@ void main() {
         'is_synced': 1,
         'has_entered_leitner': 1,
       });
-      // Card 3: Box 7 (Finished)
+      // Card 3: Box 6 (Finished)
       localDb.tables['client_progress']!.add({
         'id': '${courseId}_3',
         'course_id': courseId,
         'card_number': 3,
-        'current_box': 7,
+        'current_box': 6,
         'last_reviewed_at': DateTime.now().toIso8601String(),
         'next_review_due': null,
         'last_trigger': 'REVIEW_CORRECT',
@@ -773,7 +750,7 @@ void main() {
       // Act 1: Direct study session (isTodayReview = false)
       final queueDirect = await repository.getReviewQueue(courseId, isTodayReview: false);
 
-      // Assert 1: direct session should contain Card 1 (Box 1), Card 2 (Box 2 due today), and Card 4 (Box 1), but NOT Card 3 (Box 7 - Finished)
+      // Assert 1: direct session should contain Card 1 (Box 1), Card 2 (Box 2 due today), and Card 4 (Box 1), but NOT Card 3 (Box 6 - Finished)
       expect(queueDirect.length, 3);
       expect(queueDirect.any((c) => c.cardNumber == 1), isTrue);
       expect(queueDirect.any((c) => c.cardNumber == 2), isTrue);
@@ -788,7 +765,7 @@ void main() {
       expect(queueToday.first.cardNumber, 2);
     });
 
-    test('Global due count: should only count due cards in boxes 2-6, and exclude Box 1 and Box 7', () async {
+    test('Global due count: should only count due cards in boxes 2-5, and exclude Box 1 and Box 6', () async {
       // Setup progress in local DB
       // Card 1: Box 1 (Due/overdue, but should be excluded from active Leitner count)
       localDb.tables['client_progress']!.add({
@@ -826,19 +803,19 @@ void main() {
         'is_synced': 1,
       });
 
-      // Card 4: Box 7 (Finished, should be excluded)
+      // Card 4: Box 6 (Finished, should be excluded)
       localDb.tables['client_progress']!.add({
         'id': '${courseId}_4',
         'course_id': courseId,
         'card_number': 4,
-        'current_box': 7,
+        'current_box': 6,
         'last_reviewed_at': DateTime.now().toIso8601String(),
         'next_review_due': null,
         'last_trigger': 'REVIEW_CORRECT',
         'is_synced': 1,
       });
 
-      // Card 5: Box 6 (Due today, should be counted)
+      // Card 5: Box 6 (Finished, should also be excluded even if next_review_due is populated)
       localDb.tables['client_progress']!.add({
         'id': '${courseId}_5',
         'course_id': courseId,
@@ -854,8 +831,8 @@ void main() {
       final dueCount = await repository.getGlobalDueCount();
 
       // Assert
-      // Only Card 2 (Box 2, due) and Card 5 (Box 6, due) should be counted.
-      expect(dueCount, 2);
+      // Only Card 2 (Box 2, due) should be counted.
+      expect(dueCount, 1);
     });
   });
 
@@ -1004,7 +981,7 @@ void main() {
       expect(diffMinutes, 10);
     });
 
-    test('Fast 1-Hour mode: Complete progression cycle from Box 1 through Box 7 (Finished)', () async {
+    test('Fast 1-Hour mode: Complete progression cycle from Box 1 through Box 6 (Finished)', () async {
       final now = DateTime.now();
       // Start card in Box 4, due now
       localDb.tables['client_progress']!.add({
@@ -1027,13 +1004,7 @@ void main() {
       // Simulate time passing for Box 5 due time
       localDb.tables['client_progress']![0]['next_review_due'] = DateTime.now().subtract(const Duration(minutes: 1)).toIso8601String();
 
-      // 2. Box 5 -> Box 6 (due immediately)
-      await fastRepo.submitReview(courseId: courseId, cardNumber: 1, isCorrect: true);
-      progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
-      expect(progress.currentBox, 6);
-      expect(progress.nextReviewDue!.difference(progress.lastReviewedAt!).inSeconds <= 2, isTrue);
-
-      // 3. Box 6 -> Box 7 (Finished, next_review_due cleared)
+      // 2. Box 5 -> Box 6 (Finished, next_review_due cleared)
       CardFinished? finishedEvent;
       eventBus.on<CardFinished>().listen((e) => finishedEvent = e);
 
@@ -1041,7 +1012,7 @@ void main() {
       await Future.delayed(Duration.zero);
 
       progress = CardProgressModel.fromMap(localDb.tables['client_progress']!.first);
-      expect(progress.currentBox, 7);
+      expect(progress.currentBox, 6);
       expect(progress.nextReviewDue, isNull);
       expect(finishedEvent, isNotNull);
       expect(finishedEvent!.cardNumber, 1);

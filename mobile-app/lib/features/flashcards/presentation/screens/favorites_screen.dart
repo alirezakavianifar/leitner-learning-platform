@@ -69,7 +69,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       case 5:
         return AppColors.box5;
       case 6:
-        return AppColors.box6;
       case 7:
         return AppColors.finished;
       default:
@@ -91,7 +90,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       case 5:
         return loc.box5;
       case 6:
-        return loc.box6;
       case 7:
         return loc.finished;
       default:
