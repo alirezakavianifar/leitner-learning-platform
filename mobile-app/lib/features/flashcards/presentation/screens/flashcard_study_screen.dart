@@ -573,6 +573,55 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
               );
             }
 
+            if (state is FlashcardError) {
+              return Container(
+                color: Colors.black.withOpacity(0.55),
+                child: Center(
+                  child: Container(
+                    width: 320,
+                    padding: const EdgeInsets.all(24.0),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.error_outline_rounded, color: AppColors.error, size: 48),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          AppErrorFormatter.formatError(state.message, context: context),
+                          style: TextStyle(color: AppColors.textPrimary, fontSize: 14, height: 1.4),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(loc.backToCourses, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
             if (state is FlashcardQueueLoaded) {
               if (state.jumpWarningCardNumber != null && state.jumpTargetCard != null) {
                 return _buildWarningView(context, state.jumpTargetCard!);

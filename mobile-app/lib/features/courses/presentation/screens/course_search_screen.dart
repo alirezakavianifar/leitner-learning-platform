@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/utils/search_helper.dart';
@@ -65,8 +66,8 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
         });
       },
       (data) {
-        // We can only search cards in downloaded courses
-        final downloadedCourses = data.$1.where((c) => c.isDownloaded).toList();
+        // We can only search cards in purchased & downloaded courses
+        final downloadedCourses = data.$1.where((c) => (c.isPurchased && c.isDownloaded) || (kIsWeb && c.isPurchased)).toList();
         setState(() {
           _allCourses = downloadedCourses;
           _filteredCourses = downloadedCourses;
@@ -254,6 +255,9 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                           const SizedBox(width: 8),
                                           Text(
                                             course.title,
+                                            textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(course.title)
+                                                ? TextDirection.rtl
+                                                : TextDirection.ltr,
                                             style: TextStyle(
                                               color: isSelected ? AppColors.primary : AppColors.textPrimary,
                                               fontWeight: FontWeight.bold,

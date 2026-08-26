@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
@@ -47,7 +48,7 @@ class _FavoritesCoursesScreenState extends State<FavoritesCoursesScreen> {
         }
       },
       (data) async {
-        final downloaded = data.$1.where((c) => c.isDownloaded).toList();
+        final downloaded = data.$1.where((c) => (c.isPurchased && c.isDownloaded) || (kIsWeb && c.isPurchased)).toList();
         final Map<String, int> favoriteCounts = {};
         final List<Course> coursesWithFavorites = [];
 
@@ -158,11 +159,16 @@ class _FavoritesCoursesScreenState extends State<FavoritesCoursesScreen> {
                                         children: [
                                           Text(
                                             course.title,
+                                            textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(course.title)
+                                                ? TextDirection.rtl
+                                                : TextDirection.ltr,
                                             style: TextStyle(
                                               color: AppColors.textPrimary,
                                               fontSize: 16,
                                               fontWeight: FontWeight.bold,
                                             ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                           const SizedBox(height: 4),
                                           Row(

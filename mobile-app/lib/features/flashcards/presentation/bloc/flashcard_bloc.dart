@@ -71,7 +71,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
       );
 
       final box = currentCard.progress.currentBox;
-      if (box >= 2 && box <= 6) {
+      if (box >= 2 && box <= 6 && (event.isFromFavorites || event.initialCardNumber != null)) {
         emit(FlashcardQueueLoaded(
           courseId: event.courseId,
           queue: finalQueue,
@@ -173,7 +173,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         );
 
         final box = nextCard.progress.currentBox;
-        if (box >= 2 && box <= 6) {
+        if (box >= 2 && box <= 6 && currentState.isFromFavorites) {
           emit(currentState.copyWith(
             queue: newQueue,
             currentIndex: nextIndex,
@@ -327,7 +327,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         );
 
         final box = card.progress.currentBox;
-        if (box >= 2 && box <= 6) {
+        if (box >= 2 && box <= 6 && currentState.isFromFavorites) {
           emit(currentState.copyWith(
             currentIndex: nextIndex,
             isFlipped: false,
@@ -363,7 +363,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         );
 
         final box = card.progress.currentBox;
-        if (box >= 2 && box <= 6) {
+        if (box >= 2 && box <= 6 && currentState.isFromFavorites) {
           emit(currentState.copyWith(
             currentIndex: prevIndex,
             isFlipped: false,

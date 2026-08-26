@@ -176,6 +176,8 @@ class AppErrorFormatter {
       case 'SERVER_ERROR':
       case 'INTERNAL_SERVER_ERROR':
         return 'سرور در حال حاضر با مشکلی مواجه شده است. لطفاً چند دقیقه دیگر دوباره تلاش کنید.';
+      case 'PURCHASE_REQUIRED':
+        return 'برای مطالعه و مرور این دوره، ابتدا باید آن را خریداری نمایید.';
       default:
         return null;
     }
@@ -210,6 +212,8 @@ class AppErrorFormatter {
       case 'SERVER_ERROR':
       case 'INTERNAL_SERVER_ERROR':
         return 'The server encountered an error. Please try again later.';
+      case 'PURCHASE_REQUIRED':
+        return 'You must purchase this course before studying its flashcards.';
       default:
         return null;
     }
@@ -360,6 +364,9 @@ class AppErrorFormatter {
     }
     if (lower.contains('delete course')) {
       return 'خطا در حذف دوره.';
+    }
+    if (lower.contains('purchase_required') || lower.contains('purchase required')) {
+      return 'برای مطالعه و مرور این دوره، ابتدا باید آن را خریداری نمایید.';
     }
     if (lower.contains('load study queue')) {
       return 'خطا در بارگذاری صف کارت‌های آماده مرور. لطفاً صفحه را بازخوانی کنید.';

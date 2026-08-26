@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/app/theme.dart';
@@ -276,7 +277,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final coursesResult = await _coursesRepository.getCourses();
       List<Course> downloadedCourses = [];
       coursesResult.fold((_) {}, (res) {
-        downloadedCourses = res.$1.where((c) => c.isDownloaded).toList();
+        downloadedCourses = res.$1.where((c) => (c.isPurchased && c.isDownloaded) || (kIsWeb && c.isPurchased)).toList();
       });
 
       List<_CourseLessonProgress> list = [];

@@ -208,7 +208,16 @@ class HomeHubScreenState extends State<HomeHubScreen> {
         key: _reviewNavigatorKey,
         observers: [_observers[1]],
         onGenerateRoute: (settings) => MaterialPageRoute(
-          builder: (context) => const ReviewTab(),
+          builder: (context) => ReviewTab(
+            onNavigateToCatalog: () {
+              if (mounted) {
+                setState(() {
+                  _currentIndex = 2;
+                  _coursesTabNotifier.value = 0;
+                });
+              }
+            },
+          ),
         ),
       ),
       Navigator(

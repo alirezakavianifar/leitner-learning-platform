@@ -62,8 +62,32 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     return p.join(docDir.path, 'courses', courseId, 'course.db');
   }
 
+  Future<void> _verifyCourseEntitlement(String courseId) async {
+    try {
+      final localDb = await databaseHelper.localDatabase;
+      final rows = await localDb.query(
+        'courses_cache',
+        columns: ['is_purchased'],
+        where: 'id = ?',
+        whereArgs: [courseId],
+      );
+      if (rows.isNotEmpty) {
+        final isPurchased = (rows.first['is_purchased'] as int?) == 1;
+        if (!isPurchased) {
+          throw Exception('PURCHASE_REQUIRED');
+        }
+      }
+    } catch (e) {
+      if (e.toString().contains('PURCHASE_REQUIRED')) {
+        rethrow;
+      }
+    }
+  }
+
   @override
   Future<List<Flashcard>> getReviewQueue(String courseId, {bool isTodayReview = false}) async {
+    await _verifyCourseEntitlement(courseId);
+
     // 1. Run the Rule A checks first to reset any overdue cards
     await checkForOverdueResets(courseId);
 
@@ -164,6 +188,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     required int cardNumber,
     required bool isCorrect,
   }) async {
+    await _verifyCourseEntitlement(courseId);
     final localDb = await databaseHelper.localDatabase;
     final List<Map<String, dynamic>> maps = await localDb.query(
       'client_progress',
@@ -467,6 +492,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
 
   @override
   Future<Flashcard?> getCardByNumber(String courseId, int cardNumber) async {
+    await _verifyCourseEntitlement(courseId);
     final dbPath = await _getCourseDatabasePath(courseId);
     if (!File(dbPath).existsSync()) {
       return null;
@@ -574,6 +600,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
 
   @override
   Future<List<Flashcard>> getFavoriteCards(String courseId) async {
+    await _verifyCourseEntitlement(courseId);
     final localDb = await databaseHelper.localDatabase;
     final List<Map<String, dynamic>> favMaps = await localDb.query(
       'favorites',
@@ -724,6 +751,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
 
   @override
   Future<List<Flashcard>> getAllCardsForCourse(String courseId) async {
+    await _verifyCourseEntitlement(courseId);
     final dbPath = await _getCourseDatabasePath(courseId);
     if (!File(dbPath).existsSync()) {
       return [];

@@ -911,7 +911,8 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     double downloadProgress = 0.0,
     CoursePackage? parentPackage,
   ]) {
-    final borderColor = course.isDownloaded
+    final isDownloadedOwned = (course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased);
+    final borderColor = isDownloadedOwned
         ? AppColors.courseDownloaded
         : AppColors.courseNotDownloaded;
     final loc = AppLocalizations.of(context);
@@ -985,6 +986,9 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                           Expanded(
                             child: Text(
                               course.title,
+                              textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(course.title)
+                                  ? TextDirection.rtl
+                                  : TextDirection.ltr,
                               style: TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 13.5,
@@ -998,7 +1002,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                           Icon(
                             course.updateAvailable
                                 ? Icons.system_update
-                                : (course.isDownloaded ? Icons.offline_pin : Icons.cloud_download),
+                                : (isDownloadedOwned ? Icons.offline_pin : (course.isPurchased ? Icons.cloud_download : Icons.shopping_bag_outlined)),
                             color: course.updateAvailable
                                 ? (course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800))
                                 : borderColor,
@@ -1179,7 +1183,8 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     CoursePackage? parentPackage,
   ) {
     final loc = AppLocalizations.of(context);
-    final borderColor = course.isDownloaded
+    final isDownloadedOwned = (course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased);
+    final borderColor = isDownloadedOwned
         ? AppColors.courseDownloaded
         : AppColors.courseNotDownloaded;
 
@@ -1234,6 +1239,9 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                         children: [
                           Text(
                             course.title,
+                            textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(course.title)
+                                ? TextDirection.rtl
+                                : TextDirection.ltr,
                             style: TextStyle(
                               color: AppColors.textPrimary,
                               fontSize: 17,

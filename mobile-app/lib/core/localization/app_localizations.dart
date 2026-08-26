@@ -128,6 +128,11 @@ class AppLocalizations {
       'start_study': 'Start Study',
       'no_downloaded_courses_title': 'No Downloaded Courses',
       'no_downloaded_courses_desc': 'Go to the Courses tab to download packages and start studying offline.',
+      'no_owned_courses_title': 'No Courses to Review',
+      'no_owned_courses_desc': 'You have not unlocked any courses yet. Browse the course catalog to start learning.',
+      'explore_catalog': 'Browse Course Catalog',
+      'today_reviews_done': 'Reviews Completed for Today',
+      'download_to_review': 'Download to Review',
       'profile_details': 'Profile Details',
       'update_profile': 'Update Profile',
       'about_us': 'About Us',
@@ -470,6 +475,11 @@ class AppLocalizations {
       'start_study': 'شروع مطالعه',
       'no_downloaded_courses_title': 'هیچ دوره‌ای دانلود نشده است',
       'no_downloaded_courses_desc': 'جهت دانلود پکیج‌ها و مطالعه آفلاین به تب دوره‌ها مراجعه کنید.',
+      'no_owned_courses_title': 'هیچ دوره‌ای برای مرور وجود ندارد',
+      'no_owned_courses_desc': 'شما هنوز دوره‌ای فعال نکرده‌اید. جهت شروع یادگیری به کاتالوگ دوره‌ها مراجعه نمایید.',
+      'explore_catalog': 'مشاهده کاتالوگ دوره‌ها',
+      'today_reviews_done': 'مرورهای امروز انجام شده',
+      'download_to_review': 'دانلود جهت مرور',
       'profile_details': 'اطلاعات پروفایل',
       'update_profile': 'به‌روزرسانی پروفایل',
       'about_us': 'درباره ما',
@@ -798,6 +808,11 @@ class AppLocalizations {
   String get startStudy => translate('start_study');
   String get noDownloadedCoursesTitle => translate('no_downloaded_courses_title');
   String get noDownloadedCoursesDesc => translate('no_downloaded_courses_desc');
+  String get noOwnedCoursesTitle => translate('no_owned_courses_title');
+  String get noOwnedCoursesDesc => translate('no_owned_courses_desc');
+  String get exploreCatalog => translate('explore_catalog');
+  String get todayReviewsDone => translate('today_reviews_done');
+  String get downloadToReview => translate('download_to_review');
 
   String get profileDetails => translate('profile_details');
   String get updateProfile => translate('update_profile');

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
@@ -52,7 +53,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         });
       },
       (data) async {
-        final downloaded = data.$1.where((c) => c.isDownloaded).toList();
+        final downloaded = data.$1.where((c) => (c.isPurchased && c.isDownloaded) || (kIsWeb && c.isPurchased)).toList();
         final Map<String, Map<int, int>> statsMap = {};
         final Map<int, int> globalCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
         int sumCards = 0;
@@ -311,6 +312,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               Expanded(
                 child: Text(
                   course.title,
+                  textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(course.title)
+                      ? TextDirection.rtl
+                      : TextDirection.ltr,
                   style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
