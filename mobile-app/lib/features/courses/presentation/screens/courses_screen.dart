@@ -189,18 +189,18 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
   Widget _buildTabSelector() {
     final loc = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 12.0, bottom: 6.0),
+      padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 6.0, bottom: 4.0),
       child: Container(
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           color: AppColors.surface.withOpacity(0.8),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.12),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -212,16 +212,16 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   curve: Curves.easeInOut,
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                   decoration: BoxDecoration(
                     color: _selectedTab == 0 ? AppColors.primary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     boxShadow: _selectedTab == 0
                         ? [
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.35),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
+                              color: AppColors.primary.withOpacity(0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
                             )
                           ]
                         : [],
@@ -230,28 +230,28 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 26,
+                        height: 26,
                         decoration: BoxDecoration(
                           color: _selectedTab == 0
                               ? Colors.white.withOpacity(0.2)
                               : AppColors.primary.withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(3),
                         child: Image.asset(
                           'assets/images/courses_list.png',
                           fit: BoxFit.contain,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Flexible(
                         child: Text(
                           loc.catalog,
                           style: TextStyle(
                             color: _selectedTab == 0 ? Colors.white : AppColors.textSecondary,
                             fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -261,23 +261,23 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                 ),
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             Expanded(
               child: GestureDetector(
                 onTap: () => setState(() => _selectedTab = 1),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   curve: Curves.easeInOut,
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                   decoration: BoxDecoration(
                     color: _selectedTab == 1 ? AppColors.primary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     boxShadow: _selectedTab == 1
                         ? [
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.35),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
+                              color: AppColors.primary.withOpacity(0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
                             )
                           ]
                         : [],
@@ -286,28 +286,28 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 26,
+                        height: 26,
                         decoration: BoxDecoration(
                           color: _selectedTab == 1
                               ? Colors.white.withOpacity(0.2)
                               : AppColors.primary.withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(3),
                         child: Image.asset(
                           'assets/images/my_courses.png',
                           fit: BoxFit.contain,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Flexible(
                         child: Text(
                           loc.myCourses,
                           style: TextStyle(
                             color: _selectedTab == 1 ? Colors.white : AppColors.textSecondary,
                             fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -333,29 +333,32 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     ];
 
     return Container(
-      height: 40,
-      margin: const EdgeInsets.only(top: 4, bottom: 8),
+      height: 32,
+      margin: const EdgeInsets.only(top: 2, bottom: 4),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: chips.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
         itemBuilder: (context, idx) {
           final item = chips[idx];
           final index = item['index'] as int;
           final isSelected = _catalogFilterIndex == index;
           return ChoiceChip(
             showCheckmark: false,
+            visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+            labelPadding: const EdgeInsets.symmetric(horizontal: 4),
             avatar: Icon(
               item['icon'] as IconData,
-              size: 14,
+              size: 12,
               color: isSelected ? Colors.white : AppColors.textSecondary,
             ),
             label: Text(
               item['label'] as String,
               style: TextStyle(
                 color: isSelected ? Colors.white : AppColors.textSecondary,
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -363,7 +366,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
             selectedColor: AppColors.primary,
             backgroundColor: AppColors.surface.withOpacity(0.7),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               side: BorderSide(
                 color: isSelected ? AppColors.primary : AppColors.border,
               ),
@@ -512,7 +515,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                       // Bundles Section (when applicable)
                       if (shouldShowPackages) ...[
                         SliverPadding(
-                          padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 4),
+                          padding: const EdgeInsets.only(left: 16, right: 16, top: 2, bottom: 2),
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
@@ -547,7 +550,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                         )
                       else if (shouldShowCourses && displayedCourses.isNotEmpty)
                         SliverPadding(
-                          padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 80),
+                          padding: const EdgeInsets.only(left: 16, right: 16, top: 2, bottom: 64),
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
@@ -914,23 +917,23 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     final loc = AppLocalizations.of(context);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 7),
       decoration: BoxDecoration(
         color: AppColors.surface.withOpacity(0.65),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor.withOpacity(0.6), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
+            color: Colors.black.withOpacity(0.14),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           onTap: () {
             if ((course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased)) {
               FlashcardStudyScreen.open(
@@ -947,19 +950,19 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
             _showCourseDetailsModal(course, isDownloading, downloadProgress, parentPackage);
           },
           child: Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: const EdgeInsets.all(8.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // 1. Course Image / Thumbnail
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    width: 66,
-                    height: 66,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
                       color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: borderColor.withOpacity(0.35),
                         width: 1,
@@ -968,7 +971,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                     child: _buildCourseThumbnail(course, fit: BoxFit.contain),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
 
                 // 2. Course Meta & Details
                 Expanded(
@@ -984,14 +987,14 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                               course.title,
                               style: TextStyle(
                                 color: AppColors.textPrimary,
-                                fontSize: 14.5,
+                                fontSize: 13.5,
                                 fontWeight: FontWeight.bold,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 5),
                           Icon(
                             course.updateAvailable
                                 ? Icons.system_update
@@ -999,18 +1002,18 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                             color: course.updateAvailable
                                 ? (course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800))
                                 : borderColor,
-                            size: 18,
+                            size: 16,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
 
                       // Meta row (Category, cards count, price)
                       Row(
                         children: [
                           if (course.category != null) ...[
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(4),
@@ -1019,18 +1022,18 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                                 course.category!,
                                 style: TextStyle(
                                   color: AppColors.primary,
-                                  fontSize: 10,
+                                  fontSize: 9.5,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 5),
                           ],
                           Text(
                             '${course.cardCount} ${loc.cardsCount}',
                             style: TextStyle(
                               color: AppColors.textSecondary,
-                              fontSize: 11,
+                              fontSize: 10.5,
                             ),
                           ),
                           const Spacer(),
@@ -1038,13 +1041,13 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                             _formatPrice(course.price, context),
                             style: TextStyle(
                               color: course.price == 0 ? AppColors.secondary : AppColors.textSecondary,
-                              fontSize: 11.5,
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
 
                       // Bottom actions row: Description hint or bundle badge + Action button
                       Row(
@@ -1060,13 +1063,13 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.auto_awesome, size: 12, color: Color(0xFFFF9800)),
-                                  const SizedBox(width: 4),
+                                  const Icon(Icons.auto_awesome, size: 11, color: Color(0xFFFF9800)),
+                                  const SizedBox(width: 3),
                                   Text(
                                     loc.translate('in_bundle'),
                                     style: const TextStyle(
                                       color: Color(0xFFFFB300),
-                                      fontSize: 10,
+                                      fontSize: 9.5,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -1079,13 +1082,13 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.info_outline, size: 12, color: AppColors.textSecondary.withOpacity(0.7)),
-                                  const SizedBox(width: 4),
+                                  Icon(Icons.info_outline, size: 11, color: AppColors.textSecondary.withOpacity(0.7)),
+                                  const SizedBox(width: 3),
                                   Text(
                                     loc.translate('more_info_hint'),
                                     style: TextStyle(
                                       color: AppColors.textSecondary.withOpacity(0.7),
-                                      fontSize: 10,
+                                      fontSize: 9.5,
                                     ),
                                   ),
                                 ],
@@ -1163,7 +1166,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
         child: Icon(
           Icons.menu_book_rounded,
           color: Colors.white.withOpacity(0.9),
-          size: 28,
+          size: 22,
         ),
       ),
     );
@@ -1449,13 +1452,14 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
 
     if (!isDownloading && !kIsWeb && course.updateAvailable) {
       return SizedBox(
-        height: 28,
+        height: 26,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             backgroundColor: course.isCriticalUpdate ? AppColors.error : const Color(0xFFFF9800),
             foregroundColor: Colors.white,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           onPressed: () {
             context.read<CoursesBloc>().add(DownloadCourseEvent(courseId: course.id));
@@ -1463,9 +1467,9 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.system_update, size: 13),
-              const SizedBox(width: 4),
-              Text(loc.updateNow, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              const Icon(Icons.system_update, size: 12),
+              const SizedBox(width: 3),
+              Text(loc.updateNow, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -1474,11 +1478,11 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
 
     if ((course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased)) {
       return SizedBox(
-        height: 28,
+        height: 26,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             backgroundColor: isDark 
                 ? const Color(0xFF1B5E20).withOpacity(0.3) 
                 : const Color(0xFFE8F5E9),
@@ -1490,6 +1494,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
               width: 1,
             ),
             elevation: 0,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           onPressed: () {
             FlashcardStudyScreen.open(
@@ -1502,9 +1507,9 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(kIsWeb ? Icons.play_arrow : Icons.check, size: 13),
-              const SizedBox(width: 4),
-              Text(loc.readyToStudy, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              Icon(kIsWeb ? Icons.play_arrow : Icons.check, size: 12),
+              const SizedBox(width: 3),
+              Text(loc.readyToStudy, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -1514,32 +1519,32 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     if (isDownloading) {
       final percent = (downloadProgress * 100).clamp(0, 100).toInt();
       return Container(
-        height: 28,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        height: 26,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           color: AppColors.primary.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(color: AppColors.primary.withOpacity(0.5)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 12,
-              height: 12,
+              width: 11,
+              height: 11,
               child: CircularProgressIndicator(
                 value: downloadProgress > 0 ? downloadProgress : null,
                 color: AppColors.primary,
                 backgroundColor: AppColors.primary.withOpacity(0.2),
-                strokeWidth: 2,
+                strokeWidth: 1.8,
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 5),
             Text(
               '$percent%',
               style: TextStyle(
                 color: AppColors.primary,
-                fontSize: 11,
+                fontSize: 10.5,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1550,13 +1555,14 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
 
     if (course.isPurchased) {
       return SizedBox(
-        height: 28,
+        height: 26,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           onPressed: () {
             context.read<CoursesBloc>().add(DownloadCourseEvent(courseId: course.id));
@@ -1564,9 +1570,9 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.download, size: 13),
-              const SizedBox(width: 4),
-              Text(loc.downloadNow, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              const Icon(Icons.download, size: 12),
+              const SizedBox(width: 3),
+              Text(loc.downloadNow, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -1575,13 +1581,14 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
 
     // Unpurchased course
     return SizedBox(
-      height: 28,
+      height: 26,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           backgroundColor: AppColors.secondary,
           foregroundColor: const Color(0xFF181837),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         onPressed: () {
           _purchaseCourse(course);
@@ -1589,9 +1596,9 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.payment, size: 13),
-            const SizedBox(width: 4),
-            Text(loc.purchase, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            const Icon(Icons.payment, size: 12),
+            const SizedBox(width: 3),
+            Text(loc.purchase, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -1607,20 +1614,5 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
           (Match m) => '${m[1]},',
         );
     return '$formattedNumber ${AppLocalizations.of(context).toman}';
-  }
-}
-
-// Helper extension to make standard buttons look premium under customized design
-extension on ButtonStyle {
-  Widget build(
-    BuildContext context, {
-    required Widget child,
-    required VoidCallback onPressed,
-  }) {
-    return ElevatedButton(
-      style: this,
-      onPressed: onPressed,
-      child: child,
-    );
   }
 }
