@@ -252,7 +252,7 @@ powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms OFF
         ```powershell
         powershell -ExecutionPolicy Bypass -File ./scripts/deploy_to_appetize.ps1
         ```
-    *   **Automated Release APK Build (Local testing / Ngrok):**
+    *   **Automated Release APK Build (Android):**
         1. **Start Tunnel:** Launch a persistent public tunnel pointing to your local backend (port 5217):
            ```powershell
            powershell -ExecutionPolicy Bypass -File ./scripts/start-tunnel.ps1
@@ -265,7 +265,28 @@ powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms OFF
            # Or target local/ngrok backend:
            powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir"
            ```
-        The compiled APK will be automatically copied to the repository root as `app-premium-release.apk` (connected to `https://api.rightlearn.ir`). (Note: The app is configured with `android:usesCleartextTraffic="true"` in `AndroidManifest.xml` to support HTTP endpoints like `http://45.94.215.188`).
+        The compiled APK will be automatically copied to the repository root as `app-premium-release.apk` (and `app-premium-release.zip`), and dispatched to the Rubika distribution bot.
+
+    *   **Automated iOS Build & Packaging (iOS IPA & Simulator):**
+        1. **Local macOS Build (Mac workstation or CI runner):**
+           ```bash
+           # Run Bash builder on macOS:
+           ./scripts/build-ios.sh --flavor premium --target-url "https://api.rightlearn.ir" --build-type both
+           ```
+           Or using PowerShell Core on macOS / Windows:
+           ```powershell
+           powershell -ExecutionPolicy Bypass -File ./scripts/build-ios.ps1 -Flavor premium -TargetUrl "https://api.rightlearn.ir"
+           ```
+        2. **Automated Cloud Build (GitHub Actions macOS Runner):**
+           For developers on Windows without a physical Mac:
+           - Go to **Actions** -> **iOS Build & Distribution Pipeline** in GitHub repository.
+           - Select **Run workflow**, choose Flavor (`premium` or `store`), enter Backend Target URL, and click **Run**.
+           - The GitHub macOS-14 runner automatically builds `app-premium-release.ipa` and `app-premium-ios-simulator.zip`, uploads workflow artifacts, and delivers the package to the Rubika bot.
+        3. **Installing iOS Build on iPhone / iPad:**
+           - **Sideloadly (Recommended):** Download [Sideloadly](https://sideloadly.io), plug in iPhone via USB, drag `app-premium-release.ipa`, enter your free Apple ID, and install.
+           - **AltStore / Scarlet / TrollStore:** Import `app-premium-release.ipa` directly on the device.
+           - **Appetize.io Live In-Browser Streaming:** Drag `app-premium-ios-simulator.zip` to [Appetize.io Upload](https://appetize.io/upload) to test the app in an interactive iOS simulator directly in your browser.
+
 
 
 ---
