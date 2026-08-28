@@ -240,7 +240,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                         ),
                         padding: const EdgeInsets.all(3),
                         child: Image.asset(
-                          'assets/images/courses_list.png',
+                          'assets/images/courses_list.webp',
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -296,7 +296,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                         ),
                         padding: const EdgeInsets.all(3),
                         child: Image.asset(
-                          'assets/images/my_courses.png',
+                          'assets/images/my_courses.webp',
                           fit: BoxFit.contain,
                         ),
                       ),

@@ -260,13 +260,16 @@ powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms OFF
            ```
         2. **Build APK:** Compile the premium release APK targeting your server IP or active Ngrok URL:
            ```powershell
-           # Target remote server directly (default):
-           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "http://45.94.215.188"
+           # High-efficiency 64-bit ARM build (~23 MB, default & recommended for physical devices):
+           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "arm64-v8a"
 
-           # Or target local/ngrok backend:
-           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir"
+           # Universal fat APK containing all ABIs (~45-50 MB):
+           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "universal"
+
+           # Split APKs for all ABIs (arm64-v8a, armeabi-v7a, x86_64):
+           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "all"
            ```
-        The compiled APK will be automatically copied to the repository root as `app-premium-release.apk` (and `app-premium-release.zip`), and dispatched to the Rubika distribution bot.
+        The compiled APK will be automatically copied to the repository root as `app-premium-release.apk` (and compressed as `app-premium-release.zip`), and dispatched to the Rubika distribution bot. Size optimizations (WebP assets, R8 full mode, icon tree-shaking, symbol stripping, and 64-bit ABI targeting) reduce the APK size by ~69% (from 76.8 MB to ~23.8 MB).
 
     *   **Automated iOS Build & Packaging (iOS IPA & Simulator):**
         1. **Local macOS Build (Mac workstation or CI runner):**

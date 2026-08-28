@@ -90,7 +90,7 @@ class AppLogo extends StatelessWidget {
 
   Widget _buildFallbackAsset(double effectiveSize) {
     return Image.asset(
-      'assets/images/app_icon.png',
+      'assets/images/app_icon.webp',
       width: effectiveSize,
       height: effectiveSize,
       fit: fit,

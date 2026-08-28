@@ -1227,7 +1227,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         _buildGridCard(
           key: widget.coursesListKey,
           title: loc.courses,
-          imageAsset: 'assets/images/courses_list.png',
+          imageAsset: 'assets/images/courses_list.webp',
           imageSize: imageSize,
           onTap: () {
             widget.coursesTabNotifier?.value = 0;
@@ -1237,7 +1237,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         _buildGridCard(
           key: widget.todayReviewsKey,
           title: loc.reviewToday,
-          imageAsset: 'assets/images/today_cards.png',
+          imageAsset: 'assets/images/today_cards.webp',
           imageSize: imageSize,
           badgeCount: _dueCount,
           badgeColor: AppColors.error,
@@ -1246,7 +1246,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         _buildGridCard(
           key: widget.myCoursesKey,
           title: loc.myCourses,
-          imageAsset: 'assets/images/my_courses.png',
+          imageAsset: 'assets/images/my_courses.webp',
           imageSize: imageSize,
           onTap: () {
             widget.coursesTabNotifier?.value = 1;
@@ -1256,7 +1256,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         _buildGridCard(
           key: widget.createCardKey,
           title: loc.customCards,
-          imageAsset: 'assets/images/create_card.png',
+          imageAsset: 'assets/images/create_card.webp',
           imageSize: imageSize,
           onTap: () {
             Navigator.push(
@@ -1268,7 +1268,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         _buildGridCard(
           key: widget.finishedCardsKey,
           title: loc.finishedCards,
-          imageAsset: 'assets/images/finished_cards.png',
+          imageAsset: 'assets/images/finished_cards.webp',
           imageSize: imageSize,
           badgeCount: _finishedCount,
           badgeColor: const Color(0xFFFFD700),
@@ -1282,7 +1282,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         _buildGridCard(
           key: widget.favoritesKey,
           title: loc.favorites,
-          imageAsset: 'assets/images/favorite_cards.png',
+          imageAsset: 'assets/images/favorite_cards.webp',
           imageSize: imageSize,
           onTap: () {
             Navigator.push(

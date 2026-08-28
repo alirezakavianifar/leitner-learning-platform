@@ -1,11 +1,12 @@
 # =============================================================================
-#  Leitner Learning Platform - Android APK Builder (Fully Automated)
-#  Usage: .\scripts\build-apk.ps1 -Flavor "premium"
+#  Leitner Learning Platform - Android APK Builder (Fully Automated & Size-Optimized)
+#  Usage: .\scripts\build-apk.ps1 -Flavor "premium" -Abi "arm64-v8a"
 # =============================================================================
 
 param (
     [string]$Flavor = "premium",
-    [string]$TargetUrl = "https://api.rightlearn.ir"
+    [string]$TargetUrl = "https://api.rightlearn.ir",
+    [string]$Abi = "arm64-v8a"  # 'arm64-v8a' (default / recommended: ~18-22MB), 'all' (split APKs for all ABIs), 'universal' (fat APK containing all ABIs)
 )
 
 $ErrorActionPreference = "Stop"
@@ -84,6 +85,12 @@ Show-BuildProgress "Initializing" "Validating build parameters..." 5
 # Validate flavor
 if ($Flavor -ne "premium" -and $Flavor -ne "store") {
     Write-Err "Invalid flavor: '$Flavor'. Supported values are: 'premium', 'store'."
+    exit 1
+}
+
+# Validate ABI
+if ($Abi -ne "arm64-v8a" -and $Abi -ne "all" -and $Abi -ne "universal") {
+    Write-Err "Invalid ABI: '$Abi'. Supported values are: 'arm64-v8a', 'all', 'universal'."
     exit 1
 }
 
@@ -199,25 +206,106 @@ try {
         throw "flutter pub get failed with exit code $LASTEXITCODE"
     }
 
-    Show-BuildProgress "Flutter Compilation" "Compiling release APK for flavor '$Flavor'..." 45
-    Write-Step "Building release APK for flavor '$Flavor' with API_BASE_URL=$apiBaseUrl ..."
-    flutter build apk --release --flavor $Flavor -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
+    Show-BuildProgress "Flutter Compilation" "Compiling release APK (Flavor: '$Flavor', ABI: '$Abi')..." 45
+    Write-Step "Building release APK for flavor '$Flavor' (ABI: $Abi) with API_BASE_URL=$apiBaseUrl ..."
+    
+    $symbolsDir = "$MOBILE_DIR\build\app\outputs\symbols"
+    $buildArgs = @(
+        "build", "apk",
+        "--release",
+        "--flavor", $Flavor,
+        "-t", "lib/main_$Flavor.dart",
+        "--dart-define=API_BASE_URL=$apiBaseUrl",
+        "--obfuscate",
+        "--split-debug-info=$symbolsDir",
+        "--tree-shake-icons"
+    )
+
+    if ($Abi -eq "arm64-v8a") {
+        $buildArgs += @("--split-per-abi", "--target-platform", "android-arm64")
+    } elseif ($Abi -eq "all") {
+        $buildArgs += @("--split-per-abi")
+    }
+
+    & flutter @buildArgs
     if ($LASTEXITCODE -ne 0) {
         throw "flutter build apk failed with exit code $LASTEXITCODE"
     }
 
-    $apkPath = "$MOBILE_DIR\build\app\outputs\flutter-apk\app-$Flavor-release.apk"
-    $destPath = "$OUTPUT_DIR\app-$Flavor-release.apk"
+    $apkDir = "$MOBILE_DIR\build\app\outputs\flutter-apk"
+    $primaryApk = $null
 
-    if (Test-Path $apkPath) {
-        Show-BuildProgress "Packaging" "Copying APK to workspace root..." 70
+    if ($Abi -eq "arm64-v8a") {
+        $candidates = @(
+            "$apkDir\app-arm64-v8a-$Flavor-release.apk",
+            "$apkDir\app-$Flavor-arm64-v8a-release.apk",
+            "$apkDir\app-arm64-v8a-release.apk",
+            "$apkDir\app-$Flavor-release.apk"
+        )
+        foreach ($c in $candidates) {
+            if (Test-Path $c) {
+                $primaryApk = $c
+                break
+            }
+        }
+        if ($null -eq $primaryApk) {
+            $fallback = Get-ChildItem -Path $apkDir -Filter "*.apk" | Where-Object { $_.Name -notlike "*.sha1" } | Select-Object -First 1
+            if ($fallback) { $primaryApk = $fallback.FullName }
+        }
+    } elseif ($Abi -eq "universal") {
+        $candidates = @(
+            "$apkDir\app-$Flavor-release.apk",
+            "$apkDir\app-release.apk"
+        )
+        foreach ($c in $candidates) {
+            if (Test-Path $c) {
+                $primaryApk = $c
+                break
+            }
+        }
+        if ($null -eq $primaryApk) {
+            $fallback = Get-ChildItem -Path $apkDir -Filter "*.apk" | Where-Object { $_.Name -notlike "*.sha1" } | Select-Object -First 1
+            if ($fallback) { $primaryApk = $fallback.FullName }
+        }
+    } elseif ($Abi -eq "all") {
+        Get-ChildItem -Path $apkDir -Filter "*.apk" | Where-Object { $_.Name -notlike "*.sha1" } | ForEach-Object {
+            Copy-Item -Path $_.FullName -Destination "$OUTPUT_DIR\$($_.Name)" -Force
+        }
+        $arm64 = Get-ChildItem -Path $apkDir -Filter "*arm64*.apk" | Where-Object { $_.Name -notlike "*.sha1" } | Select-Object -First 1
+        if ($null -ne $arm64) {
+            $primaryApk = $arm64.FullName
+        } else {
+            $first = Get-ChildItem -Path $apkDir -Filter "*.apk" | Where-Object { $_.Name -notlike "*.sha1" } | Select-Object -First 1
+            if ($first) { $primaryApk = $first.FullName }
+        }
+    }
+
+    if ($null -ne $primaryApk -and (Test-Path $primaryApk)) {
+        Show-BuildProgress "Packaging" "Copying optimized APK to workspace root..." 70
         Write-Step "Copying generated APK to workspace root..."
-        Copy-Item -Path $apkPath -Destination $destPath -Force
+        
+        $destPath = "$OUTPUT_DIR\app-$Flavor-release.apk"
+        Copy-Item -Path $primaryApk -Destination $destPath -Force
+
+        if ($Abi -eq "arm64-v8a") {
+            Copy-Item -Path $primaryApk -Destination "$OUTPUT_DIR\app-$Flavor-arm64-v8a-release.apk" -Force
+        }
+
+        $destSizeMB = [math]::Round((Get-Item $destPath).Length / 1MB, 2)
+        Write-Ok "Optimized APK size: $destSizeMB MB"
 
         $zipPath = "$OUTPUT_DIR\app-$Flavor-release.zip"
         Show-BuildProgress "Packaging" "Compressing $destPath into ZIP archive..." 75
         Write-Step "Compressing $destPath into $zipPath archive..."
-        tar.exe -a -cf $zipPath -C $OUTPUT_DIR "app-$Flavor-release.apk"
+        
+        if ($Abi -eq "all") {
+            tar.exe -a -cf $zipPath -C $OUTPUT_DIR "app-$Flavor-*-release.apk"
+        } else {
+            tar.exe -a -cf $zipPath -C $OUTPUT_DIR "app-$Flavor-release.apk"
+        }
+
+        $zipSizeMB = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
+        Write-Ok "Optimized ZIP archive size: $zipSizeMB MB"
 
         # Also maintain .rar copy for compatibility
         $rarPath = "$OUTPUT_DIR\app-$Flavor-release.rar"
@@ -232,11 +320,17 @@ try {
         try { flutter clean 2>$null } catch {}
         
         Show-BuildProgress "Complete" "All operations finished successfully!" 100
-        Write-Ok "APK built and compressed successfully!"
+        Write-Ok "APK built, optimized, and compressed successfully!"
         Write-Host ""
-        Write-Host "  Output Locations:" -ForegroundColor Green
-        Write-Host "    - Raw APK : $destPath" -ForegroundColor DarkCyan
-        Write-Host "    - ZIP File: $zipPath" -ForegroundColor DarkCyan
+        Write-Host "  ======================================================" -ForegroundColor Green
+        Write-Host "  Build Summary & Size Optimization Results:" -ForegroundColor Green
+        Write-Host "    - Target Flavor : $Flavor" -ForegroundColor DarkCyan
+        Write-Host "    - Target ABI    : $Abi" -ForegroundColor DarkCyan
+        Write-Host "    - Raw APK Size  : $destSizeMB MB" -ForegroundColor Green
+        Write-Host "    - ZIP File Size : $zipSizeMB MB" -ForegroundColor Green
+        Write-Host "    - Raw APK Path  : $destPath" -ForegroundColor DarkCyan
+        Write-Host "    - ZIP File Path : $zipPath" -ForegroundColor DarkCyan
+        Write-Host "  ======================================================" -ForegroundColor Green
         Write-Host ""
         Write-Host "  How to install on Android:" -ForegroundColor Cyan
         Write-Host "    1. Download '$([System.IO.Path]::GetFileName($zipPath))' from Rubika to your phone." -ForegroundColor Gray
@@ -244,7 +338,7 @@ try {
         Write-Host "    3. Tap on the extracted '$([System.IO.Path]::GetFileName($destPath))' to install." -ForegroundColor Gray
         Write-Host ""
     } else {
-        Write-Err "Could not locate the compiled APK at $apkPath."
+        Write-Err "Could not locate the compiled APK at $primaryApk."
     }
 }
 catch {
