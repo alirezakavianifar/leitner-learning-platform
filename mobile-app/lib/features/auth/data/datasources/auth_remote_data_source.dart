@@ -136,25 +136,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final errorCode = data['error_code'] ?? 'SERVER_ERROR';
       return ServerException(message.toString(), errorCode: errorCode.toString());
     }
-
-    final statusCode = e.response?.statusCode;
-    if (statusCode == 429) {
-      return ServerException(
-        'تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً چند دقیقه دیگر مجدداً تلاش کنید.',
-        errorCode: 'TOO_MANY_REQUESTS',
-      );
-    } else if (statusCode == 400) {
-      return ServerException('درخواست ارسالی نامعتبر است.', errorCode: 'INVALID_REQUEST');
-    } else if (statusCode == 401) {
-      return ServerException('نشست کاربری شما منقضی شده است.', errorCode: 'UNAUTHORIZED');
-    } else if (statusCode == 403) {
-      return ServerException('دسترسی غیرمجاز است.', errorCode: 'FORBIDDEN');
-    } else if (statusCode == 404) {
-      return ServerException('اطلاعات یافت نشد.', errorCode: 'NOT_FOUND');
-    } else if (statusCode != null && statusCode >= 500) {
-      return ServerException('سرور موقتاً در دسترس نیست.', errorCode: 'INTERNAL_SERVER_ERROR');
-    }
-
     return ServerException(e.message ?? 'Network communication error');
   }
 }

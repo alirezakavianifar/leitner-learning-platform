@@ -396,34 +396,12 @@ class AppErrorFormatter {
       return 'بازیابی فایل پشتیبان ناموفق بود. لطفاً رمز عبور را بررسی کنید.';
     }
 
-    if (lower.contains('status code of 429') || lower.contains('too many requests') || lower.contains('rate_limit') || lower.contains('code 429')) {
-      return 'تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً چند دقیقه صبر کرده و سپس دوباره تلاش کنید.';
-    }
-    if (lower.contains('status code of 400') || lower.contains('bad request') || lower.contains('code 400')) {
-      return 'درخواست ارسالی نامعتبر است. لطفاً ورودی‌های خود را بررسی کنید.';
-    }
-    if (lower.contains('status code of 401') || lower.contains('unauthorized') || lower.contains('code 401')) {
-      return 'نشست کاربری شما منقضی شده است. لطفاً مجدداً وارد حساب کاربری شوید.';
-    }
-    if (lower.contains('status code of 403') || lower.contains('forbidden') || lower.contains('code 403')) {
-      return 'شما دسترسی لازم برای انجام این عملیات را ندارید.';
-    }
-    if (lower.contains('status code of 404') || lower.contains('not found') || lower.contains('code 404')) {
-      return 'اطلاعات مورد نظر روی سرور یافت نشد.';
-    }
-    if (lower.contains('status code of 500') || lower.contains('status code of 502') || lower.contains('status code of 503') || lower.contains('status code of 504') || lower.contains('internal server error')) {
-      return 'سرور موقتاً پاسخگو نیست یا در حال به‌روزرسانی است. لطفاً کمی بعد دوباره تلاش کنید.';
-    }
-    if (lower.contains('validatestatus') || lower.contains('this exception was thrown because')) {
-      return 'ارتباط با سرور با خطا مواجه شد. لطفاً دوباره تلاش کنید.';
-    }
-
     // If message is already in Persian (contains Persian characters)
     if (RegExp(r'[\u0600-\u06FF]').hasMatch(msg)) {
       return msg;
     }
 
     // Default fallback
-    return 'خطایی رخ داده است. لطفاً مجدداً تلاش کنید.';
+    return 'خطایی رخ داده است: $msg';
   }
 }
