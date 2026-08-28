@@ -99,7 +99,7 @@ jobs:
           
           # Clean intermediate device build outputs to prevent architecture conflicts
           rm -rf build/ios
-          flutter build ios --simulator --profile -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_URL"
+          flutter build ios --simulator --debug -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_URL"
           
           # Package Simulator .app to ZIP for Appetize.io & Simulators
           cd build/ios/iphonesimulator

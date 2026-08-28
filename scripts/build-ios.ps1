@@ -255,7 +255,7 @@ if ($isMacOS -or $ForceLocal) {
         if ($BuildType -eq "simulator" -or $BuildType -eq "both") {
             Show-BuildProgress "iOS Compilation" "Compiling iOS Simulator bundle for flavor '$Flavor'..." 50
             Write-Step "Building iOS Simulator package with API_BASE_URL=$apiBaseUrl ..."
-            flutter build ios --simulator --profile -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
+            flutter build ios --simulator --debug -t "lib/main_$Flavor.dart" --dart-define=API_BASE_URL=$apiBaseUrl
             
             $simAppPath = "$MOBILE_DIR\build\ios\iphonesimulator\Runner.app"
             if (Test-Path $simAppPath) {
