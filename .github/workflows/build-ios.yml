@@ -57,20 +57,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Cache CocoaPods
-        uses: actions/cache@v4
-        with:
-          path: mobile-app/ios/Pods
-          key: ${{ runner.os }}-pods-${{ hashFiles('mobile-app/ios/Podfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pods-
-
-      - name: Configure Flutter & Dependencies
+      - name: Configure Flutter Dependencies
         run: |
           cd mobile-app
           flutter pub get
-          cd ios
-          pod install --repo-update
+          flutter build ios --config-only -t "lib/main_${{ inputs.flavor || 'premium' }}.dart"
         shell: bash
 
       # 1. Build iOS Simulator Bundle (Appetize.io & Simulator Ready)
@@ -132,9 +123,9 @@ jobs:
           IPA_ZIP="app-${FLAVOR}-ios-release.zip"
           if [ -f "$IPA_ZIP" ]; then
             echo "Sending $IPA_ZIP to Rubika Bot..."
-            python scripts/upload-to-rubika.py --file "$IPA_ZIP"
+            python3 scripts/upload-to-rubika.py --file "$IPA_ZIP"
           elif [ -f "app-${FLAVOR}-ios-simulator.zip" ]; then
             echo "Sending simulator bundle to Rubika Bot..."
-            python scripts/upload-to-rubika.py --file "app-${FLAVOR}-ios-simulator.zip"
+            python3 scripts/upload-to-rubika.py --file "app-${FLAVOR}-ios-simulator.zip"
           fi
         shell: bash
