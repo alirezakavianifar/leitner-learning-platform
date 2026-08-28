@@ -4,69 +4,53 @@ This document explains how to build, package, and distribute the **iOS version**
 
 ---
 
-## Overview
+## ⭐️ Preferred & Default Method: Automated GitHub Actions Cloud Pipeline
 
-Because Apple requires **macOS + Xcode + CocoaPods** to compile native iOS binaries (`.ipa`), this repository provides a **hybrid workflow**:
-1. **Windows Developers**: Use GitHub Actions (Apple Silicon `macos-14` cloud runners) to build and deliver the `.ipa` and simulator `.zip` to Rubika with 1 click without needing a physical Mac.
-2. **Mac Developers**: Run the local build script (`./scripts/build-ios.sh` or `pwsh ./scripts/build-ios.ps1`) directly on macOS.
+The primary and default way to build and distribute the iOS version is through **GitHub Actions** on Apple Silicon **`macos-14`** cloud runners. This guarantees clean, reproducible builds without requiring a local Mac machine.
 
----
+### Step-by-Step Workflow:
 
-## How to Build iOS After Modifying Source Code
-
-### Workflow 1: From Windows (Automated Cloud Pipeline)
-
-Whenever you edit files in `mobile-app/` or backend configuration:
-
-#### Step 1: Push Your Changes to GitHub
-Push your commits to `origin/master`:
+#### 1. Push Your Code Changes
+Stage, commit, and push your latest code to `origin/master`:
 ```powershell
 git add .
-git commit -m "feat(mobile): describe your updates"
+git commit -m "feat(mobile): your update description"
 git push origin master
 ```
-*(Or simply ask the AI agent to `"push"`).*
+*(Or simply ask the AI agent: `"push"`).*
 
-#### Step 2: Trigger the Build
-You have two quick options:
+#### 2. Trigger the GitHub Actions iOS Builder
+*   **Direct Link (Recommended):**
+    Open 👉 **[GitHub Actions iOS Pipeline](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-ios.yml)**
+    1. Click the **"Run workflow"** button on the right side.
+    2. Keep default options:
+       * **App Flavor**: `premium` (or `store`)
+       * **Backend Target API URL**: `https://api.rightlearn.ir`
+       * **Build Target**: `both` (creates both Physical IPA and Simulator bundle)
+       * **Send to Rubika Bot**: Checked (`true`)
+    3. Click **"Run workflow"**.
 
-*   **Option A — Via Helper Script (Terminal):**
-    Run the PowerShell helper:
+*   **Via Terminal Helper Script:**
+    Alternatively, run the interactive helper on Windows to automatically launch the workflow page:
     ```powershell
     powershell -ExecutionPolicy Bypass -File .\scripts\build-ios.ps1
     ```
-    The script validates parameters and offers a 1-click prompt to launch the cloud builder in your browser.
-
-*   **Option B — Directly via GitHub Actions:**
-    1. Open the [iOS Build & Distribution Pipeline on GitHub](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-ios.yml).
-    2. Click **Run workflow** on the right side:
-       * **App Flavor**: `premium` (or `store`)
-       * **Backend Target API URL**: `https://api.rightlearn.ir`
-       * **Build Target**: `both` (or `ipa` / `simulator`)
-       * **Send to Rubika Bot**: Checked (true)
-    3. Click **Run workflow**.
 
 ---
 
-### Workflow 2: On a Mac (Workstation / Local CI)
+## Secondary / Alternative Method: Local macOS Workstation
 
-If you are working on a macOS machine with Flutter and Xcode installed:
-
+If you are developing directly on a physical Mac workstation:
 ```bash
-# Compile both Physical IPA and Simulator package:
 ./scripts/build-ios.sh --flavor premium --target-url "https://api.rightlearn.ir" --build-type both
 ```
-
-Or using PowerShell Core on Mac:
-```powershell
-pwsh ./scripts/build-ios.ps1 -Flavor premium -TargetUrl "https://api.rightlearn.ir"
-```
+*(Or using PowerShell Core on Mac: `pwsh ./scripts/build-ios.ps1 -Flavor premium`)*
 
 ---
 
 ## Build Artifacts & Distribution
 
-Every build automatically generates:
+Every GitHub Actions execution automatically builds and exports:
 
 | File Name | Target Platform | Description |
 | :--- | :--- | :--- |
@@ -74,14 +58,14 @@ Every build automatically generates:
 | **`app-premium-ios-release.zip`** | Universal Archive | Zipped `.ipa` package for messaging platforms |
 | **`app-premium-ios-simulator.zip`** | iOS Simulator / Appetize | Zipped `Runner.app` for in-browser interactive streaming |
 
-### Automated Delivery to Rubika
-Once the GitHub Actions macOS runner compiles the binaries, it immediately runs `scripts/upload-to-rubika.py` and transfers the packaged `.zip` directly to the Rubika Bot (`@AliDeveloperBot`).
+### Automated Delivery to Rubika Bot
+As soon as the macOS runner finishes compiling, it triggers `scripts/upload-to-rubika.py` and sends the package directly to your Rubika Bot (`@AliDeveloperBot`).
 
 ---
 
 ## How to Install and Test the iOS Build
 
-### Option 1: Physical iPhone / iPad (Sideloading via Sideloadly)
+### 1. Physical iPhone / iPad (Sideloading via Sideloadly)
 1. Download **[Sideloadly](https://sideloadly.io)** (Windows / macOS).
 2. Connect your iPhone to your PC/Mac via USB (or same Wi-Fi network).
 3. Drag `app-premium-release.ipa` into Sideloadly.
@@ -89,10 +73,10 @@ Once the GitHub Actions macOS runner compiles the binaries, it immediately runs 
 5. On your iPhone, go to **Settings &rarr; General &rarr; VPN & Device Management** and tap **Trust [Your Apple ID]**.
 6. Open the **Leitner Box** app!
 
-### Option 2: Sideloading via AltStore / Scarlet / TrollStore
+### 2. Sideloading via AltStore / Scarlet / TrollStore
 *   Import `app-premium-release.ipa` directly into AltStore or Scarlet on your device.
 
-### Option 3: In-Browser Live Interactive Streaming (No Mac or iPhone needed)
+### 3. In-Browser Live Interactive Streaming (No Mac or iPhone needed)
 1. Go to **[Appetize.io Upload](https://appetize.io/upload)**.
 2. Drag and drop **`app-premium-ios-simulator.zip`**.
-3. Appetize will generate an interactive web link to test and stream the iOS application directly in Google Chrome / Edge / Safari.
+3. Appetize generates an interactive web link to stream the iOS application directly in Google Chrome / Edge / Safari.

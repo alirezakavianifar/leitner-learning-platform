@@ -35,6 +35,12 @@ When performing git operations, follow these specific guidelines based on the us
     - If changes correspond to both, execute both `Start-Process powershell.exe` commands.
   - After running `scripts/build-apk.ps1`, ensure `app-premium-release.zip` contains the new `app-premium-release.apk` and upload to the Rubika bot via `scripts/upload-to-rubika.py`.
 
+### iOS Build Workflow (GitHub Actions):
+
+- **Default & Preferred iOS Build Pipeline**: All iOS builds (`.ipa` and simulator `.zip`) must be built using GitHub Actions (`.github/workflows/build-ios.yml`) on macOS-14 cloud runners.
+- The pipeline builds `app-premium-release.ipa` and `app-premium-ios-simulator.zip`, and automatically uploads the package to the Rubika Bot (`@AliDeveloperBot`).
+- When pushing mobile changes, remind the user to trigger the [iOS Build & Distribution Pipeline on GitHub](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-ios.yml) or launch `scripts/build-ios.ps1`.
+
 **Note:** You should proactively execute these commands without asking for extra confirmation.
 
 ## Language Rule
