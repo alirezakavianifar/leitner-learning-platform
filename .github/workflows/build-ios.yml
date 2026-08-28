@@ -72,8 +72,8 @@ jobs:
           API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir' }}"
           echo "Building iOS device release for flavor: $FLAVOR with API: $API_URL"
           
-          # Compile unsigned release bundle
-          flutter build ios --release --no-codesign -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_URL"
+          # Compile unsigned release bundle with verbose output
+          flutter build ios --release --no-codesign -v -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_URL"
           
           # Package into standard IPA structure (Payload/Runner.app)
           cd build/ios/iphoneos
@@ -95,7 +95,7 @@ jobs:
           FLAVOR="${{ inputs.flavor || 'premium' }}"
           API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir' }}"
           echo "Building iOS Simulator release for flavor: $FLAVOR with API: $API_URL"
-          flutter build ios --simulator --release -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_URL"
+          flutter build ios --simulator --release -v -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_URL"
           
           # Package Simulator .app to ZIP for Appetize.io & Simulators
           cd build/ios/iphonesimulator
