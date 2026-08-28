@@ -112,17 +112,27 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error_code = "TOO_MANY_REQUESTS",
+            message = "تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً چند دقیقه صبر کرده و دوباره تلاش کنید."
+        }, cancellationToken);
+    };
     
-    // A. OTP rate limiting (5 per hour)
+    // A. OTP rate limiting (20 per 15 minutes per IP)
     options.AddPolicy("OtpRateLimit", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 AutoReplenishment = true,
-                PermitLimit = 5, // 5 requests
+                PermitLimit = 20, // 20 requests
                 QueueLimit = 0,
-                Window = TimeSpan.FromHours(1) // per 1 hour
+                Window = TimeSpan.FromMinutes(15) // per 15 minutes
             }));
 
     // B. General rate limiting (100 per minute per IP)
