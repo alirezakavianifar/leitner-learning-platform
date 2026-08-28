@@ -363,6 +363,21 @@ class AppLocalizations {
       'leitner_step_5_desc': 'Review after 31 days.',
       'leitner_step_6_title': 'Finished',
       'leitner_step_6_desc': 'Graduated / Archived.',
+      // Notifications & Reminders
+      'reminders_and_notifications': 'Reminders & Notifications',
+      'card_review_notifications': 'Card Review Notifications',
+      'card_review_notifications_desc': 'Show alerts in the top bar when flashcards are due for review',
+      'daily_study_reminder': 'Daily Study Reminder',
+      'daily_study_reminder_desc': 'Receive a daily scheduled reminder to study your cards',
+      'reminder_time': 'Reminder Time',
+      'send_test_notification': 'Send Test Notification',
+      'test_notification_sent': 'Test notification sent to the top bar',
+      'review_notification_title': 'Time for Leitner Review! 📚',
+      'review_notification_body': 'You have flashcards ready to review in your Leitner box.',
+      'daily_reminder_title': 'Daily Study Reminder 🎯',
+      'daily_reminder_body': "Don't forget to review your Leitner flashcards today!",
+      'test_notification_title': 'Leitner Notification Test 🔔',
+      'test_notification_body': 'Top notification bar alert is working properly.',
     },
     'fa': {
       'app_title': 'رایت لرن',
@@ -719,6 +734,21 @@ class AppLocalizations {
       'leitner_step_5_desc': 'مرور پس از ۳۱ روز.',
       'leitner_step_6_title': 'پایان یافته',
       'leitner_step_6_desc': 'اتمام یادگیری کارت و آرشیو شدن آن.',
+      // Notifications & Reminders
+      'reminders_and_notifications': 'یادآوری‌ها و اعلان‌ها',
+      'card_review_notifications': 'اعلان مرور کارت‌ها',
+      'card_review_notifications_desc': 'نمایش اعلان در نوار اعلان بالای گوشی هنگام فرارسیدن زمان مرور کارت‌ها',
+      'daily_study_reminder': 'یادآوری مطالعه روزانه',
+      'daily_study_reminder_desc': 'دریافت یادآوری منظم روزانه برای مرور کارت‌های لایتنر',
+      'reminder_time': 'ساعت یادآوری',
+      'send_test_notification': 'ارسال اعلان آزمایشی',
+      'test_notification_sent': 'اعلان آزمایشی به نوار اعلان ارسال شد',
+      'review_notification_title': 'زمان مرور کارت‌های لایتنر! 📚',
+      'review_notification_body': 'کارت‌هایی در جعبه لایتنر شما آماده مرور هستند.',
+      'daily_reminder_title': 'یادآوری مطالعه روزانه 🎯',
+      'daily_reminder_body': 'مرور کارت‌های امروز جعبه لایتنر خود را فراموش نکنید!',
+      'test_notification_title': 'آزمایش اعلان لایتنر 🔔',
+      'test_notification_body': 'اعلان نوار بالای گوشی برای یادآوری مرور کارت‌ها فعال است.',
     },
   };
 
@@ -943,6 +973,14 @@ class AppLocalizations {
   String get directSupport => translate('direct_support');
   String get supportPageBtn => translate('support_page_btn');
   String get openLinkError => translate('open_link_error');
+  String get remindersAndNotifications => translate('reminders_and_notifications');
+  String get cardReviewNotifications => translate('card_review_notifications');
+  String get cardReviewNotificationsDesc => translate('card_review_notifications_desc');
+  String get dailyStudyReminder => translate('daily_study_reminder');
+  String get dailyStudyReminderDesc => translate('daily_study_reminder_desc');
+  String get reminderTime => translate('reminder_time');
+  String get sendTestNotification => translate('send_test_notification');
+  String get testNotificationSent => translate('test_notification_sent');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

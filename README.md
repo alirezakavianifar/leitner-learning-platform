@@ -125,6 +125,7 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
 *   **Banner Deep-Linking & In-App Routing:** Carousel banners support both external URLs (`https://...`) and rich internal in-app navigation routes (`course://<course_id>`, `package://<package_id>`, `tab://courses`, `tab://my_courses`, `tab://reviews`). Tapping an internal link navigates the user directly to the targeted course/package details inside the app.
 *   **Course & Package Banner/Cover Images:** Courses and Course Packages support custom cover/banner image URLs (`image_url`) manageable directly through the Admin Panel and rendered in the mobile catalog and details modal with fallback gradients.
 *   **Notification Ordering:** Inside the notification center, the latest notifications must appear at the top of the list.
+*   **Top Notification Bar Review Alerts & Reminders:** Background scheduled local notifications informing users in their phone's top status notification bar when Leitner cards become due for review (even when outside the app) and daily customizable study reminders with in-app toggle controls in Settings.
 *   **Flashcard Report System:** Users submit feedback storing User ID, Course ID/title, Card number, Report text, and Timestamp.
 
 ### 7. Remote Configuration & Dynamic Failover

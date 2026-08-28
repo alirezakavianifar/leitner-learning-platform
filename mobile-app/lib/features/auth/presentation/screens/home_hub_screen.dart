@@ -31,6 +31,7 @@ import 'package:mobile_app/features/notifications/presentation/screens/notificat
 import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/core/widgets/app_logo.dart';
+import 'package:mobile_app/core/services/review_notification_scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeHubScreen extends StatefulWidget {
@@ -265,6 +266,10 @@ class HomeHubScreenState extends State<HomeHubScreen> with WidgetsBindingObserve
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _syncNotifications();
 
+      try {
+        await di.sl<ReviewNotificationScheduler>().init();
+      } catch (_) {}
+
       final prefs = di.sl<SharedPreferences>();
       final completed = prefs.getBool('first_run_completed') ?? false;
       if (!completed) {
@@ -280,6 +285,11 @@ class HomeHubScreenState extends State<HomeHubScreen> with WidgetsBindingObserve
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _syncNotifications();
+      di.sl<ReviewNotificationScheduler>().scheduleNextReviewNotification();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      di.sl<ReviewNotificationScheduler>().onAppBackgrounded();
     }
   }
 

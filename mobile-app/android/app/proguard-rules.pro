@@ -28,3 +28,12 @@
 
 # Suppress warnings for missing Play Core classes used by Flutter's deferred components
 -dontwarn com.google.android.play.core.**
+
+# Flutter Local Notifications Plugin
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+-dontwarn com.dexterous.flutterlocalnotifications.**
+-keep class com.google.gson.** { *; }
+-dontwarn com.google.gson.**
+-keep class androidx.core.app.NotificationCompat** { *; }
+-keep class androidx.core.app.NotificationManagerCompat** { *; }
+-keep class androidx.media.app.NotificationCompat** { *; }

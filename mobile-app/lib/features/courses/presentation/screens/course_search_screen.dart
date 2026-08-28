@@ -214,12 +214,12 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                       const SizedBox(height: 12),
                       // Matching courses list with checkboxes
                       SizedBox(
-                        height: 90,
+                        height: 48,
                         child: _filteredCourses.isEmpty
                             ? Center(
                                 child: Text(
                                   loc.translate('no_downloaded_courses_found'),
-                                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                                 ),
                               )
                             : ListView.builder(
@@ -232,16 +232,16 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                   return GestureDetector(
                                     onTap: () => _onCourseSelectionChanged(course.id, !isSelected),
                                     child: Container(
-                                      margin: const EdgeInsets.only(right: 12, top: 4, bottom: 8),
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      margin: const EdgeInsets.only(right: 8, top: 2, bottom: 4),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                       decoration: BoxDecoration(
                                         color: isSelected
                                             ? AppColors.primary.withOpacity(0.15)
                                             : AppColors.surface,
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(10),
                                         border: Border.all(
                                           color: isSelected ? AppColors.primary : AppColors.border,
-                                          width: 1.5,
+                                          width: 1.2,
                                         ),
                                       ),
                                       child: Row(
@@ -250,9 +250,9 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                           Icon(
                                             isSelected ? Icons.check_circle : Icons.radio_button_off,
                                             color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                                            size: 18,
+                                            size: 15,
                                           ),
-                                          const SizedBox(width: 8),
+                                          const SizedBox(width: 6),
                                           Text(
                                             course.title,
                                             textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(course.title)
@@ -261,7 +261,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                             style: TextStyle(
                                               color: isSelected ? AppColors.primary : AppColors.textPrimary,
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 13,
+                                              fontSize: 12,
                                             ),
                                           ),
                                         ],
@@ -271,7 +271,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                 },
                               ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Text(
                         loc.translate('step_search_cards'),
                         style: TextStyle(

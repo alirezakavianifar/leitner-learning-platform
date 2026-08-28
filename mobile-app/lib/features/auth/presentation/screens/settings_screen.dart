@@ -8,6 +8,7 @@ import 'package:mobile_app/app/theme_bloc.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/core/localization/locale_bloc.dart';
 import 'package:mobile_app/core/services/backup_service.dart';
+import 'package:mobile_app/core/services/review_notification_scheduler.dart';
 import 'package:mobile_app/core/error/error_formatter.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
@@ -20,10 +21,14 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late OfflineBackupService _backupService;
+  late ReviewNotificationScheduler _notificationScheduler;
   final _passwordController = TextEditingController();
   double _fontScale = 1.0;
   List<FileSystemEntity> _backupFiles = [];
   bool _isLoadingBackups = true;
+  bool _notificationsEnabled = true;
+  bool _dailyReminderEnabled = true;
+  TimeOfDay _reminderTime = const TimeOfDay(hour: 20, minute: 0);
 
   final List<Map<String, dynamic>> _premiumPalettes = const [
     {
@@ -62,6 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _backupService = di.sl<OfflineBackupService>();
+    _notificationScheduler = di.sl<ReviewNotificationScheduler>();
     _loadSettings();
     _loadBackupFiles();
   }
@@ -76,7 +82,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = di.sl<SharedPreferences>();
     setState(() {
       _fontScale = prefs.getDouble('flashcard_font_scale') ?? 1.0;
+      _notificationsEnabled = _notificationScheduler.areNotificationsEnabled;
+      _dailyReminderEnabled = _notificationScheduler.isDailyReminderEnabled;
+      _reminderTime = TimeOfDay(
+        hour: _notificationScheduler.dailyReminderHour,
+        minute: _notificationScheduler.dailyReminderMinute,
+      );
     });
+  }
+
+  Future<void> _toggleNotifications(bool value) async {
+    await _notificationScheduler.setNotificationsEnabled(value);
+    setState(() {
+      _notificationsEnabled = value;
+    });
+  }
+
+  Future<void> _toggleDailyReminder(bool value) async {
+    await _notificationScheduler.setDailyReminderEnabled(value);
+    setState(() {
+      _dailyReminderEnabled = value;
+    });
+  }
+
+  Future<void> _pickReminderTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _reminderTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: AppColors.primary,
+              surface: AppColors.surface,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      await _notificationScheduler.setDailyReminderTime(picked.hour, picked.minute);
+      setState(() {
+        _reminderTime = picked;
+      });
+    }
+  }
+
+  Future<void> _sendTestNotification() async {
+    final isFa = Localizations.localeOf(context).languageCode == 'fa';
+    await _notificationScheduler.sendTestNotification(isPersian: isFa);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).testNotificationSent),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
+    }
   }
 
   Future<void> _changeFontScale(double scale) async {
@@ -534,6 +599,142 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Section 0.3: Reminders & Notifications Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.notifications_active_outlined, color: AppColors.primary),
+                      const SizedBox(width: 10),
+                      Text(
+                        loc.remindersAndNotifications,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Toggle: Card Review Notifications
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    activeThumbColor: AppColors.primary,
+                    title: Text(
+                      loc.cardReviewNotifications,
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      loc.cardReviewNotificationsDesc,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    value: _notificationsEnabled,
+                    onChanged: _toggleNotifications,
+                  ),
+                  if (_notificationsEnabled) ...[
+                    Divider(color: AppColors.primary.withOpacity(0.2)),
+                    // Toggle: Daily Study Reminder
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      activeThumbColor: AppColors.primary,
+                      title: Text(
+                        loc.dailyStudyReminder,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        loc.dailyStudyReminderDesc,
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      value: _dailyReminderEnabled,
+                      onChanged: _toggleDailyReminder,
+                    ),
+                    if (_dailyReminderEnabled) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            loc.reminderTime,
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 14,
+                            ),
+                          ),
+                          InkWell(
+                            onTap: _pickReminderTime,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.access_time, size: 16, color: AppColors.primary),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${_reminderTime.hour.toString().padLeft(2, '0')}:${_reminderTime.minute.toString().padLeft(2, '0')}',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    // Button: Send Test Notification
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(color: AppColors.primary.withOpacity(0.6)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                      ),
+                      onPressed: _sendTestNotification,
+                      icon: const Icon(Icons.send_outlined, size: 18),
+                      label: Text(
+                        loc.sendTestNotification,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -13,6 +13,8 @@ import 'core/services/storage_service.dart';
 import 'core/services/payment_provider.dart';
 import 'core/services/backup_service.dart';
 import 'core/services/deep_link_service.dart';
+import 'core/services/local_notification_service.dart';
+import 'core/services/review_notification_scheduler.dart';
 import 'features/auth/data/datasources/auth_local_data_source.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
@@ -123,6 +125,23 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
   sl.registerLazySingleton<MyketPaymentProvider>(() => MyketPaymentProvider(sl()));
   sl.registerLazySingleton<DirectPaymentProvider>(() => DirectPaymentProvider(sl()));
   sl.registerLazySingleton<OfflineBackupService>(() => OfflineBackupService(sl()));
+
+  final localNotificationService = LocalNotificationService();
+  sl.registerSingleton<LocalNotificationService>(localNotificationService);
+  if (!kIsWeb) {
+    await localNotificationService.init();
+  }
+
+  final reviewNotificationScheduler = ReviewNotificationScheduler(
+    localNotificationService: sl(),
+    databaseHelper: sl(),
+    sharedPreferences: sl(),
+    eventBus: sl(),
+  );
+  sl.registerSingleton<ReviewNotificationScheduler>(reviewNotificationScheduler);
+  if (!kIsWeb) {
+    await reviewNotificationScheduler.init();
+  }
 
   // 2. Feature Data Sources
   // Auth

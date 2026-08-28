@@ -135,12 +135,12 @@ export const BannersView: React.FC = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>{t('banners.th_image')}</th>
-                <th>{t('banners.field_image')}</th>
-                <th>{t('banners.th_link')}</th>
-                <th>{t('banners.th_order')}</th>
-                <th>{t('banners.th_status')}</th>
-                <th>{t('users.th_actions')}</th>
+                <th style={{ width: '90px' }}>{t('banners.th_image')}</th>
+                <th style={{ minWidth: '220px' }}>{t('banners.field_image')}</th>
+                <th style={{ minWidth: '160px' }}>{t('banners.th_link')}</th>
+                <th style={{ width: '90px', textAlign: 'center' }}>{t('banners.th_order')}</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>{t('banners.th_status')}</th>
+                <th style={{ width: '150px', textAlign: 'center' }}>{t('banners.th_actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -152,31 +152,85 @@ export const BannersView: React.FC = () => {
                 banners.map((item) => (
                   <tr key={item.id}>
                     <td>
-                      <img
-                        src={item.image_url}
-                        alt="banner"
-                        style={{ width: '80px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-color)' }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://placehold.co/80x40/1b2336/94a3b8?text=No+Image';
+                      <a href={item.image_url} target="_blank" rel="noopener noreferrer" title={item.image_url}>
+                        <img
+                          src={item.image_url}
+                          alt="banner"
+                          style={{
+                            width: '80px',
+                            height: '42px',
+                            objectFit: 'cover',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            display: 'block'
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://placehold.co/80x40/1b2336/94a3b8?text=No+Image';
+                          }}
+                        />
+                      </a>
+                    </td>
+                    <td style={{ maxWidth: '260px' }}>
+                      <div
+                        style={{
+                          fontSize: '12px',
+                          color: 'var(--text-muted)',
+                          fontFamily: 'monospace',
+                          direction: 'ltr',
+                          textAlign: 'left',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
                         }}
-                      />
+                        title={item.image_url}
+                      >
+                        {item.image_url}
+                      </div>
                     </td>
-                    <td>
-                      <code style={{ fontSize: '11px' }}>{item.image_url}</code>
+                    <td style={{ maxWidth: '200px' }}>
+                      {item.link_url ? (
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            color: 'var(--accent-cyan, #38bdf8)',
+                            direction: 'ltr',
+                            textAlign: 'left',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                          title={item.link_url}
+                        >
+                          {item.link_url}
+                        </div>
+                      ) : (
+                        <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>
+                          {t('banners.status_inactive', 'None')}
+                        </span>
+                      )}
                     </td>
-                    <td>{item.link_url || <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>{t('banners.status_inactive', 'None')}</span>}</td>
-                    <td>{localizeNumber(item.display_order)}</td>
-                    <td>
+                    <td style={{ textAlign: 'center' }}>{localizeNumber(item.display_order)}</td>
+                    <td style={{ textAlign: 'center' }}>
                       <span className={`badge ${item.is_active ? 'completed' : 'failed'}`}>
                         {item.is_active ? t('banners.status_active') : t('banners.status_inactive')}
                       </span>
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => openEdit(item)}>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', whiteSpace: 'nowrap' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '12px' }}
+                          onClick={() => openEdit(item)}
+                        >
                           {t('courses.btn_edit')}
                         </button>
-                        <button className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => handleDelete(item.id)}>
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          style={{ padding: '6px 12px', fontSize: '12px' }}
+                          onClick={() => handleDelete(item.id)}
+                        >
                           {t('courses.btn_delete')}
                         </button>
                       </div>
