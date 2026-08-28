@@ -103,8 +103,8 @@ SIMULATOR_ZIP="$ROOT/app-${FLAVOR}-ios-simulator.zip"
 
 # 1. Build Simulator App (if requested)
 if [ "$BUILD_TYPE" == "simulator" ] || [ "$BUILD_TYPE" == "both" ]; then
-    echo -e "${YELLOW}>> Compiling iOS Simulator Release bundle for flavor '${FLAVOR}'...${NC}"
-    flutter build ios --simulator --release -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_BASE_URL"
+    echo -e "${YELLOW}>> Compiling iOS Simulator bundle for flavor '${FLAVOR}'...${NC}"
+    flutter build ios --simulator --profile -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_BASE_URL"
     
     if [ -d "build/ios/iphonesimulator/Runner.app" ]; then
         echo -e "${YELLOW}>> Packaging iOS Simulator bundle to ZIP archive...${NC}"
