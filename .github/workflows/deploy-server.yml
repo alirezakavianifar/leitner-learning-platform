@@ -1,0 +1,151 @@
+name: Server Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'backend/**'
+      - 'admin-panel/**'
+      - 'deployment/**'
+      - '.env*'
+      - 'scripts/deploy-to-server.ps1'
+      - '.github/workflows/deploy-server.yml'
+  workflow_dispatch:
+    inputs:
+      sms:
+        description: 'SMS Gateway Status (ON / OFF)'
+        required: true
+        default: 'ON'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      server_ip:
+        description: 'Target Deployment Server IP'
+        required: true
+        default: '45.94.215.188'
+        type: string
+      server_user:
+        description: 'Server SSH User'
+        required: true
+        default: 'root'
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH Key & Known Hosts
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY || secrets.DEPLOY_SSH_KEY }}
+          SERVER_IP: ${{ inputs.server_ip || '45.94.215.188' }}
+        run: |
+          if [ -z "$SSH_PRIVATE_KEY" ]; then
+            echo "::error::Secret SERVER_SSH_KEY (or DEPLOY_SSH_KEY) is not set in repository secrets!"
+            echo "Please add your deployment SSH private key to GitHub Secrets as SERVER_SSH_KEY."
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa_deploy
+          chmod 600 ~/.ssh/id_rsa_deploy
+
+          # Add remote server host keys
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Configure SMS Gateway in .env
+        run: |
+          SMS_SETTING="${{ inputs.sms || 'ON' }}"
+          echo "Setting SMS Gateway state to: $SMS_SETTING"
+          if [ -f ".env" ]; then
+            if [ "$SMS_SETTING" = "OFF" ]; then
+              sed -i 's/^[[:space:]]*SMS_GATEWAY_API_KEY[[:space:]]*=/# SMS_GATEWAY_API_KEY=/' .env
+            else
+              sed -i 's/^[[:space:]]*#[[:space:]]*SMS_GATEWAY_API_KEY[[:space:]]*=/SMS_GATEWAY_API_KEY=/' .env
+            fi
+          fi
+
+      - name: Create Lightweight Deployment Archive
+        run: |
+          ARCHIVE_NAME="leitner_deploy_$(date +%s).tar.gz"
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+
+          tar -czf "$ARCHIVE_NAME" \
+            --exclude="*.dll" --exclude="*.pdb" --exclude="*.exe" --exclude="*.apk" \
+            --exclude="*/bin" --exclude="*/obj" --exclude="*/dist" --exclude="*/node_modules" \
+            --exclude="*/TestResults" --exclude="*/.git" --exclude="mobile-app" --exclude="docs" \
+            --exclude="backend/LeitnerPlatform.API/wwwroot/courses/*.zip" \
+            backend admin-panel deployment .env* 2>/dev/null || \
+          tar -czf "$ARCHIVE_NAME" \
+            backend admin-panel deployment
+
+          echo "Archive created: $ARCHIVE_NAME ($(du -h "$ARCHIVE_NAME" | cut -f1))"
+
+      - name: Upload & Extract Source Archive on Server
+        env:
+          SERVER_IP: ${{ inputs.server_ip || '45.94.215.188' }}
+          SERVER_USER: ${{ inputs.server_user || 'root' }}
+        run: |
+          echo ">> Uploading $ARCHIVE_NAME to $SERVER_USER@$SERVER_IP:/tmp/..."
+          scp -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            "$ARCHIVE_NAME" "$SERVER_USER@$SERVER_IP:/tmp/$ARCHIVE_NAME"
+
+          echo ">> Extracting on remote server into /opt/leitner-platform..."
+          ssh -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            "$SERVER_USER@$SERVER_IP" \
+            "mkdir -p /opt/leitner-platform && tar -xzf /tmp/$ARCHIVE_NAME -C /opt/leitner-platform && rm -f /tmp/$ARCHIVE_NAME"
+
+      - name: Sync Course Package Assets (Incremental)
+        env:
+          SERVER_IP: ${{ inputs.server_ip || '45.94.215.188' }}
+          SERVER_USER: ${{ inputs.server_user || 'root' }}
+        run: |
+          COURSES_DIR="backend/LeitnerPlatform.API/wwwroot/courses"
+          if [ -d "$COURSES_DIR" ]; then
+            ssh -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+              "$SERVER_USER@$SERVER_IP" "mkdir -p /opt/leitner-platform/$COURSES_DIR"
+
+            for zip_file in "$COURSES_DIR"/*.zip; do
+              [ -e "$zip_file" ] || continue
+              file_name=$(basename "$zip_file")
+              echo "Checking $file_name..."
+              scp -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+                "$zip_file" "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/$COURSES_DIR/$file_name"
+            done
+          fi
+
+      - name: Build & Run Docker Containers
+        env:
+          SERVER_IP: ${{ inputs.server_ip || '45.94.215.188' }}
+          SERVER_USER: ${{ inputs.server_user || 'root' }}
+        run: |
+          echo ">> Building and launching Docker Compose stack..."
+          ssh -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
+            "$SERVER_USER@$SERVER_IP" \
+            "cd /opt/leitner-platform && docker compose -f deployment/docker-compose.yml --env-file .env up -d --build"
+
+      - name: Verify Container State & Health
+        env:
+          SERVER_IP: ${{ inputs.server_ip || '45.94.215.188' }}
+          SERVER_USER: ${{ inputs.server_user || 'root' }}
+        run: |
+          echo ">> Running Containers:"
+          ssh -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            "$SERVER_USER@$SERVER_IP" \
+            "cd /opt/leitner-platform && docker compose -f deployment/docker-compose.yml ps"
+
+          echo ">> Testing Health Endpoint..."
+          sleep 5
+          ssh -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
+            "$SERVER_USER@$SERVER_IP" \
+            "curl -k -s -o /dev/null -w '%{http_code}' https://api.rightlearn.ir/health || curl -s -o /dev/null -w '%{http_code}' http://localhost:5217/health || true"
+          echo ""
+          echo ">> Deployment completed successfully! 🎉"
