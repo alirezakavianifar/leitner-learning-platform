@@ -119,6 +119,7 @@ jobs:
 
       - name: Send Packages to Rubika Bot
         if: ${{ (inputs.send_to_rubika != false) && success() }}
+        continue-on-error: true
         env:
           RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN || 'CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL' }}
         run: |

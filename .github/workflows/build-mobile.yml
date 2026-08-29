@@ -181,6 +181,7 @@ jobs:
 
       - name: Send Android Package to Rubika Bot
         if: ${{ (github.event_name == 'push' || inputs.send_to_rubika != false) && success() }}
+        continue-on-error: true
         env:
           RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN || 'CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL' }}
         run: |
@@ -285,6 +286,7 @@ jobs:
 
       - name: Send iOS Packages to Rubika Bot
         if: ${{ (github.event_name == 'push' || inputs.send_to_rubika != false) && success() }}
+        continue-on-error: true
         env:
           RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN || 'CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL' }}
         run: |
