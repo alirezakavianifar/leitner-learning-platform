@@ -37,3 +37,9 @@
 -keep class androidx.core.app.NotificationCompat** { *; }
 -keep class androidx.core.app.NotificationManagerCompat** { *; }
 -keep class androidx.media.app.NotificationCompat** { *; }
+
+# Google Play Services Auth / SMS Retriever
+-keep class com.google.android.gms.auth.api.phone.** { *; }
+-dontwarn com.google.android.gms.auth.api.phone.**
+-keep class fman.ge.smart_auth.** { *; }
+-dontwarn fman.ge.smart_auth.**

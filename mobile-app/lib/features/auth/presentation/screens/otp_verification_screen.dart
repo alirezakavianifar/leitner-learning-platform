@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:pinput/pinput.dart';
 import 'package:mobile_app/app/theme.dart';
+import 'package:mobile_app/core/services/sms_retriever_service.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
@@ -14,8 +16,13 @@ import 'package:mobile_app/core/error/error_formatter.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String mobileNumber;
+  final SmsRetriever? smsRetriever;
 
-  const OtpVerificationScreen({Key? key, required this.mobileNumber}) : super(key: key);
+  const OtpVerificationScreen({
+    super.key,
+    required this.mobileNumber,
+    this.smsRetriever,
+  });
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -24,6 +31,7 @@ class OtpVerificationScreen extends StatefulWidget {
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _otpController = TextEditingController();
+  late final SmsRetriever _smsRetriever;
   
   Timer? _timer;
   int _secondsRemaining = 120;
@@ -32,12 +40,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   void initState() {
     super.initState();
+    _smsRetriever = widget.smsRetriever ?? SmsRetrieverService();
     _startTimer();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _smsRetriever.dispose();
     _otpController.dispose();
     super.dispose();
   }
@@ -61,8 +71,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     });
   }
 
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
+  void _submit([String? pin]) {
+    final code = (pin ?? _otpController.text).trim();
+    if (code.length == 5) {
+      context.read<AuthBloc>().add(
+            VerifyOtpEvent(
+              mobileNumber: widget.mobileNumber,
+              otpCode: code,
+            ),
+          );
+    } else if (_formKey.currentState != null && _formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
             VerifyOtpEvent(
               mobileNumber: widget.mobileNumber,
@@ -76,6 +94,47 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final loc = AppLocalizations.of(context);
+
+    final defaultPinTheme = PinTheme(
+      width: 56,
+      height: 60,
+      textStyle: TextStyle(
+        fontSize: 22,
+        color: AppColors.textPrimary,
+        fontWeight: FontWeight.bold,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border, width: 1.5),
+      ),
+    );
+
+    final focusedPinTheme = defaultPinTheme.copyWith(
+      decoration: defaultPinTheme.decoration!.copyWith(
+        border: Border.all(color: AppColors.primary, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.18),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+    );
+
+    final submittedPinTheme = defaultPinTheme.copyWith(
+      decoration: defaultPinTheme.decoration!.copyWith(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.6), width: 1.5),
+      ),
+    );
+
+    final errorPinTheme = defaultPinTheme.copyWith(
+      decoration: defaultPinTheme.decoration!.copyWith(
+        border: Border.all(color: AppColors.error, width: 1.5),
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -136,7 +195,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           final isLoading = state is AuthLoadingState;
 
           return SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Form(
                 key: _formKey,
@@ -144,6 +203,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const SizedBox(height: 24),
                     Text(
                       loc.verifyPhone,
                       style: textTheme.displayMedium?.copyWith(
@@ -159,36 +219,40 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                     const SizedBox(height: 48),
 
-                    // OTP field
-                    TextFormField(
-                      controller: _otpController,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      maxLength: 5,
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 24,
-                        letterSpacing: 8,
-                        fontWeight: FontWeight.bold,
+                    // Modern 5-box PIN field with SMS Retriever & iOS Autofill
+                    Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: Center(
+                        child: Pinput(
+                          controller: _otpController,
+                          length: 5,
+                          autofocus: true,
+                          smsRetriever: _smsRetriever,
+                          autofillHints: const [AutofillHints.oneTimeCode],
+                          defaultPinTheme: defaultPinTheme,
+                          focusedPinTheme: focusedPinTheme,
+                          submittedPinTheme: submittedPinTheme,
+                          errorPinTheme: errorPinTheme,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          validator: (value) {
+                            if (value == null || value.trim().length != 5) {
+                              return loc.enterCodeValidationError;
+                            }
+                            return null;
+                          },
+                          pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
+                          showCursor: true,
+                          onCompleted: (pin) {
+                            _submit(pin);
+                          },
+                        ),
                       ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      decoration: InputDecoration(
-                        hintText: '•••••',
-                        counterText: '',
-                        prefixIcon: Icon(Icons.lock_outline, color: AppColors.textSecondary),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().length != 5) {
-                          return loc.enterCodeValidationError;
-                        }
-                        return null;
-                      },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
 
-                    // Countdown timer
+                    // Countdown timer & Resend code
                     Center(
                       child: _canResend
                           ? TextButton(
@@ -216,7 +280,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
                     // Verify button
                     ElevatedButton(
-                      onPressed: isLoading ? null : _submit,
+                      onPressed: isLoading ? null : () => _submit(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -241,6 +305,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               ),
                             ),
                     ),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),

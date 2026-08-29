@@ -35,11 +35,11 @@ When performing git operations, follow these specific guidelines based on the us
     - If changes correspond to both, execute both `Start-Process powershell.exe` commands.
   - After running `scripts/build-apk.ps1`, ensure `app-premium-release.zip` contains the new `app-premium-release.apk` and upload to the Rubika bot via `scripts/upload-to-rubika.py`.
 
-### iOS Build Workflow (GitHub Actions):
+### Mobile Build Workflows (GitHub Actions):
 
-- **Default & Preferred iOS Build Pipeline**: All iOS builds (`.ipa` and simulator `.zip`) must be built using GitHub Actions (`.github/workflows/build-ios.yml`) on macOS-14 cloud runners.
-- The pipeline builds `app-premium-release.ipa` and `app-premium-ios-simulator.zip`, and automatically uploads the package to the Rubika Bot (`@AliDeveloperBot`).
-- When pushing mobile changes, remind the user to trigger the [iOS Build & Distribution Pipeline on GitHub](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-ios.yml) or launch `scripts/build-ios.ps1`.
+- **Android APK Build Pipeline**: Android APKs (`.apk` and `.zip`) can be built locally via `scripts/build-apk.ps1` or automated via GitHub Actions (`.github/workflows/build-apk.yml`) on `ubuntu-latest` cloud runners. The pipeline supports custom flavors (`premium`/`store`), ABI selection (`arm64-v8a`/`universal`/`all`), ProGuard size optimizations, and automatically uploads the package to the Rubika Bot (`@AliDeveloperBot`).
+- **iOS Build Pipeline**: All iOS builds (`.ipa` and simulator `.zip`) are built using GitHub Actions (`.github/workflows/build-ios.yml`) on `macos-14` cloud runners. The pipeline builds `app-premium-release.ipa` and `app-premium-ios-simulator.zip`, and automatically uploads the package to the Rubika Bot (`@AliDeveloperBot`).
+- When pushing mobile changes, remind the user that they can trigger the [Android APK Build Pipeline](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-apk.yml) or the [iOS Build Pipeline](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-ios.yml) directly on GitHub Actions or launch local build scripts.
 
 **Note:** You should proactively execute these commands without asking for extra confirmation.
 

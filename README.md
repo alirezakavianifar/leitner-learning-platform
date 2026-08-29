@@ -38,7 +38,7 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
     *   **Secrets Management:** No hardcoded secrets, keys, or passwords in source code; zero credentials committed to Git; all production configurations supplied through environment variables or secret vaults.
     *   **Dependency Security Policy:** Continuous vulnerability scanning in CI/CD pipelines, patch update strategies, and license compliance audits.
 *   **CI/CD & Code Quality Standards:** Git version control with main branch protection rules. Automated build pipelines, test suites, and Docker builds configured in CI/CD (GitHub Actions / GitLab CI). Minimum code coverage requirements: 80% for backend business logic and 70% for core mobile features, validated alongside E2E user-journey tests.
-*   **Authentication & Session Persistence:** SMS OTP verification with JWT Bearer tokens and rotating refresh tokens (`/api/v1/auth/refresh`). Administrators can dynamically configure JWT and Refresh Token durations (in minutes, hours, days, or months) and background renewal flags directly from the Web Admin Panel with full audit trail logging. The mobile client features automated background token renewal via Dio interceptors, offline-resilient startup state caching, and EncryptedSharedPreferences (Android Keystore / iOS Keychain) session storage.
+*   **Authentication & Session Persistence:** SMS OTP verification with JWT Bearer tokens and rotating refresh tokens (`/api/v1/auth/refresh`). The mobile client features automated incoming SMS OTP detection and autofill (utilizing Google Play Services SMS User Consent API on Android and native One-Time Code autofill on iOS, with zero intrusive permissions), automated background token renewal via Dio interceptors, offline-resilient startup state caching, and EncryptedSharedPreferences (Android Keystore / iOS Keychain) session storage. Administrators can dynamically configure JWT and Refresh Token durations (in minutes, hours, days, or months) and background renewal flags directly from the Web Admin Panel with full audit trail logging.
 *   **Integrations:** Unified payment gateway abstractions (`PaymentProvider` interface) to easily manage store-specific payments (Google Play, Cafe Bazaar, Myket, Direct Gateway).
 *   **Handover & Deliverables:** Comprehensive handover including full source code, deployment templates, training sessions, and updated **Architecture Documentation** (System Architecture Diagram, Module Dependency Diagram, Event Bus Documentation, Repository Structure Documentation, Database Migration Guide, and Feature Flag Documentation).
 
@@ -254,22 +254,27 @@ powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms OFF
         powershell -ExecutionPolicy Bypass -File ./scripts/deploy_to_appetize.ps1
         ```
     *   **Automated Release APK Build (Android):**
-        1. **Start Tunnel:** Launch a persistent public tunnel pointing to your local backend (port 5217):
-           ```powershell
-           powershell -ExecutionPolicy Bypass -File ./scripts/start-tunnel.ps1
-           ```
-        2. **Build APK:** Compile the premium release APK targeting your server IP or active Ngrok URL:
-           ```powershell
-           # High-efficiency 64-bit ARM build (~23 MB, default & recommended for physical devices):
-           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "arm64-v8a"
+        1. **Automated Cloud Build (GitHub Actions Ubuntu Runner - Recommended):**
+           - Go to **Actions** -> **Android APK Build & Distribution Pipeline** in the GitHub repository.
+           - Select **Run workflow**, choose Flavor (`premium` or `store`), select Target ABI (`arm64-v8a`, `universal`, or `all`), enter Backend Target URL, and click **Run workflow**.
+           - The GitHub `ubuntu-latest` runner automatically compiles the size-optimized release APK (`app-premium-release.apk`), packages it into `app-premium-release.zip`, uploads GitHub workflow artifacts, and delivers the package directly to the Rubika Bot (`@AliDeveloperBot`).
+        2. **Local Build via PowerShell (Windows / Linux):**
+           - **Start Tunnel:** Launch a persistent public tunnel pointing to your local backend (port 5217):
+             ```powershell
+             powershell -ExecutionPolicy Bypass -File ./scripts/start-tunnel.ps1
+             ```
+           - **Build APK:** Compile the release APK targeting your server IP or active Ngrok URL:
+             ```powershell
+             # High-efficiency 64-bit ARM build (~20 MB, recommended for modern devices):
+             powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "arm64-v8a"
 
-           # Universal fat APK containing all ABIs (~45-50 MB):
-           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "universal"
+             # Universal fat APK containing all ABIs (~45-50 MB):
+             powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "universal"
 
-           # Split APKs for all ABIs (arm64-v8a, armeabi-v7a, x86_64):
-           powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "all"
-           ```
-        The compiled APK will be automatically copied to the repository root as `app-premium-release.apk` (and compressed as `app-premium-release.zip`), and dispatched to the Rubika distribution bot. Size optimizations (WebP assets, R8 full mode, icon tree-shaking, symbol stripping, and 64-bit ABI targeting) reduce the APK size by ~69% (from 76.8 MB to ~23.8 MB).
+             # Split APKs for all ABIs (arm64-v8a, armeabi-v7a, x86_64):
+             powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "all"
+             ```
+           The compiled APK will be automatically copied to the repository root as `app-premium-release.apk` (and compressed as `app-premium-release.zip`), and dispatched to the Rubika distribution bot. Size optimizations (WebP assets, R8 full mode, icon tree-shaking, symbol stripping, and 64-bit ABI targeting) reduce the APK size by ~69% (from 76.8 MB to ~23.8 MB).
 
     *   **Automated iOS Build & Packaging (iOS IPA & Simulator):**
         1. **Local macOS Build (Mac workstation or CI runner):**
