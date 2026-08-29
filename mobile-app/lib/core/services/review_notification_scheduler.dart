@@ -45,7 +45,10 @@ class ReviewNotificationScheduler {
     });
 
     _isInitialized = true;
-    AppLogger().info('ReviewNotificationScheduler initialized.');
+    // Proactively request notification permissions from the OS on startup/first launch
+    if (areNotificationsEnabled) {
+      await localNotificationService.requestPermissions();
+    }
 
     // Schedule notifications on boot
     await scheduleNextReviewNotification();
