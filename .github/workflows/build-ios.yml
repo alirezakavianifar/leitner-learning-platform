@@ -117,18 +117,22 @@ jobs:
             app-*-ios-simulator.zip
           retention-days: 14
 
-      - name: Send to Rubika Bot
+      - name: Send Packages to Rubika Bot
         if: ${{ (inputs.send_to_rubika != false) && success() }}
         env:
           RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN || 'CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL' }}
         run: |
           FLAVOR="${{ inputs.flavor || 'premium' }}"
           IPA_ZIP="app-${FLAVOR}-ios-release.zip"
+          SIMULATOR_ZIP="app-${FLAVOR}-ios-simulator.zip"
+
           if [ -f "$IPA_ZIP" ]; then
-            echo "Sending $IPA_ZIP to Rubika Bot..."
+            echo "Sending physical device release $IPA_ZIP to Rubika Bot..."
             python3 scripts/upload-to-rubika.py --file "$IPA_ZIP"
-          elif [ -f "app-${FLAVOR}-ios-simulator.zip" ]; then
-            echo "Sending simulator bundle to Rubika Bot..."
-            python3 scripts/upload-to-rubika.py --file "app-${FLAVOR}-ios-simulator.zip"
+          fi
+
+          if [ -f "$SIMULATOR_ZIP" ]; then
+            echo "Sending Appetize.io simulator bundle $SIMULATOR_ZIP to Rubika Bot..."
+            python3 scripts/upload-to-rubika.py --file "$SIMULATOR_ZIP"
           fi
         shell: bash
