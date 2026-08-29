@@ -253,8 +253,14 @@ powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms OFF
         ```powershell
         powershell -ExecutionPolicy Bypass -File ./scripts/deploy_to_appetize.ps1
         ```
+    *   **Unified Mobile Cloud Build (Android & iOS Simultaneously - Recommended):**
+        To build both the size-optimized Android APK and the iOS IPA/Simulator bundles concurrently with a single trigger:
+        - Go to **Actions** -> **Unified Mobile Build Pipeline (Android & iOS)** in the GitHub repository.
+        - Select **Run workflow**, choose Flavor (`premium` or `store`), configure target ABI and iOS build types, and click **Run workflow**.
+        - GitHub Actions spins up an `ubuntu-latest` runner for Android and a `macos-14` Apple Silicon runner for iOS simultaneously. Both packages are built in parallel, archived, and dispatched directly to your Rubika bot (`@AliDeveloperBot`).
+
     *   **Automated Release APK Build (Android):**
-        1. **Automated Cloud Build (GitHub Actions Ubuntu Runner - Recommended):**
+        1. **Automated Cloud Build (GitHub Actions Ubuntu Runner):**
            - Go to **Actions** -> **Android APK Build & Distribution Pipeline** in the GitHub repository.
            - Select **Run workflow**, choose Flavor (`premium` or `store`), select Target ABI (`arm64-v8a`, `universal`, or `all`), enter Backend Target URL, and click **Run workflow**.
            - The GitHub `ubuntu-latest` runner automatically compiles the size-optimized release APK (`app-premium-release.apk`), packages it into `app-premium-release.zip`, uploads GitHub workflow artifacts, and delivers the package directly to the Rubika Bot (`@AliDeveloperBot`).

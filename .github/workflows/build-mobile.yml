@@ -1,0 +1,292 @@
+name: Unified Mobile Build Pipeline (Android & iOS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: 'App Flavor to Build'
+        required: true
+        default: 'premium'
+        type: choice
+        options:
+          - premium
+          - store
+      android_abi:
+        description: 'Android Target Architecture (ABI)'
+        required: true
+        default: 'arm64-v8a'
+        type: choice
+        options:
+          - arm64-v8a
+          - universal
+          - all
+      ios_build_type:
+        description: 'iOS Build Target'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - ipa
+          - simulator
+      target_url:
+        description: 'Backend Target API URL'
+        required: true
+        default: 'https://api.rightlearn.ir'
+        type: string
+      send_to_rubika:
+        description: 'Send packaged builds to Rubika Bot'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  # ===========================================================================
+  #  1. Android APK Build Job (Ubuntu Cloud Runner)
+  # ===========================================================================
+  build-android:
+    name: Android APK (${{ inputs.flavor || 'premium' }} - ${{ inputs.android_abi || 'arm64-v8a' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Dependencies
+        run: |
+          pip install requests requests_toolbelt urllib3
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Clean & Prepare Android Environment
+        run: |
+          cd mobile-app
+          flutter clean
+          flutter pub get
+        shell: bash
+
+      - name: Compile Release APK & Package
+        run: |
+          cd mobile-app
+          FLAVOR="${{ inputs.flavor || 'premium' }}"
+          ABI="${{ inputs.android_abi || 'arm64-v8a' }}"
+          API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir' }}"
+          
+          echo "Building Android APK for flavor: $FLAVOR (ABI: $ABI) with API: $API_URL"
+          
+          SYMBOLS_DIR="build/app/outputs/symbols"
+          BUILD_ARGS=(
+            "build" "apk"
+            "--release"
+            "--flavor" "$FLAVOR"
+            "-t" "lib/main_${FLAVOR}.dart"
+            "--dart-define=API_BASE_URL=$API_URL"
+            "--obfuscate"
+            "--split-debug-info=$SYMBOLS_DIR"
+            "--tree-shake-icons"
+          )
+          
+          if [ "$ABI" = "arm64-v8a" ]; then
+            BUILD_ARGS+=("--split-per-abi" "--target-platform" "android-arm64")
+          elif [ "$ABI" = "all" ]; then
+            BUILD_ARGS+=("--split-per-abi")
+          fi
+          
+          flutter "${BUILD_ARGS[@]}"
+          
+          APK_DIR="build/app/outputs/flutter-apk"
+          PRIMARY_APK=""
+          
+          if [ "$ABI" = "arm64-v8a" ]; then
+            for candidate in \
+              "$APK_DIR/app-arm64-v8a-${FLAVOR}-release.apk" \
+              "$APK_DIR/app-${FLAVOR}-arm64-v8a-release.apk" \
+              "$APK_DIR/app-arm64-v8a-release.apk" \
+              "$APK_DIR/app-${FLAVOR}-release.apk"; do
+              if [ -f "$candidate" ]; then
+                PRIMARY_APK="$candidate"
+                break
+              fi
+            done
+          elif [ "$ABI" = "universal" ]; then
+            for candidate in \
+              "$APK_DIR/app-${FLAVOR}-release.apk" \
+              "$APK_DIR/app-release.apk"; do
+              if [ -f "$candidate" ]; then
+                PRIMARY_APK="$candidate"
+                break
+              fi
+            done
+          elif [ "$ABI" = "all" ]; then
+            cp "$APK_DIR"/*.apk "${GITHUB_WORKSPACE}/" 2>/dev/null || true
+            PRIMARY_APK=$(ls "$APK_DIR"/*arm64*.apk 2>/dev/null | head -n 1)
+            if [ -z "$PRIMARY_APK" ]; then
+              PRIMARY_APK=$(ls "$APK_DIR"/*.apk 2>/dev/null | head -n 1)
+            fi
+          fi
+          
+          if [ -z "$PRIMARY_APK" ] || [ ! -f "$PRIMARY_APK" ]; then
+            PRIMARY_APK=$(ls "$APK_DIR"/*.apk 2>/dev/null | head -n 1)
+          fi
+          
+          if [ -f "$PRIMARY_APK" ]; then
+            echo "Found compiled APK: $PRIMARY_APK"
+            cp "$PRIMARY_APK" "${GITHUB_WORKSPACE}/app-${FLAVOR}-release.apk"
+            if [ "$ABI" = "arm64-v8a" ]; then
+              cp "$PRIMARY_APK" "${GITHUB_WORKSPACE}/app-${FLAVOR}-arm64-v8a-release.apk"
+            fi
+            
+            cd "${GITHUB_WORKSPACE}"
+            zip -j "app-${FLAVOR}-release.zip" "app-${FLAVOR}-release.apk"
+            echo "Created archive: app-${FLAVOR}-release.zip"
+            ls -lh app-*
+          else
+            echo "Error: No APK file was generated!"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Upload Android Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-${{ inputs.flavor || 'premium' }}-${{ inputs.android_abi || 'arm64-v8a' }}
+          path: |
+            app-*-release.apk
+            app-*-release.zip
+          retention-days: 14
+
+      - name: Send Android Package to Rubika Bot
+        if: ${{ (inputs.send_to_rubika != false) && success() }}
+        env:
+          RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN || 'CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL' }}
+        run: |
+          FLAVOR="${{ inputs.flavor || 'premium' }}"
+          ZIP_FILE="app-${FLAVOR}-release.zip"
+          if [ -f "$ZIP_FILE" ]; then
+            echo "Sending $ZIP_FILE to Rubika Bot..."
+            python3 scripts/upload-to-rubika.py --file "$ZIP_FILE"
+          elif [ -f "app-${FLAVOR}-release.apk" ]; then
+            echo "Sending APK to Rubika Bot..."
+            python3 scripts/upload-to-rubika.py --file "app-${FLAVOR}-release.apk"
+          fi
+        shell: bash
+
+  # ===========================================================================
+  #  2. iOS IPA & Simulator Build Job (macOS Apple Silicon Runner)
+  # ===========================================================================
+  build-ios:
+    name: iOS Bundle (${{ inputs.flavor || 'premium' }} - ${{ inputs.ios_build_type || 'both' }})
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Dependencies
+        run: |
+          pip install requests requests_toolbelt urllib3
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Clean & Prepare iOS Environment
+        run: |
+          cd mobile-app
+          flutter clean
+          rm -rf ios/Pods ios/Podfile.lock build
+          flutter pub get
+        shell: bash
+
+      # 2a. Build Physical iOS Release Bundle & Package IPA
+      - name: Build iOS Release Bundle & Package IPA
+        if: ${{ inputs.ios_build_type == 'ipa' || inputs.ios_build_type == 'both' || github.event_name == 'push' }}
+        run: |
+          cd mobile-app
+          FLAVOR="${{ inputs.flavor || 'premium' }}"
+          API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir' }}"
+          echo "Building iOS device release for flavor: $FLAVOR with API: $API_URL"
+          
+          # Compile unsigned release bundle
+          flutter build ios --release --no-codesign -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_URL"
+          
+          # Package into standard IPA structure (Payload/Runner.app)
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r -y "${GITHUB_WORKSPACE}/app-${FLAVOR}-release.ipa" Payload
+          
+          # Also package into universal zip for distribution
+          cd "${GITHUB_WORKSPACE}"
+          zip -r "app-${FLAVOR}-ios-release.zip" "app-${FLAVOR}-release.ipa"
+          echo "Created IPA archive: app-${FLAVOR}-release.ipa and app-${FLAVOR}-ios-release.zip"
+        shell: bash
+
+      # 2b. Build iOS Simulator Bundle (Appetize.io & Simulator Ready)
+      - name: Build iOS Simulator App
+        if: ${{ inputs.ios_build_type == 'simulator' || inputs.ios_build_type == 'both' || github.event_name == 'push' }}
+        run: |
+          cd mobile-app
+          FLAVOR="${{ inputs.flavor || 'premium' }}"
+          API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir' }}"
+          echo "Building iOS Simulator release for flavor: $FLAVOR with API: $API_URL"
+          
+          # Clean intermediate device build outputs to prevent architecture conflicts
+          rm -rf build/ios
+          flutter build ios --simulator --debug -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_URL"
+          
+          # Package Simulator .app to ZIP for Appetize.io & Simulators
+          cd build/ios/iphonesimulator
+          zip -r -y "${GITHUB_WORKSPACE}/app-${FLAVOR}-ios-simulator.zip" Runner.app
+          echo "Created simulator archive: app-${FLAVOR}-ios-simulator.zip"
+        shell: bash
+
+      - name: Upload iOS Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-${{ inputs.flavor || 'premium' }}
+          path: |
+            app-*-release.ipa
+            app-*-ios-release.zip
+            app-*-ios-simulator.zip
+          retention-days: 14
+
+      - name: Send iOS Package to Rubika Bot
+        if: ${{ (inputs.send_to_rubika != false) && success() }}
+        env:
+          RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN || 'CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL' }}
+        run: |
+          FLAVOR="${{ inputs.flavor || 'premium' }}"
+          IPA_ZIP="app-${FLAVOR}-ios-release.zip"
+          if [ -f "$IPA_ZIP" ]; then
+            echo "Sending $IPA_ZIP to Rubika Bot..."
+            python3 scripts/upload-to-rubika.py --file "$IPA_ZIP"
+          elif [ -f "app-${FLAVOR}-ios-simulator.zip" ]; then
+            echo "Sending simulator bundle to Rubika Bot..."
+            python3 scripts/upload-to-rubika.py --file "app-${FLAVOR}-ios-simulator.zip"
+          fi
+        shell: bash

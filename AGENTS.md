@@ -37,9 +37,10 @@ When performing git operations, follow these specific guidelines based on the us
 
 ### Mobile Build Workflows (GitHub Actions):
 
+- **Unified Mobile Build Pipeline (Android & iOS in Parallel)**: Triggers concurrent builds for both Android and iOS simultaneously on cloud runners via [build-mobile.yml](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-mobile.yml).
 - **Android APK Build Pipeline**: Android APKs (`.apk` and `.zip`) can be built locally via `scripts/build-apk.ps1` or automated via GitHub Actions (`.github/workflows/build-apk.yml`) on `ubuntu-latest` cloud runners. The pipeline supports custom flavors (`premium`/`store`), ABI selection (`arm64-v8a`/`universal`/`all`), ProGuard size optimizations, and automatically uploads the package to the Rubika Bot (`@AliDeveloperBot`).
 - **iOS Build Pipeline**: All iOS builds (`.ipa` and simulator `.zip`) are built using GitHub Actions (`.github/workflows/build-ios.yml`) on `macos-14` cloud runners. The pipeline builds `app-premium-release.ipa` and `app-premium-ios-simulator.zip`, and automatically uploads the package to the Rubika Bot (`@AliDeveloperBot`).
-- When pushing mobile changes, remind the user that they can trigger the [Android APK Build Pipeline](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-apk.yml) or the [iOS Build Pipeline](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-ios.yml) directly on GitHub Actions or launch local build scripts.
+- When pushing mobile changes, remind the user that they can trigger the [Unified Mobile Build Pipeline](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-mobile.yml), [Android APK Build Pipeline](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-apk.yml), or [iOS Build Pipeline](https://github.com/alirezakavianifar/leitner-learning-platform/actions/workflows/build-ios.yml) directly on GitHub Actions.
 
 **Note:** You should proactively execute these commands without asking for extra confirmation.
 
