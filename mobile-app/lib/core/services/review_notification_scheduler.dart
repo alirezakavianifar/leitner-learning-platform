@@ -207,6 +207,11 @@ class ReviewNotificationScheduler {
           body: body,
           payload: 'leitner_due_now',
         );
+      } else {
+        // Proactively clear any stale notification from the status bar if no cards are due
+        await localNotificationService.cancelNotification(
+          LocalNotificationService.cardReviewNotificationId,
+        );
       }
     } catch (e) {
       AppLogger().error('Failed to check and notify due cards: $e', e);

@@ -152,8 +152,16 @@ class LocalNotificationService {
     AppLogger().info('Notification tapped with payload: ${response.payload}');
   }
 
-  NotificationDetails _getNotificationDetails() {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+  /// Calculates milliseconds remaining until end of the local day (23:59:59).
+  int _calculateMillisecondsUntilEndOfDay([DateTime? fromDate]) {
+    final base = fromDate ?? DateTime.now();
+    final endOfDay = DateTime(base.year, base.month, base.day, 23, 59, 59, 999);
+    final diff = endOfDay.difference(base).inMilliseconds;
+    return diff > 0 ? diff : 86400000; // 24 hours fallback
+  }
+
+  NotificationDetails _getNotificationDetails({int? timeoutAfterMs}) {
+    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       cardReviewChannelId,
       cardReviewChannelName,
       channelDescription: cardReviewChannelDescription,
@@ -165,7 +173,8 @@ class LocalNotificationService {
       showWhen: true,
       channelShowBadge: true,
       visibility: NotificationVisibility.public,
-      styleInformation: BigTextStyleInformation(''),
+      styleInformation: const BigTextStyleInformation(''),
+      timeoutAfter: timeoutAfterMs,
     );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -174,7 +183,7 @@ class LocalNotificationService {
       presentSound: true,
     );
 
-    return const NotificationDetails(
+    return NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
@@ -186,11 +195,13 @@ class LocalNotificationService {
     required String title,
     required String body,
     String? payload,
+    bool autoExpireAtEndOfDay = true,
   }) async {
     try {
       if (!_isInitialized) await init();
 
-      final details = _getNotificationDetails();
+      final timeoutMs = autoExpireAtEndOfDay ? _calculateMillisecondsUntilEndOfDay() : null;
+      final details = _getNotificationDetails(timeoutAfterMs: timeoutMs);
       await _notificationsPlugin.show(
         id: id,
         title: title,
@@ -198,7 +209,7 @@ class LocalNotificationService {
         notificationDetails: details,
         payload: payload,
       );
-      AppLogger().info('Immediate notification displayed in top bar: id=$id, title=$title');
+      AppLogger().info('Immediate notification displayed in top bar: id=$id, title=$title (timeoutMs=$timeoutMs)');
     } catch (e, stack) {
       AppLogger().error('Failed to show immediate notification: $e', e, stack);
     }
@@ -211,6 +222,7 @@ class LocalNotificationService {
     required String body,
     required DateTime scheduledDate,
     String? payload,
+    bool autoExpireAtEndOfDay = true,
   }) async {
     try {
       if (!_isInitialized) await init();
@@ -221,7 +233,10 @@ class LocalNotificationService {
       }
 
       final tzDateTime = tz.TZDateTime.from(scheduledDate, tz.local);
-      final details = _getNotificationDetails();
+      final timeoutMs = autoExpireAtEndOfDay
+          ? _calculateMillisecondsUntilEndOfDay(scheduledDate)
+          : null;
+      final details = _getNotificationDetails(timeoutAfterMs: timeoutMs);
 
       try {
         await _notificationsPlugin.zonedSchedule(
@@ -247,7 +262,7 @@ class LocalNotificationService {
       }
 
       AppLogger().info(
-        'Scheduled notification id=$id for $tzDateTime (UTC: ${scheduledDate.toUtc()})',
+        'Scheduled notification id=$id for $tzDateTime (timeoutMs=$timeoutMs, UTC: ${scheduledDate.toUtc()})',
       );
     } catch (e, stack) {
       AppLogger().error('Failed to schedule notification: $e', e, stack);
@@ -262,6 +277,7 @@ class LocalNotificationService {
     required int hour,
     required int minute,
     String? payload,
+    bool autoExpireAtEndOfDay = true,
   }) async {
     try {
       if (!_isInitialized) await init();
@@ -280,7 +296,10 @@ class LocalNotificationService {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
 
-      final details = _getNotificationDetails();
+      final timeoutMs = autoExpireAtEndOfDay
+          ? _calculateMillisecondsUntilEndOfDay(scheduledDate)
+          : null;
+      final details = _getNotificationDetails(timeoutAfterMs: timeoutMs);
 
       try {
         await _notificationsPlugin.zonedSchedule(
@@ -307,7 +326,7 @@ class LocalNotificationService {
       }
 
       AppLogger().info(
-        'Scheduled daily reminder id=$id at $hour:$minute (next: $scheduledDate)',
+        'Scheduled daily reminder id=$id at $hour:$minute (next: $scheduledDate, timeoutMs=$timeoutMs)',
       );
     } catch (e, stack) {
       AppLogger().error('Failed to schedule daily reminder: $e', e, stack);

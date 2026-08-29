@@ -54,6 +54,7 @@ class FakeLocalNotificationService extends Fake implements LocalNotificationServ
     required String body,
     required DateTime scheduledDate,
     String? payload,
+    bool autoExpireAtEndOfDay = true,
   }) async {
     scheduledNotifications.add({
       'id': id,
@@ -61,6 +62,7 @@ class FakeLocalNotificationService extends Fake implements LocalNotificationServ
       'body': body,
       'scheduledDate': scheduledDate,
       'payload': payload,
+      'autoExpireAtEndOfDay': autoExpireAtEndOfDay,
     });
   }
 
@@ -72,6 +74,7 @@ class FakeLocalNotificationService extends Fake implements LocalNotificationServ
     required int hour,
     required int minute,
     String? payload,
+    bool autoExpireAtEndOfDay = true,
   }) async {
     scheduledDailyReminders.add({
       'id': id,
@@ -80,6 +83,7 @@ class FakeLocalNotificationService extends Fake implements LocalNotificationServ
       'hour': hour,
       'minute': minute,
       'payload': payload,
+      'autoExpireAtEndOfDay': autoExpireAtEndOfDay,
     });
   }
 
@@ -89,12 +93,14 @@ class FakeLocalNotificationService extends Fake implements LocalNotificationServ
     required String title,
     required String body,
     String? payload,
+    bool autoExpireAtEndOfDay = true,
   }) async {
     immediateNotifications.add({
       'id': id,
       'title': title,
       'body': body,
       'payload': payload,
+      'autoExpireAtEndOfDay': autoExpireAtEndOfDay,
     });
   }
 
@@ -329,6 +335,15 @@ void main() {
       expect(
         notificationService.immediateNotifications.first['id'],
         LocalNotificationService.cardReviewNotificationId,
+      );
+    });
+
+    test('checkDueAndNotifyNow cancels review notification when zero cards are due', () async {
+      await scheduler.checkDueAndNotifyNow();
+
+      expect(
+        notificationService.cancelledNotificationIds,
+        contains(LocalNotificationService.cardReviewNotificationId),
       );
     });
 
