@@ -2,7 +2,7 @@
 class ServerException implements Exception {
   final String message;
   final String? errorCode;
-  ServerException(this.message, {this.errorCode});
+  const ServerException(this.message, {this.errorCode});
 
   @override
   String toString() => 'ServerException: $message (code: $errorCode)';
@@ -11,7 +11,7 @@ class ServerException implements Exception {
 /// Captured exception during local storage/caching operations.
 class CacheException implements Exception {
   final String message;
-  CacheException(this.message);
+  const CacheException(this.message);
 
   @override
   String toString() => 'CacheException: $message';
@@ -20,7 +20,7 @@ class CacheException implements Exception {
 /// Captured exception for offline or direct socket errors.
 class NetworkException implements Exception {
   final String message;
-  NetworkException(this.message);
+  const NetworkException(this.message);
 
   @override
   String toString() => 'NetworkException: $message';

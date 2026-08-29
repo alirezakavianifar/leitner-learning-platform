@@ -40,7 +40,7 @@ on:
       target_url:
         description: 'Backend Target API URL'
         required: true
-        default: 'https://api.rightlearn.ir'
+        default: 'https://api.rightlearn.ir/api/v1'
         type: string
       send_to_rubika:
         description: 'Send packaged builds to Rubika Bot'
@@ -94,7 +94,7 @@ jobs:
           cd mobile-app
           FLAVOR="${{ inputs.flavor || 'premium' }}"
           ABI="${{ inputs.android_abi || 'arm64-v8a' }}"
-          API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir' }}"
+          API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir/api/v1' }}"
           
           echo "Building Android APK for flavor: $FLAVOR (ABI: $ABI) with API: $API_URL"
           
@@ -236,7 +236,7 @@ jobs:
         run: |
           cd mobile-app
           FLAVOR="${{ inputs.flavor || 'premium' }}"
-          API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir' }}"
+          API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir/api/v1' }}"
           echo "Building iOS device release for flavor: $FLAVOR with API: $API_URL"
           
           # Compile unsigned release bundle
@@ -260,7 +260,7 @@ jobs:
         run: |
           cd mobile-app
           FLAVOR="${{ inputs.flavor || 'premium' }}"
-          API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir' }}"
+          API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir/api/v1' }}"
           echo "Building iOS Simulator release for flavor: $FLAVOR with API: $API_URL"
           
           # Clean intermediate device build outputs to prevent architecture conflicts

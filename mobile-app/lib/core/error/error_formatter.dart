@@ -320,6 +320,18 @@ class AppErrorFormatter {
   static String _translateStringMessage(String msg) {
     final lower = msg.toLowerCase();
 
+    if (lower.contains('status code of 404') || lower.contains('404 not found') || lower.contains('not found')) {
+      return 'سرویس یا منبع درخواستی روی سرور یافت نشد.';
+    }
+    if (lower.contains('status code of 500') || lower.contains('status code of 502') || lower.contains('status code of 503') || lower.contains('status code of 504')) {
+      return 'سرور در حال حاضر پاسخگو نیست یا در حال به‌روزرسانی می‌باشد. لطفاً چند دقیقه دیگر دوباره تلاش کنید.';
+    }
+    if (lower.contains('status code of 429') || lower.contains('too many requests')) {
+      return 'تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً چند دقیقه دیگر دوباره تلاش کنید.';
+    }
+    if (lower.contains('status code of 401') || lower.contains('status code of 403')) {
+      return 'نشست کاربری شما منقضی شده است یا دسترسی مجاز ندارید.';
+    }
     if (lower.contains('captcha') || lower.contains('کپچا')) {
       return 'کد امنیتی (کپچا) اشتباه است یا به درستی وارد نشده است.';
     }

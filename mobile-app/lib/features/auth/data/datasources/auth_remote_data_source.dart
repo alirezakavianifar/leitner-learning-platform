@@ -130,12 +130,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   Exception _handleDioException(DioException e) {
-    if (e.response != null && e.response?.data is Map) {
-      final data = e.response?.data;
-      final message = data['message'] ?? e.message ?? 'Unknown server error';
-      final errorCode = data['error_code'] ?? 'SERVER_ERROR';
-      return ServerException(message.toString(), errorCode: errorCode.toString());
+    if (e.response != null) {
+      if (e.response?.data is Map) {
+        final data = e.response?.data as Map;
+        final message = data['message'] ?? 'خطایی در ارتباط با سرور رخ داد';
+        final errorCode = data['error_code'] ?? data['errorCode'] ?? 'SERVER_ERROR';
+        return ServerException(message.toString(), errorCode: errorCode.toString());
+      }
+      if (e.response?.statusCode == 404) {
+        return const ServerException('سرویس یا منبع درخواستی روی سرور یافت نشد.', errorCode: 'NOT_FOUND');
+      }
+      if ((e.response?.statusCode ?? 0) >= 500) {
+        return const ServerException('سرور در حال حاضر پاسخگو نیست.', errorCode: 'INTERNAL_SERVER_ERROR');
+      }
     }
-    return ServerException(e.message ?? 'Network communication error');
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.connectionError) {
+      return const NetworkException('ارتباط با اینترنت یا سرور برقرار نشد.');
+    }
+    return const ServerException('خطا در برقراری ارتباط با سرور.');
   }
 }

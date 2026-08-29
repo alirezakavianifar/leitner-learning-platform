@@ -24,15 +24,7 @@ class DioClient {
     required String baseUrl,
     this.onUnauthorized,
   }) {
-    var sanitizedBaseUrl = baseUrl;
-    if (!sanitizedBaseUrl.endsWith('/')) {
-      sanitizedBaseUrl = '$sanitizedBaseUrl/';
-    }
-    if (sanitizedBaseUrl.isNotEmpty && sanitizedBaseUrl != '/') {
-      dio.options.baseUrl = sanitizedBaseUrl;
-    } else {
-      dio.options.baseUrl = 'http://localhost/';
-    }
+    dio.options.baseUrl = normalizeApiBaseUrl(baseUrl);
     dio.options.connectTimeout = const Duration(seconds: 60);
     dio.options.receiveTimeout = const Duration(seconds: 180);
     dio.options.headers = {
@@ -175,6 +167,21 @@ class DioClient {
     return null;
   }
 
+  /// Normalizes any input API URL to guarantee a valid, trailing-slashed /api/v1/ prefix.
+  static String normalizeApiBaseUrl(String rawUrl) {
+    var url = rawUrl.trim();
+    if (url.isEmpty) {
+      return 'http://localhost:5217/api/v1/';
+    }
+    while (url.endsWith('/')) {
+      url = url.substring(0, url.length - 1);
+    }
+    if (!url.endsWith('/api/v1') && !url.endsWith('api/v1')) {
+      url = '$url/api/v1';
+    }
+    return '$url/';
+  }
+
   void updateBaseUrl(String newUrl) {
     var resolvedUrl = newUrl;
     if (kIsWeb || (!kIsWeb && Platform.isWindows)) {
@@ -182,10 +189,7 @@ class DioClient {
     } else {
       resolvedUrl = resolvedUrl.replaceAll('localhost', '10.0.2.2');
     }
-    if (!resolvedUrl.endsWith('/')) {
-      resolvedUrl = '$resolvedUrl/';
-    }
-    dio.options.baseUrl = resolvedUrl;
+    dio.options.baseUrl = normalizeApiBaseUrl(resolvedUrl);
   }
 
   Future<bool> _attemptFailover() async {

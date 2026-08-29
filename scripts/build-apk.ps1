@@ -5,7 +5,7 @@
 
 param (
     [string]$Flavor = "premium",
-    [string]$TargetUrl = "https://api.rightlearn.ir",
+    [string]$TargetUrl = "https://api.rightlearn.ir/api/v1",
     [string]$Abi = "arm64-v8a"  # 'arm64-v8a' (default / recommended: ~18-22MB), 'all' (split APKs for all ABIs), 'universal' (fat APK containing all ABIs)
 )
 

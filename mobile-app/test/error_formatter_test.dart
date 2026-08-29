@@ -76,6 +76,12 @@ void main() {
       expect(msg, contains('تصویر'));
       expect(msg, contains('گالری'));
     });
+
+    test('Format raw Dio 404 status code exception string', () {
+      const rawDio404 = 'This exception was thrown because the response has a status code of 404 and RequestOptions.validateStatus was configured to throw for this status code';
+      final msg = AppErrorFormatter.toPersianMessage(rawDio404);
+      expect(msg, contains('سرویس یا منبع درخواستی روی سرور یافت نشد'));
+    });
   });
 
   group('AppErrorFormatter English Messaging Tests', () {
