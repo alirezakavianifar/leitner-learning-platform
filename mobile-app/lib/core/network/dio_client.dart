@@ -16,7 +16,7 @@ class DioClient {
 
   bool _isFailoverInProgress = false;
   bool _isRefreshingToken = false;
-  Future<String?>? _refreshTokenFuture;
+  Future<_TokenRefreshResult>? _refreshTokenFuture;
 
   DioClient({
     required this.dio,
@@ -43,7 +43,7 @@ class DioClient {
             try {
               final uri = Uri.parse(dio.options.baseUrl);
               final rootOrigin = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
-              options.path = '$rootOrigin${options.path}';
+              options.baseUrl = rootOrigin;
             } catch (_) {}
           } else if (options.path.startsWith('/')) {
             options.path = options.path.substring(1);
@@ -62,11 +62,11 @@ class DioClient {
                 e.requestOptions.path.contains('/auth/captcha');
 
             if (!isAuthEndpoint) {
-              final newToken = await _performTokenRefresh();
-              if (newToken != null && newToken.isNotEmpty) {
+              final refreshResult = await _performTokenRefresh();
+              if (refreshResult.status == _RefreshStatus.success && refreshResult.token != null) {
                 // Retry failed request with new token
                 final newOptions = e.requestOptions;
-                newOptions.headers['Authorization'] = 'Bearer $newToken';
+                newOptions.headers['Authorization'] = 'Bearer ${refreshResult.token}';
                 try {
                   final retryResponse = await dio.fetch(newOptions);
                   return handler.resolve(retryResponse);
@@ -75,10 +75,13 @@ class DioClient {
                     return handler.next(retryError);
                   }
                 }
+              } else if (refreshResult.status == _RefreshStatus.networkError) {
+                // Temporary network or server glitch: do NOT log the user out
+                return handler.next(e);
               }
             }
 
-            // If refresh fails or not applicable, clear credentials and redirect to login
+            // Only if refresh token is genuinely invalid or revoked: clear credentials and redirect to login
             await storageService.deleteSecure('jwt_token');
             await storageService.deleteSecure('refresh_token');
             onUnauthorized?.call();
@@ -108,27 +111,27 @@ class DioClient {
     );
   }
 
-  Future<String?> _performTokenRefresh() async {
+  Future<_TokenRefreshResult> _performTokenRefresh() async {
     if (_isRefreshingToken && _refreshTokenFuture != null) {
-      return await _refreshTokenFuture;
+      return await _refreshTokenFuture!;
     }
 
     _isRefreshingToken = true;
     _refreshTokenFuture = _executeRefresh();
 
     try {
-      final token = await _refreshTokenFuture;
-      return token;
+      final result = await _refreshTokenFuture!;
+      return result;
     } finally {
       _isRefreshingToken = false;
       _refreshTokenFuture = null;
     }
   }
 
-  Future<String?> _executeRefresh() async {
+  Future<_TokenRefreshResult> _executeRefresh() async {
     final refreshToken = await storageService.readSecure('refresh_token');
     if (refreshToken == null || refreshToken.isEmpty) {
-      return null;
+      return const _TokenRefreshResult(status: _RefreshStatus.invalidRefreshToken);
     }
 
     try {
@@ -157,14 +160,20 @@ class DioClient {
           if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
             await storageService.writeSecure('refresh_token', newRefreshToken);
           }
-          return newJwt;
+          return _TokenRefreshResult(status: _RefreshStatus.success, token: newJwt);
         }
       }
+      return const _TokenRefreshResult(status: _RefreshStatus.invalidRefreshToken);
+    } on DioException catch (dioErr) {
+      // Explicit 400 or 401 response from server means refresh token is invalid or expired
+      if (dioErr.response?.statusCode == 401 || dioErr.response?.statusCode == 400) {
+        return const _TokenRefreshResult(status: _RefreshStatus.invalidRefreshToken);
+      }
+      // Connection timeouts, network down, 5xx server errors
+      return const _TokenRefreshResult(status: _RefreshStatus.networkError);
     } catch (_) {
-      // Refresh failed (e.g. invalid refresh token or network error)
+      return const _TokenRefreshResult(status: _RefreshStatus.networkError);
     }
-
-    return null;
   }
 
   /// Normalizes any input API URL to guarantee a valid, trailing-slashed /api/v1/ prefix.
@@ -238,3 +247,17 @@ class DioClient {
     return false;
   }
 }
+
+enum _RefreshStatus {
+  success,
+  invalidRefreshToken,
+  networkError,
+}
+
+class _TokenRefreshResult {
+  final _RefreshStatus status;
+  final String? token;
+
+  const _TokenRefreshResult({required this.status, this.token});
+}
+

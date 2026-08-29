@@ -22,6 +22,7 @@ namespace LeitnerPlatform.Data
         public DbSet<CoursePackage> CoursePackages => Set<CoursePackage>();
         public DbSet<CoursePackageItem> CoursePackageItems => Set<CoursePackageItem>();
         public DbSet<PackagePurchase> PackagePurchases => Set<PackagePurchase>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -273,6 +274,28 @@ namespace LeitnerPlatform.Data
                 entity.Property(e => e.Key).HasColumnName("key").HasMaxLength(100);
                 entity.Property(e => e.Value).HasColumnName("value").IsRequired();
                 entity.Property(e => e.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            });
+
+            // RefreshToken mapping
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.ToTable("refresh_tokens");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").HasDefaultValueSql("uuid_generate_v4()");
+                entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired();
+                entity.Property(e => e.Token).HasColumnName("token").HasMaxLength(256).IsRequired();
+                entity.Property(e => e.ExpiresAt).HasColumnName("expires_at").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.RevokedAt).HasColumnName("revoked_at");
+                entity.Property(e => e.ReplacedByToken).HasColumnName("replaced_by_token").HasMaxLength(256);
+
+                entity.HasIndex(e => e.Token);
+                entity.HasIndex(e => e.UserId);
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

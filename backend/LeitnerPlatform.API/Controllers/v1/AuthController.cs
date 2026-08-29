@@ -10,6 +10,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using Microsoft.EntityFrameworkCore;
 using LeitnerPlatform.Core.Entities;
 using LeitnerPlatform.Core.Events;
 using LeitnerPlatform.Core.Interfaces;
@@ -207,7 +208,26 @@ namespace LeitnerPlatform.API.Controllers.v1
             var token = GenerateJwtToken(user!, jwtLifetime);
             var refreshToken = Guid.NewGuid().ToString(); // Simple UUID refresh token
 
-            // Save refresh token to Redis/cache
+            // 1. Save persistent refresh token to PostgreSQL database (survives container restarts)
+            if (_dbContext != null)
+            {
+                try
+                {
+                    var dbRefreshToken = new RefreshToken
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = user!.Id,
+                        Token = refreshToken,
+                        ExpiresAt = DateTime.UtcNow.Add(refreshTokenLifetime),
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _dbContext.RefreshTokens.Add(dbRefreshToken);
+                    await _dbContext.SaveChangesAsync();
+                }
+                catch { }
+            }
+
+            // 2. Save refresh token to Redis/memory cache for high-speed lookups
             if (_redisConnection != null && _redisConnection.IsConnected)
             {
                 try
@@ -249,7 +269,7 @@ namespace LeitnerPlatform.API.Controllers.v1
 
             string? userIdStr = null;
 
-            // Fetch from Cache
+            // 1. Check Redis Cache
             if (_redisConnection != null && _redisConnection.IsConnected)
             {
                 try
@@ -257,14 +277,29 @@ namespace LeitnerPlatform.API.Controllers.v1
                     var db = _redisConnection.GetDatabase();
                     userIdStr = await db.StringGetAsync($"refresh_token:{input.RefreshToken}");
                 }
-                catch
-                {
-                    _memoryCache.TryGetValue($"refresh_token:{input.RefreshToken}", out userIdStr);
-                }
+                catch { }
             }
-            else
+
+            // 2. Check In-Memory Cache
+            if (string.IsNullOrEmpty(userIdStr))
             {
                 _memoryCache.TryGetValue($"refresh_token:{input.RefreshToken}", out userIdStr);
+            }
+
+            // 3. Fallback to PostgreSQL database for resilient session restoration
+            RefreshToken? dbRecord = null;
+            if (string.IsNullOrEmpty(userIdStr) && _dbContext != null)
+            {
+                try
+                {
+                    dbRecord = await _dbContext.RefreshTokens
+                        .FirstOrDefaultAsync(r => r.Token == input.RefreshToken && r.RevokedAt == null && r.ExpiresAt > DateTime.UtcNow);
+                    if (dbRecord != null)
+                    {
+                        userIdStr = dbRecord.UserId.ToString();
+                    }
+                }
+                catch { }
             }
 
             if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
@@ -278,7 +313,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return Unauthorized(new { success = false, error_code = "USER_NOT_FOUND", message = "User not found." });
             }
 
-            // Invalidate previous refresh token
+            // Invalidate previous refresh token in cache
             if (_redisConnection != null && _redisConnection.IsConnected)
             {
                 try
@@ -286,15 +321,9 @@ namespace LeitnerPlatform.API.Controllers.v1
                     var db = _redisConnection.GetDatabase();
                     await db.KeyDeleteAsync($"refresh_token:{input.RefreshToken}");
                 }
-                catch
-                {
-                    _memoryCache.Remove($"refresh_token:{input.RefreshToken}");
-                }
+                catch { }
             }
-            else
-            {
-                _memoryCache.Remove($"refresh_token:{input.RefreshToken}");
-            }
+            _memoryCache.Remove($"refresh_token:{input.RefreshToken}");
 
             // Fetch custom token lifetimes
             var jwtLifetime = await GetJwtLifetimeAsync();
@@ -304,6 +333,36 @@ namespace LeitnerPlatform.API.Controllers.v1
             var newJwtToken = GenerateJwtToken(user!, jwtLifetime);
             var newRefreshToken = Guid.NewGuid().ToString();
 
+            // Persist rotation in PostgreSQL database
+            if (_dbContext != null)
+            {
+                try
+                {
+                    if (dbRecord == null)
+                    {
+                        dbRecord = await _dbContext.RefreshTokens.FirstOrDefaultAsync(r => r.Token == input.RefreshToken);
+                    }
+                    if (dbRecord != null)
+                    {
+                        dbRecord.RevokedAt = DateTime.UtcNow;
+                        dbRecord.ReplacedByToken = newRefreshToken;
+                    }
+
+                    var newDbRefreshToken = new RefreshToken
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = user.Id,
+                        Token = newRefreshToken,
+                        ExpiresAt = DateTime.UtcNow.Add(refreshTokenLifetime),
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _dbContext.RefreshTokens.Add(newDbRefreshToken);
+                    await _dbContext.SaveChangesAsync();
+                }
+                catch { }
+            }
+
+            // Save new refresh token in cache
             if (_redisConnection != null && _redisConnection.IsConnected)
             {
                 try
