@@ -180,7 +180,7 @@ jobs:
           retention-days: 14
 
       - name: Send Android Package to Rubika Bot
-        if: ${{ (inputs.send_to_rubika != false) && success() }}
+        if: ${{ (github.event_name == 'push' || inputs.send_to_rubika != false) && success() }}
         env:
           RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN || 'CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL' }}
         run: |
@@ -284,7 +284,7 @@ jobs:
           retention-days: 14
 
       - name: Send iOS Package to Rubika Bot
-        if: ${{ (inputs.send_to_rubika != false) && success() }}
+        if: ${{ (github.event_name == 'push' || inputs.send_to_rubika != false) && success() }}
         env:
           RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN || 'CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL' }}
         run: |
