@@ -50,18 +50,21 @@ namespace LeitnerPlatform.API.Controllers.v1
             {
                 // User's completed individual course purchases
                 completedCoursePurchases = await _context.Purchases
+                    .AsNoTracking()
                     .Where(p => p.UserId == userId && p.Status == "COMPLETED")
                     .Select(p => p.CourseId)
                     .ToListAsync();
 
                 // Completed package purchases
                 completedPackagePurchases = await _context.PackagePurchases
+                    .AsNoTracking()
                     .Where(p => p.UserId == userId && p.Status == "COMPLETED")
                     .Select(p => p.PackageId)
                     .ToListAsync();
             }
 
             var packages = await _context.CoursePackages
+                .AsNoTracking()
                 .Where(p => p.IsPublished && !p.IsArchived)
                 .Include(p => p.Items)
                     .ThenInclude(i => i.Course)

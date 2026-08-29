@@ -31,6 +31,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
   late int _selectedTab;
   int _catalogFilterIndex = 0; // 0: All, 1: Single Courses, 2: Packages
   StreamSubscription<PaymentResult>? _paymentSub;
+  DateTime? _lastResumeReload;
 
   @override
   void initState() {
@@ -44,13 +45,18 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
 
     // Load courses on entry
     context.read<CoursesBloc>().add(LoadCoursesEvent());
+    _lastResumeReload = DateTime.now();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Reload courses when user returns to app from browser or other apps
-      context.read<CoursesBloc>().add(LoadCoursesEvent());
+      final now = DateTime.now();
+      // Throttle resume refreshes to at most once every 3 minutes
+      if (_lastResumeReload == null || now.difference(_lastResumeReload!).inSeconds > 180) {
+        _lastResumeReload = now;
+        context.read<CoursesBloc>().add(LoadCoursesEvent());
+      }
     }
   }
 

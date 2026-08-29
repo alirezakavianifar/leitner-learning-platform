@@ -11,7 +11,7 @@ abstract class CoursesLocalDataSource {
   Future<void> cacheCourses(List<CourseModel> courses);
   Future<List<CourseModel>> getCachedCourses();
   Future<void> cachePackages(List<CoursePackageModel> packages);
-  Future<List<CoursePackageModel>> getCachedPackages();
+  Future<List<CoursePackageModel>> getCachedPackages([List<CourseModel>? preloadedCourses]);
   Future<bool> isCourseDownloaded(String courseId);
   Future<String> getCourseDatabasePath(String courseId);
   Future<void> saveDownloadedCourse({
@@ -25,8 +25,18 @@ abstract class CoursesLocalDataSource {
 
 class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
   final DatabaseHelper databaseHelper;
+  String? _cachedCoursesBasePath;
 
   CoursesLocalDataSourceImpl({required this.databaseHelper});
+
+  Future<String> _getBaseCoursesDirectory() async {
+    if (_cachedCoursesBasePath != null) {
+      return _cachedCoursesBasePath!;
+    }
+    final docDir = await getApplicationDocumentsDirectory();
+    _cachedCoursesBasePath = p.join(docDir.path, 'courses');
+    return _cachedCoursesBasePath!;
+  }
 
   @override
   Future<void> cacheCourses(List<CourseModel> courses) async {
@@ -71,18 +81,21 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
   Future<List<CourseModel>> getCachedCourses() async {
     final db = await databaseHelper.localDatabase;
     final List<Map<String, dynamic>> maps = await db.query('courses_cache', orderBy: 'title');
-    
+    if (maps.isEmpty) return [];
+
+    final baseDir = await _getBaseCoursesDirectory();
     final List<CourseModel> list = [];
+
     for (final map in maps) {
       final courseId = map['id'] as String;
-      final isDownloaded = await isCourseDownloaded(courseId);
-      final dbPath = isDownloaded ? await getCourseDatabasePath(courseId) : null;
+      final dbPath = p.join(baseDir, courseId, 'course.db');
+      final isDownloaded = File(dbPath).existsSync();
       
       list.add(
         CourseModel.fromCacheMap(
           map,
           isDownloaded: isDownloaded,
-          localDbPath: dbPath,
+          localDbPath: isDownloaded ? dbPath : null,
         ),
       );
     }
@@ -120,31 +133,33 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
   }
 
   @override
-  Future<List<CoursePackageModel>> getCachedPackages() async {
+  Future<List<CoursePackageModel>> getCachedPackages([List<CourseModel>? preloadedCourses]) async {
     final db = await databaseHelper.localDatabase;
-    final cachedCourses = await getCachedCourses();
+    final cachedCourses = preloadedCourses ?? await getCachedCourses();
     final courseMap = {for (final c in cachedCourses) c.id: c};
 
     final List<Map<String, dynamic>> pkgMaps = await db.query('packages_cache', orderBy: 'title');
-    final List<CoursePackageModel> result = [];
+    if (pkgMaps.isEmpty) return [];
 
+    // Fetch all package course links in a single query to avoid N+1 query overhead
+    final List<Map<String, dynamic>> allItemRows = await db.query(
+      'package_courses_cache',
+      orderBy: 'package_id, display_order',
+    );
+
+    final Map<String, List<CourseModel>> packageCoursesMap = {};
+    for (final item in allItemRows) {
+      final pkgId = item['package_id'] as String;
+      final cId = item['course_id'] as String;
+      if (courseMap.containsKey(cId)) {
+        packageCoursesMap.putIfAbsent(pkgId, () => []).add(courseMap[cId]!);
+      }
+    }
+
+    final List<CoursePackageModel> result = [];
     for (final pkgMap in pkgMaps) {
       final pkgId = pkgMap['id'] as String;
-      final List<Map<String, dynamic>> itemRows = await db.query(
-        'package_courses_cache',
-        where: 'package_id = ?',
-        whereArgs: [pkgId],
-        orderBy: 'display_order',
-      );
-
-      final List<CourseModel> pkgCourses = [];
-      for (final item in itemRows) {
-        final cId = item['course_id'] as String;
-        if (courseMap.containsKey(cId)) {
-          pkgCourses.add(courseMap[cId]!);
-        }
-      }
-
+      final pkgCourses = packageCoursesMap[pkgId] ?? [];
       result.add(CoursePackageModel.fromCacheMap(pkgMap, courses: pkgCourses));
     }
 
@@ -159,8 +174,8 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
 
   @override
   Future<String> getCourseDatabasePath(String courseId) async {
-    final docDir = await getApplicationDocumentsDirectory();
-    return p.join(docDir.path, 'courses', courseId, 'course.db');
+    final baseDir = await _getBaseCoursesDirectory();
+    return p.join(baseDir, courseId, 'course.db');
   }
 
   @override

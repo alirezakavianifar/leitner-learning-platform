@@ -23,10 +23,23 @@ class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
     LoadCoursesEvent event,
     Emitter<CoursesState> emit,
   ) async {
-    emit(CoursesLoading());
+    final currentState = state;
+    final bool hasExistingData = currentState is CoursesLoaded &&
+        (currentState.courses.isNotEmpty || currentState.packages.isNotEmpty);
+
+    // Only show full-screen loading spinner if there is no existing catalog displayed
+    if (!hasExistingData && currentState is! CourseDownloading) {
+      emit(CoursesLoading());
+    }
+
     final result = await getCoursesAndPackagesUseCase(NoParams());
     result.fold(
-      (failure) => emit(CoursesError(message: failure.message)),
+      (failure) {
+        // If we don't have any cached data on screen, show error state
+        if (!hasExistingData && state is! CoursesLoaded) {
+          emit(CoursesError(message: failure.message));
+        }
+      },
       (data) {
         final (courses, packages, isOffline) = data;
         emit(CoursesLoaded(courses: courses, packages: packages, isOffline: isOffline));

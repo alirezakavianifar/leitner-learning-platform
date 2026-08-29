@@ -25,8 +25,8 @@ class DioClient {
     this.onUnauthorized,
   }) {
     dio.options.baseUrl = normalizeApiBaseUrl(baseUrl);
-    dio.options.connectTimeout = const Duration(seconds: 60);
-    dio.options.receiveTimeout = const Duration(seconds: 180);
+    dio.options.connectTimeout = const Duration(seconds: 10);
+    dio.options.receiveTimeout = const Duration(seconds: 20);
     dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',

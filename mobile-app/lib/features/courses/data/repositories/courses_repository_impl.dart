@@ -92,60 +92,62 @@ class CoursesRepositoryImpl implements CoursesRepository {
 
   @override
   Future<Either<Failure, (List<Course> courses, List<CoursePackage> packages, bool isOffline)>> getCoursesAndPackages() async {
-    List<CourseModel> remoteCourses = [];
+    List<CourseModel>? remoteCourses;
+    List<CoursePackageModel>? remotePackages;
     bool fetchedFromRemote = false;
 
     try {
-      remoteCourses = await remoteDataSource.getCourses();
-      fetchedFromRemote = true;
+      // 1. Fetch remote courses and packages concurrently in parallel
+      final results = await Future.wait([
+        remoteDataSource.getCourses().then<dynamic>((res) => res).catchError((_) => null),
+        remoteDataSource.getPackages().then<dynamic>((res) => res).catchError((_) => null),
+      ]);
+
+      if (results[0] is List<CourseModel>) {
+        remoteCourses = results[0] as List<CourseModel>;
+        remotePackages = results[1] is List<CoursePackageModel> ? results[1] as List<CoursePackageModel> : [];
+        fetchedFromRemote = true;
+      }
     } catch (_) {
       fetchedFromRemote = false;
     }
 
-    if (fetchedFromRemote) {
-      // 2. Fetch remote packages (safely handle errors/404s)
-      List<CoursePackageModel> remotePackages = [];
-      try {
-        remotePackages = await remoteDataSource.getPackages();
-      } catch (_) {
-        remotePackages = [];
-      }
-
+    if (fetchedFromRemote && remoteCourses != null) {
       if (kIsWeb) {
         return Right((
           remoteCourses,
-          remotePackages,
+          remotePackages ?? [],
           false,
         ));
       }
 
-      // 3. Cache locally (isolated from network result)
+      // 2. Cache locally asynchronously
       try {
         await localDataSource.cacheCourses(remoteCourses);
-        if (remotePackages.isNotEmpty) {
+        if (remotePackages != null && remotePackages.isNotEmpty) {
           await localDataSource.cachePackages(remotePackages);
         }
       } catch (_) {}
 
       try {
         final cachedCourses = await localDataSource.getCachedCourses();
-        final cachedPackages = await localDataSource.getCachedPackages();
+        final cachedPackages = await localDataSource.getCachedPackages(cachedCourses);
         return Right((
           cachedCourses.isNotEmpty ? cachedCourses : remoteCourses,
-          cachedPackages.isNotEmpty ? cachedPackages : remotePackages,
+          cachedPackages.isNotEmpty ? cachedPackages : (remotePackages ?? []),
           false,
         ));
       } catch (_) {
-        return Right((remoteCourses, remotePackages, false));
+        return Right((remoteCourses, remotePackages ?? [], false));
       }
     } else {
-      // True offline fallback: load from local cache
+      // Offline fallback: load from local cache
       if (kIsWeb) {
         return Left(NetworkFailure('Failed to load catalog from server.'));
       }
       try {
         final cachedCourses = await localDataSource.getCachedCourses();
-        final cachedPackages = await localDataSource.getCachedPackages();
+        final cachedPackages = await localDataSource.getCachedPackages(cachedCourses);
 
         if (cachedCourses.isNotEmpty || cachedPackages.isNotEmpty) {
           return Right((cachedCourses, cachedPackages, true));
