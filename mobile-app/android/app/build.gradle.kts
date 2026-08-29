@@ -1,7 +1,18 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keystorePropertiesFile = rootProject.file("key.properties").takeIf { it.exists() }
+    ?: rootProject.file("app/key.properties").takeIf { it.exists() }
+    ?: file("key.properties")
+
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
 android {
@@ -16,21 +27,41 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.leitnerplatform.mobile_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                val keyStorePath = keystoreProperties.getProperty("storeFile") ?: "upload-keystore.jks"
+                val resolvedStoreFile = if (file(keyStorePath).exists()) {
+                    file(keyStorePath)
+                } else if (file("app/$keyStorePath").exists()) {
+                    file("app/$keyStorePath")
+                } else if (rootProject.file("app/$keyStorePath").exists()) {
+                    rootProject.file("app/$keyStorePath")
+                } else {
+                    file(keyStorePath)
+                }
+                keyAlias = keystoreProperties.getProperty("keyAlias") ?: "upload"
+                keyPassword = keystoreProperties.getProperty("keyPassword") ?: "leitner123456"
+                storeFile = resolvedStoreFile
+                storePassword = keystoreProperties.getProperty("storePassword") ?: "leitner123456"
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

@@ -40,7 +40,6 @@ yarn-error.log*
 ios/Flutter/Generated.xcconfig
 ios/Flutter/flutter_export_environment.sh
 ios/Flutter/flutter_executable_scheme.sh
-android/key.properties
 ios/Flutter/App.framework
 ios/Flutter/App.podspec
 ios/Flutter/Flutter.framework
