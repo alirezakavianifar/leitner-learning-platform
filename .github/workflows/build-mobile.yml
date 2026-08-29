@@ -1,6 +1,14 @@
 name: Unified Mobile Build Pipeline (Android & iOS)
 
 on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - 'mobile-app/**'
+      - 'scripts/**'
+      - '.github/workflows/build-mobile.yml'
   workflow_dispatch:
     inputs:
       flavor:
