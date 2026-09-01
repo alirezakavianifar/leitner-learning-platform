@@ -302,7 +302,12 @@ powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms OFF
            - **AltStore / Scarlet / TrollStore:** Import `app-premium-release.ipa` directly on the device.
            - **Appetize.io Live In-Browser Streaming:** Drag `app-premium-ios-simulator.zip` to [Appetize.io Upload](https://appetize.io/upload) to test the app in an interactive iOS simulator directly in your browser.
 
-
+    *   **App Icon & Notification Icon Asset Generation:**
+        To generate, optimize, and synchronize all launcher icons, in-app WebP assets, and Android status bar notification silhouettes:
+        ```bash
+        python scripts/generate_app_icons.py icon/icon.png
+        ```
+        The script automatically cleans faux-checkerboard artifacts, defringes edge transitions, blends the dark navy background (`#000B19`), squares the canvas preserving 1:1 artwork proportions, and generates optimized resolution assets across Android (`mipmap-*`, `drawable-*`), iOS (`AppIcon.appiconset`), macOS, Windows, Web, and Flutter in-app assets (`app_icon.webp`).
 
 ---
 

@@ -72,7 +72,7 @@ class LocalNotificationService {
       _configureLocalTimeZone();
 
       const AndroidInitializationSettings androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+          AndroidInitializationSettings('@drawable/ic_notification');
 
       const DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
         requestAlertPermission: true,
@@ -167,7 +167,7 @@ class LocalNotificationService {
       channelDescription: cardReviewChannelDescription,
       importance: Importance.max,
       priority: Priority.max,
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_notification',
       playSound: true,
       enableVibration: true,
       showWhen: true,
