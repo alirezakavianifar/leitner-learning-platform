@@ -5,6 +5,7 @@ import socket
 import argparse
 import subprocess
 import requests
+import base64
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -122,6 +123,7 @@ def upload_via_streaming(file_path, use_proxy=False):
     file_name = os.path.basename(file_path)
     file_size = os.path.getsize(file_path)
     mb_size = file_size / (1024 * 1024)
+    network_type = "SOCKS5 proxy" if use_proxy else "direct connection"
 
     session = requests.Session()
     if use_proxy:
@@ -166,10 +168,13 @@ def upload_via_streaming(file_path, use_proxy=False):
                         print(f"\r  [{bar}] {pct:5.1f}% ({mb_done:.1f}/{mb_tot:.1f} MB @ {speed:.2f} MB/s)", end="", flush=True)
                 return callback
 
+            content_type = "application/zip" if file_name.endswith(".zip") else (
+                "application/vnd.android.package-archive" if file_name.endswith(".apk") else "application/octet-stream"
+            )
             with open(file_path, "rb") as f:
-                encoder = MultipartEncoder(fields={"file": (file_name, f, "application/zip")})
+                encoder = MultipartEncoder(fields={"file": (file_name, f, content_type)})
                 monitor = MultipartEncoderMonitor(encoder, create_progress_callback())
-                up_res = session.post(upload_url, data=monitor, headers={"Content-Type": monitor.content_type}, timeout=180)
+                up_res = session.post(upload_url, data=monitor, headers={"Content-Type": monitor.content_type}, timeout=300)
                 up_json = up_res.json()
 
             print()
@@ -185,13 +190,14 @@ def upload_via_streaming(file_path, use_proxy=False):
 
             # Send file message to chats
             chats = get_active_chats(session)
+            zip_note = "\n\n⚠️ Note: Please extract/unzip this .zip file on your phone first, then install the APK inside." if file_name.endswith(".zip") else ""
             for cid in chats:
                 send_payload = {
                     "chat_id": cid,
                     "file_id": file_id,
-                    "text": f"🚀 New App Update: {file_name}\n\n📦 File: {file_name} ({mb_size:.2f} MB)"
+                    "text": f"🚀 New App Update: {file_name}\n\n📦 File: {file_name} ({mb_size:.2f} MB){zip_note}"
                 }
-                s_res = session.post(f"https://botapi.rubika.ir/v3/{RUBIKA_TOKEN}/sendFile", json=send_payload, timeout=20).json()
+                s_res = session.post(f"https://botapi.rubika.ir/v3/{RUBIKA_TOKEN}/sendFile", json=send_payload, timeout=25).json()
                 print(f"  [OK] Delivered to chat {cid}: {s_res.get('status')}")
 
             return True
