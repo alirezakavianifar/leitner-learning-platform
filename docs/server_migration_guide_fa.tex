@@ -1,0 +1,774 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{geometry}
+\geometry{a4paper, top=25mm, bottom=25mm, left=20mm, right=20mm}
+
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue,
+    pdftitle={راهنمای جامع مهاجرت و انتقال سرور پلتفرم آموزشی لایتنر به همراه رمزها و ساختار SQL},
+    pdfauthor={تیم توسعه سکوی یادگیری لایتنر}
+}
+
+% Header and Footer styling
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\small راهنمای جامع مهاجرت سرور و مستندات دیتابیس}
+\fancyhead[L]{\small سکوی یادگیری لایتنر}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% XePersian MUST be loaded as the last package
+\usepackage{xepersian}
+\settextfont{Vazirmatn}
+
+\begin{document}
+
+% ----------------------------------------------------------------------
+% Cover / Title Section
+% ----------------------------------------------------------------------
+\begin{titlepage}
+    \centering
+    \vspace*{1.5cm}
+    
+    {\Huge\textbf{سکوی یادگیری لایتنر (RightLearn)}}\\[0.8cm]
+    {\LARGE\textbf{سند فنی و دستورالعمل جامع انتقال و مهاجرت سرور}}\\[0.4cm]
+    {\Large به همراه کلیه رمزهای عبور دیتابیس، مشخصات امنیتی و فایل‌های مایگریشن \lr{SQL}}\\[1.5cm]
+    
+    \vspace*{2cm}
+    
+    \begin{trivlist}
+        \item \textbf{خلاصه اهداف و محتوای سند:}
+        \item این مستند حاوی کلیه اطلاعات حساس و فنی مورد نیاز برای انتقال، پشتیبان‌گیری، بازیابی و مدیریت زیرساخت سرور سکوی یادگیری لایتنر می‌باشد. تمامی رمزهای عبور دیتابیس \verb|PostgreSQL|، ردیس، کلیدهای احراز هویت \verb|JWT|، درگاه پیامک و پرداخت به همراه شرح دقیق ۱۷ فایل مایگریشن \verb|SQL| در این سند گنجانده شده است تا سرور جدید با تضمین عدم از دست رفتن اطلاعات (\lr{Zero Data Loss}) راه‌اندازی گردد.
+    \end{trivlist}
+    
+    \vfill
+    {\small این سند حاوی اطلاعات محرمانه سیستم است و باید در نگهداری آن دقت لازم به عمل آید.}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ----------------------------------------------------------------------
+% Section 1
+% ----------------------------------------------------------------------
+\section{مقدمه و اهداف مهاجرت}
+هنگامی که نیاز به ارتقای سخت‌افزار، تغییر دیتاسنتر یا جابه‌جایی سرور میزبان سکوی لایتنر ایجاد می‌شود، عملیات انتقال باید با رعایت کامل پروتکل‌های امنیتی و با هدف \textbf{عدم از دست رفتن حتی یک رکورد اطلاعاتی} (\lr{Zero Data Loss}) و \textbf{کوتاه‌ترین زمان قطعی ممکن} (\lr{Minimal Downtime}) صورت پذیرد.
+
+این راهنما شامل کلیه مراحل از آماده‌سازی دامنه، کانفیگ لینوکس اوبونتو، نصب ابزارهای کانتینری داکر، پشتیبان‌گیری و بازیابی پایگاه داده \verb|PostgreSQL|، انتقال داده‌های پایدار، راه‌اندازی پروکسی معکوس \verb|Nginx|، صدور مجدد گواهی امنیتی \verb|SSL|، تحویل فایل‌های اسکریپت دیتابیس \verb|SQL| و بازنشانی اعتبارسنجی‌ها می‌باشد.
+
+% ----------------------------------------------------------------------
+% Section 2
+% ----------------------------------------------------------------------
+\section{معماری سرویس‌ها و داده‌های مستقر در سرور}
+ساختار اجرایی سامانه مبتنی بر معماری میکروسرویس کانتینری داکر (\verb|Docker Compose|) به همراه لایه پروکسی وب در سطح سیستم‌عامل میزبان می‌باشد:
+
+\subsection{سرویس‌های کانتینری (\lr{Docker Stack})}
+\begin{itemize}
+    \item \textbf{پایگاه داده (\lr{leitner-postgres-db}):} دیتابیس \verb|PostgreSQL 16 Alpine| حاوی اطلاعات کاربران، سوابق لایتنر، لاگ‌ها، سفارشات، پرداخت‌ها و تنظیمات سیستم.
+    \item \textbf{سرویس کش و صف پیام (\lr{leitner-redis-cache}):} سرور \verb|Redis 7.2 Alpine| جهت نشست‌ها، کش داده‌ها و رویدادهای بی‌درنگ.
+    \item \textbf{هسته سرویس‌دهنده و وب‌سرویس (\lr{leitner-backend-api}):} سرویس \verb|ASP.NET Core 8.0| پاسخگوی درخواست‌های اپلیکیشن موبایل و پنل وب روی پورت داخلی \verb|8080|.
+    \item \textbf{پنل وب مدیریت (\lr{leitner-admin-panel}):} واسط کاربری تحت وب مبتنی بر \verb|React/Vite| سرویس‌دهنده روی پورت داخلی \verb|8081| (یا \verb|80|).
+    \item \textbf{پردازشگر وظایف پس‌زمینه (\lr{leitner-background-worker}):} سرویس زمان‌بندی و پشتیبان‌گیری خودکار مبتنی بر دات‌نت و \verb|Hangfire|.
+\end{itemize}
+
+\subsection{داده‌ها و فایل‌های پایدار که باید انتقال یابند}
+\begin{enumerate}
+    \item \textbf{دامپ دیتابیس \lr{leitner\_db}:} تمامی جداول، داده‌ها و ایندکس‌های پایگاه داده.
+    \item \textbf{فایل‌های فشرده دوره‌ها (\lr{Course Packages}):} بسته‌های دوره‌ها شامل فایل‌های دیتابیس آفلاین \verb|.db|، پوشه‌های صوتی و تصاویر دوره‌ها در مسیر:\\
+    \verb|/opt/leitner-platform/backend/LeitnerPlatform.API/wwwroot/courses/|
+    \item \textbf{تصاویر آپلودی کاربران و برندسازی:} آواتارها و لوگوی سامانه در مسیر:\\
+    \verb|/opt/leitner-platform/backend/LeitnerPlatform.API/wwwroot/uploads/|
+    \item \textbf{فایل متغیرهای محیطی (\lr{.env}):} شامل کلیه رمزهای عبور، کلیدهای دسترسی پیامک و درگاه.
+\end{enumerate}
+
+\begin{table}[ht]
+\centering
+\caption{جدول مشخصات پورت‌ها و پروتکل‌های سرویس‌های سرور}
+\vspace{2mm}
+\begin{tabularx}{\textwidth}{llllX}
+\toprule
+\textbf{نام سرویس} & \textbf{پورت هاست} & \textbf{پورت کانتینر} & \textbf{پروتکل} & \textbf{توضیحات و کاربرد} \\
+\midrule
+Nginx (Host) & 80, 443 & - & HTTP/HTTPS & پروکسی وب و ورودی اصلی \\
+Web API & 8080 & 8080 & HTTP & هسته وب‌سرویس بک‌اند \\
+Admin Web & 8081 & 80 & HTTP & پنل مدیریت لایتنر \\
+PostgreSQL & 5432 & 5432 & TCP & پایگاه داده لایتنر \\
+Redis & 6379 & 6379 & TCP & کش و صف رویداد \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ----------------------------------------------------------------------
+% Section 3: Passwords and Credentials
+% ----------------------------------------------------------------------
+\newpage
+\section{اطلاعات محرمانه، رمزهای عبور دیتابیس و اعتبارسنجی‌ها}
+در این بخش کلیه کلمات عبور، نام‌های کاربری و رشته‌های اتصال به پایگاه داده و سرویس‌ها به طور کامل مستند شده است:
+
+\subsection{اطلاعات دسترسی به پایگاه داده \lr{PostgreSQL 16}}
+\begin{table}[ht]
+\centering
+\caption{مشخصات اتصال و کلمات عبور پایگاه داده اصلی}
+\vspace{2mm}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{پارامتر} & \textbf{مقدار و مقداردهی محیطی} \\
+\midrule
+نام پایگاه داده (\lr{Database Name}) & \verb|leitner_db| \\
+نام کاربری مدیر دیتابیس (\lr{Database User}) & \verb|leitner_admin| \\
+رمز عبور دیتابیس (\lr{Database Password}) & \verb|leitner_secure_pass_2026| \\
+پورت پیش‌فرض کانتینر و هاست & \verb|5432| \\
+میزبان درون شبکه داکر (\lr{Internal Host}) & \verb|db| (یا \verb|leitner-postgres-db|) \\
+میزبان خارج از کانتینر (\lr{Host/VPS}) & \verb|localhost| یا \verb|127.0.0.1| \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{رشته اتصال درون شبکه کانتینری داکر:}
+\begin{latin}
+\footnotesize
+\begin{verbatim}
+Server=db;Port=5432;Database=leitner_db;User Id=leitner_admin;Password=leitner_secure_pass_2026;
+\end{verbatim}
+\end{latin}
+
+\textbf{رشته اتصال از طریق هاست یا نرم‌افزارهای مدیریت دیتابیس (مانند DBeaver یا pgAdmin):}
+\begin{latin}
+\footnotesize
+\begin{verbatim}
+Server=127.0.0.1;Port=5432;Database=leitner_db;User Id=leitner_admin;Password=leitner_secure_pass_2026;
+\end{verbatim}
+\end{latin}
+
+\subsection{اطلاعات اتصال سرویس کش و صف پیام \lr{Redis 7.2}}
+\begin{table}[ht]
+\centering
+\caption{مشخصات اتصال و رمز عبور سرویس ردیس}
+\vspace{2mm}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{پارامتر} & \textbf{مقدار} \\
+\midrule
+میزبان کانتینری (\lr{Host}) & \lr{\texttt{redis}} (یا \lr{\texttt{leitner-redis-cache}}) \\
+پورت اتصال (\lr{Port}) & \verb|6379| \\
+رمز عبور عبور امنیتی (\lr{Requirepass}) & \lr{\texttt{redis\_secure\_pass\_2026}} \\
+رشته اتصال در هسته دات‌نت (\lr{Connection String}) & {\small\lr{\texttt{redis:6379,password=redis\_secure\_pass\_2026}}} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{کلیدهای امنیتی احراز هویت \lr{JWT} و توکن‌ها}
+\begin{itemize}
+    \item \textbf{کلید امضای رمزنگاری توکن (\lr{JWT\_SECRET\_KEY}):}
+    \begin{latin}
+    \lr{\texttt{jwt\_secret\_lts\_2026\_super\_secure\_key}}
+    \end{latin}
+    \textbf{نکته مهم:} این کلید در سرور جدید دقیقاً باید با سرور قبلی یکسان باشد؛ در غیر این صورت، نشست ورود تمام کاربرانی که در اپلیکیشن لاگین کرده‌اند منقضی شده و ناچار به لاگین مجدد می‌شوند.
+    \item \textbf{صادرکننده توکن (\lr{Issuer}) و مخاطب (\lr{Audience}):} \verb|LeitnerLearningPlatform|
+    \item \textbf{مدت اعتبار توکن دسترسی (\lr{Access Token}):} ۱۵ دقیقه (تجدید خودکار با Refresh Token تا ۳۰ روز).
+\end{itemize}
+
+\subsection{اطلاعات درگاه پیامک و پرداخت ریالی}
+\begin{table}[ht]
+\centering
+\caption{کلیدهای درگاه پیامک و درگاه پرداخت آنلاین}
+\vspace{2mm}
+\begin{tabularx}{\textwidth}{lp{10.5cm}}
+\toprule
+\textbf{سرویس} & \textbf{کلید و تنظیمات ثبت‌شده} \\
+\midrule
+ارائه‌دهنده پیامک (\lr{SMS Provider}) & \lr{\texttt{IranPayamak}} (و سازگار با \lr{\texttt{Kavenegar}}) \\
+کلید وب‌سرویس پیامک (\lr{API Key}) & {\footnotesize\lr{\texttt{AfhU2pzBoaWmXI3HYx7YipKbQBGaBYBYjpRSMLTSO1bOSICWeV}}} \\
+سرشماره اختصاصی ارسال پیامک & \verb|50002178584000| \\
+کد الگوی اعتبارسنجی (\lr{Pattern Code}) & \verb|coHfKHvJK6| \\
+مرچنت درگاه پرداخت زرین‌پال (\lr{Merchant ID}) & \lr{\texttt{167ccd1b-f5d3-407d-85d1-a73c4f2ba3eb}} \\
+آدرس کال‌بک بازگشت تراکنش & {\footnotesize\url{https://api.rightlearn.ir/api/v1/purchases/zarinpal/callback}} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{اطلاعات دسترسی به سرور لینوکس میزبان (\lr{VPS})}
+\begin{itemize}
+    \item \textbf{نام کاربری سیستمی:} \verb|root|
+    \item \textbf{آی‌پی سرور فعلی مبدا:} \verb|45.94.215.188|
+    \item \textbf{رمز عبور کاربر root سرور فعلی:} \verb|UuP>wKyk45h,bw4b2026|
+    \item \textbf{کلید احراز هویت بدون رمز (SSH Key):} کلید خصوصی \verb|id_rsa_deploy|
+\end{itemize}
+
+\subsection{محتوای استاندارد فایل پیکربندی \lr{.env} سرور}
+فایل \verb|/opt/leitner-platform/.env| در سرور جدید باید دارای مقادیر زیر باشد:
+
+\begin{latin}
+\small
+\begin{verbatim}
+# Database & Cache Configurations
+DB_PASSWORD=leitner_secure_pass_2026
+REDIS_PASSWORD=redis_secure_pass_2026
+
+# Backend Security & JWT
+ASPNETCORE_ENVIRONMENT=Production
+JWT_SECRET_KEY=jwt_secret_lts_2026_super_secure_key
+
+# Ports
+ADMIN_PORT=8081
+BACKEND_PORT=8080
+
+# SMS OTP Provider
+SMS_PROVIDER=IranPayamak
+SMS_GATEWAY_API_KEY=AfhU2pzBoaWmXI3HYx7YipKbQBGaBYBYjpRSMLTSO1bOSICWeV
+SMS_SENDER=50002178584000
+SMS_PATTERN_CODE=coHfKHvJK6
+
+# ZarinPal IPG
+ZARINPAL_MERCHANT_ID=167ccd1b-f5d3-407d-85d1-a73c4f2ba3eb
+ZARINPAL_SANDBOX=false
+ZARINPAL_CALLBACK_URL=https://api.rightlearn.ir/api/v1/purchases/zarinpal/callback
+\end{verbatim}
+\end{latin}
+
+% ----------------------------------------------------------------------
+% Section 4: SQL Migration Files
+% ----------------------------------------------------------------------
+\newpage
+\section{ساختار پایگاه داده و فایل‌های اسکریپت مایگریشن \lr{SQL}}
+سکوی لایتنر از موتور مایگریشن استاندارد \lr{DbUp} استفاده می‌کند. تمامی اسکریپت‌های ساختار پایگاه داده در پوشه پروژه به نشانی زیر قرار دارند:
+\begin{latin}
+\verb|deployment/db/migrations/|
+\end{latin}
+هنگامی که کانتینر بک‌اند لایتنر روشن می‌شود، به صورت خودکار فایل‌های مایگریشن را به ترتیب نسخه بررسی کرده و در صورت عدم اجرا، آن‌ها را روی پایگاه داده اعمال می‌نماید. وضعیت اسکریپت‌های اجرا شده در جدول \verb|schemaversions| دیتابیس ذخیره می‌شود.
+
+\subsection{فهرست کامل ۱۷ اسکریپت مایگریشن \lr{SQL} سرور}
+تمامی این فایل‌ها در مسیر ذکر شده موجود بوده و وظیفه ایجاد جداول و تکامل ساختار اطلاعاتی سیستم را بر عهده دارند:
+
+\begin{itemize}[leftmargin=0.8cm]
+    \item \textbf{\lr{\texttt{V1\_\_Initial\_Schema.sql}}}:\\
+    ساخت جداول پایه هسته سیستم شامل \lr{\texttt{users}}، \lr{\texttt{courses}}، \lr{\texttt{cards}}، \lr{\texttt{leitner\_progress}}، \lr{\texttt{purchases}}، \lr{\texttt{flashcard\_reports}} و \lr{\texttt{banners}}. تولید خودکار شناسه‌های یکتا (\lr{UUID}) و ایجاد ایندکس‌های کلیدی شماره موبایل و دسته‌بندی دوره‌ها.
+
+    \item \textbf{\lr{\texttt{V2\_\_Add\_User\_IsAdmin.sql}}}:\\
+    افزودن ستون \lr{\texttt{is\_admin}} از نوع بولین به جدول کاربران برای تفکیک دسترسی مدیران سیستم از کاربران عادی.
+
+    \item \textbf{\lr{\texttt{V3\_\_Add\_Course\_Fields.sql}}}:\\
+    افزودن ستون‌های مدت تخمینی دوره (\lr{\texttt{estimated\_duration}}) و تعداد کل کارت‌ها به جدول دوره‌ها.
+
+    \item \textbf{\lr{\texttt{V4\_\_Add\_Remote\_Config.sql}}}:\\
+    ایجاد جدول کلید-مقدار تنظیمات زنده سیستم (\lr{\texttt{system\_configs}}) جهت مدیریت وضعیت حالت تعمیرات (\lr{\texttt{maintenance\_mode}}) و هدر اطلاعیه‌ها.
+
+    \item \textbf{\lr{\texttt{V5\_\_Seed\_Sample\_Courses.sql}}}:\\
+    درج داده‌های اولیه و نمونه دوره‌های آموزشی زبان انگلیسی و پرسش‌های فلش‌کارت جهت تست و اعتبارسنجی اولیه.
+
+    \item \textbf{\lr{\texttt{V6\_\_Update\_Course\_Download\_Urls.sql}}}:\\
+    تنظیم و یکپارچه‌سازی لینک‌های دانلود مستقیم بسته‌های فشرده دوره‌ها (\lr{\texttt{.zip}}) از مسیر وب‌سرور.
+
+    \item \textbf{\lr{\texttt{V7\_\_Add\_Report\_UserMobileNumber.sql}}}:\\
+    ثبت خودکار شماره همراه گزارش‌دهنده خطا در جدول گزارش‌های فلش‌کارت جهت تماس و پشتیبانی آموزشی.
+
+    \item \textbf{\lr{\texttt{V8\_\_Course\_Soft\_Delete\_And\_Versioning.sql}}}:\\
+    پیاده‌سازی مکانیزم حذف نرم (\lr{\texttt{is\_deleted}}) و نگهداری شماره نسخه به‌روزرسانی محتوای دوره‌ها.
+
+    \item \textbf{\lr{\texttt{V9\_\_Seed\_1100\_Words\_Course.sql}}}:\\
+    ثبت مشخصات، تصاویر و متادیتای رسمی دوره پرطرفدار ۱۱۰۰ واژه ضروری بارونز در کاتالوگ دوره‌ها.
+
+    \item \textbf{\lr{\texttt{V10\_\_Add\_Social\_And\_Support\_Configs.sql}}}:\\
+    درج مشخصات کانال روبیکا، تلگرام، شماره تلفن پشتیبانی و ایمیل ارتباطی در جدول تنظیمات ریموت.
+
+    \item \textbf{\lr{\texttt{V11\_\_Add\_Leitner\_Interval\_Configs.sql}}}:\\
+    تعریف فواصل زمانی روزهای جعبه لایتنر (روزهای ۱، ۲، ۴، ۸، ۱۶، ۳۰) در جدول \lr{\texttt{system\_configs}}.
+
+    \item \textbf{\lr{\texttt{V12\_\_Add\_Course\_Packages.sql}}}:\\
+    ساخت جداول فروش بسته‌ای (پکیج جامع چند دوره با تخفیف ویژه) شامل جدول \lr{\texttt{course\_packages}} و جدول پیوندی \lr{\texttt{course\_package\_items}}.
+
+    \item \textbf{\lr{\texttt{V13\_\_Seed\_Sample\_Package.sql}}}:\\
+    ایجاد داده‌های پیش‌فرض برای نمونه پکیج جامع تخفیف‌دار دوره‌های آموزشی در کاتالوگ فروش.
+
+    \item \textbf{\lr{\texttt{V14\_\_Add\_Purchases\_Search\_And\_Filtering\_Indexes.sql}}}:\\
+    ایجاد ایندکس‌های ترکیبی جهت جستجوی سریع تراکنش‌ها و گزارش‌گیری پرداخت‌ها در پنل مدیریت.
+
+    \item \textbf{\lr{\texttt{V15\_\_Add\_Course\_And\_Package\_ImageUrl.sql}}}:\\
+    افزودن ستون آدرس مستقیم تصویر کاور پکیج‌ها و آیکون دوره‌ها در ساختار دیتابیس.
+
+    \item \textbf{\lr{\texttt{V16\_\_Add\_Persistent\_Refresh\_Tokens.sql}}}:\\
+    ساخت جدول \lr{\texttt{refresh\_tokens}} جهت ذخیره‌سازی امن و تمدید خودکار نشست احراز هویت کاربران در اپلیکیشن موبایل تا ۳۰ روز.
+
+    \item \textbf{\lr{\texttt{V17\_\_Add\_User\_ProfilePictureUrl.sql}}}:\\
+    افزودن فیلد آدرس تصویر پروفایل کاربر (\lr{\texttt{profile\_picture\_url}}) برای بارگذاری عکس آواتار در مسیر uploads.
+\end{itemize}
+
+\subsection{دستورات کاربردی اجرای دستی اسکریپت‌های \lr{SQL} روی سرور}
+در صورت نیاز به اجرای دستی اسکریپت‌ها یا اتصال مستقیم به محیط خط فرمان پایگاه داده:
+
+\begin{enumerate}
+    \item \textbf{ورود به محیط ترمینال دیتابیس (\lr{psql CLI}):}
+    \begin{latin}
+    \small
+    \begin{verbatim}
+    docker exec -it leitner-postgres-db psql -U leitner_admin -d leitner_db
+    \end{verbatim}
+    \end{latin}
+    \item \textbf{بررسی جدول نسخه‌های مایگریشن اجرا شده:}
+    \begin{latin}
+    \small
+    \begin{verbatim}
+    SELECT scriptname, applied FROM schemaversions ORDER BY applied DESC;
+    \end{verbatim}
+    \end{latin}
+    \item \textbf{اجرای یک فایل \lr{SQL} مشخص بر روی دیتابیس:}
+    \begin{latin}
+    \small
+    \begin{verbatim}
+    cat /opt/leitner-platform/deployment/db/migrations/V1__Initial_Schema.sql \
+      | docker exec -i leitner-postgres-db psql -U leitner_admin -d leitner_db
+    \end{verbatim}
+    \end{latin}
+\end{enumerate}
+
+% ----------------------------------------------------------------------
+% Section 5
+% ----------------------------------------------------------------------
+\newpage
+\section{مشخصات پیشنهادی سرور جدید و پیش‌نیازها}
+\begin{itemize}
+    \item \textbf{سیستم‌عامل پیشنهادی:} \lr{Ubuntu 24.04 LTS (Noble Numbat)} یا \lr{Ubuntu 22.04 LTS} با معماری \lr{x86\_64}.
+    \item \textbf{سخت‌افزار حداقلی:} ۲ هسته پردازنده (CPU)، حداقل ۴ گیگابایت حافظه رم (RAM) و حداقل ۴۰ گیگابایت حافظه \lr{NVMe SSD}.
+    \item \textbf{سخت‌افزار پیشنهادی:} ۴ هسته پردازنده، ۸ گیگابایت رم، ۸۰ گیگابایت حافظه \lr{NVMe SSD}.
+    \item \textbf{پورت‌های باز فایروال:} پورت ۲۲ (SSH)، پورت ۸۰ (HTTP) و پورت ۴۴۳ (HTTPS).
+\end{itemize}
+
+% ----------------------------------------------------------------------
+% Section 6
+% ----------------------------------------------------------------------
+\section{فاز ۱: اقدامات اولیه پیش از روز مهاجرت (۲۴ تا ۴۸ ساعت قبل)}
+
+\subsection{گام ۱.۱: کاهش زمان حیات رکوردهای دی‌ان‌اس (\lr{DNS TTL})}
+در پنل مدیریت دی‌ان‌اس دامنه (مانند کلودفلر، ابر آروان یا رجیسترار):
+\begin{itemize}
+    \item رکورد \lr{A} مربوط به آدرس \verb|api.rightlearn.ir| را بیابید.
+    \item رکورد \lr{A} مربوط به آدرس اصلی یا پنل مدیریت (\verb|rightlearn.ir|) را بیابید.
+    \item مقدار \lr{TTL} آن‌ها را از حالت خودکار یا ۲۴ ساعت، بر روی \textbf{۳۰۰ ثانیه (۵ دقیقه)} یا \textbf{۶۰ ثانیه} تنظیم نمایید.
+    \item \textbf{اهمیت فنی:} این کار موجب می‌شود در زمان تغییر آی‌پی سرور، ترافیک کاربران ظرف چند دقیقه به سرور جدید منتقل گردد و کش شرکت‌های اینترنتی ایجاد تاخیر نکند.
+\end{itemize}
+
+\subsection{گام ۱.۲: آماده‌سازی دسترسی کلید امنیتی \lr{SSH}}
+کلید عمومی \lr{id\_rsa\_deploy.pub} مربوط به توسعه‌دهنده را روی سرور جدید بارگذاری کنید تا فرآیند ارسال خودکار فایل‌ها و دستورات ترمینال بدون نیاز به وارد کردن مکرر رمز عبور انجام شود:
+
+\begin{latin}
+\small
+\begin{verbatim}
+# From local machine (PowerShell):
+type C:\Users\Administrator\.ssh\id_rsa_deploy.pub | ssh root@<NEW_SERVER_IP> \
+  "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+\end{verbatim}
+\end{latin}
+
+% ----------------------------------------------------------------------
+% Section 7
+% ----------------------------------------------------------------------
+\section{فاز ۲: آماده‌سازی و راه‌اندازی زیرساخت در سرور جدید}
+با دسترسی \lr{root} از طریق \lr{SSH} به سرور مقصد متصل شوید و مراحل زیر را پیاده‌سازی نمایید:
+
+\subsection{گام ۲.۱: به‌روزرسانی سیستم‌عامل و نصب بسته‌های ضروری}
+\begin{latin}
+\small
+\begin{verbatim}
+apt update && apt upgrade -y
+apt install -y curl git ufw build-essential unzip tar nginx certbot python3-certbot-nginx
+\end{verbatim}
+\end{latin}
+
+\subsection{گام ۲.۲: نصب موتور داکر و ابزار \lr{Docker Compose}}
+برای نصب مطمئن و پایدار، از مخزن رسمی داکر استفاده نمایید:
+\begin{latin}
+\small
+\begin{verbatim}
+# Setup Docker official repository:
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+echo "deb [arch=$(dpkg --print-architecture) \
+  signed-by=/etc/apt/keyrings/docker.asc] \
+  https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+apt update
+apt install -y docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
+
+# Verification:
+docker --version
+docker compose version
+\end{verbatim}
+\end{latin}
+
+\subsection{گام ۲.۳: پیکربندی دیواره آتش (\lr{UFW Firewall})}
+جهت مسدودسازی دسترسی مستقیم خارجی به دیتابیس و پورت‌های داخلی:
+\begin{latin}
+\small
+\begin{verbatim}
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow 22/tcp
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw --force enable
+ufw status
+\end{verbatim}
+\end{latin}
+
+\subsection{گام ۲.۴: ساخت ساختار پوشه‌های پلتفرم}
+\begin{latin}
+\small
+\begin{verbatim}
+mkdir -p /opt/leitner-platform
+mkdir -p /var/www/html
+\end{verbatim}
+\end{latin}
+
+% ----------------------------------------------------------------------
+% Section 8
+% ----------------------------------------------------------------------
+\section{فاز ۳: انتقال اولیه کدها و دارایی‌های حجیم (قبل از پنجره قطعی)}
+برای به حداقل رساندن زمان قطعی در لحظه سوییچ نهایی، داده‌های حجیم چندرسانه‌ای را می‌توان زمانی که سرور قدیمی هنوز فعال است انتقال داد:
+
+\subsection{گام ۳.۱: انتقال کدهای اجرایی و فایل‌های پروژه}
+با استفاده از اسکریپت استقرار سیستم یا انتقال مستقیم از طریق \lr{SCP}، ساختار پوشه استقرار، باینری‌های بیلد شده و فایل \verb|.env| به سرور جدید منتقل می‌شود:
+\begin{latin}
+\small
+\begin{verbatim}
+# Remote project layout on destination server:
+/opt/leitner-platform/
+  |-- .env
+  |-- deployment/
+  |-- publish/
+  |-- admin-panel/
+\end{verbatim}
+\end{latin}
+
+\subsection{گام ۳.۲: همگام‌سازی بسته‌های زیپ دوره‌ها و فایل‌های چندرسانه‌ای}
+دستورات زیر را روی سرور قدیمی اجرا کنید تا فایل‌های سنگین را به سرور جدید کپی کند:
+\begin{latin}
+\small
+\begin{verbatim}
+# On OLD server (45.94.215.188):
+rsync -avz /opt/leitner-platform/backend/LeitnerPlatform.API/wwwroot/courses/ \
+  root@<NEW_SERVER_IP>:/opt/leitner-platform/backend/LeitnerPlatform.API/wwwroot/courses/
+
+rsync -avz /opt/leitner-platform/backend/LeitnerPlatform.API/wwwroot/uploads/ \
+  root@<NEW_SERVER_IP>:/opt/leitner-platform/backend/LeitnerPlatform.API/wwwroot/uploads/
+\end{verbatim}
+\end{latin}
+
+% ----------------------------------------------------------------------
+% Section 9
+% ----------------------------------------------------------------------
+\section{فاز ۴: آغاز پنجره مهاجرت و انتقال تضمینی دیتابیس (قطع موقت)}
+\textbf{نکته حیاتی:} این مرحله باید در زمان کم‌ترافیک (مثلاً ساعات پایانی شب) اجرا گردد. کل این مرحله بین ۵ الی ۱۰ دقیقه طول می‌کشد.
+
+\subsection{گام ۴.۱: قرار دادن سیستم در حالت تعمیرات (\lr{Maintenance Mode})}
+برای جلوگیری از ثبت هرگونه سفارش خرید جدید یا مطالعه فلش‌کارت در حین انتقال، سامانه را با اسکریپت پاورشل به حالت تعمیرات سراسری ببرید:
+\begin{latin}
+\small
+\begin{verbatim}
+# From local management console:
+powershell -ExecutionPolicy Bypass -File .\scripts\manage-admin.ps1 \
+  -Action down -Scope Global -ServerIP "45.94.215.188"
+\end{verbatim}
+\end{latin}
+با این کار کاربران اپلیکیشن موبایل بلافاصله صفحه اطلاع‌رسانی تعمیرات را مشاهده خواهند کرد و هیچ تغییری در دیتابیس رخ نمی‌دهد.
+
+\subsection{گام ۴.۲: متوقف کردن کانتینرهای سرویس‌دهنده در سرور قدیمی}
+\begin{latin}
+\small
+\begin{verbatim}
+# On OLD server:
+cd /opt/leitner-platform
+docker compose -f deployment/docker-compose.yml stop backend worker
+\end{verbatim}
+\end{latin}
+
+\subsection{گام ۴.۳: خروجی کامل (\lr{Dump}) از پایگاه داده لایتنر}
+\begin{latin}
+\small
+\begin{verbatim}
+# On OLD server:
+docker exec -t leitner-postgres-db pg_dump -U leitner_admin -d leitner_db \
+  -F c -b -v -f /tmp/leitner_db_backup.dump
+
+gzip -f /tmp/leitner_db_backup.dump
+\end{verbatim}
+\end{latin}
+
+\subsection{گام ۴.۴: ارسال فایل پشتیبان به سرور جدید}
+\begin{latin}
+\small
+\begin{verbatim}
+# Transfer compressed database dump to NEW server:
+scp /tmp/leitner_db_backup.dump.gz root@<NEW_SERVER_IP>:/tmp/
+\end{verbatim}
+\end{latin}
+
+\subsection{گام ۴.۵: راه‌اندازی کانتینر دیتابیس در سرور جدید}
+\begin{latin}
+\small
+\begin{verbatim}
+# On NEW server:
+cd /opt/leitner-platform
+docker compose -f deployment/docker-compose.yml --env-file .env up -d db redis
+\end{verbatim}
+\end{latin}
+چند ثانیه صبر کنید تا سرویس \verb|PostgreSQL| آماده پذیرش اتصال گردد.
+
+\subsection{گام ۴.۶: بازیابی کامل داده‌ها (\lr{Restore}) در سرور جدید}
+\begin{latin}
+\small
+\begin{verbatim}
+# On NEW server:
+gunzip -f /tmp/leitner_db_backup.dump.gz
+
+# Drop existing blank schema and create target database:
+docker exec -i leitner-postgres-db psql -U leitner_admin -d postgres \
+  -c "DROP DATABASE IF EXISTS leitner_db;"
+docker exec -i leitner-postgres-db psql -U leitner_admin -d postgres \
+  -c "CREATE DATABASE leitner_db OWNER leitner_admin;"
+
+# Copy and restore database dump:
+docker cp /tmp/leitner_db_backup.dump leitner-postgres-db:/tmp/leitner_db_backup.dump
+docker exec -i leitner-postgres-db pg_restore -U leitner_admin -d leitner_db \
+  -v /tmp/leitner_db_backup.dump
+
+# Clean temporary files:
+docker exec leitner-postgres-db rm -f /tmp/leitner_db_backup.dump
+rm -f /tmp/leitner_db_backup.dump
+\end{verbatim}
+\end{latin}
+
+% ----------------------------------------------------------------------
+% Section 10
+% ----------------------------------------------------------------------
+\section{فاز ۵: راه‌اندازی کامل کانتینرها در سرور جدید}
+اکنون تمام سرویس‌های پلتفرم را در سرور مقصد استارت کنید:
+\begin{latin}
+\small
+\begin{verbatim}
+# On NEW server:
+cd /opt/leitner-platform
+docker compose -f deployment/docker-compose.yml --env-file .env up -d --build
+
+# Verify all containers are running:
+docker compose -f deployment/docker-compose.yml ps
+\end{verbatim}
+\end{latin}
+باید وضعیت هر ۵ کانتینر در حالت \lr{Up} نمایش داده شود:
+\begin{itemize}
+    \item \lr{leitner-postgres-db}
+    \item \lr{leitner-redis-cache}
+    \item \lr{leitner-backend-api}
+    \item \lr{leitner-admin-panel}
+    \item \lr{leitner-background-worker}
+\end{itemize}
+
+% ----------------------------------------------------------------------
+% Section 11
+% ----------------------------------------------------------------------
+\section{فاز ۶: پیکربندی پروکسی معکوس \lr{Nginx} و گواهی امنیتی \lr{SSL}}
+
+\subsection{گام ۶.۱: انتقال صفحه پشتیبان تعمیرات}
+\begin{latin}
+\small
+\begin{verbatim}
+cp /opt/leitner-platform/deployment/maintenance.html /var/www/html/maintenance.html
+\end{verbatim}
+\end{latin}
+
+\subsection{گام ۶.۲: ساخت کانفیگ پروکسی در \lr{Nginx}}
+فایل \verb|/etc/nginx/sites-available/leitner.conf| را با محتوای زیر روی سرور جدید ایجاد کنید:
+
+\begin{latin}
+\footnotesize
+\begin{verbatim}
+# 1. API Reverse Proxy for Mobile App
+server {
+    listen 80;
+    server_name api.rightlearn.ir;
+    client_max_body_size 200M;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection keep-alive;
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+}
+
+# 2. Admin Panel & Web Gateway
+server {
+    listen 80;
+    server_name rightlearn.ir admin.rightlearn.ir;
+    client_max_body_size 200M;
+
+    error_page 502 503 504 /maintenance.html;
+    location = /maintenance.html {
+        root /var/www/html;
+        internal;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_intercept_errors on;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection keep-alive;
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+}
+\end{verbatim}
+\end{latin}
+
+فعال‌سازی و بازخوانی \lr{Nginx}:
+\begin{latin}
+\small
+\begin{verbatim}
+ln -sf /etc/nginx/sites-available/leitner.conf /etc/nginx/sites-enabled/
+nginx -t
+systemctl reload nginx
+\end{verbatim}
+\end{latin}
+
+% ----------------------------------------------------------------------
+% Section 12
+% ----------------------------------------------------------------------
+\section{فاز ۷: تغییر رکوردهای دی‌ان‌اس و صدور گواهی \lr{SSL}}
+
+\subsection{گام ۷.۱: تغییر نشانی آی‌پی در پنل دی‌ان‌اس (\lr{DNS Cutover})}
+در پنل دامنه خود (کلودفلر / ابر آروان):
+\begin{itemize}
+    \item آی‌پی رکورد \lr{A} دامنه \verb|api.rightlearn.ir| را به \textbf{آی‌پی سرور جدید} تغییر دهید.
+    \item آی‌پی رکورد \lr{A} دامنه \verb|rightlearn.ir| را به \textbf{آی‌پی سرور جدید} تغییر دهید.
+\end{itemize}
+
+\subsection{گام ۷.۲: صدور خودکار گواهی \lr{SSL} با \lr{Certbot}}
+پس از انتشار دی‌ان‌اس (حدود ۱ الی ۵ دقیقه):
+\begin{latin}
+\small
+\begin{verbatim}
+# On NEW server:
+certbot --nginx -d api.rightlearn.ir -d rightlearn.ir
+\end{verbatim}
+\end{latin}
+ابزار \lr{Certbot} به صورت خودکار ریدایرکت \lr{HTTPS} روی پورت ۴۴۳ را فعال ساخته و زمان‌بندی تمدید دوره‌ای آن را ثبت می‌کند.
+
+\subsection{گام ۷.۳: خروج از حالت تعمیرات و فعال‌سازی سرویس‌دهی}
+با دستور زیر روی سرور جدید، حالت تعمیرات را غیرفعال کنید:
+\begin{latin}
+\small
+\begin{verbatim}
+# On NEW server:
+echo "UPDATE system_configs SET value = 'false' WHERE key = 'maintenance_mode';" \
+  | docker exec -i leitner-postgres-db psql -U leitner_admin -d leitner_db
+\end{verbatim}
+\end{latin}
+اکنون اپلیکیشن‌های موبایل کاربران و پنل مدیریت مجدداً به صورت عادی و با اتصال به سرور جدید به کار خود ادامه می‌دهند.
+
+% ----------------------------------------------------------------------
+% Section 13
+% ----------------------------------------------------------------------
+\section{فاز ۸: به‌روزرسانی اسکریپت‌ها و پایپ‌لاین‌های استقرار}
+برای آنکه در بیلدهای بعدی فایل‌ها به سرور جدید ارسال شوند، موارد زیر در مخزن پروژه به‌روزرسانی می‌شوند:
+
+\begin{enumerate}
+    \item \textbf{اسکریپت استقرار:} مقدار متغیر \verb|$ServerIP| در فایل \verb|scripts/deploy-to-server.ps1| به آی‌پی سرور جدید تغییر می‌یابد.
+    \item \textbf{اسکریپت مدیریت لایف‌سایکل:} مقدار متغیر \verb|$ServerIP| در فایل \verb|scripts/manage-admin.ps1| به آی‌پی سرور جدید تغییر می‌یابد.
+    \item \textbf{پایپ‌لاین گیت‌هاب اکشنز (\lr{GitHub Actions}):}
+    \begin{itemize}
+        \item در مسیر مخزن گیت‌هاب به بخش \lr{Settings > Secrets and variables > Actions} مراجعه فرمایید.
+        \item متغیر مخفی \verb|SERVER_IP| را به آی‌پی سرور جدید تغییر دهید.
+        \item در صورتی که کلید \lr{SSH} جدیدی تولید کرده‌اید، مقدار \verb|SERVER_SSH_KEY| را با کلید خصوصی جدید به‌روزرسانی کنید.
+    \end{itemize}
+\end{enumerate}
+
+% ----------------------------------------------------------------------
+% Section 14
+% ----------------------------------------------------------------------
+\section{فاز ۹: چک‌لیست اعتبارسنجی و تست‌های پذیرش فنی}
+پس از اتمام مهاجرت، آزمون‌های جدول زیر توسط تیم تست و کارفرما انجام می‌پذیرد:
+
+\begin{table}[ht]
+\centering
+\caption{چک‌لیست تست‌های صحت عملکرد سامانه پس از مهاجرت}
+\vspace{2mm}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{عنوان آزمون} & \textbf{دستور یا اقدام بررسی} & \textbf{نتیجه مورد انتظار} \\
+\midrule
+سلامت کانتینرها & \lr{docker compose ps} & تمام ۵ کانتینر در وضعیت Up هستند \\
+پاسخ‌دهی وب‌سرویس & درخواست به \lr{api/v1/auth/captcha} & کد وضعیت 200 به همراه داده تصویر امنیتی \\
+اتصال دیتابیس & لاگ کانتینر \lr{leitner-backend-api} & اعمال موفق مایگریشن‌ها و شنود پورت 8080 \\
+پنل مدیریت وب & باز کردن \lr{https://rightlearn.ir} & نمایش صفحه ورود با ظاهر مناسب \\
+دانلود دوره‌ها & دانلود یک فایل از مسیر \lr{/courses/} & دانلود کامل فایل zip بدون خطا \\
+عملکرد اپلیکیشن & ورود به اپ و مطالعه کارت‌ها & همگام‌سازی سریع بدون خطای اتصال سرور \\
+سرویس پیامک & ارسال کد یکبارمصرف (OTP) & دریافت آنی پیامک تایید هویت \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ----------------------------------------------------------------------
+% Section 15
+% ----------------------------------------------------------------------
+\section{طرح بازگشت به شرایط قبل (\lr{Rollback Plan}) و خروج سرور قدیم}
+
+\subsection{سناریوی بازگشت به شرایط قبل در صورت بروز مشکل غیرمنتظره}
+اگر در هر یک از مراحل راه‌اندازی سرور جدید با مشکل سخت‌افزاری یا شبکه مواجه شدید، به راحتی ظرف ۲ دقیقه می‌توان به سرور قبلی بازگشت:
+\begin{enumerate}
+    \item رکوردهای \lr{A} در پنل \lr{DNS} را به آی‌پی سرور قبلی (\verb|45.94.215.188|) برگردانید.
+    \item در سرور قبلی، کانتینرهای بک‌اند را روشن نموده و حالت تعمیرات را خاموش کنید:
+    \begin{latin}
+    \small
+    \begin{verbatim}
+    docker compose -f deployment/docker-compose.yml start backend worker
+    echo "UPDATE system_configs SET value = 'false' WHERE key = 'maintenance_mode';" \
+      | docker exec -i leitner-postgres-db psql -U leitner_admin -d leitner_db
+    \end{verbatim}
+    \end{latin}
+\end{enumerate}
+
+\subsection{از مدار خارج کردن سرور قدیمی (\lr{Decommissioning})}
+پس از گذشت ۲۴ الی ۴۸ ساعت از عملکرد بی‌نقص سرور جدید:
+\begin{enumerate}
+    \item در سرور قدیمی، تمام کانتینرها متوقف و سرویس \lr{Nginx} خاموش شود:
+    \begin{latin}
+    \small
+    \begin{verbatim}
+    cd /opt/leitner-platform && docker compose -f deployment/docker-compose.yml down
+    systemctl stop nginx && systemctl disable nginx
+    \end{verbatim}
+    \end{latin}
+    \item سرور قدیمی از پنل ارائه‌دهنده سرویس ابری حذف یا خاموش گردد.
+\end{enumerate}
+
+\end{document}

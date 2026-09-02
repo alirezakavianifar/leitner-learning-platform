@@ -1,100 +1,142 @@
 import os
 import sys
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 from scipy import ndimage
 
 
-def prepare_optimized_master(source_path):
+def prepare_masters(source_path):
     """
     Loads the source icon, detects and cleans up any faux checkerboard or
-    alpha fringe, squares the canvas preserving artwork proportions,
-    and produces an optimized solid RGB 1024x1024 master image.
+    alpha fringe, and produces:
+    - master_squircle: 1024x1024 RGBA image with smooth anti-aliased transparent corners.
+    - master_round: 1024x1024 RGBA image masked into a perfect circle on transparent canvas.
+    - master_adaptive_fg: 1024x1024 RGBA image scaled to the 72dp safe zone in 108dp canvas (~70%).
+    - master_solid: 1024x1024 RGB image (no alpha) for iOS App Store and systems requiring opaque icons.
     """
     raw_img = Image.open(source_path).convert("RGB")
-    arr = np.array(raw_img, dtype=float)
-    h, w, _ = arr.shape
+    w, h = raw_img.size
 
-    # Detect faux checkerboard in outer corners:
-    # Checkerboard squares are bright neutral pixels (R, G, B > 150 and nearly equal)
-    is_gray = (
-        (arr[:, :, 0] > 150)
-        & (arr[:, :, 1] > 150)
-        & (arr[:, :, 2] > 150)
-        & (np.abs(arr[:, :, 0] - arr[:, :, 1]) < 25)
-        & (np.abs(arr[:, :, 1] - arr[:, :, 2]) < 25)
-        & (np.abs(arr[:, :, 0] - arr[:, :, 2]) < 25)
-    )
+    # Square canvas based on max dimension
+    max_dim = max(w, h)
+    offset_x = (max_dim - w) // 2
+    offset_y = (max_dim - h) // 2
 
-    lbl, _ = ndimage.label(is_gray)
-    corner_labels = set([lbl[0, 0], lbl[0, w - 1], lbl[h - 1, 0], lbl[h - 1, w - 1]]) - {0}
-    has_checker = len(corner_labels) > 0 and (
-        lbl[0, 0] in corner_labels
-        or lbl[0, w - 1] in corner_labels
-        or lbl[h - 1, 0] in corner_labels
-        or lbl[h - 1, w - 1] in corner_labels
-    )
+    # Navy background color sampled from inside the squircle
+    bg_color = (0, 15, 35)
 
-    bg_color = np.array([0, 11, 25], dtype=float)
+    sq_orig = Image.new("RGB", (max_dim, max_dim), bg_color)
+    sq_orig.paste(raw_img, (offset_x, offset_y))
 
-    if has_checker:
-        outer_checker = np.isin(lbl, list(corner_labels))
-        mask_float = outer_checker.astype(float)
-        blurred_mask = ndimage.gaussian_filter(mask_float, sigma=1.5)
-        alpha = np.clip(1.0 - blurred_mask, 0.0, 1.0) * 255.0
-        norm_alpha = alpha / 255.0
+    # Resize base to 1024x1024
+    img_1024 = sq_orig.resize((1024, 1024), Image.Resampling.LANCZOS)
 
-        fg_rgb = arr.copy()
-        for c in range(3):
-            edge_zone = (norm_alpha > 0.05) & (norm_alpha < 0.98)
-            fg_rgb[edge_zone, c] = np.clip(
-                (arr[edge_zone, c] - (1.0 - norm_alpha[edge_zone]) * 245.0)
-                / np.maximum(norm_alpha[edge_zone], 0.01),
-                0,
-                255,
-            )
-            fg_rgb[norm_alpha <= 0.05, c] = bg_color[c]
+    # 1. Generate master_squircle with smooth anti-aliased transparent corners (superellipse / rounded rect)
+    # Render mask at 4x (4096x4096) for crisp sub-pixel anti-aliasing
+    mask_hires = Image.new("L", (4096, 4096), 0)
+    draw_sq = ImageDraw.Draw(mask_hires)
+    # Inset slightly (60px on 4096 = 15px on 1024) to eliminate any edge fringe from the raw image
+    draw_sq.rounded_rectangle((60, 60, 4036, 4036), radius=900, fill=255)
+    squircle_mask = mask_hires.resize((1024, 1024), Image.Resampling.LANCZOS)
 
-        solid_rgb = np.zeros_like(fg_rgb)
-        for c in range(3):
-            solid_rgb[:, :, c] = fg_rgb[:, :, c] * norm_alpha + bg_color[c] * (1.0 - norm_alpha)
+    master_squircle = img_1024.copy().convert("RGBA")
+    master_squircle.putalpha(squircle_mask)
 
-        img_solid = Image.fromarray(solid_rgb.astype(np.uint8))
-    else:
-        img_solid = raw_img
+    # 2. Generate master_round: smooth circular icon on transparent background
+    mask_round_hires = Image.new("L", (4096, 4096), 0)
+    draw_rnd = ImageDraw.Draw(mask_round_hires)
+    draw_rnd.ellipse((60, 60, 4036, 4036), fill=255)
+    round_mask = mask_round_hires.resize((1024, 1024), Image.Resampling.LANCZOS)
 
-    # Pad to square preserving artwork aspect ratio and centered
-    max_dim = max(h, w)
-    square_solid = Image.new("RGB", (max_dim, max_dim), tuple(bg_color.astype(int)))
-    square_solid.paste(img_solid, ((max_dim - w) // 2, (max_dim - h) // 2))
+    # Scale squircle artwork to ~90% so it fits comfortably inside the circle boundary
+    sq_scaled_for_round = master_squircle.resize((920, 920), Image.Resampling.LANCZOS)
+    canvas_round = Image.new("RGBA", (1024, 1024), (*bg_color, 255))
+    canvas_round.paste(sq_scaled_for_round, ((1024 - 920) // 2, ((1024 - 920) // 2)), sq_scaled_for_round)
 
-    master_solid = square_solid.resize((1024, 1024), Image.Resampling.LANCZOS)
-    return master_solid
+    master_round = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+    master_round.paste(canvas_round, (0, 0), round_mask)
+
+    # 3. Generate master_adaptive_fg: artwork centered in 72dp safe zone of 108dp canvas (720x720 in 1024x1024 = 70.3%)
+    fg_scaled = master_squircle.resize((720, 720), Image.Resampling.LANCZOS)
+    master_adaptive_fg = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+    master_adaptive_fg.paste(fg_scaled, ((1024 - 720) // 2, (1024 - 720) // 2), fg_scaled)
+
+    # 4. Generate master_solid (RGB without alpha for iOS App Store requirements)
+    master_solid = Image.new("RGB", (1024, 1024), bg_color)
+    master_solid.paste(master_squircle, (0, 0), master_squircle)
+
+    return master_squircle, master_round, master_adaptive_fg, master_solid
 
 
 def generate_icons(source_path, mobile_app_dir, root_dir=None):
     print(f"Loading and optimizing source image: {source_path}")
-    master_solid = prepare_optimized_master(source_path)
-    print("Master 1024x1024 optimized icon successfully prepared.")
+    master_squircle, master_round, master_adaptive_fg, master_solid = prepare_masters(source_path)
+    print("Master icons (squircle, round, adaptive foreground, solid) prepared successfully.")
 
-    # 1. Android mipmaps
     android_res = os.path.join(mobile_app_dir, "android", "app", "src", "main", "res")
-    android_sizes = {
-        "mipmap-mdpi": 48,
-        "mipmap-hdpi": 72,
-        "mipmap-xhdpi": 96,
-        "mipmap-xxhdpi": 144,
-        "mipmap-xxxhdpi": 192,
+
+    # Ensure values/colors.xml contains ic_launcher_background
+    values_dir = os.path.join(android_res, "values")
+    os.makedirs(values_dir, exist_ok=True)
+    colors_xml_path = os.path.join(values_dir, "colors.xml")
+    if not os.path.exists(colors_xml_path):
+        with open(colors_xml_path, "w", encoding="utf-8") as f:
+            f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#000F23</color>\n</resources>\n')
+        print("Created values/colors.xml with ic_launcher_background.")
+    else:
+        with open(colors_xml_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        if "ic_launcher_background" not in content:
+            updated = content.replace("</resources>", '    <color name="ic_launcher_background">#000F23</color>\n</resources>')
+            with open(colors_xml_path, "w", encoding="utf-8") as f:
+                f.write(updated)
+            print("Updated values/colors.xml with ic_launcher_background.")
+
+    # 1. Android Adaptive Icons (API 26+)
+    anydpi_dir = os.path.join(android_res, "mipmap-anydpi-v26")
+    os.makedirs(anydpi_dir, exist_ok=True)
+    adaptive_xml = (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
+        '    <background android:drawable="@color/ic_launcher_background"/>\n'
+        '    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n'
+        '</adaptive-icon>\n'
+    )
+    with open(os.path.join(anydpi_dir, "ic_launcher.xml"), "w", encoding="utf-8") as f:
+        f.write(adaptive_xml)
+    with open(os.path.join(anydpi_dir, "ic_launcher_round.xml"), "w", encoding="utf-8") as f:
+        f.write(adaptive_xml)
+    print("Generated mipmap-anydpi-v26/ic_launcher.xml and ic_launcher_round.xml")
+
+    # 2. Android Density Mipmaps (Legacy icons, Round icons, and Adaptive Foreground)
+    android_specs = {
+        "mipmap-mdpi": {"legacy": 48, "foreground": 108},
+        "mipmap-hdpi": {"legacy": 72, "foreground": 162},
+        "mipmap-xhdpi": {"legacy": 96, "foreground": 216},
+        "mipmap-xxhdpi": {"legacy": 144, "foreground": 324},
+        "mipmap-xxxhdpi": {"legacy": 192, "foreground": 432},
     }
-    for folder, size in android_sizes.items():
+    for folder, specs in android_specs.items():
         dir_path = os.path.join(android_res, folder)
         os.makedirs(dir_path, exist_ok=True)
-        out_path = os.path.join(dir_path, "ic_launcher.png")
-        resized = master_solid.resize((size, size), Image.Resampling.LANCZOS)
-        resized.save(out_path, format="PNG", optimize=True)
-        print(f"Generated Android {folder}/ic_launcher.png ({size}x{size})")
+        leg_size = specs["legacy"]
+        fg_size = specs["foreground"]
 
-    # 2. iOS AppIcon
+        # Legacy squircle icon with transparent corners (rendered in package installer)
+        out_launcher = os.path.join(dir_path, "ic_launcher.png")
+        master_squircle.resize((leg_size, leg_size), Image.Resampling.LANCZOS).save(out_launcher, format="PNG", optimize=True)
+
+        # Legacy round icon with transparent background
+        out_round = os.path.join(dir_path, "ic_launcher_round.png")
+        master_round.resize((leg_size, leg_size), Image.Resampling.LANCZOS).save(out_round, format="PNG", optimize=True)
+
+        # Adaptive icon foreground
+        out_fg = os.path.join(dir_path, "ic_launcher_foreground.png")
+        master_adaptive_fg.resize((fg_size, fg_size), Image.Resampling.LANCZOS).save(out_fg, format="PNG", optimize=True)
+
+        print(f"Generated Android {folder}: ic_launcher.png ({leg_size}x{leg_size}), ic_launcher_round.png, ic_launcher_foreground.png ({fg_size}x{fg_size})")
+
+    # 3. iOS AppIcon
     ios_iconset = os.path.join(mobile_app_dir, "ios", "Runner", "Assets.xcassets", "AppIcon.appiconset")
     if os.path.exists(ios_iconset):
         ios_sizes = {
@@ -117,13 +159,12 @@ def generate_icons(source_path, mobile_app_dir, root_dir=None):
         for filename, (w, h) in ios_sizes.items():
             out_path = os.path.join(ios_iconset, filename)
             resized = master_solid.resize((w, h), Image.Resampling.LANCZOS)
-            # App Store requires RGB without alpha
             if resized.mode != "RGB":
                 resized = resized.convert("RGB")
             resized.save(out_path, format="PNG", optimize=True)
             print(f"Generated iOS {filename} ({w}x{h})")
 
-    # 3. macOS AppIcon
+    # 4. macOS AppIcon
     macos_iconset = os.path.join(mobile_app_dir, "macos", "Runner", "Assets.xcassets", "AppIcon.appiconset")
     if os.path.exists(macos_iconset):
         macos_sizes = {
@@ -137,56 +178,56 @@ def generate_icons(source_path, mobile_app_dir, root_dir=None):
         }
         for filename, size in macos_sizes.items():
             out_path = os.path.join(macos_iconset, filename)
-            resized = master_solid.resize((size, size), Image.Resampling.LANCZOS)
+            resized = master_squircle.resize((size, size), Image.Resampling.LANCZOS)
             resized.save(out_path, format="PNG", optimize=True)
             print(f"Generated macOS {filename} ({size}x{size})")
 
-    # 4. Web Icons
+    # 5. Web Icons
     web_dir = os.path.join(mobile_app_dir, "web")
     if os.path.exists(web_dir):
         favicon_path = os.path.join(web_dir, "favicon.png")
-        master_solid.resize((32, 32), Image.Resampling.LANCZOS).save(favicon_path, format="PNG", optimize=True)
+        master_squircle.resize((32, 32), Image.Resampling.LANCZOS).save(favicon_path, format="PNG", optimize=True)
         print("Generated Web favicon.png (32x32)")
 
         web_icons_dir = os.path.join(web_dir, "icons")
         if os.path.exists(web_icons_dir):
             web_sizes = {
-                "Icon-192.png": 192,
-                "Icon-512.png": 512,
-                "Icon-maskable-192.png": 192,
-                "Icon-maskable-512.png": 512,
+                "Icon-192.png": (master_squircle, 192),
+                "Icon-512.png": (master_squircle, 512),
+                "Icon-maskable-192.png": (master_round, 192),
+                "Icon-maskable-512.png": (master_round, 512),
             }
-            for filename, size in web_sizes.items():
+            for filename, (img_src, size) in web_sizes.items():
                 out_path = os.path.join(web_icons_dir, filename)
-                master_solid.resize((size, size), Image.Resampling.LANCZOS).save(out_path, format="PNG", optimize=True)
+                img_src.resize((size, size), Image.Resampling.LANCZOS).save(out_path, format="PNG", optimize=True)
                 print(f"Generated Web {filename} ({size}x{size})")
 
-    # 5. Windows ICO
+    # 6. Windows ICO
     windows_res = os.path.join(mobile_app_dir, "windows", "runner", "resources")
     if os.path.exists(windows_res):
         ico_path = os.path.join(windows_res, "app_icon.ico")
         ico_sizes = [(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
-        master_solid.save(ico_path, format="ICO", sizes=ico_sizes)
+        master_squircle.save(ico_path, format="ICO", sizes=ico_sizes)
         print("Generated Windows app_icon.ico")
 
-    # 6. Mobile App in-app assets: app_icon.webp & app_icon.png
+    # 7. Mobile App in-app assets: app_icon.webp & app_icon.png
     assets_dir = os.path.join(mobile_app_dir, "assets", "images")
     os.makedirs(assets_dir, exist_ok=True)
 
     app_icon_webp = os.path.join(assets_dir, "app_icon.webp")
-    master_512 = master_solid.resize((512, 512), Image.Resampling.LANCZOS)
-    master_512.save(app_icon_webp, format="WEBP", quality=90, method=6)
+    master_512 = master_squircle.resize((512, 512), Image.Resampling.LANCZOS)
+    master_512.save(app_icon_webp, format="WEBP", quality=92, method=6)
     print("Generated mobile-app assets/images/app_icon.webp (512x512, optimized WebP)")
 
     app_icon_png = os.path.join(assets_dir, "app_icon.png")
     master_512.save(app_icon_png, format="PNG", optimize=True)
     print("Generated mobile-app assets/images/app_icon.png (512x512, optimized PNG)")
 
-    # 7. Root icon.png
+    # 8. Root icon.png
     if root_dir:
         root_icon = os.path.join(root_dir, "icon.png")
-        master_solid.save(root_icon, format="PNG", optimize=True)
-        print("Generated root icon.png (1024x1024, optimized master PNG)")
+        master_squircle.save(root_icon, format="PNG", optimize=True)
+        print("Generated root icon.png (1024x1024, clean transparent squircle PNG)")
 
 
 def generate_notification_icons(notification_source, mobile_app_dir):
@@ -231,4 +272,3 @@ if __name__ == "__main__":
     generate_icons(source_input, mobile_directory, root_directory)
     if os.path.exists(notif_input):
         generate_notification_icons(notif_input, mobile_directory)
-

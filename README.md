@@ -11,6 +11,7 @@ Welcome to the Leitner Learning Platform repository. This repository contains th
 *   **[docs/ui/prototype/index.html](file:///e:/projects/leitner-learning-platform/docs/ui/prototype/index.html)**: Clickable interactive HTML/JS viewport prototype simulating all user screens.
 *   **[docs/deployment/server_setup_guide.md](file:///e:/projects/leitner-learning-platform/docs/deployment/server_setup_guide.md)**: Prerequisites and server environment installations for Windows Server 2025 and Linux hosts.
 *   **[docs/deployment/docker_deployment_guide.md](file:///e:/projects/leitner-learning-platform/docs/deployment/docker_deployment_guide.md)**: Container orchestration, Nginx reverse proxy configuration, environment variable schemas, and Let's Encrypt configurations.
+*   **[docs/server_migration_guide_fa.tex](file:///e:/projects/leitner-learning-platform/docs/server_migration_guide_fa.tex)** (\& [PDF](file:///e:/projects/leitner-learning-platform/docs/server_migration_guide_fa.pdf)): Comprehensive Persian LaTeX guide detailing step-by-step server migration and zero-data-loss cutover procedures for clients and DevOps engineers.
 *   **[docs/course/course_upload_guide.md](file:///e:/projects/leitner-learning-platform/docs/course/course_upload_guide.md)**: Steps to package, encrypt, compile, and upload Leitner courses using the Authoring Kit.
 *   **[docs/deployment/backup_and_recovery_guide.md](file:///e:/projects/leitner-learning-platform/docs/deployment/backup_and_recovery_guide.md)**: Backup schedule policies, S3 replication workflows, and database recovery commands.
 *   **[docs/sms_configuration_guide.md](file:///e:/projects/leitner-learning-platform/docs/sms_configuration_guide.md)**: Detailed reference guide for configuring, toggling, and deploying the SMS/OTP verification system.
@@ -186,6 +187,48 @@ powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms ON
 # Deploy with SMS OFF (Disables live SMS sending and falls back to logging OTP codes to container logs)
 powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-server.ps1 -Sms OFF
 ```
+
+#### Platform & Admin Panel Lifecycle Management (admin-down.ps1 / manage-admin.ps1)
+To easily manage, inspect, or take down the administrative web portal and/or put mobile apps into scheduled maintenance, use the dedicated management PowerShell scripts:
+
+```powershell
+# 1. Interactive Control Console (Recommended - opens menu with live Admin & Mobile status)
+powershell -ExecutionPolicy Bypass -File ./scripts/admin-down.ps1
+# or:
+powershell -ExecutionPolicy Bypass -File ./scripts/manage-admin.ps1
+
+# 2. Take Admin Panel DOWN (Admin Only - mobile apps continue uninterrupted)
+powershell -ExecutionPolicy Bypass -File ./scripts/admin-down.ps1 down
+
+# 3. FULL PLATFORM DOWN (Takes down Admin Panel AND puts Mobile Apps into Maintenance Mode)
+powershell -ExecutionPolicy Bypass -File ./scripts/admin-down.ps1 down -Scope Global
+
+# 4. Toggle Mobile App Maintenance Mode Independently
+powershell -ExecutionPolicy Bypass -File ./scripts/admin-down.ps1 mobile-on     # Mobile apps show MaintenanceScreen
+powershell -ExecutionPolicy Bypass -File ./scripts/admin-down.ps1 mobile-off    # Mobile apps return to normal
+
+# 5. Bring All Services UP (Restores Admin Panel & deactivates Mobile Maintenance)
+powershell -ExecutionPolicy Bypass -File ./scripts/admin-down.ps1 up
+
+# 6. Check Current System Status & Health (Admin + Mobile App API)
+powershell -ExecutionPolicy Bypass -File ./scripts/admin-down.ps1 status
+
+# 7. Restart Admin Panel
+powershell -ExecutionPolicy Bypass -File ./scripts/admin-down.ps1 restart
+
+# 8. Stream or View Recent Container Logs
+powershell -ExecutionPolicy Bypass -File ./scripts/admin-down.ps1 logs -Tail 100
+
+# 9. Manage Local Development Admin Panel
+powershell -ExecutionPolicy Bypass -File ./scripts/manage-admin.ps1 -Target Local -Action stop
+powershell -ExecutionPolicy Bypass -File ./scripts/manage-admin.ps1 -Target Local -Action start
+powershell -ExecutionPolicy Bypass -File ./scripts/manage-admin.ps1 -Target Local -Action status
+```
+
+*   **Granular Scope Control:**
+    *   **Admin Only (`-Scope AdminOnly`):** Stops container `leitner-admin-panel`. The backend API (`https://api.rightlearn.ir`), PostgreSQL database, Redis cache, and background workers remain 100% functional, allowing students to study without disruption.
+    *   **Full Platform (`-Scope Global`):** Stops the Admin Panel container AND sets `maintenance_mode = true` in PostgreSQL. Flutter mobile app users are immediately presented with the built-in `MaintenanceScreen` ("Scheduled Maintenance / در حال نگهداری برنامه‌ریزی شده") upon launch or refresh.
+*   **Dynamic Branded Maintenance Page:** The server Nginx reverse proxy (`deployment/nginx.default.conf` & `deployment/maintenance.html`) auto-detects `maintenance_mode`. When the Admin Panel is down alone, it displays the Admin Offline notification; when Full Platform maintenance is active, it dynamically updates to state that both Admin and Mobile services are undergoing maintenance.
 
 ---
 

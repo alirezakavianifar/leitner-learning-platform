@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل مدیریت در حال نگهداری است | Leitner Admin Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 60%, #030712 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(99, 102, 241, 0.25);
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --amber: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Vazirmatn', 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 580px;
+            width: 100%;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 44px 36px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(99, 102, 241, 0.15);
+            text-align: center;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .icon-wrapper {
+            position: relative;
+            width: 88px;
+            height: 88px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(99, 102, 241, 0.12);
+            border: 2px solid rgba(99, 102, 241, 0.3);
+            border-radius: 24px;
+        }
+
+        .icon-wrapper svg {
+            width: 44px;
+            height: 44px;
+            color: var(--primary-light);
+            animation: pulse 3s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.08); opacity: 1; }
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--amber);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--amber);
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        h1 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-main);
+        }
+
+        .subtitle-en {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            direction: ltr;
+        }
+
+        .desc {
+            font-size: 0.98rem;
+            line-height: 1.8;
+            color: #cbd5e1;
+            margin-bottom: 28px;
+        }
+
+        .info-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 28px;
+            text-align: right;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .info-card strong {
+            color: #38bdf8;
+        }
+
+        .footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 20px;
+            font-size: 0.82rem;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer span {
+            font-family: 'Inter', sans-serif;
+            direction: ltr;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.67 2.67 0 0021 17.25l-5.83-5.83M18.5 5.5a2.121 2.121 0 013 3L12 18l-6-1.5L4.5 12 14 2.5a2.121 2.121 0 013 3zM3 21l3-3" />
+            </svg>
+        </div>
+
+        <div class="status-badge" id="status-badge-container">
+            <div class="status-dot"></div>
+            <span id="status-badge-text">پنل مدیریت موقتاً غیرفعال است</span>
+        </div>
+
+        <h1>پلتفرم یادگیری لایتنر</h1>
+        <div class="subtitle-en" id="status-subtitle">Leitner Learning Platform — Admin Portal Offline</div>
+
+        <p class="desc" id="status-desc">
+            دسترسی به پنل وب مدیریت به منظور به‌روزرسانی سیستم، بررسی‌های امنیتی یا اعمال تنظیمات متوقف گردیده است.
+        </p>
+
+        <div class="info-card" id="service-info">
+            💡 <strong>وضعیت سرویس‌ها:</strong> سایر سرویس‌های زیرساخت شامل سرور API و اتصال اپلیکیشن‌های موبایل فعال بوده و کاربران بدون اختلال در حال استفاده از سیستم هستند.
+        </div>
+
+        <div class="footer">
+            <div>Leitner Platform v1.0</div>
+            <span>System Status: 503 Maintenance</span>
+        </div>
+    </div>
+
+    <script>
+        // Dynamically synchronize status with the backend remote configuration
+        (function() {
+            fetch('https://api.rightlearn.ir/api/v1/config/features')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data && data.maintenance_mode === true) {
+                        var badge = document.getElementById('status-badge-text');
+                        var subtitle = document.getElementById('status-subtitle');
+                        var desc = document.getElementById('status-desc');
+                        var info = document.getElementById('service-info');
+                        if (badge) badge.innerText = 'سامانه در حالت تعمیرات سراسری است';
+                        if (subtitle) subtitle.innerText = 'Leitner Learning Platform — Full Platform Maintenance';
+                        if (desc) desc.innerText = 'دسترسی به کلیه بخش‌های سامانه (پنل مدیریت و اپلیکیشن‌های موبایل) جهت ارتقا و نگهداری دوره‌ای متوقف شده است.';
+                        if (info) info.innerHTML = '⚠️ <strong>وضعیت سرویس‌ها:</strong> اپلیکیشن‌های موبایل نیز در حال حاضر در حالت تعمیرات برنامه‌ریزی شده قرار دارند و پس از اتمام عملیات مجدداً در دسترس قرار خواهند گرفت.';
+                    }
+                })
+                .catch(function() {
+                    // Fallback to static text if API unreachable
+                });
+        })();
+    </script>
+</body>
+</html>
