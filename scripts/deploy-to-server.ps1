@@ -100,9 +100,8 @@ if ($LASTEXITCODE -ne 0) { throw "Background worker publish failed." }
 # Build React Admin Panel
 Write-Host "Building React Admin Panel..." -ForegroundColor Yellow
 Push-Location "$ProjectRoot\admin-panel"
-if (-not (Test-Path "dist")) {
-    & npm run build
-}
+$env:VITE_API_BASE_URL = '/api/v1'
+& npm run build
 Pop-Location
 
 # 3. Create Production Deployment Archive

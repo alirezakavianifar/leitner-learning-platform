@@ -288,7 +288,7 @@ export const SettingsView: React.FC = () => {
   const getResolvedLogoUrl = (url: string) => {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
-    const base = ((import.meta as any).env?.VITE_API_BASE_URL as string || 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
+    const base = ((import.meta as any).env?.VITE_API_BASE_URL as string || '/api/v1').replace(/\/api\/v1\/?$/, '');
     const clean = url.startsWith('/') ? url : `/${url}`;
     return `${base}${clean}`;
   };
