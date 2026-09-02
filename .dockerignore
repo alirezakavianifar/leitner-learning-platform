@@ -4,9 +4,9 @@
 **/obj
 **/TestResults
 **/node_modules
-admin-panel/dist
 mobile-app
 docs
+scripts
 *.apk
 *.zip
 *.tar.gz

@@ -42,6 +42,28 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish .NET Backend & Worker
+        run: |
+          dotnet publish backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj -c Release -o ./publish /p:UseAppHost=false
+          dotnet publish backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj -c Release -o ./publish /p:UseAppHost=false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build Admin Panel
+        run: |
+          cd admin-panel
+          npm ci
+          npm run build
+          cd ..
+
       - name: Configure SSH Key & Known Hosts
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY || secrets.DEPLOY_SSH_KEY }}
@@ -73,19 +95,15 @@ jobs:
             fi
           fi
 
-      - name: Create Lightweight Deployment Archive
+      - name: Create Production Deployment Archive
         run: |
           ARCHIVE_NAME="leitner_deploy_$(date +%s).tar.gz"
           echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
 
           tar -czf "$ARCHIVE_NAME" \
-            --exclude="*.dll" --exclude="*.pdb" --exclude="*.exe" --exclude="*.apk" \
-            --exclude="*/bin" --exclude="*/obj" --exclude="*/dist" --exclude="*/node_modules" \
-            --exclude="*/TestResults" --exclude="*/.git" --exclude="mobile-app" --exclude="docs" \
-            --exclude="backend/LeitnerPlatform.API/wwwroot/courses/*.zip" \
-            backend admin-panel deployment .env* 2>/dev/null || \
-          tar -czf "$ARCHIVE_NAME" \
-            backend admin-panel deployment
+            --exclude="admin-panel/node_modules" \
+            --exclude="mobile-app" --exclude="docs" --exclude="*.apk" \
+            publish admin-panel deployment .env*
 
           echo "Archive created: $ARCHIVE_NAME ($(du -h "$ARCHIVE_NAME" | cut -f1))"
 

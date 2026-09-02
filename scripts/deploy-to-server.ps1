@@ -89,26 +89,41 @@ if (Test-Path $EnvFile) {
 
 Set-Location $ProjectRoot
 
-# 2. Create Source Archive (Excluding heavy binaries, node_modules, and course zip assets)
-Write-Host "Creating lightweight source archive..." -ForegroundColor Yellow
+# 2. Build & Publish .NET Backend & Worker locally
+Write-Host "Publishing .NET Backend & Background Worker..." -ForegroundColor Yellow
+& dotnet publish "$ProjectRoot\backend\LeitnerPlatform.API\LeitnerPlatform.API.csproj" -c Release -o "$ProjectRoot\publish" /p:UseAppHost=false
+if ($LASTEXITCODE -ne 0) { throw "Backend publish failed." }
+
+& dotnet publish "$ProjectRoot\backend\LeitnerPlatform.BackgroundWorker\LeitnerPlatform.BackgroundWorker.csproj" -c Release -o "$ProjectRoot\publish" /p:UseAppHost=false
+if ($LASTEXITCODE -ne 0) { throw "Background worker publish failed." }
+
+# Build React Admin Panel
+Write-Host "Building React Admin Panel..." -ForegroundColor Yellow
+Push-Location "$ProjectRoot\admin-panel"
+if (-not (Test-Path "dist")) {
+    & npm run build
+}
+Pop-Location
+
+# 3. Create Production Deployment Archive
+Write-Host "Creating production deployment archive..." -ForegroundColor Yellow
 $TempArchiveName = "leitner_deploy_$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds()).tar.gz"
 $TempArchivePath = Join-Path $ProjectRoot $TempArchiveName
 
 $ExcludeArgs = @(
-    "--exclude=*.dll", "--exclude=*.pdb", "--exclude=*.exe", "--exclude=*.apk", "--exclude=*.rar", "--exclude=*.cobertura.xml",
-    "--exclude=*/bin", "--exclude=*/obj", "--exclude=*/dist", "--exclude=*/node_modules", "--exclude=*/TestResults",
-    "--exclude=*/.git", "--exclude=bin", "--exclude=obj", "--exclude=dist", "--exclude=node_modules", "--exclude=TestResults", "--exclude=.git",
-    "--exclude=data", "--exclude=mobile-app", "--exclude=docs", "--exclude=scripts", "--exclude=temp",
+    "--exclude=backend/**/bin", "--exclude=backend/**/obj",
+    "--exclude=admin-panel/node_modules",
+    "--exclude=mobile-app", "--exclude=docs", "--exclude=scripts", "--exclude=*.apk",
     "--exclude=backend/LeitnerPlatform.API/wwwroot/courses/*.zip"
 )
 
 try {
-    & tar -czf $TempArchiveName @ExcludeArgs backend admin-panel deployment .env
+    & tar -czf $TempArchiveName @ExcludeArgs publish admin-panel deployment .env
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path $TempArchivePath)) {
-        throw "Failed to create source archive (tar exited with code $LASTEXITCODE)."
+        throw "Failed to create deployment archive (tar exited with code $LASTEXITCODE)."
     }
     $ArchiveSizeKB = [math]::Round((Get-Item $TempArchivePath).Length / 1KB, 2)
-    Write-Host "  [OK] Source archive created ($ArchiveSizeKB KB)." -ForegroundColor Green
+    Write-Host "  [OK] Deployment archive created ($ArchiveSizeKB KB)." -ForegroundColor Green
 
     # 3. Upload & Extract Archive on Remote Server
     Write-Host "Uploading source archive to server ($ServerIP)..." -ForegroundColor Yellow
