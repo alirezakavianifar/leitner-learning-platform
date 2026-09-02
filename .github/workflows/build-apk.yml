@@ -10,6 +10,10 @@ on:
         type: choice
         options:
           - premium
+          - direct
+          - bazaar
+          - myket
+          - googleplay
           - store
       abi:
         description: 'Target Architecture (ABI)'
@@ -148,6 +152,24 @@ jobs:
             echo "Error: No APK file was generated!"
             exit 1
           fi
+
+          if [ "$FLAVOR" = "googleplay" ]; then
+            echo "Building Google Play Android App Bundle (.aab)..."
+            flutter build appbundle \
+              --release \
+              --flavor googleplay \
+              -t lib/main_googleplay.dart \
+              --dart-define=API_BASE_URL=$API_URL \
+              --obfuscate \
+              --split-debug-info=$SYMBOLS_DIR \
+              --tree-shake-icons
+            
+            AAB_FILE=$(find build/app/outputs/bundle -name "*.aab" 2>/dev/null | head -n 1)
+            if [ -n "$AAB_FILE" ] && [ -f "$AAB_FILE" ]; then
+              echo "Found generated AAB: $AAB_FILE"
+              cp "$AAB_FILE" "${GITHUB_WORKSPACE}/app-googleplay-release.aab"
+            fi
+          fi
         shell: bash
 
       - name: Upload Build Artifacts
@@ -156,6 +178,7 @@ jobs:
           name: android-build-${{ inputs.flavor || 'premium' }}-${{ inputs.abi || 'arm64-v8a' }}
           path: |
             app-*-release.apk
+            app-*-release.aab
             app-*-release.zip
           retention-days: 14
 

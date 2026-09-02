@@ -18,6 +18,10 @@ on:
         type: choice
         options:
           - premium
+          - direct
+          - bazaar
+          - myket
+          - googleplay
           - store
       android_abi:
         description: 'Android Target Architecture (ABI)'
@@ -43,7 +47,7 @@ on:
         default: 'https://api.rightlearn.ir/api/v1'
         type: string
       send_to_rubika:
-        description: 'Send packaged builds to Rubika Bot'
+        description: 'Send Android build package to Rubika Bot'
         required: false
         default: true
         type: boolean
@@ -168,6 +172,24 @@ jobs:
             echo "Error: No APK file was generated!"
             exit 1
           fi
+
+          if [ "$FLAVOR" = "googleplay" ]; then
+            echo "Building Google Play Android App Bundle (.aab)..."
+            flutter build appbundle \
+              --release \
+              --flavor googleplay \
+              -t lib/main_googleplay.dart \
+              --dart-define=API_BASE_URL=$API_URL \
+              --obfuscate \
+              --split-debug-info=$SYMBOLS_DIR \
+              --tree-shake-icons
+            
+            AAB_FILE=$(find build/app/outputs/bundle -name "*.aab" 2>/dev/null | head -n 1)
+            if [ -n "$AAB_FILE" ] && [ -f "$AAB_FILE" ]; then
+              echo "Found generated AAB: $AAB_FILE"
+              cp "$AAB_FILE" "${GITHUB_WORKSPACE}/app-googleplay-release.aab"
+            fi
+          fi
         shell: bash
 
       - name: Upload Android Build Artifacts
@@ -176,6 +198,7 @@ jobs:
           name: android-build-${{ inputs.flavor || 'premium' }}-${{ inputs.android_abi || 'arm64-v8a' }}
           path: |
             app-*-release.apk
+            app-*-release.aab
             app-*-release.zip
           retention-days: 14
 
@@ -283,24 +306,3 @@ jobs:
             app-*-ios-release.zip
             app-*-ios-simulator.zip
           retention-days: 14
-
-      - name: Send iOS Packages to Rubika Bot
-        if: ${{ (github.event_name == 'push' || inputs.send_to_rubika != false) && success() }}
-        continue-on-error: true
-        env:
-          RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN || 'CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL' }}
-        run: |
-          FLAVOR="${{ inputs.flavor || 'premium' }}"
-          IPA_ZIP="app-${FLAVOR}-ios-release.zip"
-          SIMULATOR_ZIP="app-${FLAVOR}-ios-simulator.zip"
-
-          if [ -f "$IPA_ZIP" ]; then
-            echo "Sending physical device release $IPA_ZIP to Rubika Bot..."
-            python3 scripts/upload-to-rubika.py --file "$IPA_ZIP"
-          fi
-
-          if [ -f "$SIMULATOR_ZIP" ]; then
-            echo "Sending Appetize.io simulator bundle $SIMULATOR_ZIP to Rubika Bot..."
-            python3 scripts/upload-to-rubika.py --file "$SIMULATOR_ZIP"
-          fi
-        shell: bash

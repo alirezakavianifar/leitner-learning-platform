@@ -290,14 +290,6 @@ if ($isMacOS -or $ForceLocal) {
         }
 
         # Distribution steps
-        if (-not $SkipRubika) {
-            if (Test-Path $ipaZip) {
-                Send-RubikaFile -FilePath $ipaZip
-            } elseif (Test-Path $simulatorZip) {
-                Send-RubikaFile -FilePath $simulatorZip
-            }
-        }
-
         if (-not $SkipAppetize -and (Test-Path $simulatorZip)) {
             Deploy-AppetizeSimulator -SimulatorZipPath $simulatorZip
         }

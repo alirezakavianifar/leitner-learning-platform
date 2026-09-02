@@ -61,7 +61,14 @@ class AppConfig {
   final String flavor;
   AppConfig({required this.flavor});
 
-  bool get isPremium => flavor == 'premium';
+  bool get isPremium => flavor == 'premium' || flavor == 'direct';
+  bool get isDirect => flavor == 'direct' || flavor == 'premium';
+  bool get isBazaar => flavor == 'bazaar';
+  bool get isMyket => flavor == 'myket';
+  bool get isGooglePlay => flavor == 'googleplay';
+  bool get isStore => flavor == 'store';
+
+  bool get hasNativeBilling => isBazaar || isMyket || isGooglePlay || isDirect;
 }
 
 Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
@@ -124,6 +131,13 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
   sl.registerLazySingleton<BazaarPaymentProvider>(() => BazaarPaymentProvider(sl()));
   sl.registerLazySingleton<MyketPaymentProvider>(() => MyketPaymentProvider(sl()));
   sl.registerLazySingleton<DirectPaymentProvider>(() => DirectPaymentProvider(sl()));
+  sl.registerLazySingleton<PaymentProvider>(() {
+    final cfg = sl<AppConfig>();
+    if (cfg.isBazaar) return sl<BazaarPaymentProvider>();
+    if (cfg.isMyket) return sl<MyketPaymentProvider>();
+    if (cfg.isGooglePlay) return sl<GooglePlayPaymentProvider>();
+    return sl<DirectPaymentProvider>();
+  });
   sl.registerLazySingleton<OfflineBackupService>(() => OfflineBackupService(sl()));
 
   final localNotificationService = LocalNotificationService();

@@ -300,31 +300,40 @@ powershell -ExecutionPolicy Bypass -File ./scripts/manage-admin.ps1 -Target Loca
     *   **Unified Mobile Cloud Build (Android & iOS Simultaneously - Recommended):**
         To build both the size-optimized Android APK and the iOS IPA/Simulator bundles concurrently with a single trigger:
         - Go to **Actions** -> **Unified Mobile Build Pipeline (Android & iOS)** in the GitHub repository.
-        - Select **Run workflow**, choose Flavor (`premium` or `store`), configure target ABI and iOS build types, and click **Run workflow**.
-        - GitHub Actions spins up an `ubuntu-latest` runner for Android and a `macos-14` Apple Silicon runner for iOS simultaneously. Both packages are built in parallel, archived, and dispatched directly to your Rubika bot (`@AliDeveloperBot`).
+        - Select **Run workflow**, choose Flavor (`bazaar`, `myket`, `googleplay`, `premium`, `direct`, or `store`), configure target ABI and iOS build types, and click **Run workflow**.
+        - GitHub Actions spins up an `ubuntu-latest` runner for Android and a `macos-14` Apple Silicon runner for iOS simultaneously. Both packages are built in parallel, archived, and dispatched directly to your Rubika bot (`@AliDeveloperBot`). For `googleplay`, both the `.aab` (Android App Bundle) and `.apk` are generated.
 
     *   **Automated Release APK Build (Android):**
         1. **Automated Cloud Build (GitHub Actions Ubuntu Runner):**
            - Go to **Actions** -> **Android APK Build & Distribution Pipeline** in the GitHub repository.
-           - Select **Run workflow**, choose Flavor (`premium` or `store`), select Target ABI (`arm64-v8a`, `universal`, or `all`), enter Backend Target URL, and click **Run workflow**.
-           - The GitHub `ubuntu-latest` runner automatically compiles the size-optimized release APK (`app-premium-release.apk`), packages it into `app-premium-release.zip`, uploads GitHub workflow artifacts, and delivers the package directly to the Rubika Bot (`@AliDeveloperBot`).
-        2. **Local Build via PowerShell (Windows / Linux):**
+           - Select **Run workflow**, choose Flavor (`bazaar`, `myket`, `googleplay`, `premium`, `direct`, or `store`), select Target ABI (`arm64-v8a`, `universal`, or `all`), enter Backend Target URL, and click **Run workflow**.
+           - The GitHub `ubuntu-latest` runner automatically compiles the size-optimized release APK (e.g. `app-bazaar-release.apk`, `app-premium-release.apk`), packages it into ZIP, uploads GitHub workflow artifacts, and delivers the package directly to the Rubika Bot (`@AliDeveloperBot`).
+        2. **Supported Distribution Flavors & In-App Payment Routing:**
+           - `premium` / `direct`: Direct distribution APK with in-app **ZarinPal** web payment checkout for Shetab cards.
+           - `bazaar`: Cafe Bazaar distribution APK with native **Cafe Bazaar In-App Billing (IAB)**.
+           - `myket`: Myket distribution APK with native **Myket In-App Billing (IAB)**.
+           - `googleplay`: Google Play Store build (`.aab` and `.apk`) with native **Google Play Billing**.
+           - `store`: Universal reader build with non-IAP descriptive guidance.
+        3. **Local Build via PowerShell (Windows / Linux):**
            - **Start Tunnel:** Launch a persistent public tunnel pointing to your local backend (port 5217):
              ```powershell
              powershell -ExecutionPolicy Bypass -File ./scripts/start-tunnel.ps1
              ```
            - **Build APK:** Compile the release APK targeting your server IP or active Ngrok URL:
              ```powershell
-             # High-efficiency 64-bit ARM build (~20 MB, recommended for modern devices):
-             powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "arm64-v8a"
+             # Direct APK with ZarinPal:
+             powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -Flavor "premium" -TargetUrl "https://api.rightlearn.ir" -Abi "arm64-v8a"
 
-             # Universal fat APK containing all ABIs (~45-50 MB):
-             powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "universal"
+             # Cafe Bazaar APK with native Bazaar IAB:
+             powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -Flavor "bazaar" -TargetUrl "https://api.rightlearn.ir" -Abi "arm64-v8a"
 
-             # Split APKs for all ABIs (arm64-v8a, armeabi-v7a, x86_64):
-             powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -TargetUrl "https://api.rightlearn.ir" -Abi "all"
+             # Myket APK with native Myket IAB:
+             powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -Flavor "myket" -TargetUrl "https://api.rightlearn.ir" -Abi "arm64-v8a"
+
+             # Google Play Store APK:
+             powershell -ExecutionPolicy Bypass -File ./scripts/build-apk.ps1 -Flavor "googleplay" -TargetUrl "https://api.rightlearn.ir" -Abi "arm64-v8a"
              ```
-           The compiled APK will be automatically copied to the repository root as `app-premium-release.apk` (and compressed as `app-premium-release.zip`), and dispatched to the Rubika distribution bot. Size optimizations (WebP assets, R8 full mode, icon tree-shaking, symbol stripping, and 64-bit ABI targeting) reduce the APK size by ~69% (from 76.8 MB to ~23.8 MB).
+           The compiled APK will be automatically copied to the repository root as `app-<flavor>-release.apk` (and compressed as `app-<flavor>-release.zip`), and dispatched to the Rubika distribution bot. Size optimizations (WebP assets, R8 full mode, icon tree-shaking, symbol stripping, and 64-bit ABI targeting) reduce the APK size by ~69% (from 76.8 MB to ~23.8 MB).
 
     *   **Automated iOS Build & Packaging (iOS IPA & Simulator):**
         1. **Local macOS Build (Mac workstation or CI runner):**

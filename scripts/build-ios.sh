@@ -18,7 +18,7 @@ NC='\033[0m'
 FLAVOR="premium"
 TARGET_URL="https://api.rightlearn.ir"
 BUILD_TYPE="both"
-UPLOAD_RUBIKA=true
+UPLOAD_RUBIKA=false
 CLEANUP_BUILD=true
 
 # Parse arguments

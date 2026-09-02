@@ -58,8 +58,8 @@ Every GitHub Actions execution automatically builds and exports:
 | **`app-premium-ios-release.zip`** | Universal Archive | Zipped `.ipa` package for messaging platforms |
 | **`app-premium-ios-simulator.zip`** | iOS Simulator / Appetize | Zipped `Runner.app` for in-browser interactive streaming |
 
-### Automated Delivery to Rubika Bot
-As soon as the macOS runner finishes compiling, it triggers `scripts/upload-to-rubika.py` and sends the package directly to your Rubika Bot (`@AliDeveloperBot`).
+### Build Artifact Download
+As soon as the macOS runner finishes compiling, all packages (`.ipa`, `.zip`, simulator `.zip`) are securely archived as GitHub Actions workflow artifacts and available directly for download from the workflow run summary.
 
 ---
 

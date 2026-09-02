@@ -754,73 +754,8 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     final config = sl<AppConfig>();
     final loc = AppLocalizations.of(context);
 
-    if (config.isPremium) {
-      // Show payment selector modal sheet
-      showModalBottomSheet(
-        context: context,
-        useRootNavigator: false,
-        backgroundColor: AppColors.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (sheetCtx) {
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    loc.translate('select_payment_method'),
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  ListTile(
-                    leading: Icon(Icons.payment, color: AppColors.primary),
-                    title: Text(loc.translate('zarinpal_gateway'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () {
-                      Navigator.pop(sheetCtx);
-                      _processPurchase(course, sl<DirectPaymentProvider>());
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.store, color: AppColors.secondary),
-                    title: Text(loc.translate('bazaar_billing'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () {
-                      Navigator.pop(sheetCtx);
-                      _processPurchase(course, sl<BazaarPaymentProvider>());
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.shopping_bag_outlined, color: AppColors.secondary),
-                    title: Text(loc.translate('myket_billing'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () {
-                      Navigator.pop(sheetCtx);
-                      _processPurchase(course, sl<MyketPaymentProvider>());
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.shop_two, color: Colors.blue),
-                    title: Text(loc.translate('google_play_iap'), style: TextStyle(color: AppColors.textPrimary)),
-                    onTap: () {
-                      Navigator.pop(sheetCtx);
-                      _processPurchase(course, sl<GooglePlayPaymentProvider>());
-                    },
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    } else {
-      // Store Version: show non-IAP descriptive dialog
+    if (config.isStore) {
+      // Generic non-IAP Store Version: show descriptive dialog directing to website
       showDialog(
         context: context,
         builder: (context) {
@@ -850,7 +785,12 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
           );
         },
       );
+      return;
     }
+
+    // Direct native in-app billing flow for active flavor (Bazaar, Myket, Google Play, or Direct)
+    final provider = sl<PaymentProvider>();
+    _processPurchase(course, provider);
   }
 
   void _processPurchase(Course course, PaymentProvider provider) async {

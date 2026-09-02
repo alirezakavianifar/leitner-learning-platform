@@ -83,8 +83,9 @@ Write-Header
 Show-BuildProgress "Initializing" "Validating build parameters..." 5
 
 # Validate flavor
-if ($Flavor -ne "premium" -and $Flavor -ne "store") {
-    Write-Err "Invalid flavor: '$Flavor'. Supported values are: 'premium', 'store'."
+$validFlavors = @("premium", "store", "direct", "bazaar", "myket", "googleplay")
+if ($Flavor -notin $validFlavors) {
+    Write-Err "Invalid flavor: '$Flavor'. Supported values are: $($validFlavors -join ', ')."
     exit 1
 }
 

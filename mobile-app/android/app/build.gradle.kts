@@ -81,6 +81,23 @@ android {
             applicationIdSuffix = ".premium"
             versionNameSuffix = "-premium"
         }
+        create("direct") {
+            dimension = "version"
+            applicationIdSuffix = ".direct"
+            versionNameSuffix = "-direct"
+        }
+        create("bazaar") {
+            dimension = "version"
+            versionNameSuffix = "-bazaar"
+        }
+        create("myket") {
+            dimension = "version"
+            versionNameSuffix = "-myket"
+        }
+        create("googleplay") {
+            dimension = "version"
+            versionNameSuffix = "-play"
+        }
     }
 
     lint {

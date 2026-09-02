@@ -25,11 +25,6 @@ on:
           - ipa
           - simulator
           - both
-      send_to_rubika:
-        description: 'Send packaged build to Rubika Bot'
-        required: false
-        default: true
-        type: boolean
 
 jobs:
   build-ios:
@@ -116,24 +111,3 @@ jobs:
             app-*-ios-release.zip
             app-*-ios-simulator.zip
           retention-days: 14
-
-      - name: Send Packages to Rubika Bot
-        if: ${{ (inputs.send_to_rubika != false) && success() }}
-        continue-on-error: true
-        env:
-          RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN || 'CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL' }}
-        run: |
-          FLAVOR="${{ inputs.flavor || 'premium' }}"
-          IPA_ZIP="app-${FLAVOR}-ios-release.zip"
-          SIMULATOR_ZIP="app-${FLAVOR}-ios-simulator.zip"
-
-          if [ -f "$IPA_ZIP" ]; then
-            echo "Sending physical device release $IPA_ZIP to Rubika Bot..."
-            python3 scripts/upload-to-rubika.py --file "$IPA_ZIP"
-          fi
-
-          if [ -f "$SIMULATOR_ZIP" ]; then
-            echo "Sending Appetize.io simulator bundle $SIMULATOR_ZIP to Rubika Bot..."
-            python3 scripts/upload-to-rubika.py --file "$SIMULATOR_ZIP"
-          fi
-        shell: bash
