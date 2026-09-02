@@ -7,6 +7,7 @@ import 'package:mobile_app/core/event_bus/event_bus.dart';
 import 'package:mobile_app/core/event_bus/domain_events.dart';
 import 'package:mobile_app/core/services/local_notification_service.dart';
 import 'package:mobile_app/core/services/review_notification_scheduler.dart';
+import 'package:mobile_app/features/config/domain/entities/remote_config.dart';
 
 class FakeStorageService implements StorageService {
   final Map<String, String> _storage = {};
@@ -164,9 +165,9 @@ void main() {
       await scheduler.init();
 
       expect(notificationService.isInitialized, isTrue);
-      // Default daily reminder is enabled at 20:00
+      // Default daily reminder is enabled at 09:00
       expect(notificationService.scheduledDailyReminders.isNotEmpty, isTrue);
-      expect(notificationService.scheduledDailyReminders.first['hour'], 20);
+      expect(notificationService.scheduledDailyReminders.first['hour'], 9);
       expect(notificationService.scheduledDailyReminders.first['minute'], 0);
     });
 
@@ -300,6 +301,72 @@ void main() {
         notificationService.cancelledNotificationIds,
         contains(LocalNotificationService.dailyReminderNotificationId),
       );
+    });
+
+    test('syncWithRemoteConfig updates schedule when not customized by user', () async {
+      await scheduler.init();
+
+      expect(scheduler.dailyReminderHour, 9);
+      expect(scheduler.isDailyReminderCustomized, isFalse);
+
+      const remoteConfig = RemoteConfig(
+        maintenanceMode: false,
+        apiServer: 'http://test',
+        contentServer: 'http://test',
+        bannerServer: 'http://test',
+        enableAiTutor: false,
+        enableCustomThemes: false,
+        enableSearchV2: false,
+        rotationIntervalSeconds: 4,
+        maxBannerCount: 5,
+        dailyReminderHour: 10,
+        dailyReminderMinute: 45,
+        enableDailyReminder: true,
+      );
+
+      await scheduler.syncWithRemoteConfig(remoteConfig);
+
+      expect(scheduler.dailyReminderHour, 10);
+      expect(scheduler.dailyReminderMinute, 45);
+      expect(notificationService.scheduledDailyReminders.last['hour'], 10);
+      expect(notificationService.scheduledDailyReminders.last['minute'], 45);
+    });
+
+    test('syncWithRemoteConfig preserves user customized schedule and reset restores default', () async {
+      await scheduler.init();
+
+      // User manually customizes reminder to 14:00
+      await scheduler.setDailyReminderTime(14, 0);
+      expect(scheduler.isDailyReminderCustomized, isTrue);
+      expect(scheduler.dailyReminderHour, 14);
+
+      // Server broadcasts new admin schedule of 08:30
+      const remoteConfig = RemoteConfig(
+        maintenanceMode: false,
+        apiServer: 'http://test',
+        contentServer: 'http://test',
+        bannerServer: 'http://test',
+        enableAiTutor: false,
+        enableCustomThemes: false,
+        enableSearchV2: false,
+        rotationIntervalSeconds: 4,
+        maxBannerCount: 5,
+        dailyReminderHour: 8,
+        dailyReminderMinute: 30,
+        enableDailyReminder: true,
+      );
+
+      await scheduler.syncWithRemoteConfig(remoteConfig);
+
+      // User preference should remain untouched
+      expect(scheduler.dailyReminderHour, 14);
+      expect(scheduler.dailyReminderMinute, 0);
+
+      // User clicks reset to default
+      await scheduler.resetDailyReminderToDefault();
+      expect(scheduler.isDailyReminderCustomized, isFalse);
+      expect(scheduler.dailyReminderHour, 9);
+      expect(scheduler.dailyReminderMinute, 0);
     });
 
     test('sendTestNotification fires immediate notification and requests permissions', () async {

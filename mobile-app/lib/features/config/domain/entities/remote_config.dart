@@ -29,6 +29,9 @@ class RemoteConfig extends Equatable {
   final int leitnerBox4Interval;
   final int leitnerBox5Interval;
   final String leitnerIntervalUnit;
+  final int dailyReminderHour;
+  final int dailyReminderMinute;
+  final bool enableDailyReminder;
 
   const RemoteConfig({
     required this.maintenanceMode,
@@ -59,6 +62,9 @@ class RemoteConfig extends Equatable {
     this.leitnerBox4Interval = 16,
     this.leitnerBox5Interval = 31,
     this.leitnerIntervalUnit = 'days',
+    this.dailyReminderHour = 9,
+    this.dailyReminderMinute = 0,
+    this.enableDailyReminder = true,
   });
 
   @override
@@ -91,6 +97,9 @@ class RemoteConfig extends Equatable {
         leitnerBox4Interval,
         leitnerBox5Interval,
         leitnerIntervalUnit,
+        dailyReminderHour,
+        dailyReminderMinute,
+        enableDailyReminder,
       ];
 
   factory RemoteConfig.fromJson(Map<String, dynamic> json) {
@@ -100,6 +109,7 @@ class RemoteConfig extends Equatable {
     final leitnerConfigs = json['leitner_configs'] as Map<String, dynamic>? ?? {};
     final appStyles = json['app_styles'] as Map<String, dynamic>? ?? {};
     final socialLinks = json['social_links'] as Map<String, dynamic>? ?? {};
+    final notificationConfigs = json['notification_configs'] as Map<String, dynamic>? ?? {};
 
     return RemoteConfig(
       maintenanceMode: json['maintenance_mode'] as bool? ?? false,
@@ -163,6 +173,15 @@ class RemoteConfig extends Equatable {
       leitnerIntervalUnit: (leitnerConfigs['interval_unit'] as String?) ??
           (json['leitner_interval_unit'] as String?) ??
           'days',
+      dailyReminderHour: (notificationConfigs['daily_reminder_hour'] as num?)?.toInt() ??
+          (json['daily_reminder_hour'] as num?)?.toInt() ??
+          9,
+      dailyReminderMinute: (notificationConfigs['daily_reminder_minute'] as num?)?.toInt() ??
+          (json['daily_reminder_minute'] as num?)?.toInt() ??
+          0,
+      enableDailyReminder: (notificationConfigs['enable_daily_reminder'] as bool?) ??
+          (json['daily_reminder_enabled'] as bool?) ??
+          true,
     );
   }
 
@@ -186,6 +205,14 @@ class RemoteConfig extends Equatable {
       'leitner_box4_interval': leitnerBox4Interval,
       'leitner_box5_interval': leitnerBox5Interval,
       'leitner_interval_unit': leitnerIntervalUnit,
+      'daily_reminder_hour': dailyReminderHour,
+      'daily_reminder_minute': dailyReminderMinute,
+      'daily_reminder_enabled': enableDailyReminder,
+      'notification_configs': {
+        'daily_reminder_hour': dailyReminderHour,
+        'daily_reminder_minute': dailyReminderMinute,
+        'enable_daily_reminder': enableDailyReminder,
+      },
       'endpoints': {
         'api_server': apiServer,
         'content_server': contentServer,

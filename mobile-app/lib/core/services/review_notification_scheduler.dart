@@ -4,6 +4,7 @@ import 'package:mobile_app/core/database/database_helper.dart';
 import 'package:mobile_app/core/event_bus/event_bus.dart';
 import 'package:mobile_app/core/event_bus/domain_events.dart';
 import 'package:mobile_app/core/diagnostics/app_logger.dart';
+import 'package:mobile_app/features/config/domain/entities/remote_config.dart';
 import 'local_notification_service.dart';
 
 class ReviewNotificationScheduler {
@@ -19,6 +20,7 @@ class ReviewNotificationScheduler {
   static const String keyDailyReminderEnabled = 'notifications_daily_reminder_enabled';
   static const String keyDailyReminderHour = 'notifications_daily_reminder_hour';
   static const String keyDailyReminderMinute = 'notifications_daily_reminder_minute';
+  static const String keyDailyReminderIsCustomized = 'notifications_daily_reminder_is_customized';
 
   ReviewNotificationScheduler({
     required this.localNotificationService,
@@ -63,9 +65,13 @@ class ReviewNotificationScheduler {
   bool get isDailyReminderEnabled =>
       sharedPreferences.getBool(keyDailyReminderEnabled) ?? true;
 
-  /// Daily reminder hour (0..23, default 20 for 8:00 PM).
+  /// Whether the user has explicitly selected a custom daily reminder time in Settings.
+  bool get isDailyReminderCustomized =>
+      sharedPreferences.getBool(keyDailyReminderIsCustomized) ?? false;
+
+  /// Daily reminder hour (0..23, default 9 for 9:00 AM).
   int get dailyReminderHour =>
-      sharedPreferences.getInt(keyDailyReminderHour) ?? 20;
+      sharedPreferences.getInt(keyDailyReminderHour) ?? 9;
 
   /// Daily reminder minute (0..59, default 0).
   int get dailyReminderMinute =>
@@ -94,11 +100,40 @@ class ReviewNotificationScheduler {
     await updateDailyReminder();
   }
 
-  /// Sets daily study reminder time.
+  /// Sets daily study reminder time customized by the user.
   Future<void> setDailyReminderTime(int hour, int minute) async {
     await sharedPreferences.setInt(keyDailyReminderHour, hour);
     await sharedPreferences.setInt(keyDailyReminderMinute, minute);
+    await sharedPreferences.setBool(keyDailyReminderIsCustomized, true);
     await updateDailyReminder();
+  }
+
+  /// Resets daily reminder time to system/remote default.
+  Future<void> resetDailyReminderToDefault({int defaultHour = 9, int defaultMinute = 0}) async {
+    await sharedPreferences.setInt(keyDailyReminderHour, defaultHour);
+    await sharedPreferences.setInt(keyDailyReminderMinute, defaultMinute);
+    await sharedPreferences.setBool(keyDailyReminderIsCustomized, false);
+    await updateDailyReminder();
+  }
+
+  /// Synchronizes daily study reminder with remote config from the server.
+  /// If user hasn't explicitly customized their reminder time, applies the remote admin schedule.
+  Future<void> syncWithRemoteConfig(RemoteConfig config) async {
+    if (!isDailyReminderCustomized) {
+      await sharedPreferences.setInt(keyDailyReminderHour, config.dailyReminderHour);
+      await sharedPreferences.setInt(keyDailyReminderMinute, config.dailyReminderMinute);
+      if (!sharedPreferences.containsKey(keyDailyReminderEnabled)) {
+        await sharedPreferences.setBool(keyDailyReminderEnabled, config.enableDailyReminder);
+      }
+      await updateDailyReminder();
+      AppLogger().info(
+        'Synced daily reminder with remote config: ${config.dailyReminderHour}:${config.dailyReminderMinute.toString().padLeft(2, '0')} (enabled: ${config.enableDailyReminder})',
+      );
+    } else {
+      AppLogger().info(
+        'Skipping remote reminder sync because user customized their reminder time ($dailyReminderHour:$dailyReminderMinute).',
+      );
+    }
   }
 
   /// Handles app lifecycle transition when user backgrounds or leaves the app.

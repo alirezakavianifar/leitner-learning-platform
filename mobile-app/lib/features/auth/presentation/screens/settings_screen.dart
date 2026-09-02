@@ -10,6 +10,7 @@ import 'package:mobile_app/core/localization/locale_bloc.dart';
 import 'package:mobile_app/core/services/backup_service.dart';
 import 'package:mobile_app/core/services/review_notification_scheduler.dart';
 import 'package:mobile_app/core/error/error_formatter.dart';
+import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
 class SettingsScreen extends StatefulWidget {
@@ -28,7 +29,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoadingBackups = true;
   bool _notificationsEnabled = true;
   bool _dailyReminderEnabled = true;
-  TimeOfDay _reminderTime = const TimeOfDay(hour: 20, minute: 0);
+  TimeOfDay _reminderTime = const TimeOfDay(hour: 9, minute: 0);
+  bool _isReminderCustomized = false;
 
   final List<Map<String, dynamic>> _premiumPalettes = const [
     {
@@ -88,6 +90,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         hour: _notificationScheduler.dailyReminderHour,
         minute: _notificationScheduler.dailyReminderMinute,
       );
+      _isReminderCustomized = _notificationScheduler.isDailyReminderCustomized;
     });
   }
 
@@ -127,7 +130,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _notificationScheduler.setDailyReminderTime(picked.hour, picked.minute);
       setState(() {
         _reminderTime = picked;
+        _isReminderCustomized = true;
       });
+    }
+  }
+
+  Future<void> _resetReminderTimeToDefault() async {
+    final config = context.read<ConfigBloc>().state.config;
+    if (config != null) {
+      await _notificationScheduler.resetDailyReminderToDefault(
+        defaultHour: config.dailyReminderHour,
+        defaultMinute: config.dailyReminderMinute,
+      );
+    } else {
+      await _notificationScheduler.resetDailyReminderToDefault();
+    }
+    setState(() {
+      _reminderTime = TimeOfDay(
+        hour: _notificationScheduler.dailyReminderHour,
+        minute: _notificationScheduler.dailyReminderMinute,
+      );
+      _isReminderCustomized = false;
+    });
+    if (mounted) {
+      final isFa = Localizations.localeOf(context).languageCode == 'fa';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isFa ? 'ساعت یادآوری به حالت پیش‌فرض بازگردانی شد.' : 'Reminder time reset to default.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
     }
   }
 
@@ -717,6 +749,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ],
                       ),
+                      if (_isReminderCustomized) ...[
+                        const SizedBox(height: 6),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: InkWell(
+                            onTap: _resetReminderTimeToDefault,
+                            child: Text(
+                              Localizations.localeOf(context).languageCode == 'fa'
+                                  ? '↺ بازنشانی به ساعت پیش‌فرض سیستم'
+                                  : '↺ Reset to system default',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 12,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                     const SizedBox(height: 14),
                     // Button: Send Test Notification

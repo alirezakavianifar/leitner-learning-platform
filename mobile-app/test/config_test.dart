@@ -63,6 +63,11 @@ void main() {
           'box4_interval': 15,
           'box5_interval': 20,
           'interval_unit': 'minutes',
+        },
+        'notification_configs': {
+          'daily_reminder_hour': 10,
+          'daily_reminder_minute': 15,
+          'enable_daily_reminder': true,
         }
       };
 
@@ -96,6 +101,9 @@ void main() {
       expect(config.leitnerBox4Interval, 15);
       expect(config.leitnerBox5Interval, 20);
       expect(config.leitnerIntervalUnit, 'minutes');
+      expect(config.dailyReminderHour, 10);
+      expect(config.dailyReminderMinute, 15);
+      expect(config.enableDailyReminder, true);
     });
 
     test('should return default values when fields are missing', () {
@@ -118,6 +126,9 @@ void main() {
       expect(config.telegramUrl, 'https://t.me/RightlearnApp');
       expect(config.baleUrl, 'https://ble.ir/rightlearnapp');
       expect(config.eitaaUrl, 'https://eitaa.com/RightLearnApp');
+      expect(config.dailyReminderHour, 9);
+      expect(config.dailyReminderMinute, 0);
+      expect(config.enableDailyReminder, true);
       expect(config.supportUrl, 'https://t.me/RLAppSupport');
       expect(config.supportId, '@RLAppSupport');
       expect(config.leitnerBox2Interval, 3);

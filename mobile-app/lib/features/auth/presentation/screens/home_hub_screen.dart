@@ -267,7 +267,14 @@ class HomeHubScreenState extends State<HomeHubScreen> with WidgetsBindingObserve
       _syncNotifications();
 
       try {
-        await di.sl<ReviewNotificationScheduler>().init();
+        final scheduler = di.sl<ReviewNotificationScheduler>();
+        await scheduler.init();
+        if (mounted) {
+          final config = context.read<ConfigBloc>().state.config;
+          if (config != null) {
+            await scheduler.syncWithRemoteConfig(config);
+          }
+        }
       } catch (_) {}
 
       final prefs = di.sl<SharedPreferences>();
@@ -385,16 +392,27 @@ class HomeHubScreenState extends State<HomeHubScreen> with WidgetsBindingObserve
         ? configState.config.appBarIconSize
         : (configState is ConfigMaintenance ? configState.config.appBarIconSize : 24.0);
 
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state is UnauthenticatedState) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const OtpRequestScreen()),
-            (route) => false,
-          );
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthBloc, AuthState>(
+          listener: (context, state) {
+            if (state is UnauthenticatedState) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const OtpRequestScreen()),
+                (route) => false,
+              );
+            }
+          },
+        ),
+        BlocListener<ConfigBloc, ConfigState>(
+          listener: (context, state) {
+            if (state is ConfigLoaded) {
+              di.sl<ReviewNotificationScheduler>().syncWithRemoteConfig(state.config);
+            }
+          },
+        ),
+      ],
       child: PopScope(
         canPop: false,
         onPopInvoked: (didPop) async {

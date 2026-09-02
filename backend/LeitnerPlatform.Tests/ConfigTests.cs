@@ -91,6 +91,20 @@ namespace LeitnerPlatform.Tests
             Assert.Equal("https://eitaa.com/RightLearnApp", (string?)socialType.GetProperty("eitaa_url")?.GetValue(socialLinks));
             Assert.Equal("https://t.me/RLAppSupport", (string?)socialType.GetProperty("support_url")?.GetValue(socialLinks));
             Assert.Equal("@RLAppSupport", (string?)socialType.GetProperty("support_id")?.GetValue(socialLinks));
+
+            var dailyReminderHour = (int?)type.GetProperty("daily_reminder_hour")?.GetValue(okResult.Value);
+            var dailyReminderMinute = (int?)type.GetProperty("daily_reminder_minute")?.GetValue(okResult.Value);
+            var dailyReminderEnabled = (bool?)type.GetProperty("daily_reminder_enabled")?.GetValue(okResult.Value);
+            Assert.Equal(9, dailyReminderHour);
+            Assert.Equal(0, dailyReminderMinute);
+            Assert.True(dailyReminderEnabled);
+
+            var notificationConfigs = type.GetProperty("notification_configs")?.GetValue(okResult.Value);
+            Assert.NotNull(notificationConfigs);
+            var notifType = notificationConfigs.GetType();
+            Assert.Equal(9, (int?)notifType.GetProperty("daily_reminder_hour")?.GetValue(notificationConfigs));
+            Assert.Equal(0, (int?)notifType.GetProperty("daily_reminder_minute")?.GetValue(notificationConfigs));
+            Assert.True((bool?)notifType.GetProperty("daily_reminder_enabled")?.GetValue(notificationConfigs));
         }
 
         [Fact]
@@ -110,6 +124,9 @@ namespace LeitnerPlatform.Tests
                 new SystemConfig { Key = "bottom_nav_icon_size", Value = "32" },
                 new SystemConfig { Key = "app_bar_icon_size", Value = "22" },
                 new SystemConfig { Key = "app_logo_size", Value = "140" },
+                new SystemConfig { Key = "daily_reminder_hour", Value = "14" },
+                new SystemConfig { Key = "daily_reminder_minute", Value = "30" },
+                new SystemConfig { Key = "daily_reminder_enabled", Value = "false" },
                 new SystemConfig { Key = "telegram_url", Value = "https://t.me/CustomChannel" },
                 new SystemConfig { Key = "support_url", Value = "https://t.me/CustomSupport" },
                 new SystemConfig { Key = "leitner_box2_interval", Value = "5" },
@@ -139,6 +156,7 @@ namespace LeitnerPlatform.Tests
             var featureFlags = type.GetProperty("feature_flags")?.GetValue(okResult.Value);
             var socialLinks = type.GetProperty("social_links")?.GetValue(okResult.Value);
             var leitnerConfigs = type.GetProperty("leitner_configs")?.GetValue(okResult.Value);
+            var customNotifConfigs = type.GetProperty("notification_configs")?.GetValue(okResult.Value);
 
             Assert.True(maintenanceMode);
             Assert.Equal("arrow", cardNavIconStyle);
@@ -151,6 +169,12 @@ namespace LeitnerPlatform.Tests
             Assert.NotNull(featureFlags);
             Assert.NotNull(socialLinks);
             Assert.NotNull(leitnerConfigs);
+            Assert.NotNull(customNotifConfigs);
+
+            var customNotifType = customNotifConfigs.GetType();
+            Assert.Equal(14, (int?)customNotifType.GetProperty("daily_reminder_hour")?.GetValue(customNotifConfigs));
+            Assert.Equal(30, (int?)customNotifType.GetProperty("daily_reminder_minute")?.GetValue(customNotifConfigs));
+            Assert.False((bool?)customNotifType.GetProperty("daily_reminder_enabled")?.GetValue(customNotifConfigs));
 
             var epType = endpoints.GetType();
             Assert.Equal("https://custom-api.com/v1", epType.GetProperty("api_server")?.GetValue(endpoints));

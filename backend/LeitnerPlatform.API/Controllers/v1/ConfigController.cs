@@ -123,6 +123,10 @@ namespace LeitnerPlatform.API.Controllers.v1
             int leitnerBox5Interval = configs.TryGetValue("leitner_box5_interval", out var b5Val) && int.TryParse(b5Val, out var b5Int) ? b5Int : 31;
             string leitnerIntervalUnit = configs.TryGetValue("leitner_interval_unit", out var unitVal) && !string.IsNullOrWhiteSpace(unitVal) ? unitVal : "days";
 
+            int dailyReminderHour = configs.TryGetValue("daily_reminder_hour", out var drhVal) && int.TryParse(drhVal, out var drhInt) ? drhInt : 9;
+            int dailyReminderMinute = configs.TryGetValue("daily_reminder_minute", out var drmVal) && int.TryParse(drmVal, out var drmInt) ? drmInt : 0;
+            bool enableDailyReminder = !configs.TryGetValue("daily_reminder_enabled", out var edrVal) || !bool.TryParse(edrVal, out var edrBool) || edrBool;
+
             string telegramUrl = configs.TryGetValue("telegram_url", out var tgVal) && !string.IsNullOrWhiteSpace(tgVal) ? tgVal : "https://t.me/RightlearnApp";
             string baleUrl = configs.TryGetValue("bale_url", out var baleVal) && !string.IsNullOrWhiteSpace(baleVal) ? baleVal : "https://ble.ir/rightlearnapp";
             string eitaaUrl = configs.TryGetValue("eitaa_url", out var eitaaVal) && !string.IsNullOrWhiteSpace(eitaaVal) ? eitaaVal : "https://eitaa.com/RightLearnApp";
@@ -139,6 +143,9 @@ namespace LeitnerPlatform.API.Controllers.v1
                 app_bar_icon_size = appBarIconSize,
                 app_logo_size = appLogoSize,
                 app_logo_url = appLogoUrl,
+                daily_reminder_hour = dailyReminderHour,
+                daily_reminder_minute = dailyReminderMinute,
+                daily_reminder_enabled = enableDailyReminder,
                 endpoints = new
                 {
                     api_server = apiServer,
@@ -167,6 +174,12 @@ namespace LeitnerPlatform.API.Controllers.v1
                 {
                     rotation_interval_seconds = rotationInterval,
                     max_banner_count = maxBannerCount
+                },
+                notification_configs = new
+                {
+                    daily_reminder_hour = dailyReminderHour,
+                    daily_reminder_minute = dailyReminderMinute,
+                    daily_reminder_enabled = enableDailyReminder
                 },
                 leitner_configs = new
                 {

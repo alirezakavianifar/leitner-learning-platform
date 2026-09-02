@@ -126,11 +126,12 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
 *   **Banner Deep-Linking & In-App Routing:** Carousel banners support both external URLs (`https://...`) and rich internal in-app navigation routes (`course://<course_id>`, `package://<package_id>`, `tab://courses`, `tab://my_courses`, `tab://reviews`). Tapping an internal link navigates the user directly to the targeted course/package details inside the app.
 *   **Course & Package Banner/Cover Images:** Courses and Course Packages support custom cover/banner image URLs (`image_url`) manageable directly through the Admin Panel and rendered in the mobile catalog and details modal with fallback gradients.
 *   **Notification Ordering:** Inside the notification center, the latest notifications must appear at the top of the list.
-*   **Top Notification Bar Review Alerts & Reminders:** Background scheduled local notifications informing users in their phone's top status notification bar when Leitner cards become due for review (even when outside the app) and daily customizable study reminders with in-app toggle controls in Settings.
+*   **Top Notification Bar Review Alerts & Reminders:** Background scheduled local notifications informing users in their phone's top status notification bar when Leitner cards become due for review (even when outside the app) and daily study reminders scheduled by default at 9:00 AM Iran local time with in-app toggle controls and custom time picking in Settings.
 *   **Flashcard Report System:** Users submit feedback storing User ID, Course ID/title, Card number, Report text, and Timestamp.
 
 ### 7. Remote Configuration & Dynamic Failover
-*   **Remote Config Endpoint:** `/api/v1/config/features` aggregates dynamic parameters (endpoints, feature flags, active banners, and announcements) in a single public JSON payload.
+*   **Remote Config Endpoint:** `/api/v1/config/features` aggregates dynamic parameters (endpoints, feature flags, active banners, announcements, and daily notification reminder schedules) in a single public JSON payload.
+*   **Admin Panel Notification Schedule Control:** Administrators can configure the default daily study reminder time (`daily_reminder_hour`, `daily_reminder_minute`, `daily_reminder_enabled`) directly from the Admin Panel Settings page with 1-click presets (09:00 AM, 12:00 PM, 06:00 PM, 08:00 PM). Mobile apps seamlessly sync and reschedule local notifications over-the-air.
 *   **Maintenance Mode:** Can be enabled/disabled from the Admin Panel Settings dashboard. When enabled, a blocking "Scheduled Maintenance" screen is presented to all users on launch.
 *   **Dynamic Failover Strategy:** The mobile client's network layer registers a custom connection error interceptor. Upon connection timeout or socket exceptions, the client sequentially pings fallback hosts to resolve a working server, updates `baseUrl` dynamically, and retries the request transparently.
 

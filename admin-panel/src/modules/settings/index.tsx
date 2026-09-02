@@ -54,6 +54,17 @@ export const SettingsView: React.FC = () => {
   const [leitnerBox5Interval, setLeitnerBox5Interval] = useState(31);
   const [leitnerIntervalUnit, setLeitnerIntervalUnit] = useState('days');
 
+  // States for Daily Study Reminders & Notification Schedule
+  const [dailyReminderHour, setDailyReminderHour] = useState(9);
+  const [dailyReminderMinute, setDailyReminderMinute] = useState(0);
+  const [enableDailyReminder, setEnableDailyReminder] = useState(true);
+
+  const applyReminderPreset = (hour: number, minute: number = 0) => {
+    setDailyReminderHour(hour);
+    setDailyReminderMinute(minute);
+    setEnableDailyReminder(true);
+  };
+
   const applyIconScalePreset = (scale: number) => {
     setGlobalIconScale(scale);
     if (scale === 0.85) {
@@ -207,6 +218,19 @@ export const SettingsView: React.FC = () => {
             case 'leitner_interval_unit':
               setLeitnerIntervalUnit(cfg.value || 'days');
               break;
+            case 'daily_reminder_hour': {
+              const h = parseInt(cfg.value);
+              setDailyReminderHour(!isNaN(h) && h >= 0 && h <= 23 ? h : 9);
+              break;
+            }
+            case 'daily_reminder_minute': {
+              const m = parseInt(cfg.value);
+              setDailyReminderMinute(!isNaN(m) && m >= 0 && m <= 59 ? m : 0);
+              break;
+            }
+            case 'daily_reminder_enabled':
+              setEnableDailyReminder(cfg.value !== 'false');
+              break;
             default:
               break;
           }
@@ -311,6 +335,9 @@ export const SettingsView: React.FC = () => {
         { key: 'leitner_box4_interval', value: leitnerBox4Interval.toString() },
         { key: 'leitner_box5_interval', value: leitnerBox5Interval.toString() },
         { key: 'leitner_interval_unit', value: leitnerIntervalUnit },
+        { key: 'daily_reminder_hour', value: dailyReminderHour.toString() },
+        { key: 'daily_reminder_minute', value: dailyReminderMinute.toString() },
+        { key: 'daily_reminder_enabled', value: enableDailyReminder.toString() },
       ];
       await api.admin.updateConfig(payload);
       toast.showSuccess(t('settings.save_success', 'تنظیمات با موفقیت ذخیره شدند.'));
@@ -1094,6 +1121,107 @@ export const SettingsView: React.FC = () => {
                   {t('settings.leitner_test_hint', 'In 1-Hour Verification Mode, cards in Boxes 2–5 become due in minutes (5m → 10m → 15m → 20m), allowing you to quickly verify the entire learning workflow end-to-end.')}
                 </p>
               </div>
+            </div>
+
+            {/* Daily Study Reminder & Notification Schedule */}
+            <div style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.15)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginTop: 0, color: 'var(--primary-hover)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {t('settings.section_notifications', 'Daily Study Reminders & Notification Schedule')}
+              </h3>
+              <p className="text-muted" style={{ fontSize: '13px', margin: '4px 0 16px 0' }}>
+                {t('settings.notifications_subtitle', 'Configure default push/local study reminder time for mobile users (Iran Local Time). Users without custom times automatically follow this schedule.')}
+              </p>
+
+              {/* Master Enable/Disable Switch */}
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="checkbox"
+                    checked={enableDailyReminder}
+                    onChange={(e) => setEnableDailyReminder(e.target.checked)}
+                  />
+                  <span style={{ fontWeight: 'bold' }}>{t('settings.enable_daily_reminder_label', 'Enable Default Daily Study Reminders')}</span>
+                </label>
+              </div>
+
+              {enableDailyReminder && (
+                <>
+                  {/* Quick Presets */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                    {[
+                      { label: t('settings.reminder_preset_morning', 'Morning (09:00 AM) - Recommended'), hour: 9, minute: 0, icon: '🌅' },
+                      { label: t('settings.reminder_preset_noon', 'Noon (12:00 PM)'), hour: 12, minute: 0, icon: '☀️' },
+                      { label: t('settings.reminder_preset_evening', 'Evening (06:00 PM)'), hour: 18, minute: 0, icon: '🌆' },
+                      { label: t('settings.reminder_preset_night', 'Night (08:00 PM)'), hour: 20, minute: 0, icon: '🌙' },
+                    ].map((preset) => {
+                      const isSelected = dailyReminderHour === preset.hour && dailyReminderMinute === preset.minute;
+                      return (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          className="btn"
+                          onClick={() => applyReminderPreset(preset.hour, preset.minute)}
+                          style={{
+                            fontSize: '12px',
+                            padding: '6px 12px',
+                            background: isSelected ? 'var(--primary)' : 'rgba(255,255,255,0.08)',
+                            borderColor: isSelected ? 'var(--primary)' : 'var(--border-color)',
+                            color: isSelected ? '#fff' : 'inherit',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {preset.icon} {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Time Inputs */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                    <div className="form-group">
+                      <label style={{ fontSize: '13px', fontWeight: 'bold' }}>{t('settings.reminder_hour_label', 'Reminder Hour (0-23)')}</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="23"
+                        value={dailyReminderHour}
+                        onChange={(e) => setDailyReminderHour(Math.max(0, Math.min(23, parseInt(e.target.value) || 0)))}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label style={{ fontSize: '13px', fontWeight: 'bold' }}>{t('settings.reminder_minute_label', 'Reminder Minute (0-59)')}</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={dailyReminderMinute}
+                        onChange={(e) => setDailyReminderMinute(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Live Summary Callout */}
+                  <div style={{ padding: '12px 16px', background: 'rgba(0, 0, 0, 0.25)', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                        {t('settings.reminder_summary_label', 'Effective Scheduled Reminder Time:')}
+                      </span>
+                      <span style={{ color: 'var(--primary-hover)', fontWeight: 'bold', fontSize: '15px' }}>
+                        🔔 {dailyReminderHour.toString().padStart(2, '0')}:{dailyReminderMinute.toString().padStart(2, '0')} ({dailyReminderHour >= 12 ? `${dailyReminderHour > 12 ? dailyReminderHour - 12 : 12}:${dailyReminderMinute.toString().padStart(2, '0')} PM` : `${dailyReminderHour === 0 ? 12 : dailyReminderHour}:${dailyReminderMinute.toString().padStart(2, '0')} AM`})
+                      </span>
+                    </div>
+                    <p className="text-muted" style={{ fontSize: '12px', margin: 0 }}>
+                      {t('settings.reminder_hint', 'Mobile devices will trigger a top notification bar review reminder at this local time each day for all users who have not chosen a personal reminder schedule.')}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Social Messengers & Support Links */}

@@ -341,7 +341,18 @@
     "leitner_unit_label": "Stage Interval Time Unit",
     "unit_seconds": "Seconds",
     "leitner_summary_label": "Total Time to Finished (Box 7):",
-    "leitner_test_hint": "In 1-Hour Verification Mode, cards in Boxes 2–5 become due in minutes (5m → 10m → 15m → 20m), allowing you to quickly verify the entire learning workflow end-to-end."
+    "leitner_test_hint": "In 1-Hour Verification Mode, cards in Boxes 2–5 become due in minutes (5m → 10m → 15m → 20m), allowing you to quickly verify the entire learning workflow end-to-end.",
+    "section_notifications": "Daily Study Reminders & Notification Schedule",
+    "notifications_subtitle": "Configure default study reminder time for mobile users (Iran Local Time). Users without custom times automatically follow this schedule.",
+    "enable_daily_reminder_label": "Enable Default Daily Study Reminders",
+    "reminder_preset_morning": "Morning (09:00 AM) - Recommended",
+    "reminder_preset_noon": "Noon (12:00 PM)",
+    "reminder_preset_evening": "Evening (06:00 PM)",
+    "reminder_preset_night": "Night (08:00 PM)",
+    "reminder_hour_label": "Reminder Hour (0-23)",
+    "reminder_minute_label": "Reminder Minute (0-59)",
+    "reminder_summary_label": "Effective Scheduled Reminder Time:",
+    "reminder_hint": "Mobile devices will trigger a top notification bar review reminder at this local time each day for all users who have not chosen a personal reminder schedule."
   },
   "quick_grant": {
     "title": "Grant Free Course Access",
