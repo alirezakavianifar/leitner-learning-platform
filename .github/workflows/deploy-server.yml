@@ -103,7 +103,7 @@ jobs:
           tar -czf "$ARCHIVE_NAME" \
             --exclude="admin-panel/node_modules" \
             --exclude="mobile-app" --exclude="docs" --exclude="*.apk" \
-            publish admin-panel deployment .env*
+            publish admin-panel deployment .dockerignore .env*
 
           echo "Archive created: $ARCHIVE_NAME ($(du -h "$ARCHIVE_NAME" | cut -f1))"
 

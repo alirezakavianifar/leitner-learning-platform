@@ -118,7 +118,7 @@ $ExcludeArgs = @(
 )
 
 try {
-    & tar -czf $TempArchiveName @ExcludeArgs publish admin-panel deployment .env
+    & tar -czf $TempArchiveName @ExcludeArgs publish admin-panel deployment .dockerignore .env
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path $TempArchivePath)) {
         throw "Failed to create deployment archive (tar exited with code $LASTEXITCODE)."
     }
