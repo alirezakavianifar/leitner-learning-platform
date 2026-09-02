@@ -134,6 +134,22 @@ class AuthRepositoryImpl implements AuthRepository {
     File? profilePicture,
   }) async {
     try {
+      String? remoteAvatarUrl;
+      if (profilePicture != null) {
+        try {
+          remoteAvatarUrl = await remoteDataSource.uploadAvatar(profilePicture);
+        } catch (_) {
+          // Continue updating other profile fields even if avatar upload fails (e.g. offline)
+        }
+
+        try {
+          final appDir = await getApplicationDocumentsDirectory();
+          final fileName = 'profile_avatar_${DateTime.now().millisecondsSinceEpoch}${p.extension(profilePicture.path)}';
+          final savedFile = await profilePicture.copy(p.join(appDir.path, fileName));
+          await localDataSource.cacheAvatarPath(savedFile.path);
+        } catch (_) {}
+      }
+
       final profile = await remoteDataSource.updateProfile(
         username: username,
         interests: interests,
@@ -141,8 +157,8 @@ class AuthRepositoryImpl implements AuthRepository {
         educationalLevel: educationalLevel,
       );
 
-      await databaseHelper.switchUser(profile.id);
-      await localDataSource.cacheUserProfile(
+      final finalAvatarUrl = remoteAvatarUrl ?? profile.profilePictureUrl;
+      final updatedProfile = User(
         id: profile.id,
         username: profile.username,
         mobileNumber: profile.mobileNumber,
@@ -150,17 +166,22 @@ class AuthRepositoryImpl implements AuthRepository {
         educationalField: profile.educationalField,
         educationalLevel: profile.educationalLevel,
         createdAt: profile.createdAt,
-        profilePictureUrl: profile.profilePictureUrl,
+        profilePictureUrl: finalAvatarUrl,
       );
 
-      if (profilePicture != null) {
-        final appDir = await getApplicationDocumentsDirectory();
-        final fileName = 'profile_avatar_${DateTime.now().millisecondsSinceEpoch}${p.extension(profilePicture.path)}';
-        final savedFile = await profilePicture.copy(p.join(appDir.path, fileName));
-        await localDataSource.cacheAvatarPath(savedFile.path);
-      }
+      await databaseHelper.switchUser(updatedProfile.id);
+      await localDataSource.cacheUserProfile(
+        id: updatedProfile.id,
+        username: updatedProfile.username,
+        mobileNumber: updatedProfile.mobileNumber,
+        interests: updatedProfile.interests,
+        educationalField: updatedProfile.educationalField,
+        educationalLevel: updatedProfile.educationalLevel,
+        createdAt: updatedProfile.createdAt,
+        profilePictureUrl: updatedProfile.profilePictureUrl,
+      );
 
-      return Right(profile);
+      return Right(updatedProfile);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message, errorCode: e.errorCode));
     } catch (e) {

@@ -227,6 +227,9 @@ class _ProfileCompletionScreenState extends State<ProfileCompletionScreen> {
                                 backgroundImage: _pickedImage != null
                                     ? FileImage(_pickedImage!) as ImageProvider
                                     : null,
+                                onBackgroundImageError: _pickedImage != null
+                                    ? (exception, stackTrace) {}
+                                    : null,
                                 child: _pickedImage == null
                                     ? Icon(Icons.person, size: 54, color: AppColors.textSecondary)
                                     : null,

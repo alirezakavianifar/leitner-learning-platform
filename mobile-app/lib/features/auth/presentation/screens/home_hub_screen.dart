@@ -32,6 +32,7 @@ import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/core/widgets/app_logo.dart';
 import 'package:mobile_app/core/services/review_notification_scheduler.dart';
+import 'package:mobile_app/core/utils/image_url_resolver.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeHubScreen extends StatefulWidget {
@@ -821,7 +822,16 @@ class HomeHubScreenState extends State<HomeHubScreen> with WidgetsBindingObserve
     final educationalField = loc.translate(rawField);
     final educationalLevel = loc.translate(rawLevel);
     final avatarPath = prefs.getString('user_avatar_path');
-    final avatarImage = avatarPath != null ? FileImage(File(avatarPath)) : null;
+    final avatarUrl = prefs.getString('user_profile_picture_url');
+    ImageProvider? avatarImage;
+    if (avatarPath != null && avatarPath.isNotEmpty && File(avatarPath).existsSync()) {
+      avatarImage = FileImage(File(avatarPath));
+    } else if (avatarUrl != null && avatarUrl.trim().isNotEmpty) {
+      final resolved = resolveImageUrl(avatarUrl);
+      if (resolved != null) {
+        avatarImage = NetworkImage(resolved);
+      }
+    }
 
     return Drawer(
       backgroundColor: AppColors.background,
@@ -848,6 +858,11 @@ class HomeHubScreenState extends State<HomeHubScreen> with WidgetsBindingObserve
                   radius: 28,
                   backgroundColor: Colors.white.withOpacity(0.2),
                   backgroundImage: avatarImage,
+                  onBackgroundImageError: avatarImage != null
+                      ? (exception, stackTrace) {
+                          // Silently catch image loading errors so fallback or background stays clean
+                        }
+                      : null,
                   child: avatarImage == null
                       ? const Icon(Icons.person, size: 32, color: Colors.white)
                       : null,
@@ -864,14 +879,18 @@ class HomeHubScreenState extends State<HomeHubScreen> with WidgetsBindingObserve
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$educationalField • $educationalLevel',
+                        '$educationalLevel • $educationalField',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.8),
                           fontSize: 12,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -881,18 +900,24 @@ class HomeHubScreenState extends State<HomeHubScreen> with WidgetsBindingObserve
           ),
           const SizedBox(height: 16),
 
-          // Drawer items
+          // Drawer Navigation Items
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
                 _buildDrawerItem(
                   icon: Icons.person,
                   iconColor: AppColors.primary,
                   title: loc.profileDetails,
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(context); // Close drawer
-                    _pushGlobal(const ProfileScreen());
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                    );
+                    if (mounted) {
+                      setState(() {});
+                    }
                   },
                 ),
                 _buildDrawerItem(

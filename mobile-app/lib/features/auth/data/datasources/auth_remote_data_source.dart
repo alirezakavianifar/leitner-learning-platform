@@ -21,6 +21,8 @@ abstract class AuthRemoteDataSource {
     String? educationalField,
     String? educationalLevel,
   });
+  Future<String> uploadAvatar(File file);
+  Future<void> deleteAvatar();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -123,6 +125,36 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         return UserModel.fromJson(data['profile']);
       } else {
         throw ServerException('Failed to update user profile');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  @override
+  Future<String> uploadAvatar(File file) async {
+    try {
+      final fileName = file.path.split(Platform.pathSeparator).last;
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path, filename: fileName),
+      });
+      final response = await dio.post('/user/avatar', data: formData);
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data['profile_picture_url'] as String;
+      } else {
+        throw ServerException('Failed to upload avatar');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  @override
+  Future<void> deleteAvatar() async {
+    try {
+      final response = await dio.delete('/user/avatar');
+      if (response.statusCode != 200) {
+        throw ServerException('Failed to delete avatar');
       }
     } on DioException catch (e) {
       throw _handleDioException(e);

@@ -10,6 +10,7 @@ namespace LeitnerPlatform.Core.Entities
         public string? Interests { get; set; }
         public string? EducationalField { get; set; }
         public string? EducationalLevel { get; set; }
+        public string? ProfilePictureUrl { get; set; }
         public bool IsAdmin { get; set; } = false;
         public DateTime CreatedAt { get; set; }
     }

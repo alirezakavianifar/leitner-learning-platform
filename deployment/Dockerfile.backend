@@ -11,15 +11,13 @@ COPY ["backend/LeitnerPlatform.Core/LeitnerPlatform.Core.csproj", "backend/Leitn
 COPY ["backend/LeitnerPlatform.Data/LeitnerPlatform.Data.csproj", "backend/LeitnerPlatform.Data/"]
 COPY ["backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj", "backend/LeitnerPlatform.BackgroundWorker/"]
 
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet restore "backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj" && \
+RUN dotnet restore "backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj" && \
     dotnet restore "backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj"
 
 # Copy remaining source code and publish
 COPY . .
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet publish "backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj" -c Release -o /app/publish /p:UseAppHost=false --no-restore && \
-    dotnet publish "backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj" -c Release -o /app/publish /p:UseAppHost=false --no-restore
+RUN dotnet publish "backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj" -c Release -o /app/publish /p:UseAppHost=false && \
+    dotnet publish "backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Stage 2: Runtime image configuration
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final

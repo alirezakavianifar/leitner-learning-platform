@@ -9,6 +9,7 @@ import 'package:mobile_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_event.dart';
 import 'package:mobile_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:mobile_app/core/error/error_formatter.dart';
+import 'package:mobile_app/core/utils/image_url_resolver.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 
 class ProfileScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isSavingProfile = false;
   File? _pickedImage;
   String? _savedAvatarPath; // local file path of previously saved avatar
+  String? _profilePictureUrl; // remote URL of saved avatar
 
   final List<Map<String, String>> _interestsOptions = const [
     {'en': 'Foreign Languages', 'fa': 'زبان‌های خارجی'},
@@ -68,6 +70,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final prefs = di.sl<SharedPreferences>();
+    final rawAvatarPath = prefs.getString('user_avatar_path');
+    String? validAvatarPath;
+    if (rawAvatarPath != null && rawAvatarPath.isNotEmpty && File(rawAvatarPath).existsSync()) {
+      validAvatarPath = rawAvatarPath;
+    }
+
     setState(() {
       _usernameController.text = prefs.getString('user_username') ?? '';
       _mobileNumber = prefs.getString('user_mobile_number') ?? '';
@@ -77,7 +85,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final savedLevel = prefs.getString('user_educational_level') ?? 'Student';
       const validLevels = ['Student', 'High School Diploma', 'Associate Degree', "Bachelor's", "Master's", 'PhD & Above'];
       _educationalLevel = validLevels.contains(savedLevel) ? savedLevel : 'Student';
-      _savedAvatarPath = prefs.getString('user_avatar_path');
+      _savedAvatarPath = validAvatarPath;
+      _profilePictureUrl = prefs.getString('user_profile_picture_url');
     });
   }
 
@@ -143,6 +152,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _pickedImage = file;
       });
+      // Immediately trigger save to upload avatar to server and cache locally
+      if (_usernameController.text.trim().isNotEmpty) {
+        await _saveProfile();
+      }
     }
   }
 
@@ -230,31 +243,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Center(
                 child: GestureDetector(
                   onTap: _isSavingProfile ? null : _pickImage,
-                  child: Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      CircleAvatar(
-                        radius: 54,
-                        backgroundColor: AppColors.surface,
-                        backgroundImage: _pickedImage != null
-                            ? FileImage(_pickedImage!) as ImageProvider
-                            : (_savedAvatarPath != null
-                                ? FileImage(File(_savedAvatarPath!))
-                                : null),
-                        child: (_pickedImage == null && _savedAvatarPath == null)
-                            ? Icon(Icons.person, size: 54, color: AppColors.textSecondary)
-                            : null,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.background, width: 2),
-                        ),
-                        child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                      ),
-                    ],
+                  child: Builder(
+                    builder: (context) {
+                      ImageProvider? avatarProvider;
+                      if (_pickedImage != null) {
+                        avatarProvider = FileImage(_pickedImage!);
+                      } else if (_savedAvatarPath != null && File(_savedAvatarPath!).existsSync()) {
+                        avatarProvider = FileImage(File(_savedAvatarPath!));
+                      } else if (_profilePictureUrl != null && _profilePictureUrl!.trim().isNotEmpty) {
+                        final resolved = resolveImageUrl(_profilePictureUrl);
+                        if (resolved != null) {
+                          avatarProvider = NetworkImage(resolved);
+                        }
+                      }
+
+                      return Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 54,
+                            backgroundColor: AppColors.surface,
+                            backgroundImage: avatarProvider,
+                            onBackgroundImageError: avatarProvider != null
+                                ? (exception, stackTrace) {
+                                    // Handle image load failure gracefully without throwing or leaving blank UI
+                                  }
+                                : null,
+                            child: avatarProvider == null
+                                ? Icon(Icons.person, size: 54, color: AppColors.textSecondary)
+                                : null,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.background, width: 2),
+                            ),
+                            child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),

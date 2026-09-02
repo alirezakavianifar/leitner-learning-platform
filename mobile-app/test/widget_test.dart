@@ -53,6 +53,23 @@ void main() {
       expect(result.educationalLevel, 'BSc');
       expect(result.createdAt, DateTime.parse('2026-06-21T07:50:37.000Z'));
     });
+
+    test('should parse and serialize profile_picture_url correctly', () {
+      final json = {
+        'id': 'u-avatar-1',
+        'mobile_number': '09123456789',
+        'username': 'avatar_user',
+        'interests': 'English',
+        'educational_field': 'General',
+        'educational_level': 'Student',
+        'profile_picture_url': '/uploads/avatars/avatar_u-avatar-1_123456.png',
+        'created_at': '2026-06-21T07:50:37.000Z',
+      };
+
+      final result = UserModel.fromJson(json);
+      expect(result.profilePictureUrl, '/uploads/avatars/avatar_u-avatar-1_123456.png');
+      expect(result.toJson()['profile_picture_url'], '/uploads/avatars/avatar_u-avatar-1_123456.png');
+    });
   });
 
   group('Course and Package ImageUrl Parsing Tests', () {

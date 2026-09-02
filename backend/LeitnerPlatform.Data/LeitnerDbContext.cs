@@ -104,6 +104,7 @@ namespace LeitnerPlatform.Data
                 entity.Property(e => e.Interests).HasColumnName("interests");
                 entity.Property(e => e.EducationalField).HasColumnName("educational_field").HasMaxLength(150);
                 entity.Property(e => e.EducationalLevel).HasColumnName("educational_level").HasMaxLength(100);
+                entity.Property(e => e.ProfilePictureUrl).HasColumnName("profile_picture_url").HasMaxLength(512);
                 entity.Property(e => e.IsAdmin).HasColumnName("is_admin").HasDefaultValue(false);
                 entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             });

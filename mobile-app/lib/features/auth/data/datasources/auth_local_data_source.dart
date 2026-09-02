@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_app/core/services/storage_service.dart';
 import 'package:mobile_app/features/auth/domain/entities/user.dart';
@@ -150,6 +153,24 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<String?> getCachedAvatarPath() async {
-    return sharedPreferences.getString('user_avatar_path');
+    final rawPath = sharedPreferences.getString('user_avatar_path');
+    if (rawPath == null || rawPath.trim().isEmpty) return null;
+
+    final file = File(rawPath);
+    if (await file.exists()) {
+      return rawPath;
+    }
+
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final baseName = p.basename(rawPath);
+      final migratedFile = File(p.join(appDir.path, baseName));
+      if (await migratedFile.exists()) {
+        await sharedPreferences.setString('user_avatar_path', migratedFile.path);
+        return migratedFile.path;
+      }
+    } catch (_) {}
+
+    return null;
   }
 }

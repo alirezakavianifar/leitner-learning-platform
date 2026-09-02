@@ -327,5 +327,141 @@ namespace LeitnerPlatform.Tests
             var diff = Math.Abs((jwt.ValidTo - expectedExpiry).TotalSeconds);
             Assert.True(diff < 60, $"JWT validity difference {diff}s is unexpectedly high.");
         }
+
+        [Fact]
+        public async Task UserController_GetProfile_ShouldReturnProfilePictureUrl()
+        {
+            var mockRepo = new Mock<IUserRepository>();
+            var userId = Guid.NewGuid();
+            var testUser = new User
+            {
+                Id = userId,
+                Username = "avatar_user",
+                MobileNumber = "+989129999999",
+                ProfilePictureUrl = "/uploads/avatars/avatar_test.png",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            mockRepo.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(testUser);
+
+            var controller = new UserController(mockRepo.Object);
+            var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim("sub", userId.ToString())
+            }, "TestAuth"));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            };
+
+            var result = await controller.GetProfile();
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var type = okResult.Value!.GetType();
+            var urlVal = type.GetProperty("profile_picture_url")?.GetValue(okResult.Value) as string;
+
+            Assert.Equal("/uploads/avatars/avatar_test.png", urlVal);
+        }
+
+        [Fact]
+        public async Task UserController_UploadAvatar_InvalidExtension_ShouldReturnBadRequest()
+        {
+            var mockRepo = new Mock<IUserRepository>();
+            var userId = Guid.NewGuid();
+            var controller = new UserController(mockRepo.Object);
+            var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim("sub", userId.ToString())
+            }, "TestAuth"));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            };
+
+            var stream = new System.IO.MemoryStream(new byte[] { 1, 2, 3 });
+            var file = new FormFile(stream, 0, 3, "file", "test.exe");
+
+            var result = await controller.UploadAvatar(file);
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.NotNull(badRequest.Value);
+        }
+
+        [Fact]
+        public async Task UserController_UploadAvatar_ValidImage_ShouldSaveAndReturnUrl()
+        {
+            var mockRepo = new Mock<IUserRepository>();
+            var userId = Guid.NewGuid();
+            var testUser = new User
+            {
+                Id = userId,
+                Username = "upload_user",
+                MobileNumber = "+989121111111",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            mockRepo.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(testUser);
+
+            var controller = new UserController(mockRepo.Object);
+            var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim("sub", userId.ToString())
+            }, "TestAuth"));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            };
+
+            var stream = new System.IO.MemoryStream(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+            var file = new FormFile(stream, 0, 4, "file", "photo.png");
+
+            var result = await controller.UploadAvatar(file);
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var type = okResult.Value!.GetType();
+            var urlVal = type.GetProperty("profile_picture_url")?.GetValue(okResult.Value) as string;
+
+            Assert.NotNull(urlVal);
+            Assert.StartsWith("/uploads/avatars/avatar_", urlVal);
+            Assert.EndsWith(".png", urlVal);
+            Assert.Equal(urlVal, testUser.ProfilePictureUrl);
+            mockRepo.Verify(r => r.UpdateAsync(testUser), Times.Once);
+            mockRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task UserController_DeleteAvatar_ShouldClearUrl()
+        {
+            var mockRepo = new Mock<IUserRepository>();
+            var userId = Guid.NewGuid();
+            var testUser = new User
+            {
+                Id = userId,
+                Username = "delete_user",
+                MobileNumber = "+989122222222",
+                ProfilePictureUrl = "/uploads/avatars/avatar_old.png",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            mockRepo.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(testUser);
+
+            var controller = new UserController(mockRepo.Object);
+            var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim("sub", userId.ToString())
+            }, "TestAuth"));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            };
+
+            var result = await controller.DeleteAvatar();
+            var okResult = Assert.IsType<OkObjectResult>(result);
+
+            Assert.Null(testUser.ProfilePictureUrl);
+            mockRepo.Verify(r => r.UpdateAsync(testUser), Times.Once);
+            mockRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+        }
     }
 }

@@ -1,0 +1,12 @@
+**/.git
+**/.github
+**/bin
+**/obj
+**/TestResults
+**/node_modules
+admin-panel/dist
+mobile-app
+docs
+*.apk
+*.zip
+*.tar.gz
