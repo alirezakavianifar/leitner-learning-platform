@@ -65,11 +65,13 @@ export const SettingsView: React.FC = () => {
   const [mobileInputError, setMobileInputError] = useState('');
   const [adminEmergencyBypassEnabled, setAdminEmergencyBypassEnabled] = useState(true);
 
+  const [savingSecurity, setSavingSecurity] = useState(false);
+
   // Helper functions for mobile number handling and validation
   const toEnglishDigits = (str: string): string => {
     return str
       .replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
-      .replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+      .replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧۸۹'.indexOf(d).toString())
       .replace(/[\s\-_()]/g, '');
   };
 
@@ -88,7 +90,24 @@ export const SettingsView: React.FC = () => {
     return /^(\+98|0098|98|0)?9\d{9}$/.test(clean);
   };
 
-  const handleAddMobile = () => {
+  const persistSecurityConfig = async (mobiles: string[], bypassEnabled: boolean) => {
+    try {
+      setSavingSecurity(true);
+      await api.admin.updateConfig([
+        { key: 'admin_allowed_mobile_numbers', value: mobiles.join(', ') },
+        { key: 'admin_emergency_bypass_enabled', value: bypassEnabled.toString() }
+      ]);
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.showError(msg || t('settings.save_failed', 'Failed to save security settings.'));
+      return false;
+    } finally {
+      setSavingSecurity(false);
+    }
+  };
+
+  const handleAddMobile = async () => {
     const raw = newMobileInput.trim();
     if (!raw) {
       setMobileInputError(t('settings.error_mobile_empty', 'لطفا شماره موبایل را وارد کنید.'));
@@ -109,13 +128,46 @@ export const SettingsView: React.FC = () => {
 
     // Format consistently: if started with +, keep +98..., otherwise store standard 09...
     const formatted = clean.startsWith('+') ? clean : (clean.startsWith('0') ? clean : '0' + clean);
-    setAdminAllowedMobilesList((prev) => [...prev, formatted]);
+    const updatedList = [...adminAllowedMobilesList, formatted];
+    setAdminAllowedMobilesList(updatedList);
     setNewMobileInput('');
     setMobileInputError('');
+
+    // Immediately persist to server so it is never lost
+    const ok = await persistSecurityConfig(updatedList, adminEmergencyBypassEnabled);
+    if (ok) {
+      toast.showSuccess(t('settings.mobile_added_toast', `شماره ${formatted} با موفقیت افزوده و در سرور ذخیره شد.`));
+    }
   };
 
-  const handleRemoveMobile = (indexToRemove: number) => {
-    setAdminAllowedMobilesList((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  const handleRemoveMobile = async (indexToRemove: number) => {
+    const updatedList = adminAllowedMobilesList.filter((_, idx) => idx !== indexToRemove);
+    if (updatedList.length === 0 && !adminEmergencyBypassEnabled) {
+      toast.showError(t('settings.error_lockout_risk', 'حداقل یک شماره موبایل باید ثبت شود یا کد اضطراری فعال باشد.'));
+      return;
+    }
+
+    const removedNumber = adminAllowedMobilesList[indexToRemove];
+    setAdminAllowedMobilesList(updatedList);
+
+    // Immediately persist to server
+    const ok = await persistSecurityConfig(updatedList, adminEmergencyBypassEnabled);
+    if (ok) {
+      toast.showSuccess(t('settings.mobile_removed_toast', `شماره ${removedNumber} با موفقیت حذف و تغییرات در سرور ذخیره شد.`));
+    }
+  };
+
+  const handleToggleEmergencyBypass = async (enabled: boolean) => {
+    if (!enabled && adminAllowedMobilesList.length === 0) {
+      toast.showError(t('settings.error_lockout_risk', 'حداقل یک شماره موبایل باید ثبت شود یا کد اضطراری فعال باشد.'));
+      return;
+    }
+
+    setAdminEmergencyBypassEnabled(enabled);
+    const ok = await persistSecurityConfig(adminAllowedMobilesList, enabled);
+    if (ok) {
+      toast.showSuccess(enabled ? 'کد اضطراری ۱۲۳۴۵ برای شماره‌های مجاز فعال شد.' : 'کد اضطراری ۱۲۳۴۵ غیرفعال شد.');
+    }
   };
 
   const applyReminderPreset = (hour: number, minute: number = 0) => {
@@ -900,7 +952,8 @@ export const SettingsView: React.FC = () => {
                     type="checkbox"
                     id="admin_emergency_bypass_enabled"
                     checked={adminEmergencyBypassEnabled}
-                    onChange={(e) => setAdminEmergencyBypassEnabled(e.target.checked)}
+                    onChange={(e) => handleToggleEmergencyBypass(e.target.checked)}
+                    disabled={savingSecurity}
                     style={{ width: '18px', height: '18px', marginTop: '3px', cursor: 'pointer' }}
                   />
                   <div style={{ flex: 1 }}>
@@ -911,14 +964,60 @@ export const SettingsView: React.FC = () => {
                       cursor: 'pointer',
                       display: 'block'
                     }}>
-                      {t('settings.emergency_bypass_title', 'فعال‌سازی کد اضطراری ۱۲۳۴۵ برای شماره ۰۹۱۲۰۰۰۰۰۰۰')}
+                      {t('settings.emergency_bypass_title', 'فعال‌سازی کد اضطراری ۱۲۳۴۵ برای شماره‌های مجاز مدیریت')}
                     </label>
                     <p style={{ fontSize: '12px', margin: '4px 0 0 0', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                       {adminEmergencyBypassEnabled
-                        ? t('settings.emergency_bypass_active_desc', 'کد اضطراری فعال است. برای راه‌اندازی اولیه، تست یا مواقع قطعی سامانه پیامک می‌توانید با شماره ۰۹۱۲۰۰۰۰۰۰۰ و کد ۱۲۳۴۵ وارد شوید.')
+                        ? t('settings.emergency_bypass_active_desc', 'کد اضطراری فعال است. برای راه‌اندازی اولیه، تست یا مواقع قطعی سامانه پیامک می‌توانید با شماره‌های مجاز فوق و کد ۱۲۳۴۵ وارد شوید.')
                         : t('settings.emergency_bypass_inactive_desc', 'کد اضطراری غیرفعال است. ورود به پنل مدیریت صرفاً از طریق ارسال کد تایید پیامک به شماره‌های مجاز فوق انجام می‌پذیرد.')}
                     </p>
                   </div>
+                </div>
+
+                {/* Instant Auto-Save & Manual Sync Status Callout */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 14px',
+                  background: 'rgba(99, 102, 241, 0.08)',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(99, 102, 241, 0.25)',
+                  flexWrap: 'wrap',
+                  gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#c7d2fe' }}>
+                    {savingSecurity ? (
+                      <>
+                        <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid #818cf8', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <span style={{ fontWeight: 'bold' }}>{t('settings.saving_to_server', 'در حال ذخیره‌سازی تغییرات در سرور...')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>💾</span>
+                        <span>{t('settings.auto_save_hint', 'تغییرات شماره‌ها و دسترسی اضطراری به صورت خودکار بلافاصله در سرور ذخیره می‌شوند.')}</span>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const ok = await persistSecurityConfig(adminAllowedMobilesList, adminEmergencyBypassEnabled);
+                      if (ok) toast.showSuccess(t('settings.mobile_saved_toast', 'تنظیمات امنیتی و شماره‌ها با موفقیت در سرور ذخیره شدند.'));
+                    }}
+                    disabled={savingSecurity}
+                    className="btn"
+                    style={{
+                      fontSize: '11.5px',
+                      padding: '4px 12px',
+                      background: 'rgba(99, 102, 241, 0.25)',
+                      color: '#e0e7ff',
+                      border: '1px solid rgba(99, 102, 241, 0.5)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {savingSecurity ? '...' : t('settings.force_save_security_btn', 'ذخیره دستی امنیت')}
+                  </button>
                 </div>
               </div>
             </div>

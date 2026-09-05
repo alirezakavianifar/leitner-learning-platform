@@ -170,10 +170,9 @@ namespace LeitnerPlatform.API.Controllers.v1
                 }
             }
 
-            // Emergency bypass check (allowed for 09120000000 when enabled in admin settings/system_configs)
+            // Emergency bypass check (allowed for authorized admin numbers when enabled in admin settings/system_configs)
             bool isEmergencyMatch = input.IsAdminLogin &&
                 await IsEmergencyBypassEnabledAsync() &&
-                cleanMobile == NormalizeMobileNumber("09120000000") &&
                 input.OtpCode == "12345";
 
             if (!isEmergencyMatch && expectedOtp != input.OtpCode)

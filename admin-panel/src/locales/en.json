@@ -372,9 +372,14 @@
     "error_mobile_duplicate": "This phone number is already registered in the whitelist.",
     "error_lockout_risk": "At least one phone number must be registered or emergency bypass enabled to prevent administrator lockout.",
     "no_numbers_registered": "No phone numbers in whitelist. Please add authorized numbers using the form below.",
-    "emergency_bypass_title": "Enable Emergency Backup OTP 12345 for 09120000000",
-    "emergency_bypass_active_desc": "Emergency backup is active. For initial setup, testing, or SMS gateway outages, you can log in with 09120000000 and OTP 12345.",
-    "emergency_bypass_inactive_desc": "Emergency backup is disabled. Admin login strictly requires genuine SMS OTP verification sent to authorized numbers."
+    "emergency_bypass_title": "Enable Emergency Backup OTP 12345 for Authorized Admin Numbers",
+    "emergency_bypass_active_desc": "Emergency backup is active. For initial setup, testing, or SMS gateway outages, authorized admin numbers can log in with OTP 12345.",
+    "emergency_bypass_inactive_desc": "Emergency backup is disabled. Admin login strictly requires genuine SMS OTP verification sent to authorized numbers.",
+    "mobile_added_toast": "Mobile number added and saved to server.",
+    "mobile_removed_toast": "Mobile number removed and saved to server.",
+    "saving_to_server": "Saving security changes to server...",
+    "auto_save_hint": "Changes to admin numbers and emergency access are automatically saved to the server immediately.",
+    "force_save_security_btn": "Manual Save"
   },
   "quick_grant": {
     "title": "Grant Free Course Access",
