@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { localizeNumber } from '../i18n';
+import { localizeNumber, toAsciiDigits } from '../i18n';
 import { api, setToken } from '../services/api';
 
 interface LoginProps {
@@ -53,11 +53,14 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mobileNumber.trim()) {
+    const cleanMobile = toAsciiDigits(mobileNumber).trim();
+    const cleanCaptcha = toAsciiDigits(captchaAnswer).trim();
+
+    if (!cleanMobile) {
       setError(t('login.error_mobile_req'));
       return;
     }
-    if (!captchaAnswer.trim()) {
+    if (!cleanCaptcha) {
       setError(t('login.error_captcha_req'));
       return;
     }
@@ -66,7 +69,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       setLoading(true);
       setError('');
       
-      const res = await api.auth.requestOtp(mobileNumber.trim(), captchaId, captchaAnswer.trim());
+      const res = await api.auth.requestOtp(cleanMobile, captchaId, cleanCaptcha);
       if (res.success) {
         setStep('VERIFY');
         setTimer(res.expires_in_seconds || 120);
@@ -85,7 +88,10 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otpCode.trim()) {
+    const cleanMobile = toAsciiDigits(mobileNumber).trim();
+    const cleanOtp = toAsciiDigits(otpCode).trim();
+
+    if (!cleanOtp) {
       setError(t('login.error_otp_req'));
       return;
     }
@@ -94,7 +100,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       setLoading(true);
       setError('');
       
-      const res = await api.auth.verifyOtp(mobileNumber.trim(), otpCode.trim());
+      const res = await api.auth.verifyOtp(cleanMobile, cleanOtp);
       if (res.success) {
         if (res.role !== 'Admin') {
           setError(t('login.error_denied'));
@@ -154,7 +160,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 type="tel"
                 placeholder={t('login.mobile_placeholder')}
                 value={mobileNumber}
-                onChange={(e) => setMobileNumber(e.target.value)}
+                onChange={(e) => setMobileNumber(toAsciiDigits(e.target.value))}
                 required
                 disabled={loading}
                 autoFocus
@@ -181,7 +187,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 type="text"
                 placeholder={t('login.captcha_placeholder')}
                 value={captchaAnswer}
-                onChange={(e) => setCaptchaAnswer(e.target.value)}
+                onChange={(e) => setCaptchaAnswer(toAsciiDigits(e.target.value))}
                 required
                 disabled={loading}
               />
@@ -199,11 +205,14 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 type="text"
                 placeholder={t('login.sms_code_placeholder')}
                 value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
+                onChange={(e) => setOtpCode(toAsciiDigits(e.target.value))}
                 required
                 disabled={loading}
                 autoFocus
               />
+              <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                {t('login.bypass_hint', 'شماره تستی: 09120000000 با کد 12345')}
+              </div>
             </div>
 
             <button type="submit" className="btn" style={{ width: '100%', marginTop: '12px' }} disabled={loading}>

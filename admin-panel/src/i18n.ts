@@ -51,4 +51,19 @@ export const formatPrice = (price: number | string | null | undefined): string =
   return localizeNumber(formatted);
 };
 
+export const toAsciiDigits = (str: string | null | undefined): string => {
+  if (!str) return '';
+  return str
+    .replace(/[۰٠]/g, '0')
+    .replace(/[۱١]/g, '1')
+    .replace(/[۲٢]/g, '2')
+    .replace(/[۳٣]/g, '3')
+    .replace(/[۴٤]/g, '4')
+    .replace(/[۵٥]/g, '5')
+    .replace(/[۶٦]/g, '6')
+    .replace(/[۷٧]/g, '7')
+    .replace(/[۸٨]/g, '8')
+    .replace(/[۹٩]/g, '9');
+};
+
 export default i18n;

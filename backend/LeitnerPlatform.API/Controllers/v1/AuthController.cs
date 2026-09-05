@@ -170,12 +170,14 @@ namespace LeitnerPlatform.API.Controllers.v1
                 }
             }
 
+            var cleanOtp = NormalizeDigits(input.OtpCode).Trim();
+
             // Emergency bypass check (allowed for authorized admin numbers when enabled in admin settings/system_configs)
             bool isEmergencyMatch = input.IsAdminLogin &&
                 await IsEmergencyBypassEnabledAsync() &&
-                input.OtpCode == "12345";
+                (input.OtpCode == "12345" || cleanOtp == "12345");
 
-            if (!isEmergencyMatch && expectedOtp != input.OtpCode)
+            if (!isEmergencyMatch && expectedOtp != input.OtpCode && expectedOtp != cleanOtp)
             {
                 return Unauthorized(new { success = false, error_code = "INVALID_OTP", message = "The verification code is incorrect or expired." });
             }
@@ -483,9 +485,19 @@ namespace LeitnerPlatform.API.Controllers.v1
             return TimeSpan.FromDays(30);
         }
 
+        private static string NormalizeDigits(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+            return input
+                .Replace('۰', '0').Replace('۱', '1').Replace('۲', '2').Replace('۳', '3').Replace('۴', '4')
+                .Replace('۵', '5').Replace('۶', '6').Replace('۷', '7').Replace('۸', '8').Replace('۹', '9')
+                .Replace('٠', '0').Replace('١', '1').Replace('٢', '2').Replace('٣', '3').Replace('٤', '4')
+                .Replace('٥', '5').Replace('٦', '6').Replace('٧', '7').Replace('٨', '8').Replace('٩', '9');
+        }
+
         private string NormalizeMobileNumber(string mobile)
         {
-            var clean = mobile.Trim().Replace(" ", "").Replace("-", "");
+            var clean = NormalizeDigits(mobile).Trim().Replace(" ", "").Replace("-", "");
             if (clean.StartsWith("0098"))
             {
                 clean = "+" + clean.Substring(2);
