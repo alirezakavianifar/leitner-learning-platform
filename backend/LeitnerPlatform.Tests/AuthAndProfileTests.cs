@@ -594,9 +594,7 @@ namespace LeitnerPlatform.Tests
             {
                 MobileNumber = ownerMobile,
                 OtpCode = "654321",
-                IsAdminLogin = true,
-                Username = "admin",
-                Password = "AdminPass123!"
+                IsAdminLogin = true
             };
 
             // Act
@@ -654,9 +652,7 @@ namespace LeitnerPlatform.Tests
             {
                 MobileNumber = "09120000000",
                 OtpCode = "12345",
-                IsAdminLogin = true,
-                Username = "admin",
-                Password = "AdminPass123!"
+                IsAdminLogin = true
             };
 
             // Act
@@ -754,9 +750,7 @@ namespace LeitnerPlatform.Tests
             {
                 MobileNumber = "09127778899",
                 OtpCode = "88888",
-                IsAdminLogin = true,
-                Username = "admin",
-                Password = "AdminPass123!"
+                IsAdminLogin = true
             };
 
             // Act

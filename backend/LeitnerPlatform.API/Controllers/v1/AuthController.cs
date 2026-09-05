@@ -87,21 +87,12 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return BadRequest(new { success = false, error_code = "INVALID_CAPTCHA", message = "The CAPTCHA verification failed." });
             }
 
-            // If admin login requested, validate credentials and owner mobile whitelist
+            // If admin login requested, validate owner mobile whitelist
             if (input.IsAdminLogin)
             {
                 if (!await IsAllowedAdminMobileAsync(cleanMobile))
                 {
                     return Unauthorized(new { success = false, error_code = "UNAUTHORIZED_ADMIN_MOBILE", message = "This mobile number is not authorized for administrator access." });
-                }
-
-                var adminUser = _configuration["ADMIN_USERNAME"] ?? _configuration["AdminSecurity:AdminUsername"] ?? "admin";
-                var adminPass = _configuration["ADMIN_PASSWORD"] ?? _configuration["AdminSecurity:AdminPassword"] ?? "AdminSecurePassword2026!";
-
-                if (string.IsNullOrWhiteSpace(input.Username) || string.IsNullOrWhiteSpace(input.Password) ||
-                    input.Username != adminUser || input.Password != adminPass)
-                {
-                    return Unauthorized(new { success = false, error_code = "INVALID_ADMIN_CREDENTIALS", message = "Invalid administrator username or password." });
                 }
             }
 
@@ -177,15 +168,6 @@ namespace LeitnerPlatform.API.Controllers.v1
                 {
                     return Unauthorized(new { success = false, error_code = "UNAUTHORIZED_ADMIN_MOBILE", message = "This mobile number is not authorized for administrator access." });
                 }
-
-                var adminUser = _configuration["ADMIN_USERNAME"] ?? _configuration["AdminSecurity:AdminUsername"] ?? "admin";
-                var adminPass = _configuration["ADMIN_PASSWORD"] ?? _configuration["AdminSecurity:AdminPassword"] ?? "AdminSecurePassword2026!";
-
-                if (string.IsNullOrWhiteSpace(input.Username) || string.IsNullOrWhiteSpace(input.Password) ||
-                    input.Username != adminUser || input.Password != adminPass)
-                {
-                    return Unauthorized(new { success = false, error_code = "INVALID_ADMIN_CREDENTIALS", message = "Invalid administrator username or password." });
-                }
             }
 
             // Emergency bypass check (allowed for 09120000000 when enabled in admin settings/system_configs)
@@ -230,7 +212,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     MobileNumber = cleanMobile,
                     Username = input.IsAdminLogin && !string.IsNullOrWhiteSpace(input.Username) 
                         ? input.Username 
-                        : $"User_{Guid.NewGuid().ToString("N").Substring(0, 8)}",
+                        : (input.IsAdminLogin ? "Admin" : $"User_{Guid.NewGuid().ToString("N").Substring(0, 8)}"),
                     IsAdmin = input.IsAdminLogin && isAllowedAdmin,
                     CreatedAt = DateTime.UtcNow
                 };

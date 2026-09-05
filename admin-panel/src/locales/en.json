@@ -6,7 +6,7 @@
   "logout_confirm_desc": "Are you sure you want to end your administration session?",
   "login": {
     "console_title": "Administrative Console",
-    "sign_in_desc": "Sign in to access control portal",
+    "sign_in_desc": "Enter your authorized administrator mobile number to sign in",
     "enter_sms_desc": "Enter the SMS code sent to you",
     "mobile_label": "Mobile Number",
     "mobile_placeholder": "e.g. +989123456789 or 09123456789",

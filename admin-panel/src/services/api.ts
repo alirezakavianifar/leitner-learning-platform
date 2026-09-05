@@ -84,27 +84,23 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   auth: {
     getCaptcha: () => request<{ success: boolean; captcha_id: string; image_base64: string }>('/auth/captcha'),
-    requestOtp: (mobileNumber: string, captchaId: string, captchaAnswer: string, username?: string, password?: string) => 
+    requestOtp: (mobileNumber: string, captchaId: string, captchaAnswer: string) => 
       request<{ success: boolean; message: string; expires_in_seconds: number }>('/auth/otp/request', {
         method: 'POST',
         body: JSON.stringify({ 
           mobile_number: mobileNumber, 
           captcha_id: captchaId, 
           captcha_answer: captchaAnswer,
-          is_admin_login: true,
-          username,
-          password
+          is_admin_login: true
         })
       }),
-    verifyOtp: (mobileNumber: string, otpCode: string, username?: string, password?: string) => 
+    verifyOtp: (mobileNumber: string, otpCode: string) => 
       request<{ success: boolean; token: string; refresh_token: string; role: string }>('/auth/otp/verify', {
         method: 'POST',
         body: JSON.stringify({ 
           mobile_number: mobileNumber, 
           otp_code: otpCode,
-          is_admin_login: true,
-          username,
-          password
+          is_admin_login: true
         })
       })
   },
