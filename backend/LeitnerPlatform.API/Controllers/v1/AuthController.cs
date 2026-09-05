@@ -90,7 +90,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             // If admin login requested, validate credentials and owner mobile whitelist
             if (input.IsAdminLogin)
             {
-                if (!IsAllowedAdminMobile(cleanMobile))
+                if (!await IsAllowedAdminMobileAsync(cleanMobile))
                 {
                     return Unauthorized(new { success = false, error_code = "UNAUTHORIZED_ADMIN_MOBILE", message = "This mobile number is not authorized for administrator access." });
                 }
@@ -173,7 +173,7 @@ namespace LeitnerPlatform.API.Controllers.v1
 
             if (input.IsAdminLogin)
             {
-                if (!IsAllowedAdminMobile(cleanMobile))
+                if (!await IsAllowedAdminMobileAsync(cleanMobile))
                 {
                     return Unauthorized(new { success = false, error_code = "UNAUTHORIZED_ADMIN_MOBILE", message = "This mobile number is not authorized for administrator access." });
                 }
@@ -188,30 +188,39 @@ namespace LeitnerPlatform.API.Controllers.v1
                 }
             }
 
-            if (expectedOtp != input.OtpCode)
+            // Emergency bypass check (allowed for 09120000000 when enabled in admin settings/system_configs)
+            bool isEmergencyMatch = input.IsAdminLogin &&
+                await IsEmergencyBypassEnabledAsync() &&
+                cleanMobile == NormalizeMobileNumber("09120000000") &&
+                input.OtpCode == "12345";
+
+            if (!isEmergencyMatch && expectedOtp != input.OtpCode)
             {
                 return Unauthorized(new { success = false, error_code = "INVALID_OTP", message = "The verification code is incorrect or expired." });
             }
 
             // Clear verified OTP
-            if (_redisConnection != null && _redisConnection.IsConnected)
+            if (!isEmergencyMatch)
             {
-                try
+                if (_redisConnection != null && _redisConnection.IsConnected)
                 {
-                    var db = _redisConnection.GetDatabase();
-                    await db.KeyDeleteAsync($"otp:{cleanMobile}");
+                    try
+                    {
+                        var db = _redisConnection.GetDatabase();
+                        await db.KeyDeleteAsync($"otp:{cleanMobile}");
+                    }
+                    catch { }
                 }
-                catch { }
-            }
-            else
-            {
-                _memoryCache.Remove($"otp:{cleanMobile}");
+                else
+                {
+                    _memoryCache.Remove($"otp:{cleanMobile}");
+                }
             }
 
             // Get or create user
             var user = await _userRepository.GetByMobileNumberAsync(cleanMobile);
             bool isNewUser = user == null;
-            bool isAllowedAdmin = IsAllowedAdminMobile(cleanMobile);
+            bool isAllowedAdmin = await IsAllowedAdminMobileAsync(cleanMobile);
 
             if (isNewUser)
             {
@@ -251,7 +260,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             var refreshTokenLifetime = await GetRefreshTokenLifetimeAsync();
 
             // Generate JWT Token
-            var token = GenerateJwtToken(user!, jwtLifetime);
+            var token = GenerateJwtToken(user!, jwtLifetime, isEffectiveAdmin);
             var refreshToken = Guid.NewGuid().ToString(); // Simple UUID refresh token
 
             // 1. Save persistent refresh token to PostgreSQL database (survives container restarts)
@@ -375,8 +384,11 @@ namespace LeitnerPlatform.API.Controllers.v1
             var jwtLifetime = await GetJwtLifetimeAsync();
             var refreshTokenLifetime = await GetRefreshTokenLifetimeAsync();
 
+            bool isAllowedAdmin = await IsAllowedAdminMobileAsync(user!.MobileNumber);
+            bool isEffectiveAdmin = user.IsAdmin && isAllowedAdmin;
+
             // Generate new tokens (token rotation)
-            var newJwtToken = GenerateJwtToken(user!, jwtLifetime);
+            var newJwtToken = GenerateJwtToken(user!, jwtLifetime, isEffectiveAdmin);
             var newRefreshToken = Guid.NewGuid().ToString();
 
             // Persist rotation in PostgreSQL database
@@ -523,18 +535,72 @@ namespace LeitnerPlatform.API.Controllers.v1
             return code;
         }
 
-        private bool IsAllowedAdminMobile(string mobile)
+        private async Task<bool> IsEmergencyBypassEnabledAsync()
         {
-            var allowedList = _configuration["ADMIN_ALLOWED_MOBILE_NUMBERS"] 
-                ?? _configuration["AdminSecurity:AllowedMobileNumbers"] 
-                ?? "+989120000000,09120000000,09121234567,+989121234567";
+            if (_dbContext != null)
+            {
+                try
+                {
+                    var bypassConfig = await _dbContext.SystemConfigs.FindAsync("admin_emergency_bypass_enabled");
+                    if (bypassConfig != null)
+                    {
+                        return bypassConfig.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+                catch { }
+            }
+
+            var envConfig = _configuration["ADMIN_EMERGENCY_BYPASS_ENABLED"] 
+                ?? _configuration["AdminSecurity:EmergencyBypassEnabled"];
+            if (!string.IsNullOrWhiteSpace(envConfig))
+            {
+                return envConfig.Equals("true", StringComparison.OrdinalIgnoreCase);
+            }
+
+            // Default to true so initial setup or emergency recovery is possible out-of-the-box
+            return true;
+        }
+
+        private async Task<bool> IsAllowedAdminMobileAsync(string mobile)
+        {
+            var cleanInput = NormalizeMobileNumber(mobile);
+
+            // If emergency bypass is active, 09120000000 is always treated as authorized
+            if (await IsEmergencyBypassEnabledAsync())
+            {
+                if (cleanInput == NormalizeMobileNumber("09120000000"))
+                {
+                    return true;
+                }
+            }
+
+            string? allowedList = null;
+
+            if (_dbContext != null)
+            {
+                try
+                {
+                    var dbConfig = await _dbContext.SystemConfigs.FindAsync("admin_allowed_mobile_numbers");
+                    if (dbConfig != null && !string.IsNullOrWhiteSpace(dbConfig.Value))
+                    {
+                        allowedList = dbConfig.Value;
+                    }
+                }
+                catch { }
+            }
+
+            if (string.IsNullOrWhiteSpace(allowedList))
+            {
+                allowedList = _configuration["ADMIN_ALLOWED_MOBILE_NUMBERS"] 
+                    ?? _configuration["AdminSecurity:AllowedMobileNumbers"] 
+                    ?? "+989120000000,09120000000,09121234567,+989121234567";
+            }
 
             if (string.IsNullOrWhiteSpace(allowedList))
             {
                 return false;
             }
 
-            var cleanInput = NormalizeMobileNumber(mobile);
             var numbers = allowedList.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var num in numbers)
             {
@@ -547,20 +613,18 @@ namespace LeitnerPlatform.API.Controllers.v1
             return false;
         }
 
-        private string GenerateJwtToken(User user, TimeSpan? validity = null)
+        private string GenerateJwtToken(User user, TimeSpan? validity = null, bool isEffectiveAdmin = false)
         {
             var secretKey = _configuration["JWT_SECRET_KEY"] ?? "jwt_secret_lts_2026_super_secure_key_default";
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            bool isEffectiveAdmin = user.IsAdmin && IsAllowedAdminMobile(user.MobileNumber);
 
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim("mobile_number", user.MobileNumber),
-                new Claim(ClaimTypes.Role, isEffectiveAdmin ? "Admin" : "Student")
+                new Claim(ClaimTypes.Role, (user.IsAdmin && isEffectiveAdmin) ? "Admin" : "Student")
             };
 
             var tokenExpiry = validity ?? TimeSpan.FromDays(1);

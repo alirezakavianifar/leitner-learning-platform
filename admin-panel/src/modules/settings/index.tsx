@@ -59,6 +59,10 @@ export const SettingsView: React.FC = () => {
   const [dailyReminderMinute, setDailyReminderMinute] = useState(0);
   const [enableDailyReminder, setEnableDailyReminder] = useState(true);
 
+  // States for Admin Login Security & Emergency Access
+  const [adminAllowedMobiles, setAdminAllowedMobiles] = useState('09120000000, +989120000000');
+  const [adminEmergencyBypassEnabled, setAdminEmergencyBypassEnabled] = useState(true);
+
   const applyReminderPreset = (hour: number, minute: number = 0) => {
     setDailyReminderHour(hour);
     setDailyReminderMinute(minute);
@@ -231,6 +235,12 @@ export const SettingsView: React.FC = () => {
             case 'daily_reminder_enabled':
               setEnableDailyReminder(cfg.value !== 'false');
               break;
+            case 'admin_allowed_mobile_numbers':
+              setAdminAllowedMobiles(cfg.value || '09120000000, +989120000000');
+              break;
+            case 'admin_emergency_bypass_enabled':
+              setAdminEmergencyBypassEnabled(cfg.value !== 'false');
+              break;
             default:
               break;
           }
@@ -338,6 +348,8 @@ export const SettingsView: React.FC = () => {
         { key: 'daily_reminder_hour', value: dailyReminderHour.toString() },
         { key: 'daily_reminder_minute', value: dailyReminderMinute.toString() },
         { key: 'daily_reminder_enabled', value: enableDailyReminder.toString() },
+        { key: 'admin_allowed_mobile_numbers', value: adminAllowedMobiles },
+        { key: 'admin_emergency_bypass_enabled', value: adminEmergencyBypassEnabled.toString() },
       ];
       await api.admin.updateConfig(payload);
       toast.showSuccess(t('settings.save_success', 'تنظیمات با موفقیت ذخیره شدند.'));
@@ -608,6 +620,86 @@ export const SettingsView: React.FC = () => {
                     ? `Users will stay logged in for up to ${refreshTokenLifetimeValue} ${t(`settings.unit_${refreshTokenLifetimeUnit}`, refreshTokenLifetimeUnit)}, renewing access tokens silently every ${jwtLifetimeValue} ${t(`settings.unit_${jwtLifetimeUnit}`, jwtLifetimeUnit)}.`
                     : `Users must re-login via SMS OTP every ${jwtLifetimeValue} ${t(`settings.unit_${jwtLifetimeUnit}`, jwtLifetimeUnit)} (Background renewal disabled).`}
                 </span>
+              </div>
+            </div>
+
+            {/* Section: Admin Security & Login Access */}
+            <div style={{ padding: '16px', background: 'rgba(0, 0, 0, 0.15)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#6366f1' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                {t('settings.admin_security_title', 'امنیت ورود به پنل مدیریت (Admin Login & Security)')}
+              </h3>
+              <p className="text-muted" style={{ fontSize: '13px', margin: '4px 0 16px 0' }}>
+                {t('settings.admin_security_desc', 'مدیریت شماره‌های مجاز جهت ورود به پنل ادمین و تنظیمات دسترسی اضطراری')}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Whitelist Phone Numbers */}
+                <div className="form-group">
+                  <label style={{ fontWeight: 'bold', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>📱 {t('settings.admin_mobiles_label', 'شماره‌های موبایل مجاز جهت ورود ادمین (با ویرگول جدا کنید)')}</span>
+                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8' }}>
+                      {adminAllowedMobiles.split(',').filter(s => s.trim().length > 0).length} {t('settings.active_numbers_badge', 'شماره فعال')}
+                    </span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={adminAllowedMobiles}
+                    onChange={(e) => setAdminAllowedMobiles(e.target.value)}
+                    placeholder={t('settings.admin_mobiles_placeholder', 'مثال: 09120000000, 09121234567, 09129876543')}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--input-bg, #1e293b)',
+                      color: 'inherit',
+                      fontSize: '13.5px',
+                      fontFamily: 'monospace',
+                      direction: 'ltr'
+                    }}
+                  />
+                  <small style={{ color: 'var(--text-muted)', fontSize: '11.5px', marginTop: '4px', display: 'block' }}>
+                    {t('settings.admin_mobiles_help', 'فقط شماره‌های ثبت شده در این لیست اجازه دریافت کد تایید ورود به پنل مدیریت را خواهند داشت.')}
+                  </small>
+                </div>
+
+                {/* Emergency Bypass Toggle */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  padding: '12px 14px',
+                  background: adminEmergencyBypassEnabled ? 'rgba(234, 179, 8, 0.08)' : 'rgba(34, 197, 94, 0.08)',
+                  borderRadius: '8px',
+                  border: adminEmergencyBypassEnabled ? '1px solid rgba(234, 179, 8, 0.3)' : '1px solid rgba(34, 197, 94, 0.3)'
+                }}>
+                  <input
+                    type="checkbox"
+                    id="admin_emergency_bypass_enabled"
+                    checked={adminEmergencyBypassEnabled}
+                    onChange={(e) => setAdminEmergencyBypassEnabled(e.target.checked)}
+                    style={{ width: '18px', height: '18px', marginTop: '3px', cursor: 'pointer' }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor="admin_emergency_bypass_enabled" style={{
+                      fontWeight: 'bold',
+                      fontSize: '13.5px',
+                      color: adminEmergencyBypassEnabled ? '#eab308' : '#22c55e',
+                      cursor: 'pointer',
+                      display: 'block'
+                    }}>
+                      {t('settings.emergency_bypass_title', 'فعال‌سازی کد اضطراری ۱۲۳۴۵ برای شماره ۰۹۱۲۰۰۰۰۰۰۰')}
+                    </label>
+                    <p style={{ fontSize: '12px', margin: '4px 0 0 0', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      {adminEmergencyBypassEnabled
+                        ? t('settings.emergency_bypass_active_desc', 'کد اضطراری فعال است. برای راه‌اندازی اولیه، تست یا مواقع قطعی سامانه پیامک می‌توانید با شماره ۰۹۱۲۰۰۰۰۰۰۰ و کد ۱۲۳۴۵ وارد شوید.')
+                        : t('settings.emergency_bypass_inactive_desc', 'کد اضطراری غیرفعال است. ورود به پنل مدیریت صرفاً از طریق ارسال کد تایید پیامک به شماره‌های مجاز فوق انجام می‌پذیرد.')}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -358,7 +358,16 @@
     "reminder_hour_label": "Reminder Hour (0-23)",
     "reminder_minute_label": "Reminder Minute (0-59)",
     "reminder_summary_label": "Effective Scheduled Reminder Time:",
-    "reminder_hint": "Mobile devices will trigger a top notification bar review reminder at this local time each day for all users who have not chosen a personal reminder schedule."
+    "reminder_hint": "Mobile devices will trigger a top notification bar review reminder at this local time each day for all users who have not chosen a personal reminder schedule.",
+    "admin_security_title": "Admin Login & Security Access",
+    "admin_security_desc": "Manage authorized administrator phone numbers and emergency backup login settings.",
+    "admin_mobiles_label": "Authorized Admin Mobile Numbers (comma-separated)",
+    "admin_mobiles_placeholder": "Example: 09120000000, 09121234567, 09129876543",
+    "admin_mobiles_help": "Only phone numbers registered in this whitelist can receive admin OTP verification codes.",
+    "active_numbers_badge": "Active Numbers",
+    "emergency_bypass_title": "Enable Emergency Backup OTP 12345 for 09120000000",
+    "emergency_bypass_active_desc": "Emergency backup is active. For initial setup, testing, or SMS gateway outages, you can log in with 09120000000 and OTP 12345.",
+    "emergency_bypass_inactive_desc": "Emergency backup is disabled. Admin login strictly requires genuine SMS OTP verification sent to authorized numbers."
   },
   "quick_grant": {
     "title": "Grant Free Course Access",

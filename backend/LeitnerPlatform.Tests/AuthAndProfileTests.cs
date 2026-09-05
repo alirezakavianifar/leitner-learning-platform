@@ -13,6 +13,7 @@ using LeitnerPlatform.API.Services;
 using LeitnerPlatform.Core.Entities;
 using LeitnerPlatform.Core.Events;
 using LeitnerPlatform.Core.Interfaces;
+using LeitnerPlatform.Data;
 using LeitnerPlatform.Data.Services;
 
 namespace LeitnerPlatform.Tests
@@ -602,6 +603,166 @@ namespace LeitnerPlatform.Tests
             var result = await controller.VerifyOtp(input);
 
             // Assert: Succeeded
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var value = okResult.Value!;
+            var success = (bool)value.GetType().GetProperty("success")!.GetValue(value)!;
+            var role = (string)value.GetType().GetProperty("role")!.GetValue(value)!;
+            Assert.True(success);
+            Assert.Equal("Admin", role);
+        }
+
+        private LeitnerDbContext GetDatabaseContext()
+        {
+            var options = new DbContextOptionsBuilder<LeitnerDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            var databaseContext = new LeitnerDbContext(options);
+            databaseContext.Database.EnsureCreated();
+            return databaseContext;
+        }
+
+        [Fact]
+        public async Task AuthController_VerifyOtp_EmergencyBypass_WhenEnabled_ShouldSucceedFor09120000000()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            await db.SystemConfigs.AddAsync(new SystemConfig { Key = "admin_emergency_bypass_enabled", Value = "true" });
+            await db.SaveChangesAsync();
+
+            var mockUserRepo = new Mock<IUserRepository>();
+            var mockSms = new Mock<ISmsService>();
+            var mockCaptcha = new Mock<ICaptchaService>();
+            var mockEventBus = new Mock<IEventBus>();
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new System.Collections.Generic.Dictionary<string, string?>
+            {
+                { "ADMIN_USERNAME", "admin" },
+                { "ADMIN_PASSWORD", "AdminPass123!" }
+            }).Build();
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+            var controller = new AuthController(
+                mockUserRepo.Object,
+                mockSms.Object,
+                mockCaptcha.Object,
+                mockEventBus.Object,
+                config,
+                memoryCache,
+                dbContext: db);
+
+            var input = new OtpVerifyInput
+            {
+                MobileNumber = "09120000000",
+                OtpCode = "12345",
+                IsAdminLogin = true,
+                Username = "admin",
+                Password = "AdminPass123!"
+            };
+
+            // Act
+            var result = await controller.VerifyOtp(input);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var value = okResult.Value!;
+            var success = (bool)value.GetType().GetProperty("success")!.GetValue(value)!;
+            var role = (string)value.GetType().GetProperty("role")!.GetValue(value)!;
+            Assert.True(success);
+            Assert.Equal("Admin", role);
+        }
+
+        [Fact]
+        public async Task AuthController_VerifyOtp_EmergencyBypass_WhenDisabled_ShouldFailWithInvalidOtp()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            await db.SystemConfigs.AddAsync(new SystemConfig { Key = "admin_emergency_bypass_enabled", Value = "false" });
+            await db.SaveChangesAsync();
+
+            var mockUserRepo = new Mock<IUserRepository>();
+            var mockSms = new Mock<ISmsService>();
+            var mockCaptcha = new Mock<ICaptchaService>();
+            var mockEventBus = new Mock<IEventBus>();
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new System.Collections.Generic.Dictionary<string, string?>
+            {
+                { "ADMIN_USERNAME", "admin" },
+                { "ADMIN_PASSWORD", "AdminPass123!" }
+            }).Build();
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+            var controller = new AuthController(
+                mockUserRepo.Object,
+                mockSms.Object,
+                mockCaptcha.Object,
+                mockEventBus.Object,
+                config,
+                memoryCache,
+                dbContext: db);
+
+            var input = new OtpVerifyInput
+            {
+                MobileNumber = "09120000000",
+                OtpCode = "12345",
+                IsAdminLogin = true,
+                Username = "admin",
+                Password = "AdminPass123!"
+            };
+
+            // Act
+            var result = await controller.VerifyOtp(input);
+
+            // Assert
+            var unauthorizedResult = Assert.IsType<UnauthorizedObjectResult>(result);
+            var value = unauthorizedResult.Value!;
+            var errorCode = (string)value.GetType().GetProperty("error_code")!.GetValue(value)!;
+            Assert.Equal("INVALID_OTP", errorCode);
+        }
+
+        [Fact]
+        public async Task AuthController_VerifyOtp_DynamicDatabaseWhitelist_ShouldAuthorizeDatabaseConfiguredMobile()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            await db.SystemConfigs.AddAsync(new SystemConfig { Key = "admin_allowed_mobile_numbers", Value = "09127778899" });
+            await db.SystemConfigs.AddAsync(new SystemConfig { Key = "admin_emergency_bypass_enabled", Value = "false" });
+            await db.SaveChangesAsync();
+
+            var mockUserRepo = new Mock<IUserRepository>();
+            var mockSms = new Mock<ISmsService>();
+            var mockCaptcha = new Mock<ICaptchaService>();
+            var mockEventBus = new Mock<IEventBus>();
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new System.Collections.Generic.Dictionary<string, string?>
+            {
+                { "ADMIN_USERNAME", "admin" },
+                { "ADMIN_PASSWORD", "AdminPass123!" }
+            }).Build();
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+            var normalizedMobile = "+989127778899";
+            memoryCache.Set($"otp:{normalizedMobile}", "88888");
+
+            var controller = new AuthController(
+                mockUserRepo.Object,
+                mockSms.Object,
+                mockCaptcha.Object,
+                mockEventBus.Object,
+                config,
+                memoryCache,
+                dbContext: db);
+
+            var input = new OtpVerifyInput
+            {
+                MobileNumber = "09127778899",
+                OtpCode = "88888",
+                IsAdminLogin = true,
+                Username = "admin",
+                Password = "AdminPass123!"
+            };
+
+            // Act
+            var result = await controller.VerifyOtp(input);
+
+            // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
             var value = okResult.Value!;
             var success = (bool)value.GetType().GetProperty("success")!.GetValue(value)!;
