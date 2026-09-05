@@ -365,6 +365,13 @@
     "admin_mobiles_placeholder": "Example: 09120000000, 09121234567, 09129876543",
     "admin_mobiles_help": "Only phone numbers registered in this whitelist can receive admin OTP verification codes.",
     "active_numbers_badge": "Active Numbers",
+    "admin_mobile_input_placeholder": "Enter new mobile number (e.g. 09123456789 or +989123456789)...",
+    "add_number_btn": "Add Number",
+    "error_mobile_empty": "Please enter a mobile number.",
+    "error_mobile_invalid": "Invalid mobile number format. Expected format: 09123456789 or +989123456789 (11 digits)",
+    "error_mobile_duplicate": "This phone number is already registered in the whitelist.",
+    "error_lockout_risk": "At least one phone number must be registered or emergency bypass enabled to prevent administrator lockout.",
+    "no_numbers_registered": "No phone numbers in whitelist. Please add authorized numbers using the form below.",
     "emergency_bypass_title": "Enable Emergency Backup OTP 12345 for 09120000000",
     "emergency_bypass_active_desc": "Emergency backup is active. For initial setup, testing, or SMS gateway outages, you can log in with 09120000000 and OTP 12345.",
     "emergency_bypass_inactive_desc": "Emergency backup is disabled. Admin login strictly requires genuine SMS OTP verification sent to authorized numbers."

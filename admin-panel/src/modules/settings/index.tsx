@@ -60,8 +60,63 @@ export const SettingsView: React.FC = () => {
   const [enableDailyReminder, setEnableDailyReminder] = useState(true);
 
   // States for Admin Login Security & Emergency Access
-  const [adminAllowedMobiles, setAdminAllowedMobiles] = useState('09120000000, +989120000000');
+  const [adminAllowedMobilesList, setAdminAllowedMobilesList] = useState<string[]>(['09120000000', '+989120000000']);
+  const [newMobileInput, setNewMobileInput] = useState('');
+  const [mobileInputError, setMobileInputError] = useState('');
   const [adminEmergencyBypassEnabled, setAdminEmergencyBypassEnabled] = useState(true);
+
+  // Helper functions for mobile number handling and validation
+  const toEnglishDigits = (str: string): string => {
+    return str
+      .replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
+      .replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+      .replace(/[\s\-_()]/g, '');
+  };
+
+  const normalizePhone = (phone: string): string => {
+    let clean = toEnglishDigits(phone);
+    if (clean.startsWith('+98')) clean = '0' + clean.slice(3);
+    else if (clean.startsWith('0098')) clean = '0' + clean.slice(4);
+    else if (clean.startsWith('98')) clean = '0' + clean.slice(2);
+    else if (clean.length === 10 && clean.startsWith('9')) clean = '0' + clean;
+    return clean;
+  };
+
+  const isValidMobile = (phone: string): boolean => {
+    const clean = toEnglishDigits(phone);
+    // Standard Iranian mobile: 09XXXXXXXXX (11 digits) or +989XXXXXXXXX or 00989XXXXXXXXX
+    return /^(\+98|0098|98|0)?9\d{9}$/.test(clean);
+  };
+
+  const handleAddMobile = () => {
+    const raw = newMobileInput.trim();
+    if (!raw) {
+      setMobileInputError(t('settings.error_mobile_empty', 'لطفا شماره موبایل را وارد کنید.'));
+      return;
+    }
+
+    const clean = toEnglishDigits(raw);
+    if (!isValidMobile(clean)) {
+      setMobileInputError(t('settings.error_mobile_invalid', 'فرمت شماره موبایل نامعتبر است. نمونه صحیح: 09123456789 یا +989123456789 (۱۱ رقم)'));
+      return;
+    }
+
+    const normalized = normalizePhone(clean);
+    if (adminAllowedMobilesList.some((m) => normalizePhone(m) === normalized)) {
+      setMobileInputError(t('settings.error_mobile_duplicate', 'این شماره قبلاً در لیست ثبت شده است.'));
+      return;
+    }
+
+    // Format consistently: if started with +, keep +98..., otherwise store standard 09...
+    const formatted = clean.startsWith('+') ? clean : (clean.startsWith('0') ? clean : '0' + clean);
+    setAdminAllowedMobilesList((prev) => [...prev, formatted]);
+    setNewMobileInput('');
+    setMobileInputError('');
+  };
+
+  const handleRemoveMobile = (indexToRemove: number) => {
+    setAdminAllowedMobilesList((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
 
   const applyReminderPreset = (hour: number, minute: number = 0) => {
     setDailyReminderHour(hour);
@@ -235,9 +290,15 @@ export const SettingsView: React.FC = () => {
             case 'daily_reminder_enabled':
               setEnableDailyReminder(cfg.value !== 'false');
               break;
-            case 'admin_allowed_mobile_numbers':
-              setAdminAllowedMobiles(cfg.value || '09120000000, +989120000000');
+            case 'admin_allowed_mobile_numbers': {
+              const raw = cfg.value || '09120000000, +989120000000';
+              const parsed = raw
+                .split(',')
+                .map((s: string) => s.trim())
+                .filter((s: string) => s.length > 0);
+              setAdminAllowedMobilesList(parsed.length > 0 ? parsed : ['09120000000', '+989120000000']);
               break;
+            }
             case 'admin_emergency_bypass_enabled':
               setAdminEmergencyBypassEnabled(cfg.value !== 'false');
               break;
@@ -309,6 +370,10 @@ export const SettingsView: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (adminAllowedMobilesList.length === 0 && !adminEmergencyBypassEnabled) {
+      toast.showError(t('settings.error_lockout_risk', 'حداقل یک شماره موبایل باید ثبت شود یا کد اضطراری فعال باشد تا از قفل شدن دسترسی ادمین جلوگیری شود.'));
+      return;
+    }
     setSaving(true);
     try {
       const payload = [
@@ -348,7 +413,7 @@ export const SettingsView: React.FC = () => {
         { key: 'daily_reminder_hour', value: dailyReminderHour.toString() },
         { key: 'daily_reminder_minute', value: dailyReminderMinute.toString() },
         { key: 'daily_reminder_enabled', value: enableDailyReminder.toString() },
-        { key: 'admin_allowed_mobile_numbers', value: adminAllowedMobiles },
+        { key: 'admin_allowed_mobile_numbers', value: adminAllowedMobilesList.join(', ') },
         { key: 'admin_emergency_bypass_enabled', value: adminEmergencyBypassEnabled.toString() },
       ];
       await api.admin.updateConfig(payload);
@@ -636,32 +701,187 @@ export const SettingsView: React.FC = () => {
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* Whitelist Phone Numbers */}
+                {/* Whitelist Phone Numbers Chips/Badges Manager */}
                 <div className="form-group">
-                  <label style={{ fontWeight: 'bold', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>📱 {t('settings.admin_mobiles_label', 'شماره‌های موبایل مجاز جهت ورود ادمین (با ویرگول جدا کنید)')}</span>
-                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8' }}>
-                      {adminAllowedMobiles.split(',').filter(s => s.trim().length > 0).length} {t('settings.active_numbers_badge', 'شماره فعال')}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ fontWeight: 'bold', fontSize: '13px', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>📱</span>
+                      <span>{t('settings.admin_mobiles_label', 'شماره‌های موبایل مجاز جهت ورود ادمین')}</span>
+                    </label>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      padding: '3px 10px',
+                      borderRadius: '12px',
+                      background: adminAllowedMobilesList.length > 0 ? 'rgba(99, 102, 241, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      color: adminAllowedMobilesList.length > 0 ? '#818cf8' : '#f87171',
+                      border: adminAllowedMobilesList.length > 0 ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
+                    }}>
+                      {adminAllowedMobilesList.length} {t('settings.active_numbers_badge', 'شماره فعال')}
                     </span>
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={adminAllowedMobiles}
-                    onChange={(e) => setAdminAllowedMobiles(e.target.value)}
-                    placeholder={t('settings.admin_mobiles_placeholder', 'مثال: 09120000000, 09121234567, 09129876543')}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
+                  </div>
+
+                  {/* Chips Display Area */}
+                  <div style={{
+                    minHeight: '52px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--input-bg, #1e293b)',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '10px'
+                  }}>
+                    {adminAllowedMobilesList.length === 0 ? (
+                      <span style={{ fontSize: '12px', color: '#f87171', fontStyle: 'italic' }}>
+                        ⚠️ {t('settings.no_numbers_registered', 'هیچ شماره‌ای در لیست ثبت نشده است. لطفا با فرم زیر شماره‌های مجاز را اضافه کنید.')}
+                      </span>
+                    ) : (
+                      adminAllowedMobilesList.map((mobile, idx) => {
+                        const isDefaultAdmin = normalizePhone(mobile) === '09120000000';
+                        return (
+                          <div
+                            key={`${mobile}-${idx}`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              background: 'rgba(99, 102, 241, 0.15)',
+                              border: '1px solid rgba(99, 102, 241, 0.4)',
+                              borderRadius: '20px',
+                              padding: '4px 10px',
+                              fontSize: '13px',
+                              fontFamily: 'monospace',
+                              color: '#c7d2fe',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
+                              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                              <line x1="12" y1="18" x2="12.01" y2="18"/>
+                            </svg>
+                            <span style={{ direction: 'ltr', fontWeight: '500' }}>{mobile}</span>
+                            {isDefaultAdmin && (
+                              <span style={{
+                                fontSize: '10px',
+                                background: 'rgba(234, 179, 8, 0.25)',
+                                color: '#fef08a',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                fontWeight: 'bold'
+                              }}>
+                                Backup
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMobile(idx)}
+                              title={t('common.delete', 'حذف')}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#94a3b8',
+                                cursor: 'pointer',
+                                padding: '0 2px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '50%',
+                                fontSize: '13px',
+                                fontWeight: 'bold',
+                                lineHeight: 1,
+                                transition: 'color 0.15s ease'
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Add New Mobile Input Group */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <input
+                        type="text"
+                        value={newMobileInput}
+                        onChange={(e) => {
+                          setNewMobileInput(e.target.value);
+                          if (mobileInputError) setMobileInputError('');
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddMobile();
+                          }
+                        }}
+                        placeholder={t('settings.admin_mobile_input_placeholder', 'شماره موبایل را وارد کنید (مانند 09123456789 یا +989123456789)...')}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          border: mobileInputError ? '1px solid #ef4444' : '1px solid var(--border-color)',
+                          background: 'var(--input-bg, #1e293b)',
+                          color: 'inherit',
+                          fontSize: '13px',
+                          fontFamily: 'monospace',
+                          direction: 'ltr'
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddMobile}
+                      className="btn"
+                      style={{
+                        padding: '8px 16px',
+                        fontSize: '13px',
+                        whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span>➕</span>
+                      <span>{t('settings.add_number_btn', 'افزودن شماره')}</span>
+                    </button>
+                  </div>
+
+                  {/* Validation Error Message */}
+                  {mobileInputError && (
+                    <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>⚠️</span>
+                      <span>{mobileInputError}</span>
+                    </div>
+                  )}
+
+                  {/* Lockout Risk Warning */}
+                  {adminAllowedMobilesList.length === 0 && !adminEmergencyBypassEnabled && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
                       borderRadius: '6px',
-                      border: '1px solid var(--border-color)',
-                      background: 'var(--input-bg, #1e293b)',
-                      color: 'inherit',
-                      fontSize: '13.5px',
-                      fontFamily: 'monospace',
-                      direction: 'ltr'
-                    }}
-                  />
-                  <small style={{ color: 'var(--text-muted)', fontSize: '11.5px', marginTop: '4px', display: 'block' }}>
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid rgba(239, 68, 68, 0.4)',
+                      color: '#fca5a5',
+                      fontSize: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <span>🚨</span>
+                      <span>{t('settings.error_lockout_risk', 'حداقل یک شماره موبایل باید ثبت شود یا کد اضطراری فعال باشد تا از قفل شدن دسترسی ادمین جلوگیری شود.')}</span>
+                    </div>
+                  )}
+
+                  <small style={{ color: 'var(--text-muted)', fontSize: '11.5px', marginTop: '6px', display: 'block' }}>
                     {t('settings.admin_mobiles_help', 'فقط شماره‌های ثبت شده در این لیست اجازه دریافت کد تایید ورود به پنل مدیریت را خواهند داشت.')}
                   </small>
                 </div>
