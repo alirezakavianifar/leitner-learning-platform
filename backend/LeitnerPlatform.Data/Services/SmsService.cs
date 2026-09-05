@@ -18,7 +18,9 @@ namespace LeitnerPlatform.Data.Services
 
         public async Task<bool> SendOtpAsync(string mobileNumber, string code)
         {
-            var rawApiKey = Environment.GetEnvironmentVariable("SMS_GATEWAY_API_KEY");
+            var rawApiKey = Environment.GetEnvironmentVariable("SMS_GATEWAY_API_KEY")
+                         ?? Environment.GetEnvironmentVariable("FARAZSMS_API_KEY")
+                         ?? Environment.GetEnvironmentVariable("KAVENEGAR_API_KEY");
             var apiKey = string.IsNullOrWhiteSpace(rawApiKey) ? null : rawApiKey.Trim('\r', '\n', ' ');
             if (string.IsNullOrEmpty(apiKey))
             {
@@ -27,36 +29,52 @@ namespace LeitnerPlatform.Data.Services
                 return true;
             }
 
-            var provider = (Environment.GetEnvironmentVariable("SMS_PROVIDER") ?? "Kavenegar").Trim('\r', '\n', ' ');
+            var provider = (Environment.GetEnvironmentVariable("SMS_PROVIDER") 
+                         ?? Environment.GetEnvironmentVariable("SMS_GATEWAY_PROVIDER") 
+                         ?? "Kavenegar").Trim('\r', '\n', ' ');
 
             try
             {
                 if (provider.Equals("FarazSms", StringComparison.OrdinalIgnoreCase) || 
                     provider.Equals("IPPanel", StringComparison.OrdinalIgnoreCase))
                 {
-                    var sender = (Environment.GetEnvironmentVariable("SMS_SENDER") ?? "+983000505").Trim('\r', '\n', ' ');
-                    var patternCode = (Environment.GetEnvironmentVariable("SMS_PATTERN_CODE") ?? "otp-template").Trim('\r', '\n', ' ');
+                    var sender = (Environment.GetEnvironmentVariable("SMS_SENDER") 
+                               ?? Environment.GetEnvironmentVariable("FARAZSMS_SENDER_LINE") 
+                               ?? "+983000505").Trim('\r', '\n', ' ');
+                    var patternCode = (Environment.GetEnvironmentVariable("SMS_PATTERN_CODE") 
+                                    ?? Environment.GetEnvironmentVariable("FARAZSMS_PATTERN_CODE") 
+                                    ?? "otp-template").Trim('\r', '\n', ' ');
+                    var localMobile = mobileNumber.StartsWith("+98") ? "0" + mobileNumber.Substring(3) : mobileNumber;
+
+                    var varDict = new Dictionary<string, string>
+                    {
+                        { "code", code },
+                        { "otp", code },
+                        { "token", code },
+                        { "verification-code", code }
+                    };
 
                     var payload = new
                     {
+                        code = patternCode,
                         pattern_code = patternCode,
                         sender = sender,
-                        recipient = mobileNumber,
-                        variable_values = new Dictionary<string, string>
-                        {
-                            { "code", code }
-                        }
+                        originator = sender,
+                        recipient = localMobile,
+                        values = varDict,
+                        variable = varDict,
+                        variable_values = varDict
                     };
 
                     _httpClient.DefaultRequestHeaders.Clear();
                     _httpClient.DefaultRequestHeaders.Add("apikey", apiKey);
 
-                    Console.WriteLine($"Sending OTP SMS via FarazSMS (IPPanel) to {mobileNumber} using pattern {patternCode}...");
+                    Console.WriteLine($"Sending OTP SMS via FarazSMS (IPPanel) to {localMobile} using pattern {patternCode}...");
                     var response = await _httpClient.PostAsJsonAsync("https://api2.ippanel.com/api/v1/sms/pattern/normal/send", payload);
 
                     if (response.IsSuccessStatusCode)
                     {
-                        Console.WriteLine($"OTP SMS sent successfully via FarazSMS to {mobileNumber}.");
+                        Console.WriteLine($"OTP SMS sent successfully via FarazSMS to {localMobile}.");
                         return true;
                     }
 

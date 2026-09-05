@@ -153,7 +153,7 @@ The entire backend infrastructure (Database, Cache, API, Background Worker, and 
     JWT_SECRET_KEY=your_jwt_signing_secret_key_lts_2026
     BACKUP_S3_KEY=your_aws_s3_key
     BACKUP_S3_SECRET=your_aws_s3_secret
-    SMS_PROVIDER=Kavenegar (or FarazSms / IranPayamak)
+    SMS_PROVIDER=IranPayamak (or FarazSms / Kavenegar)
     SMS_GATEWAY_API_KEY=your_sms_gateway_api_key
     SMS_SENDER=your_sms_sender_line_number
     SMS_PATTERN_CODE=your_approved_pattern_code
