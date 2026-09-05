@@ -17,32 +17,14 @@ class GooglePlayPaymentProvider implements PaymentProvider {
 
   @override
   Future<bool> purchaseCourse(String courseId) async {
-    try {
-      final transactionId = 'GPA.mock-${DateTime.now().millisecondsSinceEpoch}';
-      final response = await dioClient.dio.post('/purchases', data: {
-        'course_id': courseId,
-        'payment_provider': providerName,
-        'transaction_id': transactionId,
-      });
-      return response.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
+    // Requires real Google Play Billing verification token
+    return false;
   }
 
   @override
   Future<bool> purchasePackage(String packageId) async {
-    try {
-      final transactionId = 'GPA.pkg-mock-${DateTime.now().millisecondsSinceEpoch}';
-      final response = await dioClient.dio.post('/purchases/package', data: {
-        'package_id': packageId,
-        'payment_provider': providerName,
-        'transaction_id': transactionId,
-      });
-      return response.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
+    // Requires real Google Play Billing verification token
+    return false;
   }
 }
 
@@ -55,32 +37,14 @@ class BazaarPaymentProvider implements PaymentProvider {
 
   @override
   Future<bool> purchaseCourse(String courseId) async {
-    try {
-      final transactionId = 'BZ.mock-${DateTime.now().millisecondsSinceEpoch}';
-      final response = await dioClient.dio.post('/purchases', data: {
-        'course_id': courseId,
-        'payment_provider': providerName,
-        'transaction_id': transactionId,
-      });
-      return response.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
+    // In-app purchases on Cafe Bazaar require verified Bazaar IAB purchase tokens.
+    // Mock auto-complete is strictly disabled to prevent unauthorized downloads.
+    return false;
   }
 
   @override
   Future<bool> purchasePackage(String packageId) async {
-    try {
-      final transactionId = 'BZ.pkg-mock-${DateTime.now().millisecondsSinceEpoch}';
-      final response = await dioClient.dio.post('/purchases/package', data: {
-        'package_id': packageId,
-        'payment_provider': providerName,
-        'transaction_id': transactionId,
-      });
-      return response.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
+    return false;
   }
 }
 
@@ -93,32 +57,12 @@ class MyketPaymentProvider implements PaymentProvider {
 
   @override
   Future<bool> purchaseCourse(String courseId) async {
-    try {
-      final transactionId = 'MK.mock-${DateTime.now().millisecondsSinceEpoch}';
-      final response = await dioClient.dio.post('/purchases', data: {
-        'course_id': courseId,
-        'payment_provider': providerName,
-        'transaction_id': transactionId,
-      });
-      return response.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
+    return false;
   }
 
   @override
   Future<bool> purchasePackage(String packageId) async {
-    try {
-      final transactionId = 'MK.pkg-mock-${DateTime.now().millisecondsSinceEpoch}';
-      final response = await dioClient.dio.post('/purchases/package', data: {
-        'package_id': packageId,
-        'payment_provider': providerName,
-        'transaction_id': transactionId,
-      });
-      return response.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
+    return false;
   }
 }
 

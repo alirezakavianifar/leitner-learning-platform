@@ -315,6 +315,158 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
     );
   }
 
+  bool _isAiTutorActive() {
+    final prefs = di.sl<SharedPreferences>();
+    final userPref = prefs.getBool('user_enable_ai_tutor') ?? true;
+    final configState = context.read<ConfigBloc>().state;
+    final serverFlag = configState is ConfigLoaded
+        ? configState.config.enableAiTutor
+        : (configState is ConfigMaintenance ? configState.config.enableAiTutor : true);
+    return userPref && serverFlag;
+  }
+
+  void _showAiTutorDialog(BuildContext context, Flashcard card) {
+    final loc = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final frontClean = card.questionText.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+    final backClean = card.answerText.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E222D) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppColors.primary.withOpacity(0.4), width: 1.5),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.auto_awesome, color: AppColors.secondary, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                loc.translate('ai_tutor_hint_title'),
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.help_outline, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          loc.translate('question_label'),
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      frontClean,
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.lightbulb_outline, size: 16, color: AppColors.secondary),
+                        const SizedBox(width: 6),
+                        Text(
+                          loc.translate('ai_tutor_title'),
+                          style: TextStyle(
+                            color: AppColors.secondary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _generateAiCardInsight(frontClean, backClean),
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13.5,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(loc.translate('ai_tutor_close'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _generateAiCardInsight(String front, String back) {
+    final words = front.split(RegExp(r'\s+')).where((w) => w.length > 2).toList();
+    final keyword = words.isNotEmpty ? words.first : front;
+    
+    return '💡 نکته یادگیری هوشمند:\n'
+        'برای به خاطر سپردن آسان‌تر، کلیدواژه «$keyword» را با مفهوم و کاربرد اصلی آن در ذهن تصویرسازی کنید. در روش لایتنر، تکرار منظم در فواصل زمانی باعث انتقال پایدار این مفهوم به حافظه بلندمدت شما می‌شود.';
+  }
+
   Color _getBoxColor(int box) {
     switch (box) {
       case 1:
@@ -708,6 +860,44 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                             ),
                                             onPressed: () => context.read<FlashcardBloc>().add(ToggleFavorite()),
                                           ),
+                                          const SizedBox(width: 12),
+                                          IconButton(
+                                            constraints: const BoxConstraints(),
+                                            padding: EdgeInsets.zero,
+                                            tooltip: state.isShuffled
+                                                ? loc.translate('restore_order')
+                                                : loc.translate('shuffle_cards'),
+                                            icon: Icon(
+                                              Icons.shuffle,
+                                              color: state.isShuffled ? AppColors.secondary : AppColors.textSecondary,
+                                              size: 20,
+                                            ),
+                                            onPressed: () {
+                                              context.read<FlashcardBloc>().add(ToggleShuffleCards());
+                                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(loc.translate(state.isShuffled ? 'cards_unshuffled' : 'cards_shuffled')),
+                                                  duration: const Duration(seconds: 2),
+                                                  backgroundColor: AppColors.primary,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                          if (_isAiTutorActive()) ...[
+                                            const SizedBox(width: 12),
+                                            IconButton(
+                                              constraints: const BoxConstraints(),
+                                              padding: EdgeInsets.zero,
+                                              tooltip: loc.translate('ai_tutor_title'),
+                                              icon: Icon(
+                                                Icons.auto_awesome,
+                                                color: AppColors.secondary,
+                                                size: 20,
+                                              ),
+                                              onPressed: () => _showAiTutorDialog(context, card),
+                                            ),
+                                          ],
                                           const SizedBox(width: 12),
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

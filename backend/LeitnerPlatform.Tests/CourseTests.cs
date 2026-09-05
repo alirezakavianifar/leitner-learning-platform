@@ -357,5 +357,128 @@ namespace LeitnerPlatform.Tests
             Assert.Equal("Typo in answer field.", storedReport.ReportText);
             Assert.Equal("PENDING", storedReport.Status);
         }
+
+        [Fact]
+        public async Task Course_AllowedPlatforms_ShouldDefaultAndPersistCorrectly()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var course = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Multi-Platform Targeted Course",
+                Price = 50000m,
+                IsPublished = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            // Assert entity default
+            Assert.Equal("zarinpal,bazaar,myket,googleplay,ios", course.AllowedPlatforms);
+
+            // Act & Assert Custom Platform Persistence
+            course.AllowedPlatforms = "zarinpal,bazaar";
+            await db.Courses.AddAsync(course);
+            await db.SaveChangesAsync();
+
+            var loaded = await db.Courses.FindAsync(course.Id);
+            Assert.NotNull(loaded);
+            Assert.Equal("zarinpal,bazaar", loaded.AllowedPlatforms);
+        }
+
+        [Fact]
+        public void DatabaseMigration_V18_ShouldExistAndContainValidSql()
+        {
+            var baseDir = AppContext.BaseDirectory;
+            var pathsToTry = new[]
+            {
+                System.IO.Path.Combine(baseDir, "..", "..", "..", "..", "deployment", "db", "migrations", "V18__Add_Course_Allowed_Platforms.sql"),
+                System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "deployment", "db", "migrations", "V18__Add_Course_Allowed_Platforms.sql"),
+                System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "..", "deployment", "db", "migrations", "V18__Add_Course_Allowed_Platforms.sql"),
+                System.IO.Path.Combine(baseDir, "..", "..", "..", "..", "..", "deployment", "db", "migrations", "V18__Add_Course_Allowed_Platforms.sql")
+            };
+
+            string? foundPath = pathsToTry.FirstOrDefault(p => System.IO.File.Exists(System.IO.Path.GetFullPath(p)));
+            Assert.NotNull(foundPath);
+
+            var sql = System.IO.File.ReadAllText(foundPath);
+            Assert.Contains("ALTER TABLE courses", sql, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("allowed_platforms", sql, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("UPDATE courses", sql, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task CourseController_GetCourses_WithPlatformFilter_ShouldFilterCorrectly()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var userId = Guid.NewGuid();
+
+            var courseZarinpalOnly = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Zarinpal Direct Course",
+                Price = 10000m,
+                IsPublished = true,
+                AllowedPlatforms = "zarinpal",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var courseBazaarOnly = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Bazaar Exclusive Course",
+                Price = 20000m,
+                IsPublished = true,
+                AllowedPlatforms = "bazaar",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var courseMulti = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Multi-Store Course",
+                Price = 30000m,
+                IsPublished = true,
+                AllowedPlatforms = "zarinpal,bazaar,myket",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await db.Courses.AddRangeAsync(courseZarinpalOnly, courseBazaarOnly, courseMulti);
+            await db.SaveChangesAsync();
+
+            var controller = new CourseController(db);
+            var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString())
+            }, "TestAuth"));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            };
+
+            // Act 1: Query with platform = "bazaar"
+            var resultBazaar = await controller.GetCourses(platform: "bazaar");
+            var okBazaar = Assert.IsType<OkObjectResult>(resultBazaar);
+            var listBazaar = (Assert.IsAssignableFrom<System.Collections.Generic.IEnumerable<object>>(okBazaar.Value)).ToList();
+
+            // Assert 1: Only BazaarOnly and Multi are returned
+            Assert.Equal(2, listBazaar.Count);
+            Assert.DoesNotContain(listBazaar, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "Zarinpal Direct Course");
+            Assert.Contains(listBazaar, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "Bazaar Exclusive Course");
+            Assert.Contains(listBazaar, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "Multi-Store Course");
+
+            // Act 2: Query with X-App-Platform header = "premium" (maps to zarinpal)
+            controller.ControllerContext.HttpContext.Request.Headers["X-App-Platform"] = "premium";
+            var resultPremiumHeader = await controller.GetCourses();
+            var okPremium = Assert.IsType<OkObjectResult>(resultPremiumHeader);
+            var listPremium = (Assert.IsAssignableFrom<System.Collections.Generic.IEnumerable<object>>(okPremium.Value)).ToList();
+
+            // Assert 2: ZarinpalDirect and Multi are returned, BazaarExclusive is excluded
+            Assert.Equal(2, listPremium.Count);
+            Assert.Contains(listPremium, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "Zarinpal Direct Course");
+            Assert.DoesNotContain(listPremium, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "Bazaar Exclusive Course");
+            Assert.Contains(listPremium, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "Multi-Store Course");
+        }
     }
 }

@@ -1214,6 +1214,7 @@ namespace LeitnerPlatform.API.Controllers.v1
 
                 bool isPublished = true;
                 bool isCriticalUpdate = false;
+                string? allowedPlatforms = null;
 
                 if (manifestPath != null && System.IO.File.Exists(manifestPath))
                 {
@@ -1237,6 +1238,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     if (root.TryGetProperty("db_checksum_sha256", out var checkProp)) checksum = checkProp.GetString();
                     if (root.TryGetProperty("is_published", out var pubProp)) isPublished = pubProp.GetBoolean();
                     if (root.TryGetProperty("is_critical_update", out var criticalProp)) isCriticalUpdate = criticalProp.GetBoolean();
+                    if (root.TryGetProperty("allowed_platforms", out var platformsProp)) allowedPlatforms = platformsProp.GetString();
                 }
                 else
                 {
@@ -1413,6 +1415,10 @@ namespace LeitnerPlatform.API.Controllers.v1
                             existingCourse.IsPublished = isPublished;
                             existingCourse.IsCriticalUpdate = isCriticalUpdate;
                             existingCourse.UpdatedAt = DateTime.UtcNow;
+                            if (!string.IsNullOrWhiteSpace(allowedPlatforms))
+                            {
+                                existingCourse.AllowedPlatforms = allowedPlatforms.Trim();
+                            }
                             // Re-uploading a package is an explicit admin action to bring the
                             // course back into circulation, so reverse any prior archive state.
                             existingCourse.IsArchived = false;
@@ -1453,6 +1459,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                                 DownloadUrl = relativeDownloadUrl,
                                 CardCount = cardCount,
                                 IsCriticalUpdate = isCriticalUpdate,
+                                AllowedPlatforms = !string.IsNullOrWhiteSpace(allowedPlatforms) ? allowedPlatforms.Trim() : "zarinpal,bazaar,myket,googleplay,ios",
                                 CreatedAt = DateTime.UtcNow,
                                 UpdatedAt = DateTime.UtcNow
                             };
@@ -1646,6 +1653,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             if (input.IsPublished.HasValue) course.IsPublished = input.IsPublished.Value;
             if (input.IsCriticalUpdate.HasValue) course.IsCriticalUpdate = input.IsCriticalUpdate.Value;
             if (input.ImageUrl != null) course.ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim();
+            if (input.AllowedPlatforms != null) course.AllowedPlatforms = input.AllowedPlatforms.Trim();
             course.UpdatedAt = DateTime.UtcNow;
 
             _context.Entry(course).State = EntityState.Modified;
@@ -2201,6 +2209,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         public string? ImageUrl { get; set; }
         public bool? IsPublished { get; set; }
         public bool? IsCriticalUpdate { get; set; }
+        public string? AllowedPlatforms { get; set; }
     }
 
     public class AdminUserUpdateInput

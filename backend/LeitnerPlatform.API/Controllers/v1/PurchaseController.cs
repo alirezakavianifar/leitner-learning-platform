@@ -69,6 +69,35 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return NotFound(new { success = false, message = "Course not found." });
             }
 
+            // Reject mock or unverified transactions for paid courses
+            if (course.Price > 0)
+            {
+                if (string.IsNullOrWhiteSpace(input.TransactionId) ||
+                    input.TransactionId.Contains("mock", StringComparison.OrdinalIgnoreCase) ||
+                    input.TransactionId.Contains("fake", StringComparison.OrdinalIgnoreCase) ||
+                    input.TransactionId.Contains("simulated", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        error_code = "UNVERIFIED_TRANSACTION",
+                        message = "Mock or unverified transactions are strictly rejected. Payment verification is required."
+                    });
+                }
+
+                if (string.Equals(input.PaymentProvider, "DIRECT", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(input.PaymentProvider, "ZARINPAL", StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrEmpty(input.PaymentProvider))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        error_code = "DIRECT_PAYMENT_VERIFICATION_REQUIRED",
+                        message = "Direct purchases must be initiated via /zarinpal/request and verified through the payment gateway callback."
+                    });
+                }
+            }
+
             // Check if there is already a completed purchase for this user and course
             var existingPurchase = await _context.Purchases
                 .FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == input.CourseId);
@@ -225,6 +254,35 @@ namespace LeitnerPlatform.API.Controllers.v1
             if (pkg == null)
             {
                 return NotFound(new { success = false, message = "Package not found." });
+            }
+
+            // Reject mock or unverified transactions for paid packages
+            if (pkg.Price > 0)
+            {
+                if (string.IsNullOrWhiteSpace(input.TransactionId) ||
+                    input.TransactionId.Contains("mock", StringComparison.OrdinalIgnoreCase) ||
+                    input.TransactionId.Contains("fake", StringComparison.OrdinalIgnoreCase) ||
+                    input.TransactionId.Contains("simulated", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        error_code = "UNVERIFIED_TRANSACTION",
+                        message = "Mock or unverified transactions are strictly rejected. Payment verification is required."
+                    });
+                }
+
+                if (string.Equals(input.PaymentProvider, "DIRECT", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(input.PaymentProvider, "ZARINPAL", StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrEmpty(input.PaymentProvider))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        error_code = "DIRECT_PAYMENT_VERIFICATION_REQUIRED",
+                        message = "Direct package purchases must be initiated via /zarinpal/package-request and verified through the payment gateway callback."
+                    });
+                }
             }
 
             var provider = input.PaymentProvider ?? "DIRECT";

@@ -131,6 +131,7 @@ namespace LeitnerPlatform.Data
                 entity.Property(e => e.IsArchived).HasColumnName("is_archived").HasDefaultValue(false);
                 entity.Property(e => e.ArchivedAt).HasColumnName("archived_at");
                 entity.Property(e => e.IsCriticalUpdate).HasColumnName("is_critical_update").HasDefaultValue(false);
+                entity.Property(e => e.AllowedPlatforms).HasColumnName("allowed_platforms").HasMaxLength(255).HasDefaultValue("zarinpal,bazaar,myket,googleplay,ios");
             });
 
             // Card mapping

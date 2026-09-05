@@ -39,6 +39,7 @@ export const CoursesView: React.FC = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [isPublished, setIsPublished] = useState(false);
   const [isCriticalUpdate, setIsCriticalUpdate] = useState(false);
+  const [allowedPlatforms, setAllowedPlatforms] = useState<string[]>(['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios']);
 
   // Upload Fields
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -120,6 +121,10 @@ export const CoursesView: React.FC = () => {
     setImageUrl(course.image_url || '');
     setIsPublished(course.is_published || false);
     setIsCriticalUpdate(course.is_critical_update || false);
+    const platforms = course.allowed_platforms
+      ? course.allowed_platforms.split(',').map((s: string) => s.trim()).filter(Boolean)
+      : ['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios'];
+    setAllowedPlatforms(platforms);
     setShowEditModal(true);
   };
 
@@ -136,7 +141,8 @@ export const CoursesView: React.FC = () => {
         price,
         image_url: imageUrl.trim(),
         is_published: isPublished,
-        is_critical_update: isCriticalUpdate
+        is_critical_update: isCriticalUpdate,
+        allowed_platforms: allowedPlatforms.join(',')
       });
       toast.showSuccess(t('courses.alert_save_success', 'Course metadata updated successfully.'));
       setShowEditModal(false);
@@ -454,6 +460,25 @@ export const CoursesView: React.FC = () => {
                               <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {course.description || t('courses.no_description', 'No description provided')}
                               </div>
+                              {course.allowed_platforms && (
+                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                  {course.allowed_platforms.split(',').map((p) => p.trim()).filter(Boolean).map((p) => (
+                                    <span
+                                      key={p}
+                                      style={{
+                                        fontSize: '9.5px',
+                                        padding: '1px 5px',
+                                        borderRadius: '3px',
+                                        backgroundColor: p === 'bazaar' ? 'rgba(34, 197, 94, 0.15)' : p === 'zarinpal' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                                        color: p === 'bazaar' ? '#22c55e' : p === 'zarinpal' ? '#3b82f6' : 'var(--text-muted)',
+                                        border: '1px solid currentColor'
+                                      }}
+                                    >
+                                      {p === 'bazaar' ? 'بازار' : p === 'zarinpal' ? 'زرین‌پال' : p === 'myket' ? 'مایکت' : p === 'googleplay' ? 'گوگل' : p === 'ios' ? 'iOS' : p}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -813,6 +838,39 @@ export const CoursesView: React.FC = () => {
                       {t('courses.field_critical_update', 'Mark as critical fix (prompts existing users to update)')}
                     </label>
                   </div>
+                </div>
+                <div className="form-group" style={{ marginTop: '14px', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <label style={{ fontWeight: 'bold', marginBottom: '8px', display: 'block', fontSize: '13px' }}>
+                    📱 پلتفرم‌ها و بازارهای مجاز برای نمایش این دوره:
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px', marginTop: '6px' }}>
+                    {[
+                      { id: 'zarinpal', label: 'زرین‌پال (مستقیم)' },
+                      { id: 'bazaar', label: 'کافه بازار' },
+                      { id: 'myket', label: 'مایکت' },
+                      { id: 'googleplay', label: 'گوگل پلی' },
+                      { id: 'ios', label: 'آی‌او‌اس (iOS)' }
+                    ].map((plat) => (
+                      <label key={plat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12.5px', margin: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={allowedPlatforms.includes(plat.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setAllowedPlatforms([...allowedPlatforms, plat.id]);
+                            } else {
+                              setAllowedPlatforms(allowedPlatforms.filter((p) => p !== plat.id));
+                            }
+                          }}
+                          style={{ width: 'auto' }}
+                        />
+                        <span>{plat.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '6px', fontSize: '11px' }}>
+                    در صورت برداشتن تیک کافه بازار یا هر نسخه دیگر، این دوره فقط در نسخه‌های مجاز نمایش داده می‌شود.
+                  </small>
                 </div>
               </div>
               <div className="modal-footer">

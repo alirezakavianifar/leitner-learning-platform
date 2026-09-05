@@ -300,6 +300,157 @@ namespace LeitnerPlatform.Tests
             var okResult = Assert.IsType<OkObjectResult>(result);
             Assert.NotNull(okResult.Value);
         }
+
+        [Theory]
+        [InlineData("mock-token-123")]
+        [InlineData("BZ.fake-transaction")]
+        [InlineData("")]
+        [InlineData(null)]
+        public async Task PurchaseController_CreatePurchase_ShouldRejectUnverifiedOrMockTransactionsForPaidCourses(string? transactionId)
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var userId = Guid.NewGuid();
+            var course = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Paid Course",
+                Price = 50000m,
+                IsPublished = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            await db.Courses.AddAsync(course);
+            await db.SaveChangesAsync();
+
+            var controller = new PurchaseController(
+                db, 
+                new Mock<IEventBus>().Object, 
+                new Mock<IZarinPalService>().Object, 
+                new Mock<IConfiguration>().Object, 
+                new Mock<ILogger<PurchaseController>>().Object
+            );
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) }, "TestAuth"))
+                }
+            };
+
+            var input = new CreatePurchaseInput
+            {
+                CourseId = course.Id,
+                PaymentProvider = "BAZAAR",
+                TransactionId = transactionId
+            };
+
+            // Act
+            var result = await controller.CreatePurchase(input);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var value = badRequestResult.Value!;
+            var errorCode = (string)value.GetType().GetProperty("error_code")!.GetValue(value)!;
+            Assert.Equal("UNVERIFIED_TRANSACTION", errorCode);
+        }
+
+        [Fact]
+        public async Task PurchaseController_CreatePurchase_ShouldRejectDirectPaymentProviderForPaidCourses()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var userId = Guid.NewGuid();
+            var course = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Paid Course",
+                Price = 50000m,
+                IsPublished = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            await db.Courses.AddAsync(course);
+            await db.SaveChangesAsync();
+
+            var controller = new PurchaseController(
+                db, 
+                new Mock<IEventBus>().Object, 
+                new Mock<IZarinPalService>().Object, 
+                new Mock<IConfiguration>().Object, 
+                new Mock<ILogger<PurchaseController>>().Object
+            );
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) }, "TestAuth"))
+                }
+            };
+
+            var input = new CreatePurchaseInput
+            {
+                CourseId = course.Id,
+                PaymentProvider = "DIRECT",
+                TransactionId = "TX_SOME_CUSTOM_ID"
+            };
+
+            // Act
+            var result = await controller.CreatePurchase(input);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+            var value = badRequestResult.Value!;
+            var errorCode = (string)value.GetType().GetProperty("error_code")!.GetValue(value)!;
+            Assert.Equal("DIRECT_PAYMENT_VERIFICATION_REQUIRED", errorCode);
+        }
+
+        [Fact]
+        public async Task PurchaseController_CreatePurchase_ShouldAllowFreeCourseDirectEnrollment()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var userId = Guid.NewGuid();
+            var freeCourse = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Free Intro Course",
+                Price = 0m,
+                IsPublished = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            await db.Courses.AddAsync(freeCourse);
+            await db.SaveChangesAsync();
+
+            var controller = new PurchaseController(
+                db, 
+                new Mock<IEventBus>().Object, 
+                new Mock<IZarinPalService>().Object, 
+                new Mock<IConfiguration>().Object, 
+                new Mock<ILogger<PurchaseController>>().Object
+            );
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) }, "TestAuth"))
+                }
+            };
+
+            var input = new CreatePurchaseInput
+            {
+                CourseId = freeCourse.Id,
+                PaymentProvider = "FREE",
+                TransactionId = "FREE_ENROLLMENT"
+            };
+
+            // Act
+            var result = await controller.CreatePurchase(input);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var purchase = await db.Purchases.FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == freeCourse.Id);
+            Assert.NotNull(purchase);
+            Assert.Equal("COMPLETED", purchase.Status);
+        }
     }
 }
 

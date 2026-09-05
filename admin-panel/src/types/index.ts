@@ -34,6 +34,7 @@ export interface Course {
   is_archived: boolean;
   archived_at?: string;
   is_critical_update: boolean;
+  allowed_platforms?: string;
 }
 
 export interface Purchase {

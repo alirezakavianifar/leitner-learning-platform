@@ -106,6 +106,7 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
     dio: dioInstance,
     storageService: storageService,
     baseUrl: fallbackUrl,
+    flavor: flavor,
     onUnauthorized: () {
       // Dispatch LogoutEvent on the AuthBloc so AuthGate redirects to login
       final context = navigatorKey.currentContext;

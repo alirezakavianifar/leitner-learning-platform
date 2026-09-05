@@ -31,6 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _dailyReminderEnabled = true;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 9, minute: 0);
   bool _isReminderCustomized = false;
+  bool _aiTutorEnabled = true;
 
   final List<Map<String, dynamic>> _premiumPalettes = const [
     {
@@ -91,6 +92,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         minute: _notificationScheduler.dailyReminderMinute,
       );
       _isReminderCustomized = _notificationScheduler.isDailyReminderCustomized;
+      _aiTutorEnabled = prefs.getBool('user_enable_ai_tutor') ?? true;
+    });
+  }
+
+  Future<void> _toggleAiTutor(bool value) async {
+    final prefs = di.sl<SharedPreferences>();
+    await prefs.setBool('user_enable_ai_tutor', value);
+    setState(() {
+      _aiTutorEnabled = value;
     });
   }
 
@@ -786,6 +796,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Section 0.4: AI Tutor Switch Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.auto_awesome, color: AppColors.secondary, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          loc.translate('ai_tutor_settings_title'),
+                          style: TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          loc.translate('ai_tutor_settings_desc'),
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.3),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Switch(
+                    value: _aiTutorEnabled,
+                    activeColor: AppColors.primary,
+                    onChanged: _toggleAiTutor,
+                  ),
                 ],
               ),
             ),

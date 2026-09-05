@@ -49,24 +49,29 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers,
   });
 
-  if (response.status === 401) {
-    removeToken();
-    window.dispatchEvent(new Event('auth-logout'));
-    throw new Error('Unauthorized');
-  }
-
   if (!response.ok) {
     let errMsg = 'API Request Failed';
+    let errCode = '';
     let serverCorrelationId = '';
     try {
       const errData = await response.json();
-      errMsg = errData.error || errData.message || errMsg;
+      errMsg = errData.message || errData.error || errMsg;
+      errCode = errData.error_code || '';
       serverCorrelationId = errData.correlation_id || '';
     } catch {
       // ignore
     }
+
+    if (response.status === 401 && !path.startsWith('/auth/')) {
+      removeToken();
+      window.dispatchEvent(new Event('auth-logout'));
+    }
+
     const finalCorrelationId = serverCorrelationId || correlationId;
-    throw new Error(`${errMsg} (Correlation ID: ${finalCorrelationId})`);
+    const error: any = new Error(errMsg);
+    error.error_code = errCode;
+    error.correlation_id = finalCorrelationId;
+    throw error;
   }
 
   if (response.status === 204) {
@@ -79,15 +84,28 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   auth: {
     getCaptcha: () => request<{ success: boolean; captcha_id: string; image_base64: string }>('/auth/captcha'),
-    requestOtp: (mobileNumber: string, captchaId: string, captchaAnswer: string) => 
+    requestOtp: (mobileNumber: string, captchaId: string, captchaAnswer: string, username?: string, password?: string) => 
       request<{ success: boolean; message: string; expires_in_seconds: number }>('/auth/otp/request', {
         method: 'POST',
-        body: JSON.stringify({ mobile_number: mobileNumber, captcha_id: captchaId, captcha_answer: captchaAnswer })
+        body: JSON.stringify({ 
+          mobile_number: mobileNumber, 
+          captcha_id: captchaId, 
+          captcha_answer: captchaAnswer,
+          is_admin_login: true,
+          username,
+          password
+        })
       }),
-    verifyOtp: (mobileNumber: string, otpCode: string) => 
+    verifyOtp: (mobileNumber: string, otpCode: string, username?: string, password?: string) => 
       request<{ success: boolean; token: string; refresh_token: string; role: string }>('/auth/otp/verify', {
         method: 'POST',
-        body: JSON.stringify({ mobile_number: mobileNumber, otp_code: otpCode })
+        body: JSON.stringify({ 
+          mobile_number: mobileNumber, 
+          otp_code: otpCode,
+          is_admin_login: true,
+          username,
+          password
+        })
       })
   },
   admin: {

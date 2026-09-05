@@ -40,7 +40,7 @@ namespace LeitnerPlatform.API.Controllers.v1
 
         [AllowAnonymous]
         [HttpGet]
-        public async Task<IActionResult> GetCourses()
+        public async Task<IActionResult> GetCourses([FromQuery] string? platform = null)
         {
             var userId = GetUserId();
             var completedPurchases = new List<Guid>();
@@ -56,6 +56,12 @@ namespace LeitnerPlatform.API.Controllers.v1
                     .ToListAsync();
             }
 
+            var targetPlatform = platform?.Trim().ToLower();
+            if (string.IsNullOrEmpty(targetPlatform) && Request.Headers.TryGetValue("X-App-Platform", out var headerPlatform))
+            {
+                targetPlatform = headerPlatform.ToString().Trim().ToLower();
+            }
+
             // Catalog = published, non-archived courses (visible to everyone), plus any
             // course this user has purchased even if it has since been archived/unpublished.
             var courses = await _context.Courses
@@ -63,6 +69,19 @@ namespace LeitnerPlatform.API.Controllers.v1
                 .Where(c => (c.IsPublished && !c.IsArchived) || completedPurchases.Contains(c.Id))
                 .OrderBy(c => c.Title)
                 .ToListAsync();
+
+            // Filter courses by platform if platform targeting was specified
+            if (!string.IsNullOrEmpty(targetPlatform))
+            {
+                courses = courses.Where(c =>
+                    completedPurchases.Contains(c.Id) ||
+                    string.IsNullOrEmpty(c.AllowedPlatforms) ||
+                    c.AllowedPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Any(p => p.Equals(targetPlatform, StringComparison.OrdinalIgnoreCase) ||
+                                 (targetPlatform == "premium" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)) ||
+                                 (targetPlatform == "direct" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)))
+                ).ToList();
+            }
 
             var result = courses.Select(c =>
             {
@@ -92,7 +111,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                     checksum_sha256 = c.ChecksumSha256,
                     updated_at = c.UpdatedAt,
                     is_critical_update = c.IsCriticalUpdate,
-                    is_archived = c.IsArchived
+                    is_archived = c.IsArchived,
+                    allowed_platforms = c.AllowedPlatforms
                 };
             });
 

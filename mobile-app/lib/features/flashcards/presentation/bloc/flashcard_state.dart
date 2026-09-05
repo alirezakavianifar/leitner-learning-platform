@@ -21,6 +21,8 @@ class FlashcardQueueLoaded extends FlashcardState {
   final bool isFlipped;
   final bool isFavorited;
   final bool isSubmittingReport;
+  final bool isShuffled;
+  final List<Flashcard>? originalQueue;
   final String? reportMessage;
   final int? jumpWarningCardNumber; // If not null, displays a reset confirmation warning dialog in UI
   final Flashcard? jumpTargetCard;  // The loaded card for jumping after confirmation
@@ -35,6 +37,8 @@ class FlashcardQueueLoaded extends FlashcardState {
     this.isFlipped = false,
     this.isFavorited = false,
     this.isSubmittingReport = false,
+    this.isShuffled = false,
+    this.originalQueue,
     this.reportMessage,
     this.jumpWarningCardNumber,
     this.jumpTargetCard,
@@ -57,6 +61,8 @@ class FlashcardQueueLoaded extends FlashcardState {
     bool? isFlipped,
     bool? isFavorited,
     bool? isSubmittingReport,
+    bool? isShuffled,
+    List<Flashcard>? originalQueue,
     String? reportMessage,
     int? jumpWarningCardNumber,
     Flashcard? jumpTargetCard,
@@ -71,6 +77,8 @@ class FlashcardQueueLoaded extends FlashcardState {
       isFlipped: isFlipped ?? this.isFlipped,
       isFavorited: isFavorited ?? this.isFavorited,
       isSubmittingReport: isSubmittingReport ?? this.isSubmittingReport,
+      isShuffled: isShuffled ?? this.isShuffled,
+      originalQueue: originalQueue ?? this.originalQueue,
       reportMessage: reportMessage, // reset/nullified unless specified
       jumpWarningCardNumber: jumpWarningCardNumber, // reset unless specified
       jumpTargetCard: jumpTargetCard, // reset unless specified
@@ -88,6 +96,8 @@ class FlashcardQueueLoaded extends FlashcardState {
         isFlipped,
         isFavorited,
         isSubmittingReport,
+        isShuffled,
+        originalQueue,
         reportMessage,
         jumpWarningCardNumber,
         jumpTargetCard,

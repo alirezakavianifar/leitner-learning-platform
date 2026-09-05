@@ -198,5 +198,58 @@ void main() {
         ]),
       );
     });
+
+    test('ToggleShuffleCards toggles between shuffled queue and original queue sequence without modifying card numbers', () async {
+      final cards = List.generate(
+        10,
+        (i) => Flashcard(
+          id: 'card-$i',
+          courseId: 'course-1',
+          cardNumber: i + 1,
+          questionText: 'Question ${i + 1}',
+          answerText: 'Answer ${i + 1}',
+          options: const [],
+          progress: CardProgress(
+            id: 'p-$i',
+            courseId: 'course-1',
+            cardNumber: i + 1,
+            currentBox: 1,
+            isSynced: true,
+            hasEnteredLeitner: true,
+          ),
+        ),
+      );
+
+      final repo = MockFlashcardRepository(
+        reviewQueue: cards,
+        favoriteCards: [],
+      );
+      final bloc = FlashcardBloc(flashcardRepository: repo);
+
+      bloc.add(const LoadFlashcardQueue('course-1'));
+      await bloc.stream.firstWhere((s) => s is FlashcardQueueLoaded);
+
+      final initialLoaded = bloc.state as FlashcardQueueLoaded;
+      expect(initialLoaded.isShuffled, isFalse);
+      expect(initialLoaded.queue.map((c) => c.cardNumber).toList(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+      // Toggle Shuffle ON
+      bloc.add(ToggleShuffleCards());
+      await bloc.stream.firstWhere((s) => s is FlashcardQueueLoaded && s.isShuffled);
+
+      final shuffledState = bloc.state as FlashcardQueueLoaded;
+      expect(shuffledState.isShuffled, isTrue);
+      expect(shuffledState.queue.length, 10);
+      // All card numbers 1..10 must be present intact
+      expect(shuffledState.queue.map((c) => c.cardNumber).toSet(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
+
+      // Toggle Shuffle OFF (restore original sequence)
+      bloc.add(ToggleShuffleCards());
+      await bloc.stream.firstWhere((s) => s is FlashcardQueueLoaded && !s.isShuffled);
+
+      final restoredState = bloc.state as FlashcardQueueLoaded;
+      expect(restoredState.isShuffled, isFalse);
+      expect(restoredState.queue.map((c) => c.cardNumber).toList(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    });
   });
 }

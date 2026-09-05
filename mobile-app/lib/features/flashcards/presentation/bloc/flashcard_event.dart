@@ -37,6 +37,8 @@ class SubmitReview extends FlashcardEvent {
 
 class ToggleFavorite extends FlashcardEvent {}
 
+class ToggleShuffleCards extends FlashcardEvent {}
+
 class JumpToCardNumber extends FlashcardEvent {
   final int cardNumber;
   final bool forceReset;

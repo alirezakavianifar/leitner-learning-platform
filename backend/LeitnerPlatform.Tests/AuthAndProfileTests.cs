@@ -463,5 +463,151 @@ namespace LeitnerPlatform.Tests
             mockRepo.Verify(r => r.UpdateAsync(testUser), Times.Once);
             mockRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
         }
+
+        [Fact]
+        public async Task AuthController_VerifyOtp_BypassCode12345_ShouldFailWithInvalidOtp()
+        {
+            // Arrange
+            var mockUserRepo = new Mock<IUserRepository>();
+            var mockSms = new Mock<ISmsService>();
+            var mockCaptcha = new Mock<ICaptchaService>();
+            var mockEventBus = new Mock<IEventBus>();
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new System.Collections.Generic.Dictionary<string, string?>
+            {
+                { "ADMIN_ALLOWED_MOBILE_NUMBERS", "09121111111" }
+            }).Build();
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+            // Legitimate OTP is 987654 in cache
+            memoryCache.Set("otp:+989120001234", "987654");
+
+            var controller = new AuthController(
+                mockUserRepo.Object,
+                mockSms.Object,
+                mockCaptcha.Object,
+                mockEventBus.Object,
+                config,
+                memoryCache);
+
+            var input = new OtpVerifyInput
+            {
+                MobileNumber = "09120001234",
+                OtpCode = "12345" // Hardcoded bypass attempt
+            };
+
+            // Act
+            var result = await controller.VerifyOtp(input);
+
+            // Assert: Must return 401 Unauthorized with INVALID_OTP error code
+            var unauthorizedResult = Assert.IsType<UnauthorizedObjectResult>(result);
+            var value = unauthorizedResult.Value!;
+            var errorCode = (string)value.GetType().GetProperty("error_code")!.GetValue(value)!;
+            Assert.Equal("INVALID_OTP", errorCode);
+        }
+
+        [Fact]
+        public async Task AuthController_VerifyOtp_AdminLogin_NonWhitelistedMobile_ShouldReturnUnauthorizedAdminMobile()
+        {
+            // Arrange
+            var mockUserRepo = new Mock<IUserRepository>();
+            var mockSms = new Mock<ISmsService>();
+            var mockCaptcha = new Mock<ICaptchaService>();
+            var mockEventBus = new Mock<IEventBus>();
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new System.Collections.Generic.Dictionary<string, string?>
+            {
+                { "ADMIN_ALLOWED_MOBILE_NUMBERS", "+989129999999,09129999999" },
+                { "ADMIN_USERNAME", "admin" },
+                { "ADMIN_PASSWORD", "AdminPass123!" }
+            }).Build();
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+            var attackerMobile = "09120000001";
+            memoryCache.Set($"otp:+989120000001", "654321");
+
+            var controller = new AuthController(
+                mockUserRepo.Object,
+                mockSms.Object,
+                mockCaptcha.Object,
+                mockEventBus.Object,
+                config,
+                memoryCache);
+
+            var input = new OtpVerifyInput
+            {
+                MobileNumber = attackerMobile,
+                OtpCode = "654321",
+                IsAdminLogin = true,
+                Username = "admin",
+                Password = "AdminPass123!"
+            };
+
+            // Act
+            var result = await controller.VerifyOtp(input);
+
+            // Assert: Must reject with UNAUTHORIZED_ADMIN_MOBILE
+            var unauthorizedResult = Assert.IsType<UnauthorizedObjectResult>(result);
+            var value = unauthorizedResult.Value!;
+            var errorCode = (string)value.GetType().GetProperty("error_code")!.GetValue(value)!;
+            Assert.Equal("UNAUTHORIZED_ADMIN_MOBILE", errorCode);
+        }
+
+        [Fact]
+        public async Task AuthController_VerifyOtp_AdminLogin_WhitelistedMobile_ShouldSucceedWithAdminRole()
+        {
+            // Arrange
+            var mockUserRepo = new Mock<IUserRepository>();
+            var mockSms = new Mock<ISmsService>();
+            var mockCaptcha = new Mock<ICaptchaService>();
+            var mockEventBus = new Mock<IEventBus>();
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new System.Collections.Generic.Dictionary<string, string?>
+            {
+                { "ADMIN_ALLOWED_MOBILE_NUMBERS", "+989129999999,09129999999" },
+                { "ADMIN_USERNAME", "admin" },
+                { "ADMIN_PASSWORD", "AdminPass123!" }
+            }).Build();
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+            var ownerMobile = "09129999999";
+            var normalizedMobile = "+989129999999";
+            memoryCache.Set($"otp:{normalizedMobile}", "654321");
+
+            var existingUser = new User
+            {
+                Id = Guid.NewGuid(),
+                Username = "admin",
+                MobileNumber = normalizedMobile,
+                IsAdmin = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            mockUserRepo.Setup(r => r.GetByMobileNumberAsync(normalizedMobile)).ReturnsAsync(existingUser);
+
+            var controller = new AuthController(
+                mockUserRepo.Object,
+                mockSms.Object,
+                mockCaptcha.Object,
+                mockEventBus.Object,
+                config,
+                memoryCache);
+
+            var input = new OtpVerifyInput
+            {
+                MobileNumber = ownerMobile,
+                OtpCode = "654321",
+                IsAdminLogin = true,
+                Username = "admin",
+                Password = "AdminPass123!"
+            };
+
+            // Act
+            var result = await controller.VerifyOtp(input);
+
+            // Assert: Succeeded
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var value = okResult.Value!;
+            var success = (bool)value.GetType().GetProperty("success")!.GetValue(value)!;
+            var role = (string)value.GetType().GetProperty("role")!.GetValue(value)!;
+            Assert.True(success);
+            Assert.Equal("Admin", role);
+        }
     }
 }

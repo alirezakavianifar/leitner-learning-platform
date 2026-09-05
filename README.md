@@ -391,4 +391,42 @@ To verify that the compiled database structure and encrypted media assets are in
 python course-authoring-kit/tools/verify_course.py
 ```
 
+---
 
+### 4. Platform Security & Audit Enhancements
+
+The platform implements security hardening and feature enhancements based on the comprehensive audit:
+
+*   **Adaptive Launcher Splash Screen (Issue 1):** Android splash screen configuration uses the unified circular adaptive launcher icon (`@mipmap/ic_launcher_round`) across light and dark system themes, preventing visual discrepancies during app startup.
+*   **Tamper-Proof In-App Purchases (Issue 2):** Client-side mock purchases are strictly blocked. Direct unlocks for paid courses (`Price > 0`) require server-side ZarinPal payment verification and gateway callback processing (`/api/v1/zarinpal/verify` or `/package-verify`).
+*   **Platform-Targeted Course Catalogs (Issue 3):** Database migration `V18__Add_Course_Allowed_Platforms.sql` adds `allowed_platforms` to courses. The API filters courses based on the client's `X-App-Platform` header and `platform` query parameter (`zarinpal`, `bazaar`, `myket`, `googleplay`, `ios`), ensuring each distribution build only displays authorized courses while honoring prior purchases.
+*   **OTP Security & Admin Access Control (Issue 4):** Development OTP bypasses (such as static `12345`) are completely purged from `AuthController.cs`. Admin access is strictly guarded by `ADMIN_ALLOWED_MOBILE_NUMBERS` environment whitelist. Non-whitelisted attempts return `UNAUTHORIZED_ADMIN_MOBILE` with localized feedback in the Admin Panel.
+*   **AI Tutor Assistant & Preference Toggle (Issue 5):** Flashcard study includes an interactive AI assistant modal providing mnemonic tips, vocabulary breakdowns, and contextual learning explanations. Users can toggle the AI Tutor on/off in App Settings (`user_enable_ai_tutor`).
+*   **Direct In-App Checkout (Issue 6):** In Direct/Premium builds, tapping purchase initiates direct ZarinPal gateway checkout without prompting users with unnecessary multi-store selection bottom sheets.
+*   **Card Shuffling During Study (Issue 7):** Students can toggle randomized presentation order during flashcard review sessions with the shuffle action button. Each card's permanent identity and Leitner card number (`cardNumber`) remain strictly intact.
+
+---
+
+### 5. Automated Testing & Verification
+
+To verify the integrity of all platform components:
+
+#### Backend API Tests (.NET 8):
+```powershell
+dotnet test backend/LeitnerPlatform.Tests
+```
+*Executes all 54 unit and integration tests covering Authentication, OTP validation, Admin Whitelist, Platform Course Filtering, and Tamper-Proof Purchases.*
+
+#### Mobile App Unit & BLoC Tests (Flutter):
+```powershell
+cd mobile-app
+flutter test test/flashcard_bloc_test.dart test/flavor_test.dart
+```
+*Validates flavor configuration, `X-App-Platform` injection, mock payment rejection, and flashcard shuffling logic.*
+
+#### Admin Panel Build & Type-Check:
+```powershell
+cd admin-panel
+npm run build
+```
+*Validates TypeScript types, React components, Vite bundling, and multi-language JSON schemas.*

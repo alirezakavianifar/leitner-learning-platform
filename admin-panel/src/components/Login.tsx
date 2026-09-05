@@ -11,6 +11,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState<'REQUEST' | 'VERIFY'>('REQUEST');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
   
   // CAPTCHA State
@@ -53,6 +55,10 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username.trim() || !password.trim()) {
+      setError(t('login.error_credentials_req'));
+      return;
+    }
     if (!mobileNumber.trim()) {
       setError(t('login.error_mobile_req'));
       return;
@@ -66,13 +72,17 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       setLoading(true);
       setError('');
       
-      const res = await api.auth.requestOtp(mobileNumber, captchaId, captchaAnswer);
+      const res = await api.auth.requestOtp(mobileNumber, captchaId, captchaAnswer, username, password);
       if (res.success) {
         setStep('VERIFY');
         setTimer(res.expires_in_seconds || 120);
       }
     } catch (err: any) {
-      setError(err.message || t('login.error_failed'));
+      if (err?.error_code === 'UNAUTHORIZED_ADMIN_MOBILE' || err?.message?.includes('UNAUTHORIZED_ADMIN_MOBILE') || err?.message?.includes('authorized for administrator')) {
+        setError(t('login.error_unauthorized_mobile', 'این شماره موبایل دسترسی ورود به پنل مدیریت را ندارد.'));
+      } else {
+        setError(err.message || t('login.error_failed'));
+      }
       fetchCaptcha(); // Reload CAPTCHA on failure
     } finally {
       setLoading(false);
@@ -90,7 +100,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       setLoading(true);
       setError('');
       
-      const res = await api.auth.verifyOtp(mobileNumber, otpCode);
+      const res = await api.auth.verifyOtp(mobileNumber, otpCode, username, password);
       if (res.success) {
         if (res.role !== 'Admin') {
           setError(t('login.error_denied'));
@@ -103,7 +113,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         let name = 'Administrator';
         try {
           const payload = JSON.parse(atob(res.token.split('.')[1]));
-          name = payload.unique_name || payload.sub || 'Admin';
+          name = payload.unique_name || payload.sub || username || 'Admin';
         } catch {
           // ignore
         }
@@ -112,7 +122,11 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         onLoginSuccess(res.token, name);
       }
     } catch (err: any) {
-      setError(err.message || t('login.error_failed'));
+      if (err?.error_code === 'UNAUTHORIZED_ADMIN_MOBILE' || err?.message?.includes('UNAUTHORIZED_ADMIN_MOBILE') || err?.message?.includes('authorized for administrator')) {
+        setError(t('login.error_unauthorized_mobile', 'این شماره موبایل دسترسی ورود به پنل مدیریت را ندارد.'));
+      } else {
+        setError(err.message || t('login.error_failed'));
+      }
     } finally {
       setLoading(false);
     }
@@ -140,6 +154,30 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
         {step === 'REQUEST' ? (
           <form onSubmit={handleRequestOtp}>
+            <div className="form-group">
+              <label>{t('login.username_label')}</label>
+              <input
+                type="text"
+                placeholder={t('login.username_placeholder')}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>{t('login.password_label')}</label>
+              <input
+                type="password"
+                placeholder={t('login.password_placeholder')}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+
             <div className="form-group">
               <label>{t('login.mobile_label')}</label>
               <input

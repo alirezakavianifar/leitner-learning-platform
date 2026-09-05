@@ -12,6 +12,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
     on<FlipFlashcard>(_onFlipFlashcard);
     on<SubmitReview>(_onSubmitReview);
     on<ToggleFavorite>(_onToggleFavorite);
+    on<ToggleShuffleCards>(_onToggleShuffle);
     on<JumpToCardNumber>(_onJumpToCardNumber);
     on<SubmitReport>(_onSubmitReport);
     on<NextCard>(_onNextCard);
@@ -221,6 +222,52 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         emit(currentState.copyWith(isFavorited: isFav));
       } catch (e) {
         emit(currentState.copyWith(error: 'Failed to update favorites: ${e.toString()}'));
+      }
+    }
+  }
+
+  void _onToggleShuffle(
+    ToggleShuffleCards event,
+    Emitter<FlashcardState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is FlashcardQueueLoaded) {
+      if (currentState.queue.isEmpty) return;
+
+      final currentCard = currentState.currentCard;
+
+      if (!currentState.isShuffled) {
+        // Save original sequence and shuffle
+        final original = List<Flashcard>.from(currentState.originalQueue ?? currentState.queue);
+        final shuffled = List<Flashcard>.from(currentState.queue)..shuffle();
+
+        int newIndex = 0;
+        if (currentCard != null) {
+          final idx = shuffled.indexWhere((c) => c.cardNumber == currentCard.cardNumber);
+          if (idx != -1) newIndex = idx;
+        }
+
+        emit(currentState.copyWith(
+          queue: shuffled,
+          currentIndex: newIndex,
+          isShuffled: true,
+          originalQueue: original,
+        ));
+      } else {
+        // Restore original sequence
+        final original = List<Flashcard>.from(currentState.originalQueue ?? currentState.queue);
+        int newIndex = 0;
+        if (currentCard != null) {
+          final idx = original.indexWhere((c) => c.cardNumber == currentCard.cardNumber);
+          if (idx != -1) newIndex = idx;
+        }
+
+        emit(currentState.copyWith(
+          queue: original,
+          currentIndex: newIndex,
+          isShuffled: false,
+          originalQueue: null,
+        ));
       }
     }
   }

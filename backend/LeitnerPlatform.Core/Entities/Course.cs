@@ -28,5 +28,9 @@ namespace LeitnerPlatform.Core.Entities
         // Set by an admin when re-uploading a package that fixes a known issue,
         // so clients can prompt more assertively than a routine content update.
         public bool IsCriticalUpdate { get; set; }
+
+        // Comma-separated list of target distribution platforms/flavors
+        // (zarinpal, bazaar, myket, googleplay, ios)
+        public string AllowedPlatforms { get; set; } = "zarinpal,bazaar,myket,googleplay,ios";
     }
 }

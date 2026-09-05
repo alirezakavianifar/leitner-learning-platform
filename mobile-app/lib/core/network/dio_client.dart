@@ -13,6 +13,7 @@ class DioClient {
   /// Called when the server returns 401 Unauthorized.
   /// Use this to clear credentials and redirect the user to the login screen.
   final VoidCallback? onUnauthorized;
+  final String? flavor;
 
   bool _isFailoverInProgress = false;
   bool _isRefreshingToken = false;
@@ -23,6 +24,7 @@ class DioClient {
     required this.storageService,
     required String baseUrl,
     this.onUnauthorized,
+    this.flavor,
   }) {
     dio.options.baseUrl = normalizeApiBaseUrl(baseUrl);
     dio.options.connectTimeout = const Duration(seconds: 10);
@@ -30,6 +32,7 @@ class DioClient {
     dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      if (flavor != null && flavor!.isNotEmpty) 'X-App-Platform': flavor,
     };
 
     dio.interceptors.add(CorrelationInterceptor());
@@ -51,6 +54,9 @@ class DioClient {
           final token = await storageService.readSecure('jwt_token');
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
+          }
+          if (flavor != null && flavor!.isNotEmpty) {
+            options.headers['X-App-Platform'] = flavor;
           }
           return handler.next(options);
         },

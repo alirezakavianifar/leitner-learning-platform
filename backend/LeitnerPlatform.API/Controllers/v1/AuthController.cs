@@ -87,7 +87,25 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return BadRequest(new { success = false, error_code = "INVALID_CAPTCHA", message = "The CAPTCHA verification failed." });
             }
 
-            // Generate 5-digit OTP code (bypass code 12345 is allowed)
+            // If admin login requested, validate credentials and owner mobile whitelist
+            if (input.IsAdminLogin)
+            {
+                if (!IsAllowedAdminMobile(cleanMobile))
+                {
+                    return Unauthorized(new { success = false, error_code = "UNAUTHORIZED_ADMIN_MOBILE", message = "This mobile number is not authorized for administrator access." });
+                }
+
+                var adminUser = _configuration["ADMIN_USERNAME"] ?? _configuration["AdminSecurity:AdminUsername"] ?? "admin";
+                var adminPass = _configuration["ADMIN_PASSWORD"] ?? _configuration["AdminSecurity:AdminPassword"] ?? "AdminSecurePassword2026!";
+
+                if (string.IsNullOrWhiteSpace(input.Username) || string.IsNullOrWhiteSpace(input.Password) ||
+                    input.Username != adminUser || input.Password != adminPass)
+                {
+                    return Unauthorized(new { success = false, error_code = "INVALID_ADMIN_CREDENTIALS", message = "Invalid administrator username or password." });
+                }
+            }
+
+            // Generate 5-digit OTP code (Must be verified exclusively via SMS)
             var random = new Random();
             var otpCode = random.Next(10000, 99999).ToString();
 
@@ -153,35 +171,47 @@ namespace LeitnerPlatform.API.Controllers.v1
                 expectedOtp = GetOtpFromMemory(cleanMobile);
             }
 
-            // OTP Bypass rule for testing and integration
-            bool isBypass = input.OtpCode == "12345";
+            if (input.IsAdminLogin)
+            {
+                if (!IsAllowedAdminMobile(cleanMobile))
+                {
+                    return Unauthorized(new { success = false, error_code = "UNAUTHORIZED_ADMIN_MOBILE", message = "This mobile number is not authorized for administrator access." });
+                }
 
-            if (expectedOtp != input.OtpCode && !isBypass)
+                var adminUser = _configuration["ADMIN_USERNAME"] ?? _configuration["AdminSecurity:AdminUsername"] ?? "admin";
+                var adminPass = _configuration["ADMIN_PASSWORD"] ?? _configuration["AdminSecurity:AdminPassword"] ?? "AdminSecurePassword2026!";
+
+                if (string.IsNullOrWhiteSpace(input.Username) || string.IsNullOrWhiteSpace(input.Password) ||
+                    input.Username != adminUser || input.Password != adminPass)
+                {
+                    return Unauthorized(new { success = false, error_code = "INVALID_ADMIN_CREDENTIALS", message = "Invalid administrator username or password." });
+                }
+            }
+
+            if (expectedOtp != input.OtpCode)
             {
                 return Unauthorized(new { success = false, error_code = "INVALID_OTP", message = "The verification code is incorrect or expired." });
             }
 
             // Clear verified OTP
-            if (!isBypass)
+            if (_redisConnection != null && _redisConnection.IsConnected)
             {
-                if (_redisConnection != null && _redisConnection.IsConnected)
+                try
                 {
-                    try
-                    {
-                        var db = _redisConnection.GetDatabase();
-                        await db.KeyDeleteAsync($"otp:{cleanMobile}");
-                    }
-                    catch { }
+                    var db = _redisConnection.GetDatabase();
+                    await db.KeyDeleteAsync($"otp:{cleanMobile}");
                 }
-                else
-                {
-                    _memoryCache.Remove($"otp:{cleanMobile}");
-                }
+                catch { }
+            }
+            else
+            {
+                _memoryCache.Remove($"otp:{cleanMobile}");
             }
 
             // Get or create user
             var user = await _userRepository.GetByMobileNumberAsync(cleanMobile);
             bool isNewUser = user == null;
+            bool isAllowedAdmin = IsAllowedAdminMobile(cleanMobile);
 
             if (isNewUser)
             {
@@ -189,7 +219,10 @@ namespace LeitnerPlatform.API.Controllers.v1
                 {
                     Id = Guid.NewGuid(),
                     MobileNumber = cleanMobile,
-                    Username = $"User_{Guid.NewGuid().ToString("N").Substring(0, 8)}",
+                    Username = input.IsAdminLogin && !string.IsNullOrWhiteSpace(input.Username) 
+                        ? input.Username 
+                        : $"User_{Guid.NewGuid().ToString("N").Substring(0, 8)}",
+                    IsAdmin = input.IsAdminLogin && isAllowedAdmin,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -198,6 +231,19 @@ namespace LeitnerPlatform.API.Controllers.v1
 
                 // Publish Event to event bus (runs immediate off-server backup replication asynchronously)
                 await _eventBus.PublishAsync(new UserRegisteredEvent(user));
+            }
+            else if (input.IsAdminLogin && isAllowedAdmin && user != null && !user.IsAdmin)
+            {
+                user.IsAdmin = true;
+                await _userRepository.UpdateAsync(user);
+                await _userRepository.SaveChangesAsync();
+            }
+
+            bool isEffectiveAdmin = user!.IsAdmin && isAllowedAdmin;
+
+            if (input.IsAdminLogin && !isEffectiveAdmin)
+            {
+                return Unauthorized(new { success = false, error_code = "FORBIDDEN", message = "Administrator privileges required." });
             }
 
             // Fetch custom token lifetimes
@@ -255,7 +301,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 token = token,
                 refresh_token = refreshToken,
                 user_status = userStatus,
-                role = user!.IsAdmin ? "Admin" : "Student"
+                role = isEffectiveAdmin ? "Admin" : "Student"
             });
         }
 
@@ -477,18 +523,44 @@ namespace LeitnerPlatform.API.Controllers.v1
             return code;
         }
 
+        private bool IsAllowedAdminMobile(string mobile)
+        {
+            var allowedList = _configuration["ADMIN_ALLOWED_MOBILE_NUMBERS"] 
+                ?? _configuration["AdminSecurity:AllowedMobileNumbers"] 
+                ?? "+989120000000,09120000000,09121234567,+989121234567";
+
+            if (string.IsNullOrWhiteSpace(allowedList))
+            {
+                return false;
+            }
+
+            var cleanInput = NormalizeMobileNumber(mobile);
+            var numbers = allowedList.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var num in numbers)
+            {
+                if (NormalizeMobileNumber(num) == cleanInput)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private string GenerateJwtToken(User user, TimeSpan? validity = null)
         {
             var secretKey = _configuration["JWT_SECRET_KEY"] ?? "jwt_secret_lts_2026_super_secure_key_default";
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            bool isEffectiveAdmin = user.IsAdmin && IsAllowedAdminMobile(user.MobileNumber);
+
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim("mobile_number", user.MobileNumber),
-                new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "Student")
+                new Claim(ClaimTypes.Role, isEffectiveAdmin ? "Admin" : "Student")
             };
 
             var tokenExpiry = validity ?? TimeSpan.FromDays(1);
@@ -507,12 +579,18 @@ namespace LeitnerPlatform.API.Controllers.v1
         public string MobileNumber { get; set; } = string.Empty;
         public string CaptchaId { get; set; } = string.Empty;
         public string CaptchaAnswer { get; set; } = string.Empty;
+        public bool IsAdminLogin { get; set; } = false;
+        public string? Username { get; set; }
+        public string? Password { get; set; }
     }
 
     public class OtpVerifyInput
     {
         public string MobileNumber { get; set; } = string.Empty;
         public string OtpCode { get; set; } = string.Empty;
+        public bool IsAdminLogin { get; set; } = false;
+        public string? Username { get; set; }
+        public string? Password { get; set; }
     }
 
     public class RefreshTokenInput
