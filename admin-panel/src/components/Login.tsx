@@ -210,9 +210,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 disabled={loading}
                 autoFocus
               />
-              <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                {t('login.bypass_hint', 'شماره تستی: 09120000000 با کد 12345')}
-              </div>
             </div>
 
             <button type="submit" className="btn" style={{ width: '100%', marginTop: '12px' }} disabled={loading}>
