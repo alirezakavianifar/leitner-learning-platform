@@ -79,6 +79,21 @@ jobs:
           echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa_deploy
           chmod 600 ~/.ssh/id_rsa_deploy
 
+          # Global SSH configuration for resilient non-blocking CI/CD connections
+          cat << 'EOF' > ~/.ssh/config
+          Host *
+            IdentityFile ~/.ssh/id_rsa_deploy
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            IPQoS none
+            ServerAliveInterval 10
+            ServerAliveCountMax 6
+            TCPKeepAlive yes
+            ConnectTimeout 30
+            Compression yes
+          EOF
+          chmod 600 ~/.ssh/config
+
           # Add remote server host keys
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 644 ~/.ssh/known_hosts
@@ -113,13 +128,11 @@ jobs:
           SERVER_USER: ${{ inputs.server_user || 'root' }}
         run: |
           echo ">> Uploading $ARCHIVE_NAME to $SERVER_USER@$SERVER_IP:/tmp/..."
-          scp -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-            "$ARCHIVE_NAME" "$SERVER_USER@$SERVER_IP:/tmp/$ARCHIVE_NAME"
+          scp "$ARCHIVE_NAME" "$SERVER_USER@$SERVER_IP:/tmp/$ARCHIVE_NAME"
 
           echo ">> Extracting on remote server into /opt/leitner-platform..."
-          ssh -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-            "$SERVER_USER@$SERVER_IP" \
-            "mkdir -p /opt/leitner-platform && tar -xzf /tmp/$ARCHIVE_NAME -C /opt/leitner-platform && rm -f /tmp/$ARCHIVE_NAME"
+          ssh -n -T "$SERVER_USER@$SERVER_IP" \
+            "mkdir -p /opt/leitner-platform && tar -xzf /tmp/$ARCHIVE_NAME -C /opt/leitner-platform && rm -f /tmp/$ARCHIVE_NAME && echo '>> Extraction completed successfully.'"
 
       - name: Sync Course Package Assets (Incremental)
         env:
@@ -128,15 +141,19 @@ jobs:
         run: |
           COURSES_DIR="backend/LeitnerPlatform.API/wwwroot/courses"
           if [ -d "$COURSES_DIR" ]; then
-            ssh -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-              "$SERVER_USER@$SERVER_IP" "mkdir -p /opt/leitner-platform/$COURSES_DIR"
+            ssh -n -T "$SERVER_USER@$SERVER_IP" "mkdir -p /opt/leitner-platform/$COURSES_DIR"
+            REMOTE_LS=$(ssh -n -T "$SERVER_USER@$SERVER_IP" "ls -l /opt/leitner-platform/$COURSES_DIR 2>/dev/null || true")
 
             for zip_file in "$COURSES_DIR"/*.zip; do
               [ -e "$zip_file" ] || continue
               file_name=$(basename "$zip_file")
-              echo "Checking $file_name..."
-              scp -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-                "$zip_file" "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/$COURSES_DIR/$file_name"
+              file_size=$(stat -c%s "$zip_file" 2>/dev/null || stat -f%z "$zip_file" 2>/dev/null || echo 0)
+              if echo "$REMOTE_LS" | grep -q "$file_name" && echo "$REMOTE_LS" | grep -q "$file_size"; then
+                echo "  [OK] Course package up to date: $file_name ($file_size bytes)"
+              else
+                echo "  Syncing course package: $file_name ($file_size bytes)..."
+                scp "$zip_file" "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/$COURSES_DIR/$file_name"
+              fi
             done
           fi
 
@@ -146,8 +163,7 @@ jobs:
           SERVER_USER: ${{ inputs.server_user || 'root' }}
         run: |
           echo ">> Building and launching Docker Compose stack..."
-          ssh -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=60 \
-            "$SERVER_USER@$SERVER_IP" \
+          ssh -n -T "$SERVER_USER@$SERVER_IP" \
             "cd /opt/leitner-platform && docker compose -f deployment/docker-compose.yml --env-file .env up -d --build"
 
       - name: Verify Container State & Health
@@ -156,14 +172,11 @@ jobs:
           SERVER_USER: ${{ inputs.server_user || 'root' }}
         run: |
           echo ">> Running Containers:"
-          ssh -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-            "$SERVER_USER@$SERVER_IP" \
+          ssh -n -T "$SERVER_USER@$SERVER_IP" \
             "cd /opt/leitner-platform && docker compose -f deployment/docker-compose.yml ps"
 
-          echo ">> Testing Health Endpoint..."
+          echo ">> Testing Courses Endpoint..."
           sleep 5
-          ssh -i ~/.ssh/id_rsa_deploy -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-            "$SERVER_USER@$SERVER_IP" \
-            "curl -k -s -o /dev/null -w '%{http_code}' https://api.rightlearn.ir/health || curl -s -o /dev/null -w '%{http_code}' http://localhost:5217/health || true"
-          echo ""
+          STATUS_CODE=$(ssh -n -T "$SERVER_USER@$SERVER_IP" "curl -k -s -o /dev/null -w '%{http_code}' https://api.rightlearn.ir/api/v1/courses || echo '000'")
+          echo "Courses endpoint HTTP status: $STATUS_CODE"
           echo ">> Deployment completed successfully! 🎉"
