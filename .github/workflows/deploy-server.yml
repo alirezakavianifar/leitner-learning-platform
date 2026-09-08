@@ -79,24 +79,44 @@ jobs:
           echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa_deploy
           chmod 600 ~/.ssh/id_rsa_deploy
 
-          # Global SSH configuration for resilient non-blocking CI/CD connections
+          # Global SSH configuration with ControlMaster multiplexing for resilient CI/CD connections
           cat << 'EOF' > ~/.ssh/config
           Host *
             IdentityFile ~/.ssh/id_rsa_deploy
             StrictHostKeyChecking no
             UserKnownHostsFile /dev/null
             IPQoS none
-            ServerAliveInterval 10
-            ServerAliveCountMax 6
+            ServerAliveInterval 15
+            ServerAliveCountMax 10
             TCPKeepAlive yes
-            ConnectTimeout 30
+            ConnectTimeout 60
             Compression yes
+            ControlMaster auto
+            ControlPath ~/.ssh/cm-%r@%h:%p
+            ControlPersist 15m
           EOF
           chmod 600 ~/.ssh/config
 
           # Add remote server host keys
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 644 ~/.ssh/known_hosts
+
+          # Establish and verify persistent SSH master connection with retry
+          echo ">> Verifying SSH connection to $SERVER_USER@$SERVER_IP..."
+          connected=false
+          for i in 1 2 3 4; do
+            if ssh -n -T "$SERVER_USER@$SERVER_IP" "echo '>> Connection established.'" ; then
+              connected=true
+              break
+            fi
+            echo "::warning::Initial SSH connection attempt $i/4 failed. Retrying in 5s..."
+            sleep 5
+          done
+
+          if [ "$connected" != "true" ]; then
+            echo "::error::Failed to connect to server after 4 attempts."
+            exit 1
+          fi
 
       - name: Configure SMS Gateway in .env
         run: |
@@ -128,11 +148,19 @@ jobs:
           SERVER_USER: ${{ inputs.server_user || 'root' }}
         run: |
           echo ">> Uploading $ARCHIVE_NAME to $SERVER_USER@$SERVER_IP:/tmp/..."
-          scp "$ARCHIVE_NAME" "$SERVER_USER@$SERVER_IP:/tmp/$ARCHIVE_NAME"
+          for i in 1 2 3 4; do
+            scp "$ARCHIVE_NAME" "$SERVER_USER@$SERVER_IP:/tmp/$ARCHIVE_NAME" && break
+            echo "::warning::SCP upload attempt $i/4 failed. Retrying in 5s..."
+            sleep 5
+          done
 
           echo ">> Extracting on remote server into /opt/leitner-platform..."
-          ssh -n -T "$SERVER_USER@$SERVER_IP" \
-            "mkdir -p /opt/leitner-platform && tar -xzf /tmp/$ARCHIVE_NAME -C /opt/leitner-platform && rm -f /tmp/$ARCHIVE_NAME && echo '>> Extraction completed successfully.'"
+          for i in 1 2 3 4; do
+            ssh -n -T "$SERVER_USER@$SERVER_IP" \
+              "mkdir -p /opt/leitner-platform && tar -xzf /tmp/$ARCHIVE_NAME -C /opt/leitner-platform && rm -f /tmp/$ARCHIVE_NAME && echo '>> Extraction completed successfully.'" && break
+            echo "::warning::Remote extraction attempt $i/4 failed. Retrying in 5s..."
+            sleep 5
+          done
 
       - name: Sync Course Package Assets (Incremental)
         env:
@@ -152,7 +180,11 @@ jobs:
                 echo "  [OK] Course package up to date: $file_name ($file_size bytes)"
               else
                 echo "  Syncing course package: $file_name ($file_size bytes)..."
-                scp "$zip_file" "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/$COURSES_DIR/$file_name"
+                for i in 1 2 3 4; do
+                  scp "$zip_file" "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/$COURSES_DIR/$file_name" && break
+                  echo "::warning::SCP course upload attempt $i/4 failed. Retrying in 5s..."
+                  sleep 5
+                done
               fi
             done
           fi
@@ -163,8 +195,12 @@ jobs:
           SERVER_USER: ${{ inputs.server_user || 'root' }}
         run: |
           echo ">> Building and launching Docker Compose stack..."
-          ssh -n -T "$SERVER_USER@$SERVER_IP" \
-            "cd /opt/leitner-platform && docker compose -f deployment/docker-compose.yml --env-file .env up -d --build"
+          for i in 1 2 3 4; do
+            ssh -n -T "$SERVER_USER@$SERVER_IP" \
+              "cd /opt/leitner-platform && docker compose -f deployment/docker-compose.yml --env-file .env up -d --build" && break
+            echo "::warning::Docker compose attempt $i/4 failed. Retrying in 5s..."
+            sleep 5
+          done
 
       - name: Verify Container State & Health
         env:
@@ -179,4 +215,7 @@ jobs:
           sleep 5
           STATUS_CODE=$(ssh -n -T "$SERVER_USER@$SERVER_IP" "curl -k -s -o /dev/null -w '%{http_code}' https://api.rightlearn.ir/api/v1/courses || echo '000'")
           echo "Courses endpoint HTTP status: $STATUS_CODE"
+
+          # Close SSH master connection socket
+          ssh -O exit "$SERVER_USER@$SERVER_IP" 2>/dev/null || true
           echo ">> Deployment completed successfully! 🎉"
