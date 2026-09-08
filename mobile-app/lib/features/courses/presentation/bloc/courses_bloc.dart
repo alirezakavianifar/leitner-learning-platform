@@ -75,10 +75,23 @@ class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
     ));
 
     int lastReportedPercent = -1;
+    String currentStage = 'downloading';
+    double lastProgress = 0.0;
 
     final result = await downloadCourseUseCase(
       DownloadCourseParams(
         courseId: event.courseId,
+        onStage: (stage) {
+          currentStage = stage;
+          emit(CourseDownloading(
+            courseId: event.courseId,
+            currentCourses: List.from(currentCourses),
+            currentPackages: List.from(currentPackages),
+            isOffline: isOffline,
+            progress: (stage == 'verifying' || stage == 'extracting' || stage == 'completed') ? 1.0 : lastProgress,
+            stage: stage,
+          ));
+        },
         onProgress: (received, total) {
           double progress;
           if (total > 0) {
@@ -90,6 +103,7 @@ class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
             progress = 0.0;
           }
 
+          lastProgress = progress;
           final int percent = (progress * 100).clamp(0, 100).toInt();
           if (percent != lastReportedPercent) {
             lastReportedPercent = percent;
@@ -99,6 +113,7 @@ class CoursesBloc extends Bloc<CoursesEvent, CoursesState> {
               currentPackages: List.from(currentPackages),
               isOffline: isOffline,
               progress: progress,
+              stage: currentStage,
             ));
           }
         },

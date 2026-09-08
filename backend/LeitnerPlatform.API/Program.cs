@@ -24,6 +24,14 @@ using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Kestrel limits to support uninterrupted large course package downloads over mobile networks
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MinResponseDataRate = null;
+    serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(5);
+    serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(2);
+});
+
 // Configure Serilog
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)

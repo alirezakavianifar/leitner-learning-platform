@@ -115,12 +115,14 @@ void main() {
       expect(shuffled.currentCard?.cardNumber, 5);
       expect(shuffled.currentIndex, shuffled.queue.indexWhere((c) => c.cardNumber == 5));
 
-      // 4. Navigate to next card in shuffled queue
-      final expectedNextNumber = shuffled.queue[(shuffled.currentIndex + 1) % 10].cardNumber;
-      bloc.add(const NextCard());
-      await bloc.stream.firstWhere((s) => s is FlashcardQueueLoaded && s.currentIndex == (shuffled.currentIndex + 1) % 10);
+      // 4. Navigate to next card in shuffled queue (or prev if at boundary)
+      final canGoNext = shuffled.currentIndex < shuffled.queue.length - 1;
+      final targetIndex = canGoNext ? shuffled.currentIndex + 1 : shuffled.currentIndex - 1;
+      final expectedCardNumber = shuffled.queue[targetIndex].cardNumber;
+      bloc.add(canGoNext ? const NextCard() : const PrevCard());
+      await bloc.stream.firstWhere((s) => s is FlashcardQueueLoaded && s.currentIndex == targetIndex);
       final movedShuffled = bloc.state as FlashcardQueueLoaded;
-      expect(movedShuffled.currentCard?.cardNumber, expectedNextNumber);
+      expect(movedShuffled.currentCard?.cardNumber, expectedCardNumber);
 
       // 5. Toggle Shuffle OFF (restore original sequence)
       bloc.add(ToggleShuffleCards());
@@ -130,8 +132,8 @@ void main() {
       // Queue must match exact original sequential order 1..10
       expect(restored.queue.map((c) => c.cardNumber).toList(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
       // Active card must still match the last card viewed
-      expect(restored.currentCard?.cardNumber, expectedNextNumber);
-      expect(restored.currentIndex, expectedNextNumber - 1);
+      expect(restored.currentCard?.cardNumber, expectedCardNumber);
+      expect(restored.currentIndex, expectedCardNumber - 1);
     });
 
     testWidgets('2. UI Shuffle Button toggles color, tooltip, and SnackBar accurately', (tester) async {

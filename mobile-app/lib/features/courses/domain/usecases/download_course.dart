@@ -13,6 +13,7 @@ class DownloadCourse implements UseCase<Either<Failure, void>, DownloadCoursePar
     return await repository.downloadCourse(
       params.courseId,
       onProgress: params.onProgress,
+      onStage: params.onStage,
     );
   }
 }
@@ -20,13 +21,15 @@ class DownloadCourse implements UseCase<Either<Failure, void>, DownloadCoursePar
 class DownloadCourseParams extends Equatable {
   final String courseId;
   final void Function(int received, int total)? onProgress;
+  final void Function(String stage)? onStage;
 
   const DownloadCourseParams({
     required this.courseId,
     this.onProgress,
+    this.onStage,
   });
 
   @override
-  List<Object?> get props => [courseId, onProgress];
+  List<Object?> get props => [courseId, onProgress, onStage];
 }
 

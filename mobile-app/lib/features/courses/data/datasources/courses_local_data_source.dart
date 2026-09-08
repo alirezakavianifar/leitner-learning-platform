@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:archive/archive.dart';
+import 'package:archive/archive_io.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -210,19 +211,25 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
     }
     tempDir.createSync(recursive: true);
 
-    // 1. Unpack ZIP archive to temporary directory
+    // 1. Unpack ZIP archive to temporary directory using streaming extraction
     final zipFile = File(zipFilePath);
-    final bytes = zipFile.readAsBytesSync();
-    final archive = ZipDecoder().decodeBytes(bytes);
-
-    for (final file in archive) {
-      final normalizedPath = file.name.replaceAll('\\', '/');
-      if (file.isFile) {
-        final data = file.content as List<int>;
-        final outFile = File(p.join(tempExtractDir, normalizedPath));
-        outFile.createSync(recursive: true);
-        outFile.writeAsBytesSync(data);
+    try {
+      await extractFileToDisk(zipFilePath, tempExtractDir);
+    } catch (_) {
+      // Fallback: decode via InputFileStream and stream to disk
+      final inputStream = InputFileStream(zipFilePath);
+      final archive = ZipDecoder().decodeBuffer(inputStream);
+      for (final file in archive) {
+        final normalizedPath = file.name.replaceAll('\\', '/');
+        if (file.isFile) {
+          final outFile = File(p.join(tempExtractDir, normalizedPath));
+          outFile.createSync(recursive: true);
+          final outputStream = OutputFileStream(outFile.path);
+          file.writeContent(outputStream);
+          await outputStream.close();
+        }
       }
+      await inputStream.close();
     }
 
     // 2. Discover SQLite database file (supports root course.db, nested 504/504.db, *.db)
@@ -344,7 +351,7 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
 
         final normBatch = courseDb.batch();
         for (final c in normalizedCards) {
-          normBatch.insert('cards_temp_norm', c);
+          normBatch.insert('cards_temp_norm', c, conflictAlgorithm: ConflictAlgorithm.replace);
         }
         await normBatch.commit(noResult: true);
 
@@ -378,7 +385,14 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
       'cards',
       columns: ['card_number'],
     );
-    final newCardNumbers = cardRows.map((row) => (row['card_number'] as num).toInt()).toSet();
+    final newCardNumbers = <int>{};
+    for (final row in cardRows) {
+      final rawNum = row['card_number'];
+      final numVal = rawNum is int ? rawNum : int.tryParse(rawNum?.toString() ?? '');
+      if (numVal != null) {
+        newCardNumbers.add(numVal);
+      }
+    }
     await verifiedCourseDb.close();
 
     final localDb = await databaseHelper.localDatabase;
@@ -390,7 +404,14 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
       where: 'course_id = ?',
       whereArgs: [courseId],
     );
-    final existingCardNumbers = progressRows.map((row) => (row['card_number'] as num).toInt()).toSet();
+    final existingCardNumbers = <int>{};
+    for (final row in progressRows) {
+      final rawNum = row['card_number'];
+      final numVal = rawNum is int ? rawNum : int.tryParse(rawNum?.toString() ?? '');
+      if (numVal != null) {
+        existingCardNumbers.add(numVal);
+      }
+    }
 
     // A. Insert defaults for new card numbers added
     final nowIso = DateTime.now().toUtc().toIso8601String();

@@ -163,15 +163,15 @@ class CoursesRepositoryImpl implements CoursesRepository {
   Future<Either<Failure, void>> downloadCourse(
     String courseId, {
     void Function(int received, int total)? onProgress,
+    void Function(String stage)? onStage,
   }) async {
     if (kIsWeb) {
       return Left(ServerFailure('Offline course downloads are available on mobile and desktop apps.'));
     }
-    // Declared outside the try block so cleanup in the catch clauses below
-    // can still reach the partially-downloaded file, if any.
     String? tempZipPath;
     try {
       // 1. Fetch download token and url from backend
+      onStage?.call('downloading');
       final tokenInfo = await remoteDataSource.getDownloadToken(courseId);
       var downloadUrl = tokenInfo['download_url'] as String;
       final expectedChecksum = tokenInfo['checksum'] as String?;
@@ -183,92 +183,134 @@ class CoursesRepositoryImpl implements CoursesRepository {
         downloadUrl = downloadUrl.replaceAll('10.0.2.2', 'localhost');
       }
 
-      // 2. Download package ZIP file to temp directory
+      // 2. Download package ZIP file to temp directory using resumable HTTP Range requests
       final tempDir = await getTemporaryDirectory();
       tempZipPath = p.join(tempDir.path, 'download_$courseId.zip');
+      final tempFile = File(tempZipPath);
 
-      // Always clear any stale partially-downloaded file from prior aborted attempts
-      try {
-        final existingFile = File(tempZipPath);
-        if (existingFile.existsSync()) {
-          existingFile.deleteSync();
-        }
-      } catch (_) {}
-
-      // Retry up to 3 times on transient network drops or socket terminations
-      Response? response;
+      // Retry up to 3 times on transient network drops or socket terminations without wiping existing bytes
       const maxRetries = 3;
+      bool downloadCompleted = false;
+
       for (int attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          response = await dio.download(
+          int existingBytes = tempFile.existsSync() ? tempFile.lengthSync() : 0;
+
+          final headers = <String, dynamic>{
+            'Accept': '*/*',
+            'Accept-Encoding': 'identity',
+          };
+          if (existingBytes > 0) {
+            headers['Range'] = 'bytes=$existingBytes-';
+          }
+
+          final response = await dio.get<ResponseBody>(
             downloadUrl,
-            tempZipPath,
-            onReceiveProgress: onProgress,
             options: Options(
-              headers: {
-                'Accept': '*/*',
-                'Accept-Encoding': 'identity',
-              },
+              responseType: ResponseType.stream,
+              headers: headers,
               receiveTimeout: const Duration(seconds: 180),
             ),
           );
 
-          if (response.statusCode == 200) {
-            final file = File(tempZipPath);
-            final actualLength = file.existsSync() ? file.lengthSync() : 0;
-            final expectedLength = _extractContentLength(response.headers.map);
+          final statusCode = response.statusCode ?? 200;
 
-            // If the server provided Content-Length and file is smaller, stream cut short
-            if (expectedLength != null && actualLength < expectedLength) {
-              if (attempt < maxRetries) {
-                try { file.deleteSync(); } catch (_) {}
-                await Future.delayed(Duration(seconds: attempt * 2));
-                continue;
-              }
-            }
+          // 416 Range Not Satisfiable means existingBytes >= total bytes (already fully downloaded)
+          if (statusCode == 416) {
+            downloadCompleted = true;
             break;
           }
+
+          if (statusCode != 200 && statusCode != 206) {
+            throw DioException(
+              requestOptions: response.requestOptions,
+              response: response,
+              message: 'Server returned HTTP status $statusCode for course package download.',
+            );
+          }
+
+          // 206 Partial Content: server accepted Range and streams from existingBytes.
+          // 200 OK: server does not support Range or sent entire body from byte 0.
+          final bool isResume = statusCode == 206;
+
+          int totalPackageBytes = 0;
+          if (isResume) {
+            final contentRange = response.headers.value('content-range');
+            if (contentRange != null && contentRange.contains('/')) {
+              final totalStr = contentRange.split('/').last.trim();
+              totalPackageBytes = int.tryParse(totalStr) ?? 0;
+            }
+            if (totalPackageBytes == 0) {
+              final chunkLen = _extractContentLength(response.headers.map) ?? 0;
+              totalPackageBytes = existingBytes + chunkLen;
+            }
+          } else {
+            // Server returned 200; restart from byte 0
+            existingBytes = 0;
+            totalPackageBytes = _extractContentLength(response.headers.map) ?? 0;
+            if (tempFile.existsSync()) {
+              try { tempFile.deleteSync(); } catch (_) {}
+            }
+          }
+
+          final sink = tempFile.openWrite(mode: isResume ? FileMode.append : FileMode.write);
+          int receivedThisSession = 0;
+
+          try {
+            await for (final chunk in response.data!.stream) {
+              sink.add(chunk);
+              receivedThisSession += chunk.length;
+              final currentTotal = existingBytes + receivedThisSession;
+              onProgress?.call(currentTotal, totalPackageBytes > 0 ? totalPackageBytes : (currentTotal + 1024));
+            }
+            await sink.flush();
+            await sink.close();
+          } catch (streamErr) {
+            try { await sink.flush(); } catch (_) {}
+            try { await sink.close(); } catch (_) {}
+            rethrow;
+          }
+
+          final finalLength = tempFile.existsSync() ? tempFile.lengthSync() : 0;
+          if (totalPackageBytes > 0 && finalLength < totalPackageBytes) {
+            // Connection was cut short before stream finished; retry will resume from finalLength
+            if (attempt < maxRetries) {
+              await Future.delayed(Duration(seconds: attempt * 2));
+              continue;
+            }
+          }
+
+          downloadCompleted = true;
+          break;
         } catch (e) {
           if (attempt == maxRetries) {
             rethrow;
           }
-          try {
-            final f = File(tempZipPath);
-            if (f.existsSync()) f.deleteSync();
-          } catch (_) {}
           await Future.delayed(Duration(seconds: attempt * 2));
         }
       }
 
-      if (response == null || response.statusCode != 200) {
-        return Left(ServerFailure('Failed to download course archive package.'));
-      }
-
-      // 3. Verify the file actually arrived intact before trusting it.
-      final expectedLength = _extractContentLength(response.headers.map);
-      final actualLength = File(tempZipPath).existsSync() ? File(tempZipPath).lengthSync() : 0;
-      if (actualLength == 0 || (expectedLength != null && actualLength != expectedLength)) {
-        try {
-          File(tempZipPath).deleteSync();
-        } catch (_) {}
+      if (!downloadCompleted || !tempFile.existsSync() || tempFile.lengthSync() == 0) {
         return Left(ServerFailure(
           'The course download was interrupted before it finished. Please check your connection and try again.',
           errorCode: 'INCOMPLETE_DOWNLOAD',
         ));
       }
 
-      // 4. Verify checksum (if provided)
+      // 3. Verify checksum (if provided)
+      onStage?.call('verifying');
       if (expectedChecksum != null && expectedChecksum.trim().isNotEmpty && expectedChecksum.trim().toLowerCase() != 'null') {
         final isVerified = await _verifyChecksum(tempZipPath, expectedChecksum);
         if (!isVerified) {
           try {
-            File(tempZipPath).deleteSync();
+            tempFile.deleteSync();
           } catch (_) {}
           return Left(ServerFailure('Course download verification failed. Checksum mismatch.', errorCode: 'CHECKSUM_MISMATCH'));
         }
       }
 
-      // 5. Save and extract locally (merges progress tables automatically)
+      // 4. Save and extract locally (merges progress tables automatically)
+      onStage?.call('extracting');
       try {
         await localDataSource.saveDownloadedCourse(
           courseId: courseId,
@@ -281,18 +323,20 @@ class CoursesRepositoryImpl implements CoursesRepository {
       } catch (e) {
         // The package failed to extract/process. Clean up so a retry starts from a clean slate.
         try {
-          File(tempZipPath).deleteSync();
+          tempFile.deleteSync();
         } catch (_) {}
         return Left(CacheFailure(
           'Failed to process course package: ${e.toString().replaceFirst("Exception: ", "")}',
         ));
       }
 
+      onStage?.call('completed');
       return const Right(null);
     } on DioException catch (dioErr) {
       if (tempZipPath != null) {
         try {
-          File(tempZipPath).deleteSync();
+          final f = File(tempZipPath);
+          if (f.existsSync()) f.deleteSync();
         } catch (_) {}
       }
       final message = dioErr.response?.data?['message'] ?? dioErr.message;
@@ -328,7 +372,7 @@ class CoursesRepositoryImpl implements CoursesRepository {
     if (cleanExpected.isEmpty || cleanExpected == 'null') return true;
 
     try {
-      final digest = await file.openRead().transform(sha256).first;
+      final digest = await sha256.bind(file.openRead()).first;
       final hashHex = digest.toString().toLowerCase();
       return hashHex == cleanExpected;
     } catch (_) {

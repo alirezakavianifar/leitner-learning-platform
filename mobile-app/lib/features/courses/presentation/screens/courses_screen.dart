@@ -420,6 +420,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                 bool isOffline = false;
                 String? downloadingCourseId;
                 double downloadProgress = 0.0;
+                String downloadStage = 'downloading';
 
                 if (state is CoursesLoaded) {
                   courses = state.courses;
@@ -431,6 +432,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                   isOffline = state.isOffline;
                   downloadingCourseId = state.courseId;
                   downloadProgress = state.progress;
+                  downloadStage = state.stage;
                 } else if (state is CoursesError && courses.isEmpty) {
                   return Center(
                     child: Padding(
@@ -577,6 +579,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                                   course,
                                   isDownloading,
                                   downloadProgress,
+                                  downloadStage,
                                   parentPackage,
                                 );
                               },
@@ -796,6 +799,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     Course course,
     bool isDownloading, [
     double downloadProgress = 0.0,
+    String downloadStage = 'downloading',
     CoursePackage? parentPackage,
   ]) {
     final isDownloadedOwned = (course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased);
@@ -831,11 +835,11 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                 isTodayReview: false,
               );
             } else {
-              _showCourseDetailsModal(course, isDownloading, downloadProgress, parentPackage);
+              _showCourseDetailsModal(course, isDownloading, downloadProgress, downloadStage, parentPackage);
             }
           },
           onLongPress: () {
-            _showCourseDetailsModal(course, isDownloading, downloadProgress, parentPackage);
+            _showCourseDetailsModal(course, isDownloading, downloadProgress, downloadStage, parentPackage);
           },
           child: Padding(
             padding: const EdgeInsets.all(8.0),
@@ -969,7 +973,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                             )
                           else
                             GestureDetector(
-                              onTap: () => _showCourseDetailsModal(course, isDownloading, downloadProgress, parentPackage),
+                              onTap: () => _showCourseDetailsModal(course, isDownloading, downloadProgress, downloadStage, parentPackage),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -985,7 +989,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                                 ],
                               ),
                             ),
-                          _buildCompactActionButton(course, isDownloading, downloadProgress),
+                          _buildCompactActionButton(course, isDownloading, downloadProgress, downloadStage),
                         ],
                       ),
                     ],
@@ -1067,6 +1071,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     Course course,
     bool isDownloading,
     double downloadProgress,
+    String downloadStage,
     CoursePackage? parentPackage,
   ) {
     final loc = AppLocalizations.of(context);
@@ -1217,7 +1222,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                   const SizedBox(height: 16),
                 ],
 
-                _buildModalActionButton(course, isDownloading, downloadProgress, parentPackage, sheetCtx),
+                _buildModalActionButton(course, isDownloading, downloadProgress, downloadStage, parentPackage, sheetCtx),
               ],
             ),
           ),
@@ -1230,11 +1235,57 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     Course course,
     bool isDownloading,
     double downloadProgress,
+    String downloadStage,
     CoursePackage? parentPackage,
     BuildContext sheetCtx,
   ) {
     final loc = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isFarsi = loc.locale.languageCode == 'fa';
+
+    if (isDownloading) {
+      final percent = (downloadProgress * 100).clamp(0, 100).toInt();
+      final String labelText;
+      if (downloadStage == 'verifying') {
+        labelText = isFarsi ? 'در حال بررسی فایل...' : 'Verifying package...';
+      } else if (downloadStage == 'extracting' || downloadStage == 'completed') {
+        labelText = isFarsi ? 'در حال آماده‌سازی و استخراج...' : 'Extracting package...';
+      } else {
+        labelText = '${isFarsi ? 'در حال دریافت' : 'Downloading'} ($percent%)';
+      }
+
+      return Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                value: (downloadStage == 'extracting' || downloadStage == 'verifying') ? null : (downloadProgress > 0 ? downloadProgress : null),
+                color: AppColors.primary,
+                strokeWidth: 2.2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              labelText,
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     if (!isDownloading && !kIsWeb && course.updateAvailable) {
       return ElevatedButton(
@@ -1341,9 +1392,10 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     );
   }
 
-  Widget _buildCompactActionButton(Course course, bool isDownloading, [double downloadProgress = 0.0]) {
+  Widget _buildCompactActionButton(Course course, bool isDownloading, [double downloadProgress = 0.0, String downloadStage = 'downloading']) {
     final loc = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isFarsi = loc.locale.languageCode == 'fa';
 
     if (!isDownloading && !kIsWeb && course.updateAvailable) {
       return SizedBox(
@@ -1413,6 +1465,15 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
 
     if (isDownloading) {
       final percent = (downloadProgress * 100).clamp(0, 100).toInt();
+      final String labelText;
+      if (downloadStage == 'verifying') {
+        labelText = isFarsi ? 'بررسی...' : 'Verifying...';
+      } else if (downloadStage == 'extracting' || downloadStage == 'completed') {
+        labelText = isFarsi ? 'آماده‌سازی...' : 'Extracting...';
+      } else {
+        labelText = '$percent%';
+      }
+
       return Container(
         height: 26,
         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1428,7 +1489,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
               width: 11,
               height: 11,
               child: CircularProgressIndicator(
-                value: downloadProgress > 0 ? downloadProgress : null,
+                value: (downloadStage == 'extracting' || downloadStage == 'verifying') ? null : (downloadProgress > 0 ? downloadProgress : null),
                 color: AppColors.primary,
                 backgroundColor: AppColors.primary.withOpacity(0.2),
                 strokeWidth: 1.8,
@@ -1436,7 +1497,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
             ),
             const SizedBox(width: 5),
             Text(
-              '$percent%',
+              labelText,
               style: TextStyle(
                 color: AppColors.primary,
                 fontSize: 10.5,

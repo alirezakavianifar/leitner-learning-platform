@@ -19,6 +19,7 @@ abstract class CoursesRepository {
   Future<Either<Failure, void>> downloadCourse(
     String courseId, {
     void Function(int received, int total)? onProgress,
+    void Function(String stage)? onStage,
   });
 }
 

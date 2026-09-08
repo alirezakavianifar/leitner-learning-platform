@@ -404,6 +404,7 @@ The platform implements security hardening and feature enhancements based on the
 *   **AI Tutor Assistant & Preference Toggle (Issue 5):** Flashcard study includes an interactive AI assistant modal providing mnemonic tips, vocabulary breakdowns, and contextual learning explanations. Users can toggle the AI Tutor on/off in App Settings (`user_enable_ai_tutor`).
 *   **Direct In-App Checkout (Issue 6):** In Direct/Premium builds, tapping purchase initiates direct ZarinPal gateway checkout without prompting users with unnecessary multi-store selection bottom sheets.
 *   **Card Shuffling During Study (Issue 7):** Students can toggle randomized presentation order during flashcard review sessions with the shuffle action button. Each card's permanent identity and Leitner card number (`cardNumber`) remain strictly intact.
+*   **Resumable Course Downloads & Streaming Extraction:** Course package downloads support HTTP Range requests (`bytes={offset}-`), automatically resuming partial downloads on network interruptions without resetting progress back to 0%. Packages are decompressed via disk-to-disk streaming extraction (`archive_io`), eliminating RAM exhaustion on large audio/image courses. Kestrel `MinResponseDataRate` limits are unconstrained for steady downloads on mobile network connections.
 
 ---
 

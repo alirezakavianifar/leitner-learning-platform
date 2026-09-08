@@ -42,7 +42,8 @@ class CourseDownloading extends CoursesState {
   final List<Course> currentCourses; // Keep the list visible while downloading
   final List<CoursePackage> currentPackages;
   final bool isOffline;
-  final double progress; // 0.0 to 1.0 (or 1.0 when extracting/verifying)
+  final double progress; // 0.0 to 1.0
+  final String stage; // 'downloading', 'verifying', 'extracting', 'completed'
 
   const CourseDownloading({
     required this.courseId,
@@ -50,10 +51,11 @@ class CourseDownloading extends CoursesState {
     this.currentPackages = const [],
     this.isOffline = false,
     this.progress = 0.0,
+    this.stage = 'downloading',
   });
 
   @override
-  List<Object?> get props => [courseId, currentCourses, currentPackages, isOffline, progress];
+  List<Object?> get props => [courseId, currentCourses, currentPackages, isOffline, progress, stage];
 }
 
 
