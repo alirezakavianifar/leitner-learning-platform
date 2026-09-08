@@ -37,6 +37,9 @@ jobs:
     name: Deploy to Production Server
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      SERVER_IP: ${{ inputs.server_ip || '45.94.215.188' }}
+      SERVER_USER: ${{ inputs.server_user || 'root' }}
 
     steps:
       - name: Checkout Code
@@ -67,7 +70,6 @@ jobs:
       - name: Configure SSH Key & Known Hosts
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY || secrets.DEPLOY_SSH_KEY }}
-          SERVER_IP: ${{ inputs.server_ip || '45.94.215.188' }}
         run: |
           if [ -z "$SSH_PRIVATE_KEY" ]; then
             echo "::error::Secret SERVER_SSH_KEY (or DEPLOY_SSH_KEY) is not set in repository secrets!"
@@ -80,8 +82,9 @@ jobs:
           chmod 600 ~/.ssh/id_rsa_deploy
 
           # Global SSH configuration with ControlMaster multiplexing for resilient CI/CD connections
-          cat << 'EOF' > ~/.ssh/config
+          cat << EOF > ~/.ssh/config
           Host *
+            User $SERVER_USER
             IdentityFile ~/.ssh/id_rsa_deploy
             StrictHostKeyChecking no
             UserKnownHostsFile /dev/null
