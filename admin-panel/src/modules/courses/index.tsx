@@ -62,6 +62,7 @@ export const CoursesView: React.FC = () => {
   const [pkgImageUrl, setPkgImageUrl] = useState('');
   const [pkgIsPublished, setPkgIsPublished] = useState(true);
   const [pkgSelectedCourseIds, setPkgSelectedCourseIds] = useState<string[]>([]);
+  const [pkgAllowedPlatforms, setPkgAllowedPlatforms] = useState<string[]>(['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios']);
 
   const loadCourses = async () => {
     try {
@@ -269,6 +270,7 @@ export const CoursesView: React.FC = () => {
     setPkgImageUrl('');
     setPkgIsPublished(true);
     setPkgSelectedCourseIds([]);
+    setPkgAllowedPlatforms(['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios']);
     setShowPackageModal(true);
   };
 
@@ -283,6 +285,10 @@ export const CoursesView: React.FC = () => {
     setPkgImageUrl(pkg.image_url || '');
     setPkgIsPublished(pkg.is_published);
     setPkgSelectedCourseIds((pkg.courses || []).map((c) => c.id));
+    const platforms = pkg.allowed_platforms
+      ? pkg.allowed_platforms.split(',').map((s: string) => s.trim()).filter(Boolean)
+      : ['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios'];
+    setPkgAllowedPlatforms(platforms);
     setShowPackageModal(true);
   };
 
@@ -319,6 +325,7 @@ export const CoursesView: React.FC = () => {
         image_url: pkgImageUrl.trim(),
         is_published: pkgIsPublished,
         course_ids: pkgSelectedCourseIds,
+        allowed_platforms: pkgAllowedPlatforms.join(','),
       };
 
       if (editingPackage) {
@@ -674,6 +681,13 @@ export const CoursesView: React.FC = () => {
                               {pkg.description && (
                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {pkg.description}
+                                </div>
+                              )}
+                              {pkg.allowed_platforms && (
+                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                  {pkg.allowed_platforms.split(',').map((p) => p.trim()).filter(Boolean).map((p) => (
+                                    <span key={p} className="badge badge-platform">{p}</span>
+                                  ))}
                                 </div>
                               )}
                             </div>
@@ -1034,6 +1048,44 @@ export const CoursesView: React.FC = () => {
                       انتشار و نمایش فوری در بخش دوره‌های اپلیکیشن
                     </label>
                   </div>
+                </div>
+
+                {/* Distribution Targeting / Platforms */}
+                <div className="form-group" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '14px', marginTop: '14px' }}>
+                  <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>پلتفرم‌ها و مارکت‌های مجاز این بسته</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      انتخاب نسخه‌های اپلیکیشن که این پکیج در آن‌ها نمایش داده شود
+                    </span>
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px', marginTop: '6px' }}>
+                    {[
+                      { id: 'zarinpal', label: 'زرین‌پال (مستقیم)' },
+                      { id: 'bazaar', label: 'کافه بازار' },
+                      { id: 'myket', label: 'مایکت' },
+                      { id: 'googleplay', label: 'گوگل پلی' },
+                      { id: 'ios', label: 'آی‌او‌اس (iOS)' }
+                    ].map((plat) => (
+                      <label key={plat.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12.5px', margin: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={pkgAllowedPlatforms.includes(plat.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setPkgAllowedPlatforms([...pkgAllowedPlatforms, plat.id]);
+                            } else {
+                              setPkgAllowedPlatforms(pkgAllowedPlatforms.filter((p) => p !== plat.id));
+                            }
+                          }}
+                          style={{ width: 'auto' }}
+                        />
+                        <span>{plat.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '6px', fontSize: '11px' }}>
+                    در صورت برداشتن تیک کافه بازار یا هر مارکت دیگر، این پکیج فقط در نسخه‌های مجاز نمایش داده می‌شود.
+                  </small>
                 </div>
               </div>
               <div className="modal-footer">

@@ -17,6 +17,9 @@ namespace LeitnerPlatform.Core.Entities
         public int DisplayOrder { get; set; } = 0;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+        // Comma-separated list of target distribution platforms/flavors
+        // (zarinpal, bazaar, myket, googleplay, ios)
+        public string AllowedPlatforms { get; set; } = "zarinpal,bazaar,myket,googleplay,ios";
 
         public ICollection<CoursePackageItem> Items { get; set; } = new List<CoursePackageItem>();
     }

@@ -45,6 +45,7 @@ namespace LeitnerPlatform.Data
                 entity.Property(e => e.DisplayOrder).HasColumnName("display_order").HasDefaultValue(0);
                 entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.Property(e => e.AllowedPlatforms).HasColumnName("allowed_platforms").HasMaxLength(255).HasDefaultValue("zarinpal,bazaar,myket,googleplay,ios");
             });
 
             // CoursePackageItem mapping

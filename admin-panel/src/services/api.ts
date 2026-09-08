@@ -272,7 +272,7 @@ export const api = {
       method: 'DELETE'
     }),
 
-    getPackages: () => request<{ success: boolean; packages: any[] }>('/admin/packages'),
+    getPackages: () => request<{ success: boolean; packages: any[] }>('/admin/packages?pageSize=100'),
 
     createPackage: (data: any) => request<{ success: boolean; message: string; package: any }>('/admin/packages', {
       method: 'POST',

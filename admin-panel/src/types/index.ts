@@ -113,6 +113,7 @@ export interface CoursePackage {
   display_order: number;
   created_at: string;
   updated_at?: string;
+  allowed_platforms?: string;
   courses: {
     id: string;
     title: string;

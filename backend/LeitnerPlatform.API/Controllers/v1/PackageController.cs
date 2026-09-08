@@ -40,7 +40,7 @@ namespace LeitnerPlatform.API.Controllers.v1
 
         [AllowAnonymous]
         [HttpGet]
-        public async Task<IActionResult> GetPackages()
+        public async Task<IActionResult> GetPackages([FromQuery] string? platform = null)
         {
             var userId = GetUserId();
             var completedCoursePurchases = new List<Guid>();
@@ -63,19 +63,46 @@ namespace LeitnerPlatform.API.Controllers.v1
                     .ToListAsync();
             }
 
+            var targetPlatform = platform?.Trim().ToLower();
+            if (string.IsNullOrEmpty(targetPlatform) && Request.Headers.TryGetValue("X-App-Platform", out var headerPlatform))
+            {
+                targetPlatform = headerPlatform.ToString().Trim().ToLower();
+            }
+
             var packages = await _context.CoursePackages
                 .AsNoTracking()
-                .Where(p => p.IsPublished && !p.IsArchived)
+                .Where(p => (p.IsPublished && !p.IsArchived) || completedPackagePurchases.Contains(p.Id))
                 .Include(p => p.Items)
                     .ThenInclude(i => i.Course)
                 .OrderBy(p => p.DisplayOrder)
                 .ThenByDescending(p => p.CreatedAt)
                 .ToListAsync();
 
+            if (!string.IsNullOrEmpty(targetPlatform))
+            {
+                packages = packages.Where(pkg =>
+                    completedPackagePurchases.Contains(pkg.Id) ||
+                    string.IsNullOrEmpty(pkg.AllowedPlatforms) ||
+                    pkg.AllowedPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Any(p => p.Equals(targetPlatform, StringComparison.OrdinalIgnoreCase) ||
+                                 (targetPlatform == "premium" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)) ||
+                                 (targetPlatform == "direct" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)))
+                ).ToList();
+            }
+
             var result = packages.Select(pkg =>
             {
                 var validItems = pkg.Items
                     .Where(i => i.Course != null && (i.Course.IsPublished || completedCoursePurchases.Contains(i.CourseId)))
+                    .Where(i =>
+                        completedCoursePurchases.Contains(i.CourseId) ||
+                        string.IsNullOrEmpty(targetPlatform) ||
+                        string.IsNullOrEmpty(i.Course?.AllowedPlatforms) ||
+                        i.Course.AllowedPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                            .Any(p => p.Equals(targetPlatform, StringComparison.OrdinalIgnoreCase) ||
+                                     (targetPlatform == "premium" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)) ||
+                                     (targetPlatform == "direct" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)))
+                    )
                     .OrderBy(i => i.DisplayOrder)
                     .ToList();
 
@@ -94,7 +121,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                         card_count = c.CardCount,
                         image_url = c.ImageUrl,
                         is_purchased = isCoursePurchased,
-                        version = c.Version
+                        version = c.Version,
+                        allowed_platforms = c.AllowedPlatforms
                     };
                 }).ToList();
 
@@ -127,6 +155,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     courses_count = courseDtos.Count,
                     owned_courses_count = ownedCoursesCount,
                     courses = courseDtos,
+                    allowed_platforms = pkg.AllowedPlatforms,
                     created_at = pkg.CreatedAt,
                     updated_at = pkg.UpdatedAt
                 };
@@ -137,7 +166,7 @@ namespace LeitnerPlatform.API.Controllers.v1
 
         [AllowAnonymous]
         [HttpGet("{id:guid}")]
-        public async Task<IActionResult> GetPackage(Guid id)
+        public async Task<IActionResult> GetPackage(Guid id, [FromQuery] string? platform = null)
         {
             var userId = GetUserId();
 
@@ -149,6 +178,12 @@ namespace LeitnerPlatform.API.Controllers.v1
             if (pkg == null || (!pkg.IsPublished && !User.IsInRole("Admin")))
             {
                 return NotFound(new { success = false, message = "Package not found." });
+            }
+
+            var targetPlatform = platform?.Trim().ToLower();
+            if (string.IsNullOrEmpty(targetPlatform) && Request.Headers.TryGetValue("X-App-Platform", out var headerPlatform))
+            {
+                targetPlatform = headerPlatform.ToString().Trim().ToLower();
             }
 
             var completedCoursePurchases = new List<Guid>();
@@ -163,6 +198,20 @@ namespace LeitnerPlatform.API.Controllers.v1
 
                 isPackagePurchased = await _context.PackagePurchases
                     .AnyAsync(p => p.UserId == userId && p.PackageId == id && p.Status == "COMPLETED");
+            }
+
+            if (!isPackagePurchased && !User.IsInRole("Admin") && !string.IsNullOrEmpty(targetPlatform))
+            {
+                var isAllowed = string.IsNullOrEmpty(pkg.AllowedPlatforms) ||
+                    pkg.AllowedPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Any(p => p.Equals(targetPlatform, StringComparison.OrdinalIgnoreCase) ||
+                                 (targetPlatform == "premium" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)) ||
+                                 (targetPlatform == "direct" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)));
+
+                if (!isAllowed)
+                {
+                    return NotFound(new { success = false, message = "Package not found." });
+                }
             }
 
             var validItems = pkg.Items
@@ -185,7 +234,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                     card_count = c.CardCount,
                     image_url = c.ImageUrl,
                     is_purchased = isCoursePurchased,
-                    version = c.Version
+                    version = c.Version,
+                    allowed_platforms = c.AllowedPlatforms
                 };
             }).ToList();
 
@@ -217,6 +267,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 courses_count = courseDtos.Count,
                 owned_courses_count = ownedCoursesCount,
                 courses = courseDtos,
+                allowed_platforms = pkg.AllowedPlatforms,
                 created_at = pkg.CreatedAt,
                 updated_at = pkg.UpdatedAt
             });

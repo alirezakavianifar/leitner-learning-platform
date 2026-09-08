@@ -1977,7 +1977,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         #region Package Management
 
         [HttpGet("packages")]
-        public async Task<IActionResult> GetAdminPackages([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 15)
+        public async Task<IActionResult> GetAdminPackages([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 100)
         {
             var query = _context.CoursePackages
                 .Include(p => p.Items)
@@ -2010,6 +2010,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 is_published = pkg.IsPublished,
                 is_archived = pkg.IsArchived,
                 display_order = pkg.DisplayOrder,
+                allowed_platforms = pkg.AllowedPlatforms,
                 created_at = pkg.CreatedAt,
                 updated_at = pkg.UpdatedAt,
                 courses = pkg.Items.OrderBy(i => i.DisplayOrder).Select(i => new
@@ -2041,6 +2042,25 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return BadRequest(new { success = false, message = "Package title is required." });
             }
 
+            var distinctCourseIds = input.CourseIds?
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (distinctCourseIds != null && distinctCourseIds.Count > 0)
+            {
+                var existingCourseIds = await _context.Courses
+                    .Where(c => distinctCourseIds.Contains(c.Id))
+                    .Select(c => c.Id)
+                    .ToListAsync();
+
+                var missingIds = distinctCourseIds.Except(existingCourseIds).ToList();
+                if (missingIds.Count > 0)
+                {
+                    return BadRequest(new { success = false, message = $"One or more selected courses do not exist: {string.Join(", ", missingIds)}" });
+                }
+            }
+
             var package = new CoursePackage
             {
                 Id = Guid.NewGuid(),
@@ -2052,13 +2072,14 @@ namespace LeitnerPlatform.API.Controllers.v1
                 ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim(),
                 IsPublished = input.IsPublished,
                 DisplayOrder = input.DisplayOrder,
+                AllowedPlatforms = !string.IsNullOrWhiteSpace(input.AllowedPlatforms) ? input.AllowedPlatforms.Trim() : "zarinpal,bazaar,myket,googleplay,ios",
                 CreatedAt = DateTime.UtcNow
             };
 
-            if (input.CourseIds != null && input.CourseIds.Count > 0)
+            if (distinctCourseIds != null && distinctCourseIds.Count > 0)
             {
                 int order = 0;
-                foreach (var courseId in input.CourseIds)
+                foreach (var courseId in distinctCourseIds)
                 {
                     package.Items.Add(new CoursePackageItem
                     {
@@ -2072,12 +2093,28 @@ namespace LeitnerPlatform.API.Controllers.v1
             await _context.CoursePackages.AddAsync(package);
             await _context.SaveChangesAsync();
 
+            var packageSnapshot = new
+            {
+                package.Id,
+                package.Title,
+                package.Description,
+                package.Category,
+                package.Price,
+                package.OriginalPrice,
+                package.ImageUrl,
+                package.IsPublished,
+                package.IsArchived,
+                package.DisplayOrder,
+                package.AllowedPlatforms,
+                CourseIds = package.Items.OrderBy(i => i.DisplayOrder).Select(i => i.CourseId).ToList()
+            };
+
             await _auditLogService.LogActionAsync(
                 GetAdminUsername(),
                 "CREATE_PACKAGE",
                 $"Package:{package.Id}",
                 null,
-                JsonSerializer.Serialize(package)
+                JsonSerializer.Serialize(packageSnapshot)
             );
 
             return Ok(new { success = true, message = "Package created successfully.", package_id = package.Id });
@@ -2095,7 +2132,22 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return NotFound(new { success = false, message = "Package not found." });
             }
 
-            var beforeJson = JsonSerializer.Serialize(package);
+            var beforeSnapshot = new
+            {
+                package.Id,
+                package.Title,
+                package.Description,
+                package.Category,
+                package.Price,
+                package.OriginalPrice,
+                package.ImageUrl,
+                package.IsPublished,
+                package.IsArchived,
+                package.DisplayOrder,
+                package.AllowedPlatforms,
+                CourseIds = package.Items.OrderBy(i => i.DisplayOrder).Select(i => i.CourseId).ToList()
+            };
+            var beforeJson = JsonSerializer.Serialize(beforeSnapshot);
 
             if (!string.IsNullOrWhiteSpace(input.Title)) package.Title = input.Title.Trim();
             if (input.Description != null) package.Description = input.Description;
@@ -2106,27 +2158,80 @@ namespace LeitnerPlatform.API.Controllers.v1
             if (input.IsPublished.HasValue) package.IsPublished = input.IsPublished.Value;
             if (input.IsArchived.HasValue) package.IsArchived = input.IsArchived.Value;
             if (input.DisplayOrder.HasValue) package.DisplayOrder = input.DisplayOrder.Value;
+            if (input.AllowedPlatforms != null) package.AllowedPlatforms = input.AllowedPlatforms.Trim();
             package.UpdatedAt = DateTime.UtcNow;
 
             if (input.CourseIds != null)
             {
-                _context.CoursePackageItems.RemoveRange(package.Items);
-                int order = 0;
-                foreach (var courseId in input.CourseIds)
+                var distinctCourseIds = input.CourseIds
+                    .Where(cid => cid != Guid.Empty)
+                    .Distinct()
+                    .ToList();
+
+                if (distinctCourseIds.Count > 0)
                 {
-                    package.Items.Add(new CoursePackageItem
+                    var existingCourseIds = await _context.Courses
+                        .Where(c => distinctCourseIds.Contains(c.Id))
+                        .Select(c => c.Id)
+                        .ToListAsync();
+
+                    var missingIds = distinctCourseIds.Except(existingCourseIds).ToList();
+                    if (missingIds.Count > 0)
                     {
-                        PackageId = package.Id,
-                        CourseId = courseId,
-                        DisplayOrder = order++
-                    });
+                        return BadRequest(new { success = false, message = $"One or more selected courses do not exist: {string.Join(", ", missingIds)}" });
+                    }
+                }
+
+                // Diffing: remove items that are no longer in distinctCourseIds
+                var itemsToRemove = package.Items
+                    .Where(i => !distinctCourseIds.Contains(i.CourseId))
+                    .ToList();
+
+                foreach (var item in itemsToRemove)
+                {
+                    _context.CoursePackageItems.Remove(item);
+                }
+
+                // Update display order for existing retained items and add newly selected courses
+                for (int order = 0; order < distinctCourseIds.Count; order++)
+                {
+                    var courseId = distinctCourseIds[order];
+                    var existingItem = package.Items.FirstOrDefault(i => i.CourseId == courseId);
+                    if (existingItem != null)
+                    {
+                        existingItem.DisplayOrder = order;
+                    }
+                    else
+                    {
+                        package.Items.Add(new CoursePackageItem
+                        {
+                            PackageId = package.Id,
+                            CourseId = courseId,
+                            DisplayOrder = order
+                        });
+                    }
                 }
             }
 
-            _context.Entry(package).State = EntityState.Modified;
             await _context.SaveChangesAsync();
 
-            var afterJson = JsonSerializer.Serialize(package);
+            var afterSnapshot = new
+            {
+                package.Id,
+                package.Title,
+                package.Description,
+                package.Category,
+                package.Price,
+                package.OriginalPrice,
+                package.ImageUrl,
+                package.IsPublished,
+                package.IsArchived,
+                package.DisplayOrder,
+                package.AllowedPlatforms,
+                CourseIds = package.Items.OrderBy(i => i.DisplayOrder).Select(i => i.CourseId).ToList()
+            };
+            var afterJson = JsonSerializer.Serialize(afterSnapshot);
+
             await _auditLogService.LogActionAsync(
                 GetAdminUsername(),
                 "UPDATE_PACKAGE",
@@ -2147,21 +2252,36 @@ namespace LeitnerPlatform.API.Controllers.v1
                 return NotFound(new { success = false, message = "Package not found." });
             }
 
-            var beforeJson = JsonSerializer.Serialize(package);
+            var beforeSnapshot = new
+            {
+                package.Id,
+                package.Title,
+                package.IsPublished,
+                package.IsArchived
+            };
+            var beforeJson = JsonSerializer.Serialize(beforeSnapshot);
 
             package.IsArchived = true;
             package.IsPublished = false;
             package.UpdatedAt = DateTime.UtcNow;
 
-            _context.Entry(package).State = EntityState.Modified;
             await _context.SaveChangesAsync();
+
+            var afterSnapshot = new
+            {
+                package.Id,
+                package.Title,
+                package.IsPublished,
+                package.IsArchived
+            };
+            var afterJson = JsonSerializer.Serialize(afterSnapshot);
 
             await _auditLogService.LogActionAsync(
                 GetAdminUsername(),
                 "ARCHIVE_PACKAGE",
                 $"Package:{id}",
                 beforeJson,
-                JsonSerializer.Serialize(package)
+                afterJson
             );
 
             return Ok(new { success = true, message = "Package archived successfully." });
@@ -2182,6 +2302,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         public string? ImageUrl { get; set; }
         public bool IsPublished { get; set; } = true;
         public int DisplayOrder { get; set; } = 0;
+        public string? AllowedPlatforms { get; set; }
         public System.Collections.Generic.List<Guid>? CourseIds { get; set; }
     }
 
@@ -2196,6 +2317,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         public bool? IsPublished { get; set; }
         public bool? IsArchived { get; set; }
         public int? DisplayOrder { get; set; }
+        public string? AllowedPlatforms { get; set; }
         public System.Collections.Generic.List<Guid>? CourseIds { get; set; }
     }
 
