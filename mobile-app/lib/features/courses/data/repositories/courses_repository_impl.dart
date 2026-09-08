@@ -222,10 +222,16 @@ class CoursesRepositoryImpl implements CoursesRepository {
           }
 
           if (statusCode != 200 && statusCode != 206) {
+            final msg = statusCode == 404
+                ? 'فایل این دوره در سرور یافت نشد (404). لطفاً پکیج دوره را مجدداً آپلود فرمایید.'
+                : (statusCode == 503
+                    ? 'پکیج محتوای این دوره موقتاً در سرور موجود نیست.'
+                    : 'Server returned HTTP status $statusCode for course package download.');
             throw DioException(
               requestOptions: response.requestOptions,
               response: response,
-              message: 'Server returned HTTP status $statusCode for course package download.',
+              type: DioExceptionType.badResponse,
+              message: msg,
             );
           }
 
@@ -283,6 +289,13 @@ class CoursesRepositoryImpl implements CoursesRepository {
           downloadCompleted = true;
           break;
         } catch (e) {
+          // Do not retry fatal client or server availability errors
+          if (e is DioException) {
+            final sc = e.response?.statusCode;
+            if (sc == 400 || sc == 401 || sc == 403 || sc == 404 || sc == 503) {
+              rethrow;
+            }
+          }
           if (attempt == maxRetries) {
             rethrow;
           }
@@ -339,9 +352,23 @@ class CoursesRepositoryImpl implements CoursesRepository {
           if (f.existsSync()) f.deleteSync();
         } catch (_) {}
       }
-      final message = dioErr.response?.data?['message'] ?? dioErr.message;
-      final errorCode = dioErr.response?.data?['error_code'];
-      return Left(ServerFailure(message, errorCode: errorCode));
+      final data = dioErr.response?.data;
+      String? message;
+      String? errorCode;
+      if (data is Map) {
+        message = data['message'] as String?;
+        errorCode = data['error_code'] as String?;
+      }
+      message ??= dioErr.message;
+      if (dioErr.response?.statusCode == 404) {
+        message = 'فایل پکیج این دوره در سرور یافت نشد (404). لطفاً پکیج دوره را در پنل ادمین مجدداً آپلود فرمایید.';
+        errorCode ??= 'PACKAGE_NOT_FOUND';
+      } else if (dioErr.response?.statusCode == 503 || errorCode == 'PACKAGE_NOT_AVAILABLE') {
+        message = 'فایل محتوای این دوره هنوز روی سرور آپلود نشده یا موقتاً در دسترس نیست.';
+        errorCode ??= 'PACKAGE_NOT_AVAILABLE';
+      }
+      return Left(ServerFailure(message ?? 'خطا در دریافت فایل دوره', errorCode: errorCode));
+    }
     } catch (e) {
       return Left(CacheFailure('Failed to process and save course package: ${e.toString()}'));
     }

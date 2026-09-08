@@ -1068,18 +1068,12 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
   }
 
   void _showCourseDetailsModal(
-    Course course,
+    Course initialCourse,
     bool isDownloading,
     double downloadProgress,
     String downloadStage,
     CoursePackage? parentPackage,
   ) {
-    final loc = AppLocalizations.of(context);
-    final isDownloadedOwned = (course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased);
-    final borderColor = isDownloadedOwned
-        ? AppColors.courseDownloaded
-        : AppColors.courseNotDownloaded;
-
     showModalBottomSheet(
       context: context,
       useRootNavigator: false,
@@ -1089,143 +1083,169 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetCtx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.textSecondary.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        final loc = AppLocalizations.of(context);
+        return BlocBuilder<CoursesBloc, CoursesState>(
+          builder: (context, state) {
+            bool activeDownloading = false;
+            double activeProgress = 0.0;
+            String activeStage = 'downloading';
+            Course course = initialCourse;
+
+            if (state is CourseDownloading && state.courseId == initialCourse.id) {
+              activeDownloading = true;
+              activeProgress = state.progress;
+              activeStage = state.stage;
+            } else if (state is CoursesLoaded) {
+              final updated = state.courses.where((c) => c.id == initialCourse.id).firstOrNull;
+              if (updated != null) {
+                course = updated;
+              }
+            }
+
+            final isDownloadedOwned = (course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased);
+            final borderColor = isDownloadedOwned
+                ? AppColors.courseDownloaded
+                : AppColors.courseNotDownloaded;
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
+                    Center(
                       child: Container(
-                        width: 76,
-                        height: 76,
+                        width: 40,
+                        height: 4,
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: borderColor, width: 1.5),
+                          color: AppColors.textSecondary.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2),
                         ),
-                        child: _buildCourseThumbnail(course, fit: BoxFit.contain),
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            course.title,
-                            textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(course.title)
-                                ? TextDirection.rtl
-                                : TextDirection.ltr,
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
+                    const SizedBox(height: 16),
+                    
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            width: 76,
+                            height: 76,
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: borderColor, width: 1.5),
                             ),
+                            child: _buildCourseThumbnail(course, fit: BoxFit.contain),
                           ),
-                          const SizedBox(height: 6),
-                          Row(
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (course.category != null) ...[
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    course.category!,
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                              Text(
+                                course.title,
+                                textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(course.title)
+                                    ? TextDirection.rtl
+                                    : TextDirection.ltr,
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                const SizedBox(width: 6),
-                              ],
-                              if (course.difficulty != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.08),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    course.difficulty!,
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 11,
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  if (course.category != null) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        course.category!,
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  if (course.difficulty != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.08),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        course.difficulty!,
+                                        style: TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${course.cardCount} ${loc.cardsCount}  •  ${_formatPrice(course.price, context)}',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
                                 ),
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '${course.cardCount} ${loc.cardsCount}  •  ${_formatPrice(course.price, context)}',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Divider(color: Color(0xFF333E56), height: 1),
-                const SizedBox(height: 14),
+                    const SizedBox(height: 16),
+                    const Divider(color: Color(0xFF333E56), height: 1),
+                    const SizedBox(height: 14),
 
-                if (course.description != null && course.description!.isNotEmpty) ...[
-                  Text(
-                    loc.description,
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 180),
-                    child: SingleChildScrollView(
-                      child: Text(
-                        course.description!,
+                    if (course.description != null && course.description!.isNotEmpty) ...[
+                      Text(
+                        loc.description,
                         style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13.5,
-                          height: 1.5,
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                      const SizedBox(height: 6),
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 180),
+                        child: SingleChildScrollView(
+                          child: Text(
+                            course.description!,
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13.5,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
-                _buildModalActionButton(course, isDownloading, downloadProgress, downloadStage, parentPackage, sheetCtx),
-              ],
-            ),
-          ),
+                    _buildModalActionButton(course, activeDownloading, activeProgress, activeStage, parentPackage, sheetCtx),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );

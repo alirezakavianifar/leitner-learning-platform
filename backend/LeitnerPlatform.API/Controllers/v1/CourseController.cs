@@ -173,20 +173,19 @@ namespace LeitnerPlatform.API.Controllers.v1
             var wwwrootPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot");
             var absolutePackagePath = System.IO.Path.Combine(wwwrootPath, relativePackagePath);
             var packageFileExists = System.IO.File.Exists(absolutePackagePath);
+            if (!packageFileExists)
+            {
+                return StatusCode(503, new
+                {
+                    success = false,
+                    error_code = "PACKAGE_NOT_AVAILABLE",
+                    message = "This course's content package has not been uploaded yet or is temporarily unavailable on the server. Please try again later."
+                });
+            }
 
             string? checksum = course.ChecksumSha256;
             if (string.IsNullOrEmpty(checksum))
             {
-                if (!packageFileExists)
-                {
-                    return StatusCode(503, new
-                    {
-                        success = false,
-                        error_code = "PACKAGE_NOT_AVAILABLE",
-                        message = "This course's content package has not been uploaded yet. Please try again later."
-                    });
-                }
-
                 try
                 {
                     using var sha256 = System.Security.Cryptography.SHA256.Create();
@@ -203,7 +202,10 @@ namespace LeitnerPlatform.API.Controllers.v1
             }
 
             var request = HttpContext.Request;
-            var absoluteDownloadUrl = $"{request.Scheme}://{request.Host}{course.DownloadUrl}";
+            var scheme = request.Headers.TryGetValue("X-Forwarded-Proto", out var proto) && !string.IsNullOrEmpty(proto)
+                ? proto.ToString()
+                : (request.Host.Host.Contains("rightlearn.ir", StringComparison.OrdinalIgnoreCase) ? "https" : request.Scheme);
+            var absoluteDownloadUrl = $"{scheme}://{request.Host}{course.DownloadUrl}";
             var tempToken = $"temp_sec_token_{Guid.NewGuid().ToString("N").Substring(0, 12)}";
 
             return Ok(new
