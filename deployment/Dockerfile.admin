@@ -1,5 +1,7 @@
 # Serve the pre-built React static files using Nginx
-FROM nginx:1.26-alpine AS final
+# Using public.ecr.aws to prevent Docker Hub 403 Forbidden geo-blocking & rate-limiting
+ARG NGINX_IMAGE=public.ecr.aws/nginx/nginx:1.26-alpine
+FROM ${NGINX_IMAGE} AS final
 
 COPY admin-panel/dist /usr/share/nginx/html
 
