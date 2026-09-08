@@ -54,6 +54,10 @@ jobs:
         run: |
           dotnet publish backend/LeitnerPlatform.API/LeitnerPlatform.API.csproj -c Release -o ./publish /p:UseAppHost=false
           dotnet publish backend/LeitnerPlatform.BackgroundWorker/LeitnerPlatform.BackgroundWorker.csproj -c Release -o ./publish /p:UseAppHost=false
+          # Strip debug symbols and course archives from publish payload (courses synced separately)
+          rm -f ./publish/*.pdb
+          rm -rf ./publish/wwwroot/courses
+          rm -rf ./publish/runtimes/win* ./publish/runtimes/osx*
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -140,6 +144,8 @@ jobs:
 
           tar -czf "$ARCHIVE_NAME" \
             --exclude="admin-panel/node_modules" \
+            --exclude="admin-panel/src" \
+            --exclude="admin-panel/public" \
             --exclude="mobile-app" --exclude="docs" --exclude="*.apk" \
             publish admin-panel deployment .dockerignore .env*
 

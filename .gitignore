@@ -65,3 +65,5 @@ publish/
 !data/*.zip
 *.rar
 *.7z
+*.tar
+*.tar.gz

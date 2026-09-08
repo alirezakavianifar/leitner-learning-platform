@@ -97,6 +97,12 @@ if ($LASTEXITCODE -ne 0) { throw "Backend publish failed." }
 & dotnet publish "$ProjectRoot\backend\LeitnerPlatform.BackgroundWorker\LeitnerPlatform.BackgroundWorker.csproj" -c Release -o "$ProjectRoot\publish" /p:UseAppHost=false
 if ($LASTEXITCODE -ne 0) { throw "Background worker publish failed." }
 
+# Strip unnecessary files from publish payload
+Remove-Item -Path "$ProjectRoot\publish\wwwroot\courses" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$ProjectRoot\publish\*.pdb" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$ProjectRoot\publish\runtimes\win*" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$ProjectRoot\publish\runtimes\osx*" -Recurse -Force -ErrorAction SilentlyContinue
+
 # Build React Admin Panel
 Write-Host "Building React Admin Panel..." -ForegroundColor Yellow
 Push-Location "$ProjectRoot\admin-panel"
@@ -117,6 +123,8 @@ $TempArchivePath = Join-Path $ProjectRoot $TempArchiveName
 $ExcludeArgs = @(
     "--exclude=backend/**/bin", "--exclude=backend/**/obj",
     "--exclude=admin-panel/node_modules",
+    "--exclude=admin-panel/src",
+    "--exclude=admin-panel/public",
     "--exclude=mobile-app", "--exclude=docs", "--exclude=scripts", "--exclude=*.apk",
     "--exclude=backend/LeitnerPlatform.API/wwwroot/courses/*.zip"
 )
