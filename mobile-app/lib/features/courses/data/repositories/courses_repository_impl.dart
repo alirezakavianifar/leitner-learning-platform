@@ -368,7 +368,6 @@ class CoursesRepositoryImpl implements CoursesRepository {
         errorCode ??= 'PACKAGE_NOT_AVAILABLE';
       }
       return Left(ServerFailure(message ?? 'خطا در دریافت فایل دوره', errorCode: errorCode));
-    }
     } catch (e) {
       return Left(CacheFailure('Failed to process and save course package: ${e.toString()}'));
     }
