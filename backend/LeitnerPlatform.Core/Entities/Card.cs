@@ -11,6 +11,7 @@ namespace LeitnerPlatform.Core.Entities
         public string AnswerText { get; set; } = string.Empty;
         public string? ImageUrl { get; set; }
         public string? AudioUrl { get; set; }
+        public string? Options { get; set; }
 
         public Course? Course { get; set; }
     }

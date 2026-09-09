@@ -22,6 +22,7 @@ import 'package:mobile_app/features/config/presentation/bloc/config_event.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/features/config/domain/entities/remote_config.dart';
 import 'package:mobile_app/injection_container.dart' as di;
+import 'package:mobile_app/core/utils/bidi_utils.dart';
 
 class FlashcardStudyScreen extends StatefulWidget {
   final String courseId;
@@ -395,6 +396,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                     const SizedBox(height: 6),
                     Text(
                       frontClean,
+                      textDirection: detectTextDirection(frontClean),
                       style: TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 14,
@@ -789,6 +791,11 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
 
               final card = state.currentCard;
               if (card == null) return const SizedBox.shrink();
+
+              if (_lastCardNumber != card.cardNumber) {
+                _lastCardNumber = card.cardNumber;
+                _selectedOptionIndex = null;
+              }
 
               final currentBox = card.progress.currentBox;
               final boxColor = _getBoxColor(currentBox);
@@ -1194,15 +1201,22 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          isFront ? card.questionText : card.answerText,
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 20 * _fontScale,
-                            height: 1.5,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
+                        Builder(
+                          builder: (context) {
+                            final mainText = isFront ? card.questionText : card.answerText;
+                            final mainDirection = detectTextDirection(mainText);
+                            return Text(
+                              mainText,
+                              textDirection: mainDirection,
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 20 * _fontScale,
+                                height: 1.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            );
+                          },
                         ),
                         // Conditional image rendering (Front only, or both if needed)
                         if (isFront && card.imageUrl != null && card.imageUrl!.trim().isNotEmpty && _documentsPath != null) ...[
@@ -1237,6 +1251,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                               children: card.options!.asMap().entries.map((entry) {
                                 final index = entry.key;
                                 final text = entry.value;
+                                final optDirection = detectTextDirection(text);
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 8),
                                   decoration: BoxDecoration(
@@ -1252,6 +1267,8 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                   child: RadioListTile<int>(
                                     title: Text(
                                       text,
+                                      textDirection: optDirection,
+                                      textAlign: optDirection == TextDirection.rtl ? TextAlign.right : TextAlign.left,
                                       style: TextStyle(
                                         color: AppColors.textPrimary,
                                         fontSize: 15 * _fontScale,

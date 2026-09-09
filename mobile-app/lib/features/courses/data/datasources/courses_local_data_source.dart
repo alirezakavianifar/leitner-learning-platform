@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:path/path.dart' as p;
@@ -310,6 +311,46 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
         if (idxAudio == -1) idxAudio = columnNames.indexOf('audio');
         if (idxAudio == -1) idxAudio = columnNames.indexOf('audio_url');
 
+        // Detect single options column
+        int idxOptions = columnNames.indexOf('options');
+
+        // Detect separate options columns: "first option", "second option", etc.
+        int idxOpt1 = columnNames.indexOf('first option');
+        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('option 1');
+        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('option_1');
+        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('option1');
+        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('choice 1');
+        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('choice_1');
+        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('choice1');
+        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('first_option');
+
+        int idxOpt2 = columnNames.indexOf('second option');
+        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('option 2');
+        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('option_2');
+        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('option2');
+        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('choice 2');
+        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('choice_2');
+        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('choice2');
+        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('second_option');
+
+        int idxOpt3 = columnNames.indexOf('third option');
+        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('option 3');
+        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('option_3');
+        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('option3');
+        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('choice 3');
+        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('choice_3');
+        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('choice3');
+        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('third_option');
+
+        int idxOpt4 = columnNames.indexOf('fourth option');
+        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('option 4');
+        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('option_4');
+        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('option4');
+        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('choice 4');
+        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('choice_4');
+        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('choice4');
+        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('fourth_option');
+
         final rawRows = await courseDb.query(targetCardTable);
         final List<Map<String, dynamic>> normalizedCards = [];
         int rowCounter = 1;
@@ -321,6 +362,45 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
           final img = idxImage != -1 ? r[columnInfo[idxImage]['name']]?.toString() : null;
           final aud = idxAudio != -1 ? r[columnInfo[idxAudio]['name']]?.toString() : null;
 
+          String? optionsJson;
+          if (idxOptions != -1) {
+            final rawOpt = r[columnInfo[idxOptions]['name']];
+            if (rawOpt != null && rawOpt.toString().trim().isNotEmpty) {
+              final rawOptStr = rawOpt.toString().trim();
+              try {
+                final decoded = jsonDecode(rawOptStr);
+                if (decoded is List) {
+                  optionsJson = jsonEncode(decoded.map((e) => e.toString()).toList());
+                } else {
+                  optionsJson = rawOptStr;
+                }
+              } catch (_) {
+                final parts = rawOptStr.contains('\n')
+                    ? rawOptStr.split('\n')
+                    : (rawOptStr.contains(';') ? rawOptStr.split(';') : rawOptStr.split(','));
+                final cleaned = parts.map((p) => p.trim()).where((p) => p.isNotEmpty).toList();
+                if (cleaned.isNotEmpty) {
+                  optionsJson = jsonEncode(cleaned);
+                }
+              }
+            }
+          }
+
+          if (optionsJson == null) {
+            final separateOptions = <String>[];
+            for (final optIdx in [idxOpt1, idxOpt2, idxOpt3, idxOpt4]) {
+              if (optIdx != -1) {
+                final optVal = r[columnInfo[optIdx]['name']];
+                if (optVal != null && optVal.toString().trim().isNotEmpty) {
+                  separateOptions.add(optVal.toString().trim());
+                }
+              }
+            }
+            if (separateOptions.isNotEmpty) {
+              optionsJson = jsonEncode(separateOptions);
+            }
+          }
+
           normalizedCards.add({
             'id': '${courseId}_$cardNum',
             'course_id': courseId,
@@ -329,7 +409,7 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
             'answer_text': aText,
             'image_name': (img != null && img.trim().isNotEmpty) ? p.basename(img.trim()) : null,
             'audio_name': (aud != null && aud.trim().isNotEmpty) ? p.basename(aud.trim()) : null,
-            'options': null,
+            'options': optionsJson,
           });
           rowCounter++;
         }
@@ -360,6 +440,13 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
           await courseDb.execute('DROP TABLE IF EXISTS $targetCardTable;');
         }
         await courseDb.execute('ALTER TABLE cards_temp_norm RENAME TO cards;');
+      } else {
+        // Ensure options column exists on standard cards table if it is missing
+        if (!columnNames.contains('options')) {
+          try {
+            await courseDb.execute('ALTER TABLE cards ADD COLUMN options TEXT;');
+          } catch (_) {}
+        }
       }
 
       // Ensure course table exists in course.db

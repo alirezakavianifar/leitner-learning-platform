@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
@@ -206,6 +207,44 @@ namespace LeitnerPlatform.Data
                         if (idxAudio == -1) idxAudio = columns.IndexOf("audio");
                         if (idxAudio == -1) idxAudio = columns.IndexOf("audio_url");
 
+                        int idxOptions = columns.IndexOf("options");
+
+                        int idxOpt1 = columns.IndexOf("first option");
+                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("option 1");
+                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("option_1");
+                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("option1");
+                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("choice 1");
+                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("choice_1");
+                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("choice1");
+                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("first_option");
+
+                        int idxOpt2 = columns.IndexOf("second option");
+                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("option 2");
+                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("option_2");
+                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("option2");
+                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("choice 2");
+                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("choice_2");
+                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("choice2");
+                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("second_option");
+
+                        int idxOpt3 = columns.IndexOf("third option");
+                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("option 3");
+                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("option_3");
+                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("option3");
+                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("choice 3");
+                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("choice_3");
+                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("choice3");
+                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("third_option");
+
+                        int idxOpt4 = columns.IndexOf("fourth option");
+                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("option 4");
+                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("option_4");
+                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("option4");
+                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("choice 4");
+                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("choice_4");
+                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("choice4");
+                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("fourth_option");
+
                         using (var tx = destConn.BeginTransaction())
                         using (var cmd = new SqliteCommand("SELECT * FROM cards", srcConn))
                         using (var reader = await cmd.ExecuteReaderAsync())
@@ -218,6 +257,50 @@ namespace LeitnerPlatform.Data
                                 string aText = idxAnswer != -1 && !reader.IsDBNull(idxAnswer) ? reader.GetString(idxAnswer) : "Answer";
                                 string? img = idxImage != -1 && !reader.IsDBNull(idxImage) ? reader.GetString(idxImage) : null;
                                 string? aud = idxAudio != -1 && !reader.IsDBNull(idxAudio) ? reader.GetString(idxAudio) : null;
+
+                                string? optionsJson = null;
+                                if (idxOptions != -1 && !reader.IsDBNull(idxOptions))
+                                {
+                                    string rawOpt = reader.GetString(idxOptions).Trim();
+                                    if (!string.IsNullOrEmpty(rawOpt))
+                                    {
+                                        if (rawOpt.StartsWith("[") && rawOpt.EndsWith("]"))
+                                        {
+                                            optionsJson = rawOpt;
+                                        }
+                                        else
+                                        {
+                                            var parts = rawOpt.Split(new[] { '\n', ';', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                                              .Select(p => p.Trim())
+                                                              .Where(p => !string.IsNullOrEmpty(p))
+                                                              .ToList();
+                                            if (parts.Count > 0)
+                                            {
+                                                optionsJson = JsonSerializer.Serialize(parts);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (string.IsNullOrEmpty(optionsJson))
+                                {
+                                    var separateOpts = new System.Collections.Generic.List<string>();
+                                    foreach (var optIdx in new[] { idxOpt1, idxOpt2, idxOpt3, idxOpt4 })
+                                    {
+                                        if (optIdx != -1 && !reader.IsDBNull(optIdx))
+                                        {
+                                            string optVal = reader.GetString(optIdx).Trim();
+                                            if (!string.IsNullOrEmpty(optVal))
+                                            {
+                                                separateOpts.Add(optVal);
+                                            }
+                                        }
+                                    }
+                                    if (separateOpts.Count > 0)
+                                    {
+                                        optionsJson = JsonSerializer.Serialize(separateOpts);
+                                    }
+                                }
 
                                 var imgFileName = !string.IsNullOrEmpty(img) ? Path.GetFileName(img) : null;
                                 var audFileName = !string.IsNullOrEmpty(aud) ? Path.GetFileName(aud) : null;
@@ -235,8 +318,8 @@ namespace LeitnerPlatform.Data
 
                                 using var insCmd = destConn.CreateCommand();
                                 insCmd.Transaction = tx;
-                                insCmd.CommandText = "INSERT INTO cards (id, course_id, card_number, question_text, answer_text, image_name, audio_name) " +
-                                                     "VALUES ($id,$courseId,$cardNum,$question,$answer,$img,$aud)";
+                                insCmd.CommandText = "INSERT INTO cards (id, course_id, card_number, question_text, answer_text, image_name, audio_name, options) " +
+                                                     "VALUES ($id,$courseId,$cardNum,$question,$answer,$img,$aud,$options)";
                                 insCmd.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
                                 insCmd.Parameters.AddWithValue("$courseId", courseId.ToString());
                                 insCmd.Parameters.AddWithValue("$cardNum", cardNum);
@@ -244,6 +327,7 @@ namespace LeitnerPlatform.Data
                                 insCmd.Parameters.AddWithValue("$answer", aText);
                                 insCmd.Parameters.AddWithValue("$img", (object?)imgFileName ?? DBNull.Value);
                                 insCmd.Parameters.AddWithValue("$aud", (object?)audFileName ?? DBNull.Value);
+                                insCmd.Parameters.AddWithValue("$options", (object?)optionsJson ?? DBNull.Value);
                                 await insCmd.ExecuteNonQueryAsync();
 
                                 rowCounter++;

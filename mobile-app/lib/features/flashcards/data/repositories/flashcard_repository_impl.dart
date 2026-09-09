@@ -150,18 +150,8 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
                 progress.nextReviewDue != null &&
                 progress.nextReviewDue!.isBefore(now.add(const Duration(seconds: 1))));
       }
-
       if (included) {
-        List<String>? optionsList;
-        final optionsStr = cardMap['options'] as String?;
-        if (optionsStr != null && optionsStr.isNotEmpty) {
-          try {
-            final parsed = jsonDecode(optionsStr);
-            if (parsed is List) {
-              optionsList = parsed.map((e) => e.toString()).toList();
-            }
-          } catch (_) {}
-        }
+        final optionsList = _parseCardOptions(cardMap);
 
         reviewQueue.add(
           Flashcard(
@@ -527,16 +517,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
           );
 
     final cardMap = cardMaps.first;
-    List<String>? optionsList;
-    final optionsStr = cardMap['options'] as String?;
-    if (optionsStr != null && optionsStr.isNotEmpty) {
-      try {
-        final parsed = jsonDecode(optionsStr);
-        if (parsed is List) {
-          optionsList = parsed.map((e) => e.toString()).toList();
-        }
-      } catch (_) {}
-    }
+    final optionsList = _parseCardOptions(cardMap);
 
     return Flashcard(
       id: cardMap['id'] as String,
@@ -644,16 +625,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
                 hasEnteredLeitner: false,
               );
 
-        List<String>? optionsList;
-        final optionsStr = cardMap['options'] as String?;
-        if (optionsStr != null && optionsStr.isNotEmpty) {
-          try {
-            final parsed = jsonDecode(optionsStr);
-            if (parsed is List) {
-              optionsList = parsed.map((e) => e.toString()).toList();
-            }
-          } catch (_) {}
-        }
+        final optionsList = _parseCardOptions(cardMap);
 
         favoritesList.add(
           Flashcard(
@@ -791,16 +763,7 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
         );
       }
 
-      List<String>? optionsList;
-      final optionsStr = cardMap['options'] as String?;
-      if (optionsStr != null && optionsStr.isNotEmpty) {
-        try {
-          final parsed = jsonDecode(optionsStr);
-          if (parsed is List) {
-            optionsList = parsed.map((e) => e.toString()).toList();
-          }
-        } catch (_) {}
-      }
+      final optionsList = _parseCardOptions(cardMap);
 
       cards.add(
         Flashcard(
@@ -818,5 +781,55 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
     }
 
     return cards;
+  }
+
+  List<String>? _parseCardOptions(Map<String, dynamic> cardMap) {
+    // 1. Try single options column
+    final optionsStr = cardMap['options'] as String?;
+    if (optionsStr != null && optionsStr.trim().isNotEmpty) {
+      final trimmed = optionsStr.trim();
+      try {
+        final parsed = jsonDecode(trimmed);
+        if (parsed is List) {
+          final list = parsed.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+          if (list.isNotEmpty) return list;
+        }
+      } catch (_) {
+        // Fallback: delimited string (newline, semicolon, comma)
+        final parts = trimmed.contains('\n')
+            ? trimmed.split('\n')
+            : (trimmed.contains(';') ? trimmed.split(';') : trimmed.split(','));
+        final list = parts.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        if (list.isNotEmpty) return list;
+      }
+    }
+
+    // 2. Try separate authoring columns (e.g. from templateDB or legacy schemas)
+    const optKeys = [
+      ['first option', 'first_option', 'option 1', 'option_1', 'option1', 'choice 1', 'choice_1', 'choice1'],
+      ['second option', 'second_option', 'option 2', 'option_2', 'option2', 'choice 2', 'choice_2', 'choice2'],
+      ['third option', 'third_option', 'option 3', 'option_3', 'option3', 'choice 3', 'choice_3', 'choice3'],
+      ['fourth option', 'fourth_option', 'option 4', 'option_4', 'option4', 'choice 4', 'choice_4', 'choice4'],
+    ];
+
+    final lowerMap = <String, dynamic>{};
+    for (final entry in cardMap.entries) {
+      lowerMap[entry.key.toLowerCase().trim()] = entry.value;
+    }
+
+    final separateList = <String>[];
+    for (final aliases in optKeys) {
+      for (final alias in aliases) {
+        if (lowerMap.containsKey(alias)) {
+          final val = lowerMap[alias];
+          if (val != null && val.toString().trim().isNotEmpty) {
+            separateList.add(val.toString().trim());
+            break;
+          }
+        }
+      }
+    }
+
+    return separateList.isNotEmpty ? separateList : null;
   }
 }

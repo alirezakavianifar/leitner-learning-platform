@@ -13,6 +13,7 @@ import 'package:mobile_app/features/config/presentation/bloc/config_bloc.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_event.dart';
 import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/injection_container.dart' as di;
+import 'package:mobile_app/core/utils/bidi_utils.dart';
 import 'create_custom_card_screen.dart';
 
 class CustomCardsScreen extends StatefulWidget {
@@ -418,16 +419,22 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        isFront
-                            ? card['question_text'] as String
-                            : card['answer_text'] as String,
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 20 * _fontScale,
-                          height: 1.5,
-                        ),
-                        textAlign: TextAlign.center,
+                      Builder(
+                        builder: (context) {
+                          final text = isFront
+                              ? card['question_text'] as String
+                              : card['answer_text'] as String;
+                          return Text(
+                            text,
+                            textDirection: detectTextDirection(text),
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 20 * _fontScale,
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.center,
+                          );
+                        },
                       ),
                       if (isFront && card['options'] != null && (card['options'] as String).isNotEmpty) ...[
                         const SizedBox(height: 16),
@@ -709,6 +716,7 @@ class _CustomCardsScreenState extends State<CustomCardsScreen> with TickerProvid
           ),
           child: Text(
             opt.toString(),
+            textDirection: detectTextDirection(opt.toString()),
             style: TextStyle(color: AppColors.textPrimary, fontSize: 13 * _fontScale),
             textAlign: TextAlign.center,
           ),
