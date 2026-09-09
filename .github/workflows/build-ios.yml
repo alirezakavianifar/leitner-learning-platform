@@ -10,25 +10,20 @@ on:
         type: choice
         options:
           - premium
+          - direct
+          - bazaar
+          - myket
+          - googleplay
           - store
       target_url:
         description: 'Backend Target API URL'
         required: true
         default: 'https://api.rightlearn.ir'
         type: string
-      build_type:
-        description: 'Build Target'
-        required: true
-        default: 'both'
-        type: choice
-        options:
-          - ipa
-          - simulator
-          - both
 
 jobs:
   build-ios:
-    name: Build iOS (${{ inputs.flavor || 'premium' }})
+    name: Build iOS Release IPA (${{ inputs.flavor || 'premium' }})
     runs-on: macos-14
     timeout-minutes: 60
 
@@ -61,7 +56,6 @@ jobs:
 
       # 1. Build Physical iOS Release Bundle & Package IPA
       - name: Build iOS Release Bundle & Package IPA
-        if: ${{ inputs.build_type == 'ipa' || inputs.build_type == 'both' || github.event_name == 'push' }}
         run: |
           cd mobile-app
           FLAVOR="${{ inputs.flavor || 'premium' }}"
@@ -83,25 +77,6 @@ jobs:
           echo "Created IPA archive: app-${FLAVOR}-release.ipa and app-${FLAVOR}-ios-release.zip"
         shell: bash
 
-      # 2. Build iOS Simulator Bundle (Appetize.io & Simulator Ready)
-      - name: Build iOS Simulator App
-        if: ${{ inputs.build_type == 'simulator' || inputs.build_type == 'both' || github.event_name == 'push' }}
-        run: |
-          cd mobile-app
-          FLAVOR="${{ inputs.flavor || 'premium' }}"
-          API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir' }}"
-          echo "Building iOS Simulator release for flavor: $FLAVOR with API: $API_URL"
-          
-          # Clean intermediate device build outputs to prevent architecture conflicts
-          rm -rf build/ios
-          flutter build ios --simulator --debug -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_URL"
-          
-          # Package Simulator .app to ZIP for Appetize.io & Simulators
-          cd build/ios/iphonesimulator
-          zip -r -y "${GITHUB_WORKSPACE}/app-${FLAVOR}-ios-simulator.zip" Runner.app
-          echo "Created simulator archive: app-${FLAVOR}-ios-simulator.zip"
-        shell: bash
-
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -109,5 +84,4 @@ jobs:
           path: |
             app-*-release.ipa
             app-*-ios-release.zip
-            app-*-ios-simulator.zip
           retention-days: 14

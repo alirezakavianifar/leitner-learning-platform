@@ -32,15 +32,6 @@ on:
           - arm64-v8a
           - universal
           - all
-      ios_build_type:
-        description: 'iOS Build Target'
-        required: true
-        default: 'both'
-        type: choice
-        options:
-          - both
-          - ipa
-          - simulator
       target_url:
         description: 'Backend Target API URL'
         required: true
@@ -220,10 +211,10 @@ jobs:
         shell: bash
 
   # ===========================================================================
-  #  2. iOS IPA & Simulator Build Job (macOS Apple Silicon Runner)
+  #  2. iOS Release IPA Build Job (macOS Apple Silicon Runner)
   # ===========================================================================
   build-ios:
-    name: iOS Bundle (${{ inputs.flavor || 'premium' }} - ${{ inputs.ios_build_type || 'both' }})
+    name: iOS Release IPA (${{ inputs.flavor || 'premium' }})
     runs-on: macos-14
     timeout-minutes: 60
 
@@ -254,9 +245,8 @@ jobs:
           flutter pub get
         shell: bash
 
-      # 2a. Build Physical iOS Release Bundle & Package IPA
+      # 2. Build Physical iOS Release Bundle & Package IPA
       - name: Build iOS Release Bundle & Package IPA
-        if: ${{ inputs.ios_build_type == 'ipa' || inputs.ios_build_type == 'both' || github.event_name == 'push' }}
         run: |
           cd mobile-app
           FLAVOR="${{ inputs.flavor || 'premium' }}"
@@ -278,25 +268,6 @@ jobs:
           echo "Created IPA archive: app-${FLAVOR}-release.ipa and app-${FLAVOR}-ios-release.zip"
         shell: bash
 
-      # 2b. Build iOS Simulator Bundle (Appetize.io & Simulator Ready)
-      - name: Build iOS Simulator App
-        if: ${{ inputs.ios_build_type == 'simulator' || inputs.ios_build_type == 'both' || github.event_name == 'push' }}
-        run: |
-          cd mobile-app
-          FLAVOR="${{ inputs.flavor || 'premium' }}"
-          API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir/api/v1' }}"
-          echo "Building iOS Simulator release for flavor: $FLAVOR with API: $API_URL"
-          
-          # Clean intermediate device build outputs to prevent architecture conflicts
-          rm -rf build/ios
-          flutter build ios --simulator --debug -t "lib/main_${FLAVOR}.dart" --dart-define=API_BASE_URL="$API_URL"
-          
-          # Package Simulator .app to ZIP for Appetize.io & Simulators
-          cd build/ios/iphonesimulator
-          zip -r -y "${GITHUB_WORKSPACE}/app-${FLAVOR}-ios-simulator.zip" Runner.app
-          echo "Created simulator archive: app-${FLAVOR}-ios-simulator.zip"
-        shell: bash
-
       - name: Upload iOS Build Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -304,5 +275,4 @@ jobs:
           path: |
             app-*-release.ipa
             app-*-ios-release.zip
-            app-*-ios-simulator.zip
           retention-days: 14

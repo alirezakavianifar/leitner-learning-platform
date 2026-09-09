@@ -348,12 +348,11 @@ powershell -ExecutionPolicy Bypass -File ./scripts/manage-admin.ps1 -Target Loca
         2. **Automated Cloud Build (GitHub Actions macOS Runner):**
            For developers on Windows without a physical Mac:
            - Go to **Actions** -> **iOS Build & Distribution Pipeline** in GitHub repository.
-           - Select **Run workflow**, choose Flavor (`premium` or `store`), enter Backend Target URL, and click **Run**.
-           - The GitHub macOS-14 runner automatically builds `app-premium-release.ipa` and `app-premium-ios-simulator.zip`, uploads workflow artifacts, and delivers the package to the Rubika bot.
+           - Select **Run workflow**, choose Flavor (`premium`, `direct`, `bazaar`, `myket`, `googleplay`, or `store`), enter Backend Target URL, and click **Run**.
+           - The GitHub macOS-14 runner automatically builds `app-premium-release.ipa` and `app-premium-ios-release.zip`, and uploads workflow artifacts.
         3. **Installing iOS Build on iPhone / iPad:**
            - **Sideloadly (Recommended):** Download [Sideloadly](https://sideloadly.io), plug in iPhone via USB, drag `app-premium-release.ipa`, enter your free Apple ID, and install.
            - **AltStore / Scarlet / TrollStore:** Import `app-premium-release.ipa` directly on the device.
-           - **Appetize.io Live In-Browser Streaming:** Drag `app-premium-ios-simulator.zip` to [Appetize.io Upload](https://appetize.io/upload) to test the app in an interactive iOS simulator directly in your browser.
 
     *   **App Icon & Notification Icon Asset Generation:**
         To generate, optimize, and synchronize all launcher icons, in-app WebP assets, and Android status bar notification silhouettes:
