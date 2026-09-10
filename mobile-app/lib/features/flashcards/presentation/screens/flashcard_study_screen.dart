@@ -434,6 +434,7 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                     const SizedBox(height: 8),
                     Text(
                       _generateAiCardInsight(frontClean, backClean),
+                      textDirection: detectTextDirection(_generateAiCardInsight(frontClean, backClean)),
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 13.5,
@@ -1205,16 +1206,19 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                           builder: (context) {
                             final mainText = isFront ? card.questionText : card.answerText;
                             final mainDirection = detectTextDirection(mainText);
-                            return Text(
-                              mainText,
+                            return Directionality(
                               textDirection: mainDirection,
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 20 * _fontScale,
-                                height: 1.5,
-                                fontWeight: FontWeight.w500,
+                              child: Text(
+                                mainText,
+                                textDirection: mainDirection,
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 20 * _fontScale,
+                                  height: 1.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                              textAlign: TextAlign.center,
                             );
                           },
                         ),

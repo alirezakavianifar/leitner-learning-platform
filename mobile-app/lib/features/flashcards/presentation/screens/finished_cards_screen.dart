@@ -9,6 +9,7 @@ import 'package:mobile_app/features/config/presentation/bloc/config_state.dart';
 import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
 import 'package:mobile_app/injection_container.dart' as di;
+import 'package:mobile_app/core/utils/bidi_utils.dart';
 
 class FinishedCardsScreen extends StatefulWidget {
   const FinishedCardsScreen({Key? key}) : super(key: key);
@@ -234,16 +235,26 @@ class _FinishedCardsScreenState extends State<FinishedCardsScreen> {
                                       Expanded(
                                         child: Center(
                                           child: SingleChildScrollView(
-                                            child: Text(
-                                              _showAnswer
-                                                  ? _finishedCards[_currentIndex].answerText
-                                                  : _finishedCards[_currentIndex].questionText,
-                                              style: TextStyle(
-                                                color: AppColors.textPrimary,
-                                                fontSize: 20,
-                                                height: 1.5,
-                                              ),
-                                              textAlign: TextAlign.center,
+                                            child: Builder(
+                                              builder: (context) {
+                                                final text = _showAnswer
+                                                    ? _finishedCards[_currentIndex].answerText
+                                                    : _finishedCards[_currentIndex].questionText;
+                                                final direction = detectTextDirection(text);
+                                                return Directionality(
+                                                  textDirection: direction,
+                                                  child: Text(
+                                                    text,
+                                                    textDirection: direction,
+                                                    style: TextStyle(
+                                                      color: AppColors.textPrimary,
+                                                      fontSize: 20,
+                                                      height: 1.5,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                );
+                                              },
                                             ),
                                           ),
                                         ),

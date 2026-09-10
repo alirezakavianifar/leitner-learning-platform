@@ -5,6 +5,7 @@ import 'package:mobile_app/features/flashcards/domain/entities/flashcard.dart';
 import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_repository.dart';
 import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
 import 'package:mobile_app/injection_container.dart' as di;
+import 'package:mobile_app/core/utils/bidi_utils.dart';
 
 class FavoritesScreen extends StatefulWidget {
   final String courseId;
@@ -138,6 +139,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         title: Text(
                           card.questionText,
+                          textDirection: detectTextDirection(card.questionText),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500, fontSize: 15),

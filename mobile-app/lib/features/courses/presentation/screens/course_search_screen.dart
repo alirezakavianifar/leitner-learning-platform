@@ -9,6 +9,7 @@ import 'package:mobile_app/features/flashcards/domain/repositories/flashcard_rep
 import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
 import 'package:mobile_app/injection_container.dart' as di;
 import 'package:mobile_app/core/localization/app_localizations.dart';
+import 'package:mobile_app/core/utils/bidi_utils.dart';
 
 class CourseSearchScreen extends StatefulWidget {
   const CourseSearchScreen({super.key});
@@ -378,6 +379,7 @@ class _CourseSearchScreenState extends State<CourseSearchScreen> {
                                                       const SizedBox(height: 6),
                                                       Text(
                                                         card.questionText,
+                                                        textDirection: detectTextDirection(card.questionText),
                                                         maxLines: 2,
                                                         overflow: TextOverflow.ellipsis,
                                                         style: TextStyle(color: AppColors.textSecondary, fontSize: 13),

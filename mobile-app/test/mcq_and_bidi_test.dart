@@ -138,4 +138,35 @@ void main() {
       expect(result, isNull);
     });
   });
+
+  group('BiDi TextPainter layout tests', () {
+    testWidgets('TextPainter with LTR vs RTL on card 14 question', (tester) async {
+      const text = "Hello, my name is Joshua Brown. Hi, my name is Isabella Martins. It's nice to meet you Isabella. Nice to meet you too. I'm sorry, what's your last name again? It's Martins.";
+      
+      // Paint with LTR
+      final painterLtr = TextPainter(
+        text: const TextSpan(text: text, style: TextStyle(fontSize: 20)),
+        textDirection: TextDirection.ltr,
+        textAlign: TextAlign.center,
+      );
+      painterLtr.layout(maxWidth: 300);
+
+      // Paint with RTL
+      final painterRtl = TextPainter(
+        text: const TextSpan(text: text, style: TextStyle(fontSize: 20)),
+        textDirection: TextDirection.rtl,
+        textAlign: TextAlign.center,
+      );
+      painterRtl.layout(maxWidth: 300);
+
+      final boxesLtr = painterLtr.getBoxesForSelection(TextSelection(baseOffset: text.length - 1, extentOffset: text.length));
+      final boxesRtl = painterRtl.getBoxesForSelection(TextSelection(baseOffset: text.length - 1, extentOffset: text.length));
+      
+      // In LTR, trailing period is at the right end of the text line
+      // In RTL, trailing period flips to the visual left end
+      expect(boxesLtr.first.left, greaterThan(boxesRtl.first.left));
+      expect(detectTextDirection(text), equals(TextDirection.ltr));
+    });
+  });
 }
+
