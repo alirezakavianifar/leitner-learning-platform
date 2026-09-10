@@ -149,7 +149,9 @@ export const api = {
                 if (xhr.status === 408) msg = 'Upload timed out. Please try again.';
                 if (xhr.status === 413) msg = 'File size is too large.';
               }
-              reject(new Error(msg));
+              const errorObj: any = new Error(msg);
+              errorObj.status = xhr.status;
+              reject(errorObj);
             }
           };
 
@@ -225,8 +227,11 @@ export const api = {
               }
             });
             success = true;
-          } catch (err) {
-            if (attempts >= 3) throw err;
+          } catch (err: any) {
+            // Do not retry 4xx errors (client issues, invalid metadata) or fatal assembly errors on the final chunk
+            if (attempts >= 3 || (err?.status && err.status >= 400 && err.status < 500) || (i === totalChunks - 1 && err?.status >= 400)) {
+              throw err;
+            }
             await new Promise((r) => setTimeout(r, 1000));
           }
         }

@@ -1160,26 +1160,39 @@ namespace LeitnerPlatform.API.Controllers.v1
 
             if (distinctIndices.Count < totalChunks)
             {
+                if (chunkIndex == totalChunks - 1)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Final chunk received, but only {distinctIndices.Count}/{totalChunks} distinct chunks exist on server for upload {uploadId}."
+                    });
+                }
                 return Ok(new { success = true, message = $"Chunk {chunkIndex + 1}/{totalChunks} received.", completed = false });
             }
 
             // Reassemble chunks into single ZIP file (ordered by padded index in the filename).
             Array.Sort(uploadedChunks, StringComparer.Ordinal);
             var tempZipPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.zip");
-            using (var destinationStream = new FileStream(tempZipPath, FileMode.Create))
+            try
             {
-                foreach (var chunkPath in uploadedChunks)
+                using (var destinationStream = new FileStream(tempZipPath, FileMode.Create))
                 {
-                    using (var sourceStream = new FileStream(chunkPath, FileMode.Open, FileAccess.Read))
+                    foreach (var chunkPath in uploadedChunks)
                     {
-                        await sourceStream.CopyToAsync(destinationStream);
+                        using (var sourceStream = new FileStream(chunkPath, FileMode.Open, FileAccess.Read))
+                        {
+                            await sourceStream.CopyToAsync(destinationStream);
+                        }
                     }
                 }
+
+                return await ProcessZipPackageInternal(tempZipPath, fileName);
             }
-
-            try { Directory.Delete(chunkDir, true); } catch { }
-
-            return await ProcessZipPackageInternal(tempZipPath, fileName);
+            finally
+            {
+                try { Directory.Delete(chunkDir, true); } catch { }
+            }
         }
 
         private async Task<IActionResult> ProcessZipPackageInternal(string tempZipPath, string originalFileName)

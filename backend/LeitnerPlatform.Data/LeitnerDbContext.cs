@@ -147,6 +147,7 @@ namespace LeitnerPlatform.Data
                 entity.Property(e => e.AnswerText).HasColumnName("answer_text").IsRequired();
                 entity.Property(e => e.ImageUrl).HasColumnName("image_url").HasMaxLength(512);
                 entity.Property(e => e.AudioUrl).HasColumnName("audio_url").HasMaxLength(512);
+                entity.Property(e => e.Options).HasColumnName("options");
 
                 entity.HasOne(e => e.Course)
                     .WithMany()
