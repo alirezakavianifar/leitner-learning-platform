@@ -1,5 +1,6 @@
 import 'package:mobile_app/core/network/dio_client.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_poolakey/flutter_poolakey.dart';
 
 
 abstract class PaymentProvider {
@@ -30,33 +31,136 @@ class GooglePlayPaymentProvider implements PaymentProvider {
 
 class BazaarPaymentProvider implements PaymentProvider {
   final DioClient dioClient;
-  BazaarPaymentProvider(this.dioClient);
+  final String? rsaKey;
+
+  BazaarPaymentProvider(this.dioClient, {this.rsaKey});
 
   @override
   String get providerName => 'BAZAAR';
 
+  /// Submits a verified purchase token to the backend server
+  Future<bool> verifyAndCompletePurchase({
+    String? courseId,
+    String? packageId,
+    required String purchaseToken,
+  }) async {
+    final token = purchaseToken.trim();
+    if (token.isEmpty ||
+        token.toLowerCase().contains('mock') ||
+        token.toLowerCase().contains('fake') ||
+        token.toLowerCase().contains('simulated')) {
+      return false;
+    }
+
+    try {
+      if (packageId != null && packageId.isNotEmpty) {
+        final response = await dioClient.dio.post('/purchases/package', data: {
+          'package_id': packageId,
+          'payment_provider': 'BAZAAR',
+          'transaction_id': token,
+        });
+        return response.statusCode == 200 || response.statusCode == 201;
+      } else if (courseId != null && courseId.isNotEmpty) {
+        final response = await dioClient.dio.post('/purchases', data: {
+          'course_id': courseId,
+          'payment_provider': 'BAZAAR',
+          'transaction_id': token,
+        });
+        return response.statusCode == 200 || response.statusCode == 201;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Future<bool> purchaseCourse(String courseId) async {
-    // In-app purchases on Cafe Bazaar require verified Bazaar IAB purchase tokens.
-    // Mock auto-complete is strictly disabled to prevent unauthorized downloads.
+    try {
+      if (rsaKey != null && rsaKey!.isNotEmpty) {
+        await FlutterPoolakey.connect(rsaKey!);
+        final purchaseInfo = await FlutterPoolakey.purchase(courseId);
+        if (purchaseInfo.purchaseToken.isNotEmpty) {
+          return await verifyAndCompletePurchase(
+            courseId: courseId,
+            purchaseToken: purchaseInfo.purchaseToken,
+          );
+        }
+      }
+    } catch (_) {
+      // Clean fallback if Bazaar is not installed or cancelled
+    }
     return false;
   }
 
   @override
   Future<bool> purchasePackage(String packageId) async {
+    try {
+      if (rsaKey != null && rsaKey!.isNotEmpty) {
+        await FlutterPoolakey.connect(rsaKey!);
+        final purchaseInfo = await FlutterPoolakey.purchase(packageId);
+        if (purchaseInfo.purchaseToken.isNotEmpty) {
+          return await verifyAndCompletePurchase(
+            packageId: packageId,
+            purchaseToken: purchaseInfo.purchaseToken,
+          );
+        }
+      }
+    } catch (_) {
+      // Clean fallback
+    }
     return false;
   }
 }
 
 class MyketPaymentProvider implements PaymentProvider {
   final DioClient dioClient;
-  MyketPaymentProvider(this.dioClient);
+  final String? rsaKey;
+
+  MyketPaymentProvider(this.dioClient, {this.rsaKey});
 
   @override
   String get providerName => 'MYKET';
 
+  /// Submits a verified Myket purchase token to the backend server
+  Future<bool> verifyAndCompletePurchase({
+    String? courseId,
+    String? packageId,
+    required String purchaseToken,
+  }) async {
+    final token = purchaseToken.trim();
+    if (token.isEmpty ||
+        token.toLowerCase().contains('mock') ||
+        token.toLowerCase().contains('fake') ||
+        token.toLowerCase().contains('simulated')) {
+      return false;
+    }
+
+    try {
+      if (packageId != null && packageId.isNotEmpty) {
+        final response = await dioClient.dio.post('/purchases/package', data: {
+          'package_id': packageId,
+          'payment_provider': 'MYKET',
+          'transaction_id': token,
+        });
+        return response.statusCode == 200 || response.statusCode == 201;
+      } else if (courseId != null && courseId.isNotEmpty) {
+        final response = await dioClient.dio.post('/purchases', data: {
+          'course_id': courseId,
+          'payment_provider': 'MYKET',
+          'transaction_id': token,
+        });
+        return response.statusCode == 200 || response.statusCode == 201;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Future<bool> purchaseCourse(String courseId) async {
+    // Requires native Myket billing flow completion; token then posted to verifyAndCompletePurchase
     return false;
   }
 

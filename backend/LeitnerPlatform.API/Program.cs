@@ -85,6 +85,7 @@ builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
 // 7. Register Infrastructure Services
 builder.Services.AddHttpClient<ISmsService, SmsService>();
 builder.Services.AddHttpClient<IZarinPalService, ZarinPalService>();
+builder.Services.AddHttpClient<IStoreVerificationService, StoreVerificationService>();
 builder.Services.AddScoped<ICaptchaService, CaptchaService>();
 builder.Services.AddScoped<IBackupService, S3BackupService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();

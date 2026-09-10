@@ -316,7 +316,30 @@ powershell -ExecutionPolicy Bypass -File ./scripts/manage-admin.ps1 -Target Loca
            - `myket`: Myket distribution APK with native **Myket In-App Billing (IAB)**.
            - `googleplay`: Google Play Store build (`.aab` and `.apk`) with native **Google Play Billing**.
            - `store`: Universal reader build with non-IAP descriptive guidance.
-        3. **Local Build via PowerShell (Windows / Linux):**
+        3. **In-App Purchase (IAP) Activation Guide (Cafe Bazaar & Myket):**
+           - **Developer Console Prerequisites:**
+             1. **Identity & Bank Verification:** Verify developer identity and bank account (Sheba / IBAN) in [Cafe Bazaar Pishkhan](https://pishkhan.cafebazaar.ir/) and [Myket Developer Console](https://developer.myket.ir/).
+             2. **Upload Initial Base Package:** Upload an initial signed APK (can remain in unpublished draft status) containing billing permissions so the console unlocks the "In-App Billing" menu and generates the store **RSA Public Key**.
+             3. **Define SKUs / Digital Products:** Register products (Course / Bundle IDs) as **Non-consumable** with matching product IDs and prices in Tomans.
+           - **Android Manifest & ProGuard (Configured in Codebase):**
+             - Permissions: `com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR` and `ir.mservices.market.BILLING`.
+             - Package Visibility (`<queries>` for Android 11+): Declares `com.farsitel.bazaar` and `ir.mservices.market` so billing clients can discover and bind to store services.
+             - ProGuard Keep Rules: Preserves Bazaar Poolakey (`com.farsitel.bazaar.**`, `ir.cafebazaar.poolakey.**`) and Myket (`ir.mservices.market.**`) AIDL billing interfaces during release minification.
+           - **Backend Store Verification Configuration:**
+             Configure store credentials in `backend/LeitnerPlatform.API/appsettings.json` (or environment variables) for real-time server-side receipt validation:
+             ```json
+             "CafeBazaar": {
+               "ClientId": "<YOUR_CLIENT_ID>",
+               "ClientSecret": "<YOUR_CLIENT_SECRET>",
+               "RefreshToken": "<YOUR_REFRESH_TOKEN>",
+               "PackageName": "com.leitnerplatform.mobile_app"
+             },
+             "Myket": {
+               "AccessToken": "<YOUR_MYKET_ACCESS_TOKEN>",
+               "PackageName": "com.leitnerplatform.mobile_app"
+             }
+             ```
+        4. **Local Build via PowerShell (Windows / Linux):**
            - **Start Tunnel:** Launch a persistent public tunnel pointing to your local backend (port 5217):
              ```powershell
              powershell -ExecutionPolicy Bypass -File ./scripts/start-tunnel.ps1

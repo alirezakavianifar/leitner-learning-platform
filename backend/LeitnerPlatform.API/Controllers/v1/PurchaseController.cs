@@ -25,19 +25,22 @@ namespace LeitnerPlatform.API.Controllers.v1
         private readonly IZarinPalService _zarinPalService;
         private readonly IConfiguration _configuration;
         private readonly ILogger<PurchaseController> _logger;
+        private readonly IStoreVerificationService? _storeVerificationService;
 
         public PurchaseController(
             LeitnerDbContext context,
             IEventBus eventBus,
             IZarinPalService zarinPalService,
             IConfiguration configuration,
-            ILogger<PurchaseController> _logger)
+            ILogger<PurchaseController> _logger,
+            IStoreVerificationService? storeVerificationService = null)
         {
             _context = context;
             _eventBus = eventBus;
             _zarinPalService = zarinPalService;
             _configuration = configuration;
             this._logger = _logger;
+            _storeVerificationService = storeVerificationService;
         }
 
 
@@ -95,6 +98,24 @@ namespace LeitnerPlatform.API.Controllers.v1
                         error_code = "DIRECT_PAYMENT_VERIFICATION_REQUIRED",
                         message = "Direct purchases must be initiated via /zarinpal/request and verified through the payment gateway callback."
                     });
+                }
+
+                var providerClean = input.PaymentProvider?.Trim().ToUpperInvariant() ?? string.Empty;
+                if (providerClean == "BAZAAR" || providerClean == "CAFE_BAZAAR" || providerClean == "MYKET")
+                {
+                    if (_storeVerificationService != null)
+                    {
+                        var verifyResult = await _storeVerificationService.VerifyPurchaseAsync(providerClean, input.CourseId.ToString(), input.TransactionId);
+                        if (!verifyResult.IsValid)
+                        {
+                            return BadRequest(new
+                            {
+                                success = false,
+                                error_code = "STORE_VERIFICATION_FAILED",
+                                message = $"Store purchase verification failed: {verifyResult.Message}"
+                            });
+                        }
+                    }
                 }
             }
 
@@ -282,6 +303,24 @@ namespace LeitnerPlatform.API.Controllers.v1
                         error_code = "DIRECT_PAYMENT_VERIFICATION_REQUIRED",
                         message = "Direct package purchases must be initiated via /zarinpal/package-request and verified through the payment gateway callback."
                     });
+                }
+
+                var pkgProviderClean = input.PaymentProvider?.Trim().ToUpperInvariant() ?? string.Empty;
+                if (pkgProviderClean == "BAZAAR" || pkgProviderClean == "CAFE_BAZAAR" || pkgProviderClean == "MYKET")
+                {
+                    if (_storeVerificationService != null)
+                    {
+                        var verifyResult = await _storeVerificationService.VerifyPurchaseAsync(pkgProviderClean, input.PackageId.ToString(), input.TransactionId);
+                        if (!verifyResult.IsValid)
+                        {
+                            return BadRequest(new
+                            {
+                                success = false,
+                                error_code = "STORE_VERIFICATION_FAILED",
+                                message = $"Store package purchase verification failed: {verifyResult.Message}"
+                            });
+                        }
+                    }
                 }
             }
 

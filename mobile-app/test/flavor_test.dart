@@ -79,6 +79,39 @@ void main() {
 
       final packageResult = await provider.purchasePackage('package-123');
       expect(packageResult, false);
+
+      // Explicitly verifies reject of mock/fake purchase tokens
+      final mockResult = await provider.verifyAndCompletePurchase(
+        courseId: 'course-123',
+        purchaseToken: 'mock-token-test',
+      );
+      expect(mockResult, false);
+    });
+  });
+
+  group('MyketPaymentProvider Security Tests', () {
+    test('MyketPaymentProvider strictly denies mock purchases without verified token', () async {
+      final dio = Dio();
+      final client = DioClient(
+        dio: dio,
+        storageService: MockStorageService(),
+        baseUrl: 'http://localhost/api/v1',
+        flavor: 'myket',
+      );
+      final provider = MyketPaymentProvider(client);
+
+      final courseResult = await provider.purchaseCourse('course-123');
+      expect(courseResult, false);
+
+      final packageResult = await provider.purchasePackage('package-123');
+      expect(packageResult, false);
+
+      final mockResult = await provider.verifyAndCompletePurchase(
+        courseId: 'course-123',
+        purchaseToken: 'mock-token-test',
+      );
+      expect(mockResult, false);
     });
   });
 }
+

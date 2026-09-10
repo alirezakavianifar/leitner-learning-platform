@@ -451,6 +451,125 @@ namespace LeitnerPlatform.Tests
             Assert.NotNull(purchase);
             Assert.Equal("COMPLETED", purchase.Status);
         }
+
+        [Fact]
+        public async Task PurchaseController_CreatePurchase_WithStoreVerificationService_ShouldValidateAndComplete()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var userId = Guid.NewGuid();
+            var course = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Bazaar Verified Course",
+                Price = 50000m,
+                IsPublished = true
+            };
+            await db.Courses.AddAsync(course);
+            await db.SaveChangesAsync();
+
+            var mockEventBus = new Mock<IEventBus>();
+            var mockZarinPalService = new Mock<IZarinPalService>();
+            var mockConfig = new Mock<IConfiguration>();
+            var mockLogger = new Mock<ILogger<PurchaseController>>();
+            var mockStoreVerification = new Mock<IStoreVerificationService>();
+
+            mockStoreVerification
+                .Setup(s => s.VerifyPurchaseAsync("BAZAAR", course.Id.ToString(), "VALID_BZ_TOKEN_12345"))
+                .ReturnsAsync(new StoreVerificationResult { IsValid = true, PurchaseToken = "VALID_BZ_TOKEN_12345" });
+
+            var controller = new PurchaseController(
+                db,
+                mockEventBus.Object,
+                mockZarinPalService.Object,
+                mockConfig.Object,
+                mockLogger.Object,
+                mockStoreVerification.Object);
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) }, "TestAuth"))
+                }
+            };
+
+            var input = new CreatePurchaseInput
+            {
+                CourseId = course.Id,
+                PaymentProvider = "BAZAAR",
+                TransactionId = "VALID_BZ_TOKEN_12345"
+            };
+
+            // Act
+            var result = await controller.CreatePurchase(input);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var purchase = await db.Purchases.FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == course.Id);
+            Assert.NotNull(purchase);
+            Assert.Equal("COMPLETED", purchase.Status);
+            Assert.Equal("BAZAAR", purchase.PaymentProvider);
+            Assert.Equal("VALID_BZ_TOKEN_12345", purchase.TransactionId);
+        }
+
+        [Fact]
+        public async Task PurchaseController_CreatePurchase_WhenStoreVerificationFails_ShouldReturnBadRequest()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var userId = Guid.NewGuid();
+            var course = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Myket Unverified Course",
+                Price = 75000m,
+                IsPublished = true
+            };
+            await db.Courses.AddAsync(course);
+            await db.SaveChangesAsync();
+
+            var mockEventBus = new Mock<IEventBus>();
+            var mockZarinPalService = new Mock<IZarinPalService>();
+            var mockConfig = new Mock<IConfiguration>();
+            var mockLogger = new Mock<ILogger<PurchaseController>>();
+            var mockStoreVerification = new Mock<IStoreVerificationService>();
+
+            mockStoreVerification
+                .Setup(s => s.VerifyPurchaseAsync("MYKET", course.Id.ToString(), "INVALID_MYKET_TOKEN"))
+                .ReturnsAsync(new StoreVerificationResult { IsValid = false, Message = "Token not found on Myket server." });
+
+            var controller = new PurchaseController(
+                db,
+                mockEventBus.Object,
+                mockZarinPalService.Object,
+                mockConfig.Object,
+                mockLogger.Object,
+                mockStoreVerification.Object);
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) }, "TestAuth"))
+                }
+            };
+
+            var input = new CreatePurchaseInput
+            {
+                CourseId = course.Id,
+                PaymentProvider = "MYKET",
+                TransactionId = "INVALID_MYKET_TOKEN"
+            };
+
+            // Act
+            var result = await controller.CreatePurchase(input);
+
+            // Assert
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+            var purchase = await db.Purchases.FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == course.Id);
+            Assert.Null(purchase);
+        }
     }
 }
 

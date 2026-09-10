@@ -138,6 +138,14 @@ namespace LeitnerPlatform.Tests
                 CreatedAt = DateTime.UtcNow
             };
 
+            var wwwrootPaid = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "courses");
+            Directory.CreateDirectory(wwwrootPaid);
+            var dummyZipPath = Path.Combine(wwwrootPaid, "paid.zip");
+            if (!File.Exists(dummyZipPath))
+            {
+                File.WriteAllBytes(dummyZipPath, new byte[] { 1, 2, 3, 4 });
+            }
+
             await db.Courses.AddAsync(coursePaid);
             await db.SaveChangesAsync();
 

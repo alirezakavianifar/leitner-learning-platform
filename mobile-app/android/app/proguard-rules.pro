@@ -43,3 +43,17 @@
 -dontwarn com.google.android.gms.auth.api.phone.**
 -keep class fman.ge.smart_auth.** { *; }
 -dontwarn fman.ge.smart_auth.**
+
+# Cafe Bazaar In-App Billing (Poolakey & Bazaar AIDL)
+-keep class com.farsitel.bazaar.** { *; }
+-keep interface com.farsitel.bazaar.** { *; }
+-dontwarn com.farsitel.bazaar.**
+-keep class ir.cafebazaar.poolakey.** { *; }
+-keep interface ir.cafebazaar.poolakey.** { *; }
+-dontwarn ir.cafebazaar.poolakey.**
+
+# Myket In-App Billing
+-keep class ir.mservices.market.** { *; }
+-keep interface ir.mservices.market.** { *; }
+-dontwarn ir.mservices.market.**
+
