@@ -85,6 +85,7 @@ class AppLocalizations {
       'logout': 'Logout',
       'logout_confirm': 'Are you sure you want to log out?',
       'cancel': 'Cancel',
+      'close': 'Close',
       'confirm': 'Confirm',
       'scheduled_maintenance': 'Scheduled Maintenance',
       'maintenance_msg': 'The platform is currently undergoing maintenance. Please try again later.',
@@ -465,6 +466,7 @@ class AppLocalizations {
       'logout': 'خروج از حساب',
       'logout_confirm': 'آیا برای خروج از حساب کاربری اطمینان دارید؟',
       'cancel': 'انصراف',
+      'close': 'بستن',
       'confirm': 'تایید خروج',
       'scheduled_maintenance': 'به‌روزرسانی و پشتیبانی سیستم',
       'maintenance_msg': 'سامانه در حال حاضر در حال بروزرسانی می‌باشد. لطفا شکیبا باشید.',
@@ -840,6 +842,7 @@ class AppLocalizations {
   String get logout => translate('logout');
   String get logoutConfirm => translate('logout_confirm');
   String get cancel => translate('cancel');
+  String get close => translate('close');
   String get confirm => translate('confirm');
   String get scheduledMaintenance => translate('scheduled_maintenance');
   String get maintenanceMsg => translate('maintenance_msg');

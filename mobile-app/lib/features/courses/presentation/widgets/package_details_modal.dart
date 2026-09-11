@@ -21,7 +21,10 @@ class PackageDetailsModal extends StatelessWidget {
   }) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => PackageDetailsModal(
         package: package,
