@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:mobile_app/core/error/failures.dart';
 import 'package:mobile_app/features/courses/data/datasources/courses_local_data_source.dart';
 import 'package:mobile_app/features/courses/data/datasources/courses_remote_data_source.dart';
 import 'package:mobile_app/features/courses/data/models/course_model.dart';
@@ -34,11 +32,6 @@ class MockRemoteDataSource implements CoursesRemoteDataSource {
 
   @override
   Future<List<CoursePackageModel>> getPackages() async => [];
-
-  @override
-  Future<CourseModel> getCourse(String id) async {
-    throw UnimplementedError();
-  }
 }
 
 class MockLocalDataSource implements CoursesLocalDataSource {

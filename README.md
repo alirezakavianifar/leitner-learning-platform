@@ -325,6 +325,7 @@ powershell -ExecutionPolicy Bypass -File ./scripts/manage-admin.ps1 -Target Loca
              - Permissions: `com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR` and `ir.mservices.market.BILLING`.
              - Package Visibility (`<queries>` for Android 11+): Declares `com.farsitel.bazaar` and `ir.mservices.market` so billing clients can discover and bind to store services.
              - ProGuard Keep Rules: Preserves Bazaar Poolakey (`com.farsitel.bazaar.**`, `ir.cafebazaar.poolakey.**`) and Myket (`ir.mservices.market.**`) AIDL billing interfaces during release minification.
+             - Vendored Package (`packages/flutter_poolakey`): The Bazaar Poolakey Flutter plugin is maintained locally in `mobile-app/packages/flutter_poolakey` with modernized Gradle 8.x/9.x and Android Gradle Plugin 8.11+ compatibility, eliminating deprecated `jcenter()` repositories and obsolete AGP 7 buildscript classpaths.
            - **Backend Store Verification Configuration:**
              Configure store credentials in `backend/LeitnerPlatform.API/appsettings.json` (or environment variables) for real-time server-side receipt validation:
              ```json
