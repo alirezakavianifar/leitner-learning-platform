@@ -183,67 +183,29 @@ namespace LeitnerPlatform.Data
                             }
                         }
 
-                        int idxCardNum = columns.IndexOf("card_number");
-                        if (idxCardNum == -1) idxCardNum = columns.IndexOf("number");
-                        if (idxCardNum == -1) idxCardNum = columns.IndexOf("id");
+                        var cleanColumns = columns.Select(c => c.Replace("_", "").Replace(" ", "").Replace("-", "")).ToList();
+                        int FindCol(params string[] aliases)
+                        {
+                            foreach (var alias in aliases)
+                            {
+                                var clean = alias.ToLowerInvariant().Replace("_", "").Replace(" ", "").Replace("-", "");
+                                int idx = cleanColumns.IndexOf(clean);
+                                if (idx != -1) return idx;
+                            }
+                            return -1;
+                        }
 
-                        int idxQuestion = columns.IndexOf("question_text");
-                        if (idxQuestion == -1) idxQuestion = columns.IndexOf("questions");
-                        if (idxQuestion == -1) idxQuestion = columns.IndexOf("question");
-                        if (idxQuestion == -1) idxQuestion = columns.IndexOf("front");
+                        int idxCardNum = FindCol("cardnumber", "number", "id");
+                        int idxQuestion = FindCol("questiontext", "questions", "question", "front");
+                        int idxAnswer = FindCol("answertext", "answers", "answer", "back");
+                        int idxImage = FindCol("imagename", "frontimage", "image", "imageurl");
+                        int idxAudio = FindCol("audioname", "frontvoice", "audio", "audiourl");
+                        int idxOptions = FindCol("options", "choices");
 
-                        int idxAnswer = columns.IndexOf("answer_text");
-                        if (idxAnswer == -1) idxAnswer = columns.IndexOf("answer");
-                        if (idxAnswer == -1) idxAnswer = columns.IndexOf("answers");
-                        if (idxAnswer == -1) idxAnswer = columns.IndexOf("back");
-
-                        int idxImage = columns.IndexOf("image_name");
-                        if (idxImage == -1) idxImage = columns.IndexOf("front image");
-                        if (idxImage == -1) idxImage = columns.IndexOf("image");
-                        if (idxImage == -1) idxImage = columns.IndexOf("image_url");
-
-                        int idxAudio = columns.IndexOf("audio_name");
-                        if (idxAudio == -1) idxAudio = columns.IndexOf("front voice");
-                        if (idxAudio == -1) idxAudio = columns.IndexOf("audio");
-                        if (idxAudio == -1) idxAudio = columns.IndexOf("audio_url");
-
-                        int idxOptions = columns.IndexOf("options");
-
-                        int idxOpt1 = columns.IndexOf("first option");
-                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("option 1");
-                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("option_1");
-                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("option1");
-                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("choice 1");
-                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("choice_1");
-                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("choice1");
-                        if (idxOpt1 == -1) idxOpt1 = columns.IndexOf("first_option");
-
-                        int idxOpt2 = columns.IndexOf("second option");
-                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("option 2");
-                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("option_2");
-                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("option2");
-                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("choice 2");
-                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("choice_2");
-                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("choice2");
-                        if (idxOpt2 == -1) idxOpt2 = columns.IndexOf("second_option");
-
-                        int idxOpt3 = columns.IndexOf("third option");
-                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("option 3");
-                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("option_3");
-                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("option3");
-                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("choice 3");
-                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("choice_3");
-                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("choice3");
-                        if (idxOpt3 == -1) idxOpt3 = columns.IndexOf("third_option");
-
-                        int idxOpt4 = columns.IndexOf("fourth option");
-                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("option 4");
-                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("option_4");
-                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("option4");
-                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("choice 4");
-                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("choice_4");
-                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("choice4");
-                        if (idxOpt4 == -1) idxOpt4 = columns.IndexOf("fourth_option");
+                        int idxOpt1 = FindCol("firstoption", "option1", "opt1", "choice1", "1stoption");
+                        int idxOpt2 = FindCol("secondoption", "option2", "opt2", "choice2", "2ndoption");
+                        int idxOpt3 = FindCol("thirdoption", "option3", "opt3", "choice3", "3rdoption");
+                        int idxOpt4 = FindCol("fourthoption", "option4", "opt4", "choice4", "4thoption");
 
                         using (var tx = destConn.BeginTransaction())
                         using (var cmd = new SqliteCommand("SELECT * FROM cards", srcConn))
@@ -272,7 +234,7 @@ namespace LeitnerPlatform.Data
                                         {
                                             var parts = rawOpt.Split(new[] { '\n', ';', ',' }, StringSplitOptions.RemoveEmptyEntries)
                                                               .Select(p => p.Trim())
-                                                              .Where(p => !string.IsNullOrEmpty(p))
+                                                              .Where(p => !string.IsNullOrEmpty(p) && !string.Equals(p, "null", StringComparison.OrdinalIgnoreCase))
                                                               .ToList();
                                             if (parts.Count > 0)
                                             {
@@ -290,7 +252,7 @@ namespace LeitnerPlatform.Data
                                         if (optIdx != -1 && !reader.IsDBNull(optIdx))
                                         {
                                             string optVal = reader.GetString(optIdx).Trim();
-                                            if (!string.IsNullOrEmpty(optVal))
+                                            if (!string.IsNullOrEmpty(optVal) && !string.Equals(optVal, "null", StringComparison.OrdinalIgnoreCase) && !string.Equals(optVal, "none", StringComparison.OrdinalIgnoreCase))
                                             {
                                                 separateOpts.Add(optVal);
                                             }

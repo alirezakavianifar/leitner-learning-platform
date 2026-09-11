@@ -287,69 +287,28 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
           columnNames.contains('course_id');
 
       if (!isStandardSchema) {
-        int idxCardNum = columnNames.indexOf('card_number');
-        if (idxCardNum == -1) idxCardNum = columnNames.indexOf('number');
-        if (idxCardNum == -1) idxCardNum = columnNames.indexOf('id');
+        final cleanColumnNames = columnNames.map((c) => c.replaceAll(RegExp(r'[\s_\-]+'), '')).toList();
 
-        int idxQuestion = columnNames.indexOf('question_text');
-        if (idxQuestion == -1) idxQuestion = columnNames.indexOf('questions');
-        if (idxQuestion == -1) idxQuestion = columnNames.indexOf('question');
-        if (idxQuestion == -1) idxQuestion = columnNames.indexOf('front');
+        int findColIndex(List<String> aliases) {
+          for (final alias in aliases) {
+            final cleanAlias = alias.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
+            final idx = cleanColumnNames.indexOf(cleanAlias);
+            if (idx != -1) return idx;
+          }
+          return -1;
+        }
 
-        int idxAnswer = columnNames.indexOf('answer_text');
-        if (idxAnswer == -1) idxAnswer = columnNames.indexOf('answer');
-        if (idxAnswer == -1) idxAnswer = columnNames.indexOf('answers');
-        if (idxAnswer == -1) idxAnswer = columnNames.indexOf('back');
+        int idxCardNum = findColIndex(['cardnumber', 'number', 'id']);
+        int idxQuestion = findColIndex(['questiontext', 'questions', 'question', 'front']);
+        int idxAnswer = findColIndex(['answertext', 'answers', 'answer', 'back']);
+        int idxImage = findColIndex(['imagename', 'frontimage', 'image', 'imageurl']);
+        int idxAudio = findColIndex(['audioname', 'frontvoice', 'audio', 'audiourl']);
+        int idxOptions = findColIndex(['options', 'choices']);
 
-        int idxImage = columnNames.indexOf('image_name');
-        if (idxImage == -1) idxImage = columnNames.indexOf('front image');
-        if (idxImage == -1) idxImage = columnNames.indexOf('image');
-        if (idxImage == -1) idxImage = columnNames.indexOf('image_url');
-
-        int idxAudio = columnNames.indexOf('audio_name');
-        if (idxAudio == -1) idxAudio = columnNames.indexOf('front voice');
-        if (idxAudio == -1) idxAudio = columnNames.indexOf('audio');
-        if (idxAudio == -1) idxAudio = columnNames.indexOf('audio_url');
-
-        // Detect single options column
-        int idxOptions = columnNames.indexOf('options');
-
-        // Detect separate options columns: "first option", "second option", etc.
-        int idxOpt1 = columnNames.indexOf('first option');
-        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('option 1');
-        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('option_1');
-        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('option1');
-        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('choice 1');
-        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('choice_1');
-        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('choice1');
-        if (idxOpt1 == -1) idxOpt1 = columnNames.indexOf('first_option');
-
-        int idxOpt2 = columnNames.indexOf('second option');
-        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('option 2');
-        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('option_2');
-        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('option2');
-        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('choice 2');
-        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('choice_2');
-        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('choice2');
-        if (idxOpt2 == -1) idxOpt2 = columnNames.indexOf('second_option');
-
-        int idxOpt3 = columnNames.indexOf('third option');
-        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('option 3');
-        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('option_3');
-        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('option3');
-        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('choice 3');
-        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('choice_3');
-        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('choice3');
-        if (idxOpt3 == -1) idxOpt3 = columnNames.indexOf('third_option');
-
-        int idxOpt4 = columnNames.indexOf('fourth option');
-        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('option 4');
-        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('option_4');
-        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('option4');
-        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('choice 4');
-        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('choice_4');
-        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('choice4');
-        if (idxOpt4 == -1) idxOpt4 = columnNames.indexOf('fourth_option');
+        int idxOpt1 = findColIndex(['firstoption', 'option1', 'opt1', 'choice1', '1stoption']);
+        int idxOpt2 = findColIndex(['secondoption', 'option2', 'opt2', 'choice2', '2ndoption']);
+        int idxOpt3 = findColIndex(['thirdoption', 'option3', 'opt3', 'choice3', '3rdoption']);
+        int idxOpt4 = findColIndex(['fourthoption', 'option4', 'opt4', 'choice4', '4thoption']);
 
         final rawRows = await courseDb.query(targetCardTable);
         final List<Map<String, dynamic>> normalizedCards = [];
@@ -378,7 +337,7 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
                 final parts = rawOptStr.contains('\n')
                     ? rawOptStr.split('\n')
                     : (rawOptStr.contains(';') ? rawOptStr.split(';') : rawOptStr.split(','));
-                final cleaned = parts.map((p) => p.trim()).where((p) => p.isNotEmpty).toList();
+                final cleaned = parts.map((p) => p.trim()).where((p) => p.isNotEmpty && p.toLowerCase() != 'null').toList();
                 if (cleaned.isNotEmpty) {
                   optionsJson = jsonEncode(cleaned);
                 }
@@ -391,8 +350,12 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
             for (final optIdx in [idxOpt1, idxOpt2, idxOpt3, idxOpt4]) {
               if (optIdx != -1) {
                 final optVal = r[columnInfo[optIdx]['name']];
-                if (optVal != null && optVal.toString().trim().isNotEmpty) {
-                  separateOptions.add(optVal.toString().trim());
+                if (optVal != null) {
+                  final str = optVal.toString().trim();
+                  final lower = str.toLowerCase();
+                  if (str.isNotEmpty && lower != 'null' && lower != 'none') {
+                    separateOptions.add(str);
+                  }
                 }
               }
             }

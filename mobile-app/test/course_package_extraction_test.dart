@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:flutter/services.dart';
@@ -177,5 +178,72 @@ void main() {
     expect(progress.length, equals(2));
     expect(progress[0]['card_number'], equals(1));
     expect(progress[1]['card_number'], equals(2));
+  });
+
+  test('saveDownloadedCourse extracts and normalizes firstoption/secondoption schema (grammar_intro) into options JSON column', () async {
+    const courseId = 'course_grammar_test';
+
+    // 1. Create a dummy package with grammar_intro schema (firstoption without spaces)
+    final pkgDir = Directory(p.join(tempTestDir.path, 'pkg_grammar', 'intro_grammar'))..createSync(recursive: true);
+    final dbFile = File(p.join(pkgDir.path, 'templateEmpty.db'));
+    final db = await openDatabase(dbFile.path, version: 1, onCreate: (db, v) async {
+      await db.execute('''
+        CREATE TABLE cards (
+          number INTEGER,
+          questions TEXT,
+          firstoption TEXT,
+          secondoption TEXT,
+          thirdoption TEXT,
+          fourthoption TEXT,
+          answer TEXT,
+          frontvoice TEXT,
+          frontimage TEXT,
+          backvoice TEXT,
+          backimage TEXT
+        );
+      ''');
+      // Card 1: Non-MCQ rule with 'NULL' string in options
+      await db.rawInsert(
+        'INSERT INTO cards (number, questions, firstoption, secondoption, thirdoption, fourthoption, answer) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [1, 'I + am rule', 'NULL', 'NULL', 'NULL', 'NULL', 'I -> am'],
+      );
+      // Card 2: MCQ question with options
+      await db.rawInsert(
+        'INSERT INTO cards (number, questions, firstoption, secondoption, thirdoption, fourthoption, answer) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [18, 'She _____ my best friend.', 'am', 'is', 'are', 'be', 'is'],
+      );
+    });
+    await db.close();
+
+    final zipPath = p.join(tempTestDir.path, 'grammar_test.zip');
+    final encoder = ZipFileEncoder();
+    encoder.create(zipPath);
+    encoder.addDirectory(Directory(p.join(tempTestDir.path, 'pkg_grammar')), includeDirName: false);
+    encoder.close();
+
+    // 2. Run saveDownloadedCourse
+    await localDataSource.saveDownloadedCourse(courseId: courseId, zipFilePath: zipPath);
+
+    // 3. Verify
+    final courseDbPath = await localDataSource.getCourseDatabasePath(courseId);
+    expect(File(courseDbPath).existsSync(), isTrue);
+
+    final courseDb = await dbHelper.openCourseDatabase(courseDbPath);
+    final cards = await courseDb.query('cards', orderBy: 'card_number');
+    expect(cards.length, equals(2));
+
+    // Card 1: options should be null (literal 'NULL' was sanitized)
+    expect(cards[0]['card_number'], equals(1));
+    expect(cards[0]['options'], isNull);
+
+    // Card 2: options should be valid JSON array
+    expect(cards[1]['card_number'], equals(18));
+    expect(cards[1]['question_text'], equals('She _____ my best friend.'));
+    expect(cards[1]['answer_text'], equals('is'));
+    expect(cards[1]['options'], isNotNull);
+    final decodedOptions = jsonDecode(cards[1]['options'] as String);
+    expect(decodedOptions, equals(['am', 'is', 'are', 'be']));
+
+    await courseDb.close();
   });
 }

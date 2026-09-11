@@ -11,7 +11,10 @@ List<String>? parseTestCardOptions(Map<String, dynamic> cardMap) {
     try {
       final parsed = jsonDecode(trimmed);
       if (parsed is List) {
-        final list = parsed.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+        final list = parsed
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty && e.toLowerCase() != 'null')
+            .toList();
         if (list.isNotEmpty) return list;
       }
     } catch (_) {
@@ -19,32 +22,40 @@ List<String>? parseTestCardOptions(Map<String, dynamic> cardMap) {
       final parts = trimmed.contains('\n')
           ? trimmed.split('\n')
           : (trimmed.contains(';') ? trimmed.split(';') : trimmed.split(','));
-      final list = parts.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      final list = parts
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty && e.toLowerCase() != 'null')
+          .toList();
       if (list.isNotEmpty) return list;
     }
   }
 
   // 2. Try separate authoring columns (e.g. from templateDB or legacy schemas)
   const optKeys = [
-    ['first option', 'first_option', 'option 1', 'option_1', 'option1', 'choice 1', 'choice_1', 'choice1'],
-    ['second option', 'second_option', 'option 2', 'option_2', 'option2', 'choice 2', 'choice_2', 'choice2'],
-    ['third option', 'third_option', 'option 3', 'option_3', 'option3', 'choice 3', 'choice_3', 'choice3'],
-    ['fourth option', 'fourth_option', 'option 4', 'option_4', 'option4', 'choice 4', 'choice_4', 'choice4'],
+    ['firstoption', 'option1', 'opt1', 'choice1', '1stoption'],
+    ['secondoption', 'option2', 'opt2', 'choice2', '2ndoption'],
+    ['thirdoption', 'option3', 'opt3', 'choice3', '3rdoption'],
+    ['fourthoption', 'option4', 'opt4', 'choice4', '4thoption'],
   ];
 
-  final lowerMap = <String, dynamic>{};
+  final cleanMap = <String, dynamic>{};
   for (final entry in cardMap.entries) {
-    lowerMap[entry.key.toLowerCase().trim()] = entry.value;
+    final cleanKey = entry.key.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
+    cleanMap[cleanKey] = entry.value;
   }
 
   final separateList = <String>[];
   for (final aliases in optKeys) {
     for (final alias in aliases) {
-      if (lowerMap.containsKey(alias)) {
-        final val = lowerMap[alias];
-        if (val != null && val.toString().trim().isNotEmpty) {
-          separateList.add(val.toString().trim());
-          break;
+      if (cleanMap.containsKey(alias)) {
+        final val = cleanMap[alias];
+        if (val != null) {
+          final str = val.toString().trim();
+          final lower = str.toLowerCase();
+          if (str.isNotEmpty && lower != 'null' && lower != 'none') {
+            separateList.add(str);
+            break;
+          }
         }
       }
     }
@@ -116,6 +127,30 @@ void main() {
       };
       final result = parseTestCardOptions(map);
       expect(result, equals(['am', 'is', 'are', 'be']));
+    });
+
+    test('Parses grammar_intro schema without spaces (firstoption .. fourthoption)', () {
+      final map = {
+        'questions': 'She _____ my best friend.',
+        'firstoption': 'am',
+        'secondoption': 'is',
+        'thirdoption': 'are',
+        'fourthoption': 'be',
+      };
+      final result = parseTestCardOptions(map);
+      expect(result, equals(['am', 'is', 'are', 'be']));
+    });
+
+    test('Ignores literal string NULL in non-MCQ cards', () {
+      final map = {
+        'questions': 'Rule explanation',
+        'firstoption': 'NULL',
+        'secondoption': 'NULL',
+        'thirdoption': 'NULL',
+        'fourthoption': 'NULL',
+      };
+      final result = parseTestCardOptions(map);
+      expect(result, isNull);
     });
 
     test('Parses case-insensitive and aliased columns (Option 1 .. Option 4)', () {

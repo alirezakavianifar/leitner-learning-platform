@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -400,6 +403,108 @@ namespace LeitnerPlatform.Tests
 
             Assert.Single(listMyket);
             Assert.Equal("Multi Platform Package", (string)listMyket.First().GetType().GetProperty("title")!.GetValue(listMyket.First())!);
+        }
+
+        [Fact]
+        public async Task BackfillMissingChecksumsAsync_NormalizesLegacyGrammarPackage_ExtractsOptions()
+        {
+            var db = GetDatabaseContext();
+            var courseId = Guid.NewGuid();
+            var tempRoot = Path.Combine(Path.GetTempPath(), $"test_backfill_{Guid.NewGuid()}");
+            Directory.CreateDirectory(tempRoot);
+            var coursesFolder = Path.Combine(tempRoot, "courses");
+            Directory.CreateDirectory(coursesFolder);
+
+            try
+            {
+                var zipName = $"{courseId}.zip";
+                var zipPath = Path.Combine(coursesFolder, zipName);
+
+                // Create legacy package with intro_grammar/templateEmpty.db (firstoption .. fourthoption)
+                var tempPkgDir = Path.Combine(Path.GetTempPath(), $"pkg_raw_{Guid.NewGuid()}");
+                var subDir = Path.Combine(tempPkgDir, "intro_grammar");
+                Directory.CreateDirectory(subDir);
+                var rawDbPath = Path.Combine(subDir, "templateEmpty.db");
+
+                using (var conn = new SqliteConnection($"Data Source={rawDbPath}"))
+                {
+                    await conn.OpenAsync();
+                    using var createCmd = conn.CreateCommand();
+                    createCmd.CommandText = @"
+                        CREATE TABLE cards (
+                            number INTEGER,
+                            questions TEXT,
+                            firstoption TEXT,
+                            secondoption TEXT,
+                            thirdoption TEXT,
+                            fourthoption TEXT,
+                            answer TEXT
+                        );
+                        INSERT INTO cards (number, questions, firstoption, secondoption, thirdoption, fourthoption, answer)
+                        VALUES (1, 'Rule 1', 'NULL', 'NULL', 'NULL', 'NULL', 'I am');
+                        INSERT INTO cards (number, questions, firstoption, secondoption, thirdoption, fourthoption, answer)
+                        VALUES (18, 'She _____ my best friend.', 'am', 'is', 'are', 'be', 'is');
+                    ";
+                    await createCmd.ExecuteNonQueryAsync();
+                }
+                SqliteConnection.ClearAllPools();
+
+                ZipFile.CreateFromDirectory(tempPkgDir, zipPath);
+                Directory.Delete(tempPkgDir, true);
+
+                var course = new Course
+                {
+                    Id = courseId,
+                    Title = "grammar_intro",
+                    DownloadUrl = $"/courses/{zipName}",
+                    ChecksumSha256 = null,
+                    Version = 1,
+                    Price = 0.0m
+                };
+                await db.Courses.AddAsync(course);
+                await db.SaveChangesAsync();
+
+                // Act
+                await ChecksumBackfiller.BackfillMissingChecksumsAsync(db, tempRoot, _ => { });
+
+                // Assert: zip was normalized to compliant package with course.db
+                using var archive = ZipFile.OpenRead(zipPath);
+                var entry = archive.GetEntry("course.db");
+                Assert.NotNull(entry);
+
+                var extractedCourseDb = Path.Combine(tempRoot, $"verified_course_{Guid.NewGuid()}.db");
+                entry.ExtractToFile(extractedCourseDb);
+
+                using (var vConn = new SqliteConnection($"Data Source={extractedCourseDb}"))
+                {
+                    await vConn.OpenAsync();
+                    using var qCmd = vConn.CreateCommand();
+                    qCmd.CommandText = "SELECT card_number, question_text, answer_text, options FROM cards ORDER BY card_number";
+                    using var reader = await qCmd.ExecuteReaderAsync();
+
+                    // Card 1
+                    Assert.True(await reader.ReadAsync());
+                    Assert.Equal(1, reader.GetInt32(0));
+                    Assert.True(reader.IsDBNull(3)); // Literal 'NULL' should be converted to DBNull
+
+                    // Card 18
+                    Assert.True(await reader.ReadAsync());
+                    Assert.Equal(18, reader.GetInt32(0));
+                    Assert.Equal("She _____ my best friend.", reader.GetString(1));
+                    Assert.Equal("is", reader.GetString(2));
+                    Assert.False(reader.IsDBNull(3));
+                    var optionsStr = reader.GetString(3);
+                    Assert.Equal("[\"am\",\"is\",\"are\",\"be\"]", optionsStr);
+                }
+                SqliteConnection.ClearAllPools();
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot))
+                {
+                    try { Directory.Delete(tempRoot, true); } catch { }
+                }
+            }
         }
     }
 }

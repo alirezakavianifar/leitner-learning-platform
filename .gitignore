@@ -23,6 +23,9 @@
 .pub-cache/
 .pub/
 /build/
+**/build/
+.gradle/
+**/.gradle/
 
 # Web/Node
 node_modules/
