@@ -27,7 +27,8 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
   ) async {
     emit(FlashcardLoading());
     try {
-      final List<Flashcard> queue;
+      List<Flashcard> queue;
+      bool actualIsTodayReview = event.isTodayReview;
       if (event.isFromFavorites) {
         queue = await flashcardRepository.getFavoriteCards(event.courseId);
       } else {
@@ -35,6 +36,19 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           event.courseId,
           isTodayReview: event.isTodayReview,
         );
+        // Fallback: If "today's review" returned empty, but the course has cards
+        // (such as freshly downloaded courses where all cards are in Box 1),
+        // fallback to regular study queue so the user can start studying immediately.
+        if (queue.isEmpty && event.isTodayReview) {
+          final regularQueue = await flashcardRepository.getReviewQueue(
+            event.courseId,
+            isTodayReview: false,
+          );
+          if (regularQueue.isNotEmpty) {
+            queue = regularQueue;
+            actualIsTodayReview = false;
+          }
+        }
       }
 
       int finalIndex = 0;
@@ -77,7 +91,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
           courseId: event.courseId,
           queue: finalQueue,
           currentIndex: finalIndex,
-          isTodayReview: event.isTodayReview,
+          isTodayReview: actualIsTodayReview,
           isFromFavorites: event.isFromFavorites,
           isFavorited: isFav,
           jumpWarningCardNumber: currentCard.cardNumber,
@@ -90,7 +104,7 @@ class FlashcardBloc extends Bloc<FlashcardEvent, FlashcardState> {
         courseId: event.courseId,
         queue: finalQueue,
         currentIndex: finalIndex,
-        isTodayReview: event.isTodayReview,
+        isTodayReview: actualIsTodayReview,
         isFromFavorites: event.isFromFavorites,
         isFavorited: isFav,
       ));

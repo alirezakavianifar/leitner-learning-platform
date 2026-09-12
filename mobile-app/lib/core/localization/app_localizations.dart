@@ -168,6 +168,7 @@ class AppLocalizations {
       'study_loop_complete': 'Study Loop Complete!',
       'study_loop_complete_desc': 'You have reviewed all currently due cards in this course.',
       'back_to_courses': 'Back to Courses',
+      'free_study_course': 'Free Study (All Cards)',
       'card_prefix': 'Card #',
       'favorite_cards': 'Favorite Cards',
       'no_favorites_yet': 'No favorited cards yet.',
@@ -549,6 +550,7 @@ class AppLocalizations {
       'study_loop_complete': 'مرور دوره‌ای پایان یافت!',
       'study_loop_complete_desc': 'تمام کارت‌های آماده مرور این دوره را مطالعه کردید.',
       'back_to_courses': 'بازگشت به دوره‌ها',
+      'free_study_course': 'مرور آزاد دوره (تمام کارت‌ها)',
       'card_prefix': 'کارت #',
       'favorite_cards': 'کارت‌های نشان‌شده',
       'no_favorites_yet': 'هنوز هیچ کارتی نشان نشده است.',
@@ -909,6 +911,7 @@ class AppLocalizations {
   String get studyLoopComplete => translate('study_loop_complete');
   String get studyLoopCompleteDesc => translate('study_loop_complete_desc');
   String get backToCourses => translate('back_to_courses');
+  String get freeStudyCourse => translate('free_study_course');
   String get cardPrefix => translate('card_prefix');
 
   String get favoriteCards => translate('favorite_cards');

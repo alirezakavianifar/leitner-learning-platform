@@ -379,11 +379,12 @@ class _ReviewTabState extends State<ReviewTab> with WidgetsBindingObserver {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: () async {
+                          final due = _dueCounts[course.id] ?? 0;
                           await FlashcardStudyScreen.open(
                             context,
                             courseId: course.id,
                             courseTitle: course.title,
-                            isTodayReview: true,
+                            isTodayReview: due > 0,
                           );
                           _loadData(showLoading: false);
                         },

@@ -56,4 +56,7 @@
 -keep class ir.mservices.market.** { *; }
 -keep interface ir.mservices.market.** { *; }
 -dontwarn ir.mservices.market.**
+-keep class ir.myket.** { *; }
+-keep interface ir.myket.** { *; }
+-dontwarn ir.myket.**
 

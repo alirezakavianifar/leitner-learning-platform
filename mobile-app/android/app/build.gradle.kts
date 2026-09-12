@@ -32,6 +32,12 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        val marketApplicationId = "ir.mservices.market"
+        val marketBindAddress = "ir.mservices.market.InAppBillingService.BIND"
+        manifestPlaceholders["marketApplicationId"] = marketApplicationId
+        manifestPlaceholders["marketBindAddress"] = marketBindAddress
+        manifestPlaceholders["marketPermission"] = "$marketApplicationId.BILLING"
     }
 
     signingConfigs {

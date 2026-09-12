@@ -715,9 +715,29 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                             backgroundColor: AppColors.primary,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            minimumSize: const Size(double.infinity, 44),
+                          ),
+                          onPressed: () {
+                            context.read<FlashcardBloc>().add(
+                              LoadFlashcardQueue(
+                                widget.courseId,
+                                isTodayReview: false,
+                              ),
+                            );
+                          },
+                          child: Text(loc.freeStudyCourse, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textSecondary,
+                            side: BorderSide(color: AppColors.border),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            minimumSize: const Size(double.infinity, 44),
                           ),
                           onPressed: () => Navigator.pop(context),
-                          child: Text(loc.backToCourses, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          child: Text(loc.backToCourses, style: TextStyle(color: AppColors.textPrimary)),
                         ),
                       ],
                     ),

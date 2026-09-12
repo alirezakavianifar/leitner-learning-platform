@@ -1,6 +1,10 @@
 import 'package:mobile_app/core/network/dio_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_poolakey/flutter_poolakey.dart';
+import 'package:myket_iap/myket_iap.dart';
+import 'package:myket_iap/util/constants.dart';
+import 'package:myket_iap/util/iab_result.dart';
+import 'package:myket_iap/util/purchase.dart';
 
 
 abstract class PaymentProvider {
@@ -116,11 +120,24 @@ class BazaarPaymentProvider implements PaymentProvider {
 class MyketPaymentProvider implements PaymentProvider {
   final DioClient dioClient;
   final String? rsaKey;
+  bool _isInitialized = false;
 
   MyketPaymentProvider(this.dioClient, {this.rsaKey});
 
   @override
   String get providerName => 'MYKET';
+
+  Future<bool> _ensureInitialized() async {
+    if (_isInitialized) return true;
+    try {
+      final key = rsaKey ?? '';
+      final IabResult? result = await MyketIAP.init(rsaKey: key);
+      _isInitialized = result?.isSuccess() ?? false;
+      return _isInitialized;
+    } catch (_) {
+      return false;
+    }
+  }
 
   /// Submits a verified Myket purchase token to the backend server
   Future<bool> verifyAndCompletePurchase({
@@ -160,12 +177,65 @@ class MyketPaymentProvider implements PaymentProvider {
 
   @override
   Future<bool> purchaseCourse(String courseId) async {
-    // Requires native Myket billing flow completion; token then posted to verifyAndCompletePurchase
+    try {
+      await _ensureInitialized();
+      final flowResult = await MyketIAP.launchPurchaseFlow(sku: courseId);
+      final IabResult? iabResult = flowResult[MyketIAP.RESULT] as IabResult?;
+      Purchase? purchase = flowResult[MyketIAP.PURCHASE] as Purchase?;
+
+      if (iabResult != null && iabResult.isSuccess() && purchase != null && purchase.mToken.isNotEmpty) {
+        return await verifyAndCompletePurchase(
+          courseId: courseId,
+          purchaseToken: purchase.mToken,
+        );
+      }
+
+      // If already owned in Myket, retrieve existing purchase token and verify
+      if (iabResult?.mResponse == Constants.BILLING_RESPONSE_RESULT_ITEM_ALREADY_OWNED) {
+        final queryResult = await MyketIAP.getPurchase(sku: courseId);
+        purchase = queryResult[MyketIAP.PURCHASE] as Purchase?;
+        if (purchase != null && purchase.mToken.isNotEmpty) {
+          return await verifyAndCompletePurchase(
+            courseId: courseId,
+            purchaseToken: purchase.mToken,
+          );
+        }
+      }
+    } catch (_) {
+      // Graceful fallback on non-Android or cancellation
+    }
     return false;
   }
 
   @override
   Future<bool> purchasePackage(String packageId) async {
+    try {
+      await _ensureInitialized();
+      final flowResult = await MyketIAP.launchPurchaseFlow(sku: packageId);
+      final IabResult? iabResult = flowResult[MyketIAP.RESULT] as IabResult?;
+      Purchase? purchase = flowResult[MyketIAP.PURCHASE] as Purchase?;
+
+      if (iabResult != null && iabResult.isSuccess() && purchase != null && purchase.mToken.isNotEmpty) {
+        return await verifyAndCompletePurchase(
+          packageId: packageId,
+          purchaseToken: purchase.mToken,
+        );
+      }
+
+      // If already owned in Myket, retrieve existing purchase token and verify
+      if (iabResult?.mResponse == Constants.BILLING_RESPONSE_RESULT_ITEM_ALREADY_OWNED) {
+        final queryResult = await MyketIAP.getPurchase(sku: packageId);
+        purchase = queryResult[MyketIAP.PURCHASE] as Purchase?;
+        if (purchase != null && purchase.mToken.isNotEmpty) {
+          return await verifyAndCompletePurchase(
+            packageId: packageId,
+            purchaseToken: purchase.mToken,
+          );
+        }
+      }
+    } catch (_) {
+      // Graceful fallback
+    }
     return false;
   }
 }

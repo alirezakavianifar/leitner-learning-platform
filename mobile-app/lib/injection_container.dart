@@ -129,8 +129,14 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
   }
 
   sl.registerLazySingleton<GooglePlayPaymentProvider>(() => GooglePlayPaymentProvider(sl()));
-  sl.registerLazySingleton<BazaarPaymentProvider>(() => BazaarPaymentProvider(sl()));
-  sl.registerLazySingleton<MyketPaymentProvider>(() => MyketPaymentProvider(sl()));
+  sl.registerLazySingleton<BazaarPaymentProvider>(() => BazaarPaymentProvider(
+    sl(),
+    rsaKey: const String.fromEnvironment('BAZAAR_RSA_KEY', defaultValue: ''),
+  ));
+  sl.registerLazySingleton<MyketPaymentProvider>(() => MyketPaymentProvider(
+    sl(),
+    rsaKey: const String.fromEnvironment('MYKET_RSA_KEY', defaultValue: ''),
+  ));
   sl.registerLazySingleton<DirectPaymentProvider>(() => DirectPaymentProvider(sl()));
   sl.registerLazySingleton<PaymentProvider>(() {
     final cfg = sl<AppConfig>();

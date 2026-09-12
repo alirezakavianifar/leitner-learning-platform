@@ -8,15 +8,20 @@ import 'package:mobile_app/features/flashcards/presentation/bloc/flashcard_state
 
 class MockFlashcardRepository implements FlashcardRepository {
   final List<Flashcard> reviewQueue;
+  final List<Flashcard>? todayReviewQueue;
   final List<Flashcard> favoriteCards;
 
   MockFlashcardRepository({
     required this.reviewQueue,
+    this.todayReviewQueue,
     required this.favoriteCards,
   });
 
   @override
   Future<List<Flashcard>> getReviewQueue(String courseId, {bool isTodayReview = false}) async {
+    if (isTodayReview && todayReviewQueue != null) {
+      return todayReviewQueue!;
+    }
     return reviewQueue;
   }
 
@@ -250,6 +255,41 @@ void main() {
       final restoredState = bloc.state as FlashcardQueueLoaded;
       expect(restoredState.isShuffled, isFalse);
       expect(restoredState.queue.map((c) => c.cardNumber).toList(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    });
+
+    test('LoadFlashcardQueue falls back to regular queue when isTodayReview has 0 cards (newly downloaded course)', () async {
+      final box1Card = Flashcard(
+        id: 'card-1',
+        courseId: 'course-new',
+        cardNumber: 1,
+        questionText: 'Q1',
+        answerText: 'A1',
+        options: const [],
+        progress: CardProgress(
+          id: 'p-1',
+          courseId: 'course-new',
+          cardNumber: 1,
+          currentBox: 1,
+          isSynced: true,
+          hasEnteredLeitner: false,
+        ),
+      );
+
+      final repo = MockFlashcardRepository(
+        reviewQueue: [box1Card],
+        todayReviewQueue: [], // 0 due cards for today (as on fresh download)
+        favoriteCards: [],
+      );
+      final bloc = FlashcardBloc(flashcardRepository: repo);
+
+      bloc.add(const LoadFlashcardQueue('course-new', isTodayReview: true));
+      await bloc.stream.firstWhere((s) => s is FlashcardQueueLoaded);
+
+      expect(bloc.state, isA<FlashcardQueueLoaded>());
+      final loaded = bloc.state as FlashcardQueueLoaded;
+      expect(loaded.queue.length, 1);
+      expect(loaded.queue.first.cardNumber, 1);
+      expect(loaded.isTodayReview, isFalse);
     });
   });
 }
