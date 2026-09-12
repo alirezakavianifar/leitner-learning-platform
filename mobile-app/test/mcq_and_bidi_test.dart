@@ -13,7 +13,7 @@ List<String>? parseTestCardOptions(Map<String, dynamic> cardMap) {
       if (parsed is List) {
         final list = parsed
             .map((e) => e.toString().trim())
-            .where((e) => e.isNotEmpty && e.toLowerCase() != 'null')
+            .where((e) => e.isNotEmpty && e.toLowerCase() != 'null' && e.toLowerCase() != 'none')
             .toList();
         if (list.isNotEmpty) return list;
       }
@@ -24,7 +24,7 @@ List<String>? parseTestCardOptions(Map<String, dynamic> cardMap) {
           : (trimmed.contains(';') ? trimmed.split(';') : trimmed.split(','));
       final list = parts
           .map((e) => e.trim())
-          .where((e) => e.isNotEmpty && e.toLowerCase() != 'null')
+          .where((e) => e.isNotEmpty && e.toLowerCase() != 'null' && e.toLowerCase() != 'none')
           .toList();
       if (list.isNotEmpty) return list;
     }
@@ -162,6 +162,27 @@ void main() {
       };
       final result = parseTestCardOptions(map);
       expect(result, equals(['A', 'B', 'C', 'D']));
+    });
+
+    test('Parses Card #17 ("He _____ a teacher.") options correctly', () {
+      final map = {
+        'id': 'b5e1fcf6-8742-4d85-a60e-1d5a0b478106_17',
+        'course_id': 'b5e1fcf6-8742-4d85-a60e-1d5a0b478106',
+        'card_number': 17,
+        'question_text': 'He _____ a teacher.',
+        'answer_text': 'is',
+        'options': '["am", "is", "are", "be"]',
+      };
+      final result = parseTestCardOptions(map);
+      expect(result, equals(['am', 'is', 'are', 'be']));
+    });
+
+    test('Filters out "null" and "none" string literals inside JSON array', () {
+      final map = {
+        'options': '["am", "null", "is", "None", "are"]',
+      };
+      final result = parseTestCardOptions(map);
+      expect(result, equals(['am', 'is', 'are']));
     });
 
     test('Returns null when no options exist', () {

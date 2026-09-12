@@ -160,9 +160,12 @@ class PackageDetailsModal extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Description
-                    if (package.description != null && package.description!.isNotEmpty) ...[
+                    if (package.description != null && package.description!.trim().isNotEmpty) ...[
                       Text(
-                        package.description!,
+                        package.description!.trim(),
+                        textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(package.description!)
+                            ? TextDirection.rtl
+                            : TextDirection.ltr,
                         style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 14,
@@ -190,12 +193,16 @@ class PackageDetailsModal extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                loc.translate('bundle_price_breakdown'),
-                                style: TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                              Expanded(
+                                child: Text(
+                                  loc.translate('bundle_price_breakdown'),
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               if (package.discountPercentage > 0)
@@ -268,15 +275,19 @@ class PackageDetailsModal extends StatelessWidget {
                       children: [
                         Icon(Icons.layers, size: 18, color: AppColors.primary),
                         const SizedBox(width: 8),
-                        Text(
-                          loc.translate('courses_in_bundle'),
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Text(
+                            loc.translate('courses_in_bundle'),
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
@@ -297,7 +308,28 @@ class PackageDetailsModal extends StatelessWidget {
                     const SizedBox(height: 12),
 
                     // List of Courses inside Package
-                    ...package.courses.asMap().entries.map((entry) {
+                    if (package.courses.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border.withOpacity(0.5)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            loc.emptyBundleCourses,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.textSecondary.withOpacity(0.7),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      ...package.courses.asMap().entries.map((entry) {
                       final idx = entry.key + 1;
                       final course = entry.value;
                       return Container(

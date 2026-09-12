@@ -827,16 +827,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
-            if ((course.isPurchased && course.isDownloaded) || (kIsWeb && course.isPurchased)) {
-              FlashcardStudyScreen.open(
-                context,
-                courseId: course.id,
-                courseTitle: course.title,
-                isTodayReview: false,
-              );
-            } else {
-              _showCourseDetailsModal(course, isDownloading, downloadProgress, downloadStage, parentPackage);
-            }
+            _showCourseDetailsModal(course, isDownloading, downloadProgress, downloadStage, parentPackage);
           },
           onLongPress: () {
             _showCourseDetailsModal(course, isDownloading, downloadProgress, downloadStage, parentPackage);
@@ -942,6 +933,22 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                           ),
                         ],
                       ),
+                      if (course.description != null && course.description!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          course.description!.trim(),
+                          textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(course.description!)
+                              ? TextDirection.rtl
+                              : TextDirection.ltr,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.textSecondary.withOpacity(0.85),
+                            fontSize: 10,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 4),
 
                       // Bottom actions row: Description hint or bundle badge + Action button
@@ -950,43 +957,52 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                         children: [
                           if (parentPackage != null && !course.isPurchased && !parentPackage.isPurchased)
                             GestureDetector(
+                              behavior: HitTestBehavior.opaque,
                               onTap: () => PackageDetailsModal.show(
                                 context,
                                 package: parentPackage,
                                 onPurchase: () => _purchasePackage(parentPackage),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.auto_awesome, size: 11, color: Color(0xFFFF9800)),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    loc.translate('in_bundle'),
-                                    style: const TextStyle(
-                                      color: Color(0xFFFFB300),
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w600,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.auto_awesome, size: 11, color: Color(0xFFFF9800)),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      loc.translate('in_bundle'),
+                                      style: const TextStyle(
+                                        color: Color(0xFFFFB300),
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             )
                           else
                             GestureDetector(
+                              behavior: HitTestBehavior.opaque,
                               onTap: () => _showCourseDetailsModal(course, isDownloading, downloadProgress, downloadStage, parentPackage),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.info_outline, size: 11, color: AppColors.textSecondary.withOpacity(0.7)),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    loc.translate('more_info_hint'),
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary.withOpacity(0.7),
-                                      fontSize: 9.5,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.info_outline, size: 11, color: AppColors.textSecondary.withOpacity(0.85)),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      loc.viewDetails,
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary.withOpacity(0.85),
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           _buildCompactActionButton(course, isDownloading, downloadProgress, downloadStage),
@@ -1235,22 +1251,25 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                       const Divider(color: Color(0xFF333E56), height: 1),
                       const SizedBox(height: 14),
 
-                      if (course.description != null && course.description!.isNotEmpty) ...[
-                        Text(
-                          loc.description,
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      Text(
+                        loc.description,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(height: 6),
+                      ),
+                      const SizedBox(height: 6),
+                      if (course.description != null && course.description!.trim().isNotEmpty) ...[
                         Container(
                           constraints: const BoxConstraints(maxHeight: 180),
                           child: SingleChildScrollView(
                             physics: const ClampingScrollPhysics(),
                             child: Text(
-                              course.description!,
+                              course.description!.trim(),
+                              textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(course.description!)
+                                  ? TextDirection.rtl
+                                  : TextDirection.ltr,
                               style: TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 13.5,
@@ -1259,8 +1278,17 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                      ] else ...[
+                        Text(
+                          loc.noDescriptionAvailable,
+                          style: TextStyle(
+                            color: AppColors.textSecondary.withOpacity(0.6),
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
                       ],
+                      const SizedBox(height: 16),
 
                       _buildModalActionButton(course, activeDownloading, activeProgress, activeStage, parentPackage, sheetCtx),
                       const SizedBox(height: 8),

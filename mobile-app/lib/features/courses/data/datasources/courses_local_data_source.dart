@@ -410,6 +410,58 @@ class CoursesLocalDataSourceImpl implements CoursesLocalDataSource {
             await courseDb.execute('ALTER TABLE cards ADD COLUMN options TEXT;');
           } catch (_) {}
         }
+
+        // If separate authoring option columns exist on the standard table, backfill options
+        final cleanColumnNames = columnNames.map((c) => c.replaceAll(RegExp(r'[\s_\-]+'), '')).toList();
+        int findColIndex(List<String> aliases) {
+          for (final alias in aliases) {
+            final cleanAlias = alias.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
+            final idx = cleanColumnNames.indexOf(cleanAlias);
+            if (idx != -1) return idx;
+          }
+          return -1;
+        }
+
+        int idxOpt1 = findColIndex(['firstoption', 'option1', 'opt1', 'choice1', '1stoption']);
+        int idxOpt2 = findColIndex(['secondoption', 'option2', 'opt2', 'choice2', '2ndoption']);
+        int idxOpt3 = findColIndex(['thirdoption', 'option3', 'opt3', 'choice3', '3rdoption']);
+        int idxOpt4 = findColIndex(['fourthoption', 'option4', 'opt4', 'choice4', '4thoption']);
+
+        if (idxOpt1 != -1 || idxOpt2 != -1 || idxOpt3 != -1 || idxOpt4 != -1) {
+          try {
+            final rows = await courseDb.query(
+              'cards',
+              where: "options IS NULL OR options = ''",
+            );
+            if (rows.isNotEmpty) {
+              final batch = courseDb.batch();
+              for (final r in rows) {
+                final separate = <String>[];
+                for (final optIdx in [idxOpt1, idxOpt2, idxOpt3, idxOpt4]) {
+                  if (optIdx != -1) {
+                    final val = r[columnInfo[optIdx]['name']];
+                    if (val != null) {
+                      final str = val.toString().trim();
+                      final lower = str.toLowerCase();
+                      if (str.isNotEmpty && lower != 'null' && lower != 'none') {
+                        separate.add(str);
+                      }
+                    }
+                  }
+                }
+                if (separate.isNotEmpty) {
+                  batch.update(
+                    'cards',
+                    {'options': jsonEncode(separate)},
+                    where: 'id = ?',
+                    whereArgs: [r['id']],
+                  );
+                }
+              }
+              await batch.commit(noResult: true);
+            }
+          } catch (_) {}
+        }
       }
 
       // Ensure course table exists in course.db

@@ -791,7 +791,10 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
       try {
         final parsed = jsonDecode(trimmed);
         if (parsed is List) {
-          final list = parsed.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+          final list = parsed
+              .map((e) => e.toString().trim())
+              .where((e) => e.isNotEmpty && e.toLowerCase() != 'null' && e.toLowerCase() != 'none')
+              .toList();
           if (list.isNotEmpty) return list;
         }
       } catch (_) {
@@ -799,7 +802,10 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
         final parts = trimmed.contains('\n')
             ? trimmed.split('\n')
             : (trimmed.contains(';') ? trimmed.split(';') : trimmed.split(','));
-        final list = parts.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        final list = parts
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty && e.toLowerCase() != 'null' && e.toLowerCase() != 'none')
+            .toList();
         if (list.isNotEmpty) return list;
       }
     }

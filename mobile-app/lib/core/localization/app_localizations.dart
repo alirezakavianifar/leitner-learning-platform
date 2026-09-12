@@ -271,8 +271,11 @@ class AppLocalizations {
       'step_search_cards': 'Step 2: Search Cards Inside Selection',
       'select_courses_first': 'Please select one or more courses first',
       'course_details': 'Course Details',
+      'view_details': 'View Details',
       'description': 'Description',
-      'more_info_hint': 'Details (Long Press)',
+      'more_info_hint': 'View Details',
+      'no_description_available': 'No description available for this course.',
+      'empty_bundle_courses': 'No courses are currently included in this bundle.',
       'in_bundle': 'In Bundle',
       'search_cards_hint': 'Search card contents or numbers...',
       'select_courses_begin': 'Select courses above to begin searching.',
@@ -657,8 +660,11 @@ class AppLocalizations {
       'step_search_cards': 'گام ۲: جستجوی کارت‌ها در دوره‌های انتخاب‌شده',
       'select_courses_first': 'لطفاً ابتدا یک یا چند دوره را انتخاب کنید',
       'course_details': 'جزئیات دوره',
+      'view_details': 'مشاهده جزئیات',
       'description': 'توضیحات دوره',
-      'more_info_hint': 'توضیحات (لمس طولانی)',
+      'more_info_hint': 'مشاهده جزئیات',
+      'no_description_available': 'توضیحاتی برای این دوره ثبت نشده است.',
+      'empty_bundle_courses': 'در حال حاضر دوره‌ای در این پکیج قرار ندارد.',
       'in_bundle': 'در بسته',
       'search_cards_hint': 'جستجو در محتوا یا شماره کارت...',
       'select_courses_begin': 'برای شروع جستجو، دوره‌های بالا را انتخاب کنید.',
@@ -1013,6 +1019,10 @@ class AppLocalizations {
   String get reminderTime => translate('reminder_time');
   String get sendTestNotification => translate('send_test_notification');
   String get testNotificationSent => translate('test_notification_sent');
+  String get courseDetails => translate('course_details');
+  String get viewDetails => translate('view_details');
+  String get noDescriptionAvailable => translate('no_description_available');
+  String get emptyBundleCourses => translate('empty_bundle_courses');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

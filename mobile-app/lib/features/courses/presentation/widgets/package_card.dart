@@ -210,6 +210,22 @@ class PackageCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (package.description != null && package.description!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          package.description!.trim(),
+                          textDirection: RegExp(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]').hasMatch(package.description!)
+                              ? TextDirection.rtl
+                              : TextDirection.ltr,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.textSecondary.withOpacity(0.85),
+                            fontSize: 10,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 4),
 
                       // Bottom actions row: Details modal hint + Action button
@@ -217,20 +233,25 @@ class PackageCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           GestureDetector(
+                            behavior: HitTestBehavior.opaque,
                             onTap: onTap,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.info_outline, size: 11, color: AppColors.textSecondary.withOpacity(0.7)),
-                                const SizedBox(width: 3),
-                                Text(
-                                  loc.translate('more_info_hint'),
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary.withOpacity(0.7),
-                                    fontSize: 9.5,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2.0),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.info_outline, size: 11, color: AppColors.textSecondary.withOpacity(0.85)),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    loc.viewDetails,
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary.withOpacity(0.85),
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                           SizedBox(

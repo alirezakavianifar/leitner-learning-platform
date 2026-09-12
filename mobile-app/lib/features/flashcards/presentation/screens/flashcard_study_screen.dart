@@ -1276,37 +1276,84 @@ class _FlashcardStudyScreenState extends State<FlashcardStudyScreen> with Single
                                 final index = entry.key;
                                 final text = entry.value;
                                 final optDirection = detectTextDirection(text);
+                                final isSelected = _selectedOptionIndex == index;
+                                final optionLetter = String.fromCharCode(65 + index); // A, B, C, D...
+
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 8),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.03),
+                                    color: isSelected
+                                        ? AppColors.primary.withOpacity(0.08)
+                                        : Colors.white.withOpacity(0.03),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: _selectedOptionIndex == index
+                                      color: isSelected
                                           ? AppColors.primary
                                           : AppColors.border,
                                       width: 1.5,
                                     ),
                                   ),
-                                  child: RadioListTile<int>(
-                                    title: Text(
-                                      text,
-                                      textDirection: optDirection,
-                                      textAlign: optDirection == TextDirection.rtl ? TextAlign.right : TextAlign.left,
-                                      style: TextStyle(
-                                        color: AppColors.textPrimary,
-                                        fontSize: 15 * _fontScale,
+                                  child: Directionality(
+                                    textDirection: optDirection,
+                                    child: Theme(
+                                      data: Theme.of(context).copyWith(
+                                        unselectedWidgetColor: AppColors.textSecondary,
+                                      ),
+                                      child: RadioListTile<int>(
+                                        dense: true,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                                        title: Row(
+                                          children: [
+                                            Container(
+                                              width: 24,
+                                              height: 24,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: isSelected
+                                                    ? AppColors.primary
+                                                    : AppColors.surface,
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(
+                                                  color: isSelected
+                                                      ? AppColors.primary
+                                                      : AppColors.border,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                optionLetter,
+                                                style: TextStyle(
+                                                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                                                  fontSize: 12 * _fontScale,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                text,
+                                                textDirection: optDirection,
+                                                textAlign: optDirection == TextDirection.rtl ? TextAlign.right : TextAlign.left,
+                                                style: TextStyle(
+                                                  color: AppColors.textPrimary,
+                                                  fontSize: 15 * _fontScale,
+                                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        value: index,
+                                        groupValue: _selectedOptionIndex,
+                                        activeColor: AppColors.primary,
+                                        onChanged: (val) {
+                                          setState(() {
+                                            _selectedOptionIndex = val;
+                                          });
+                                        },
+                                        controlAffinity: ListTileControlAffinity.trailing,
                                       ),
                                     ),
-                                    value: index,
-                                    groupValue: _selectedOptionIndex,
-                                    activeColor: AppColors.primary,
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _selectedOptionIndex = val;
-                                      });
-                                    },
-                                    controlAffinity: ListTileControlAffinity.trailing,
                                   ),
                                 );
                               }).toList(),
