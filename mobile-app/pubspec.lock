@@ -695,10 +695,9 @@ packages:
   myket_iap:
     dependency: "direct main"
     description:
-      name: myket_iap
-      sha256: "26e12cf257771e2bc0eef6af1ca45e926401d43124899c0118542b2bb6d31331"
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/myket_iap"
+      relative: true
+    source: path
     version: "1.1.12"
   native_toolchain_c:
     dependency: transitive

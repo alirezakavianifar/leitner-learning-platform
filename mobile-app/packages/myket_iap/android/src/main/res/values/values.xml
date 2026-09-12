@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="logo_type_color">#007aff</color>
+    <dimen name="bottom_dialog_horizontal_margin">0dp</dimen>
+    <string name="dialog_botton_text">نصب مایکت</string>
+    <string name="dialog_text">برای پرداخت در این برنامه نیاز است مایکت را روی دستگاه خود نصب کنید. برای دانلود و نصب مایکت، دکمه‌ی زیر را لمس کنید.</string>
+    <string name="error_browser_not_found">برای نصب مایکت به سایت myket.ir مراجعه نمایید</string>
+    <style name="Theme.Transparent" parent="android:Theme">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+</resources>
