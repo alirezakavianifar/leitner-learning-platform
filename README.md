@@ -322,10 +322,14 @@ powershell -ExecutionPolicy Bypass -File ./scripts/manage-admin.ps1 -Target Loca
              2. **Upload Initial Base Package:** Upload an initial signed APK (can remain in unpublished draft status) containing billing permissions so the console unlocks the "In-App Billing" menu and generates the store **RSA Public Key**.
              3. **Define SKUs / Digital Products:** Register products (Course / Bundle IDs) as **Non-consumable** with matching product IDs and prices in Tomans.
            - **Android Manifest & ProGuard (Configured in Codebase):**
-             - Permissions: `com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR` and `ir.mservices.market.BILLING`.
-             - Permission Stripping: Unnecessary biometric and fingerprint permissions (`USE_BIOMETRIC`, `USE_FINGERPRINT`) transitively pulled by third-party libraries are explicitly removed via `tools:node="remove"` in `AndroidManifest.xml` for full Myket privacy policy compliance.
-             - Package Visibility (`<queries>` for Android 11+): Declares `com.farsitel.bazaar` and `ir.mservices.market` so billing clients can discover and bind to store services.
-             - ProGuard Keep Rules: Preserves Bazaar Poolakey (`com.farsitel.bazaar.**`, `ir.cafebazaar.poolakey.**`) and Myket (`ir.mservices.market.**`, `ir.myket.**`) AIDL billing interfaces during release minification.
+              - Flavor-Isolated Permissions: To strictly comply with **Myket Developer Panel** and **Cafe Bazaar Pishkhan** policies against unauthorized competitor permissions:
+                - `myket` flavor (`android/app/src/myket/AndroidManifest.xml`): Declares `ir.mservices.market.BILLING` and explicitly strips `com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR` via `tools:node="remove"`, resolving the Myket panel "Unauthorized Permission" upload error.
+                - `bazaar` flavor (`android/app/src/bazaar/AndroidManifest.xml`): Declares `com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR` and explicitly strips `ir.mservices.market.BILLING` via `tools:node="remove"`.
+                - `googleplay` flavor (`android/app/src/googleplay/AndroidManifest.xml`): Declares `com.android.vending.BILLING` and strips third-party store billing permissions.
+                - `premium`, `direct`, `store` flavors: All store-specific billing permissions are completely stripped.
+              - Permission Stripping: Unnecessary biometric and fingerprint permissions (`USE_BIOMETRIC`, `USE_FINGERPRINT`) transitively pulled by third-party libraries are explicitly removed via `tools:node="remove"` in `src/main/AndroidManifest.xml` for full Myket privacy policy compliance.
+              - Package Visibility (`<queries>` for Android 11+): Declares package queries per flavor (`ir.mservices.market` in Myket, `com.farsitel.bazaar` in Bazaar) so billing clients can discover and bind to their respective store services without leaking queries across markets.
+              - ProGuard Keep Rules: Preserves Bazaar Poolakey (`com.farsitel.bazaar.**`, `ir.cafebazaar.poolakey.**`) and Myket (`ir.mservices.market.**`, `ir.myket.**`) AIDL billing interfaces during release minification.
              - Myket In-App Billing Plugin: Integrated official `myket_iap` plugin with dynamic manifest placeholders (`marketApplicationId`, `marketBindAddress`, `marketPermission`) configured in `build.gradle.kts`.
              - Vendored Package (`packages/flutter_poolakey`): The Bazaar Poolakey Flutter plugin is maintained locally in `mobile-app/packages/flutter_poolakey` with modernized Gradle 8.x/9.x and Android Gradle Plugin 8.11+ compatibility, eliminating deprecated `jcenter()` repositories and obsolete AGP 7 buildscript classpaths.
            - **Backend Store Verification Configuration:**

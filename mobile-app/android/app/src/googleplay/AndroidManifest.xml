@@ -1,0 +1,14 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- In-App Billing permission for Google Play Store -->
+    <uses-permission android:name="com.android.vending.BILLING" />
+
+    <!-- Remove third-party market billing permissions to comply with Google Play Developer Policy -->
+    <uses-permission
+        android:name="com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR"
+        tools:node="remove" />
+    <uses-permission
+        android:name="ir.mservices.market.BILLING"
+        tools:node="remove" />
+</manifest>
