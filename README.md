@@ -346,6 +346,10 @@ powershell -ExecutionPolicy Bypass -File ./scripts/manage-admin.ps1 -Target Loca
                "PackageName": "com.leitnerplatform.mobile_app"
              }
              ```
+              To automatically generate and configure the Cafe Bazaar OAuth `RefreshToken` in `.env` and `appsettings.json`, run the interactive setup tool:
+              ```powershell
+              powershell -ExecutionPolicy Bypass -File ./scripts/get-bazaar-refresh-token.ps1
+              ```
         4. **Local Build via PowerShell (Windows / Linux):**
            - **Start Tunnel:** Launch a persistent public tunnel pointing to your local backend (port 5217):
              ```powershell

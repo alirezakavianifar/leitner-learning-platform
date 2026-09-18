@@ -81,15 +81,14 @@ class BazaarPaymentProvider implements PaymentProvider {
   @override
   Future<bool> purchaseCourse(String courseId) async {
     try {
-      if (rsaKey != null && rsaKey!.isNotEmpty) {
-        await FlutterPoolakey.connect(rsaKey!);
-        final purchaseInfo = await FlutterPoolakey.purchase(courseId);
-        if (purchaseInfo.purchaseToken.isNotEmpty) {
-          return await verifyAndCompletePurchase(
-            courseId: courseId,
-            purchaseToken: purchaseInfo.purchaseToken,
-          );
-        }
+      final key = (rsaKey != null && rsaKey!.isNotEmpty) ? rsaKey : null;
+      await FlutterPoolakey.connect(key);
+      final purchaseInfo = await FlutterPoolakey.purchase(courseId);
+      if (purchaseInfo.purchaseToken.isNotEmpty) {
+        return await verifyAndCompletePurchase(
+          courseId: courseId,
+          purchaseToken: purchaseInfo.purchaseToken,
+        );
       }
     } catch (_) {
       // Clean fallback if Bazaar is not installed or cancelled
@@ -100,15 +99,14 @@ class BazaarPaymentProvider implements PaymentProvider {
   @override
   Future<bool> purchasePackage(String packageId) async {
     try {
-      if (rsaKey != null && rsaKey!.isNotEmpty) {
-        await FlutterPoolakey.connect(rsaKey!);
-        final purchaseInfo = await FlutterPoolakey.purchase(packageId);
-        if (purchaseInfo.purchaseToken.isNotEmpty) {
-          return await verifyAndCompletePurchase(
-            packageId: packageId,
-            purchaseToken: purchaseInfo.purchaseToken,
-          );
-        }
+      final key = (rsaKey != null && rsaKey!.isNotEmpty) ? rsaKey : null;
+      await FlutterPoolakey.connect(key);
+      final purchaseInfo = await FlutterPoolakey.purchase(packageId);
+      if (purchaseInfo.purchaseToken.isNotEmpty) {
+        return await verifyAndCompletePurchase(
+          packageId: packageId,
+          purchaseToken: purchaseInfo.purchaseToken,
+        );
       }
     } catch (_) {
       // Clean fallback
