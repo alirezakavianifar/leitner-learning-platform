@@ -488,5 +488,90 @@ namespace LeitnerPlatform.Tests
             Assert.DoesNotContain(listPremium, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "Bazaar Exclusive Course");
             Assert.Contains(listPremium, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "Multi-Store Course");
         }
+
+        [Fact]
+        public async Task CourseController_GetCourses_WithMinBuildNumber_FiltersLegacyClients()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var userId = Guid.NewGuid();
+
+            var legacyCourse = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Legacy Course",
+                Price = 10000m,
+                IsPublished = true,
+                MinBuildNumber = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var newVersionCourse = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "New Version Course",
+                Price = 25000m,
+                IsPublished = true,
+                MinBuildNumber = 4,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var purchasedNewCourse = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Purchased New Course",
+                Price = 35000m,
+                IsPublished = true,
+                MinBuildNumber = 4,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await db.Courses.AddRangeAsync(legacyCourse, newVersionCourse, purchasedNewCourse);
+            // Add a completed purchase for purchasedNewCourse
+            await db.Purchases.AddAsync(new Purchase
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                CourseId = purchasedNewCourse.Id,
+                Status = "COMPLETED",
+                PaymentProvider = "BAZAAR",
+                TransactionId = "TX_TEST_MIN_BUILD",
+                PurchasedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+
+            var controller = new CourseController(db);
+            var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString())
+            }, "TestAuth"));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            };
+
+            // Act 1: Legacy client with build number 3 (or no header)
+            controller.ControllerContext.HttpContext.Request.Headers["X-App-Build-Number"] = "3";
+            var resultBuild3 = await controller.GetCourses();
+            var okBuild3 = Assert.IsType<OkObjectResult>(resultBuild3);
+            var listBuild3 = (Assert.IsAssignableFrom<System.Collections.Generic.IEnumerable<object>>(okBuild3.Value)).ToList();
+
+            // Assert 1: LegacyCourse and PurchasedNewCourse are returned; unpurchased NewVersionCourse is hidden
+            Assert.Equal(2, listBuild3.Count);
+            Assert.Contains(listBuild3, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "Legacy Course");
+            Assert.Contains(listBuild3, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "Purchased New Course");
+            Assert.DoesNotContain(listBuild3, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "New Version Course");
+
+            // Act 2: Client updated to build number 4
+            controller.ControllerContext.HttpContext.Request.Headers["X-App-Build-Number"] = "4";
+            var resultBuild4 = await controller.GetCourses();
+            var okBuild4 = Assert.IsType<OkObjectResult>(resultBuild4);
+            var listBuild4 = (Assert.IsAssignableFrom<System.Collections.Generic.IEnumerable<object>>(okBuild4.Value)).ToList();
+
+            // Assert 2: All 3 courses are returned now
+            Assert.Equal(3, listBuild4.Count);
+            Assert.Contains(listBuild4, item => (string)item.GetType().GetProperty("title")!.GetValue(item)! == "New Version Course");
+        }
     }
 }

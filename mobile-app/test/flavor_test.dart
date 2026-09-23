@@ -61,6 +61,23 @@ void main() {
       expect(dioPremium.options.headers['X-App-Platform'], 'premium');
       expect(clientPremium.flavor, 'premium');
     });
+
+    test('should inject X-App-Version and X-App-Build-Number headers', () {
+      final dio = Dio();
+      final client = DioClient(
+        dio: dio,
+        storageService: MockStorageService(),
+        baseUrl: 'http://localhost/api/v1',
+        flavor: 'bazaar',
+        appVersion: '1.0.2',
+        buildNumber: 3,
+      );
+      expect(dio.options.headers['X-App-Platform'], 'bazaar');
+      expect(dio.options.headers['X-App-Version'], '1.0.2');
+      expect(dio.options.headers['X-App-Build-Number'], '3');
+      expect(client.appVersion, '1.0.2');
+      expect(client.buildNumber, 3);
+    });
   });
 
   group('BazaarPaymentProvider Security Tests', () {

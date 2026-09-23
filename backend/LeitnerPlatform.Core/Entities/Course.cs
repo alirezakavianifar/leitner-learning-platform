@@ -32,5 +32,8 @@ namespace LeitnerPlatform.Core.Entities
         // Comma-separated list of target distribution platforms/flavors
         // (zarinpal, bazaar, myket, googleplay, ios)
         public string AllowedPlatforms { get; set; } = "zarinpal,bazaar,myket,googleplay,ios";
+
+        // Minimum client application build number required to see this course
+        public int MinBuildNumber { get; set; } = 0;
     }
 }

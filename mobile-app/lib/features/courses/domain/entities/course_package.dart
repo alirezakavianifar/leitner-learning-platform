@@ -15,6 +15,7 @@ class CoursePackage extends Equatable {
   final int coursesCount;
   final int ownedCoursesCount;
   final List<Course> courses;
+  final int minBuildNumber;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -32,6 +33,7 @@ class CoursePackage extends Equatable {
     this.coursesCount = 0,
     this.ownedCoursesCount = 0,
     this.courses = const [],
+    this.minBuildNumber = 0,
     this.createdAt,
     this.updatedAt,
   });
@@ -62,6 +64,7 @@ class CoursePackage extends Equatable {
     int? coursesCount,
     int? ownedCoursesCount,
     List<Course>? courses,
+    int? minBuildNumber,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -79,6 +82,7 @@ class CoursePackage extends Equatable {
       coursesCount: coursesCount ?? this.coursesCount,
       ownedCoursesCount: ownedCoursesCount ?? this.ownedCoursesCount,
       courses: courses ?? this.courses,
+      minBuildNumber: minBuildNumber ?? this.minBuildNumber,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -99,6 +103,7 @@ class CoursePackage extends Equatable {
         coursesCount,
         ownedCoursesCount,
         courses,
+        minBuildNumber,
         createdAt,
         updatedAt,
       ];

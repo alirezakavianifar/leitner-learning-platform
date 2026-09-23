@@ -83,6 +83,19 @@ namespace LeitnerPlatform.API.Controllers.v1
                 ).ToList();
             }
 
+            // Filter courses by client build number (purchased courses are always preserved)
+            int clientBuildNumber = 0;
+            if (Request.Headers.TryGetValue("X-App-Build-Number", out var headerBuild) &&
+                int.TryParse(headerBuild.ToString().Trim(), out var parsedBuild))
+            {
+                clientBuildNumber = parsedBuild;
+            }
+
+            courses = courses.Where(c =>
+                completedPurchases.Contains(c.Id) ||
+                c.MinBuildNumber <= clientBuildNumber
+            ).ToList();
+
             var result = courses.Select(c =>
             {
                 var isPurchased = c.Price == 0 || completedPurchases.Contains(c.Id);
@@ -112,7 +125,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                     updated_at = c.UpdatedAt,
                     is_critical_update = c.IsCriticalUpdate,
                     is_archived = c.IsArchived,
-                    allowed_platforms = c.AllowedPlatforms
+                    allowed_platforms = c.AllowedPlatforms,
+                    min_build_number = c.MinBuildNumber
                 };
             });
 

@@ -435,6 +435,7 @@ The platform implements security hardening and feature enhancements based on the
 *   **Adaptive Launcher Splash Screen (Issue 1):** Android splash screen configuration uses the unified circular adaptive launcher icon (`@mipmap/ic_launcher_round`) across light and dark system themes, preventing visual discrepancies during app startup.
 *   **Tamper-Proof In-App Purchases (Issue 2):** Client-side mock purchases are strictly blocked. Direct unlocks for paid courses (`Price > 0`) require server-side ZarinPal payment verification and gateway callback processing (`/api/v1/zarinpal/verify` or `/package-verify`).
 *   **Platform-Targeted Course & Package Catalogs (Issue 3):** Database migrations `V18__Add_Course_Allowed_Platforms.sql` and `V20__Add_Package_Allowed_Platforms.sql` add `allowed_platforms` to courses and learning packages. The API filters courses and packages based on the client's `X-App-Platform` header and `platform` query parameter (`zarinpal`, `bazaar`, `myket`, `googleplay`, `ios`), ensuring each distribution build only displays authorized courses and bundles while honoring prior purchases.
+*   **Version-Based Catalog Filtering via Min Build Number:** Migration `V21__Add_Course_And_Package_Min_Build_Number.sql` adds `min_build_number` (default `0`) to courses and learning packages. The API validates the client's `X-App-Build-Number` header against `min_build_number`, ensuring newly added courses or in-app products pending app store updates (e.g. Bazaar, Myket) remain hidden on legacy app builds until users update their application, while strictly preserving lifetime access for users with existing purchases.
 *   **OTP Security & Admin Access Control (Issue 4):** Admin access features streamlined passwordless login guarded strictly by dynamic database whitelist (`admin_allowed_mobile_numbers`) with an interactive, validated Phone Number Chips/Badges Manager in the Admin Panel (`Settings` module), supported by an emergency backup access toggle (`09120000000` with OTP `12345`) and fallback to environment whitelist `ADMIN_ALLOWED_MOBILE_NUMBERS`. Non-whitelisted attempts return `UNAUTHORIZED_ADMIN_MOBILE` with localized feedback.
 *   **AI Tutor Assistant & Preference Toggle (Issue 5):** Flashcard study includes an interactive AI assistant modal providing mnemonic tips, vocabulary breakdowns, and contextual learning explanations. Users can toggle the AI Tutor on/off in App Settings (`user_enable_ai_tutor`).
 *   **Direct In-App Checkout (Issue 6):** In Direct/Premium builds, tapping purchase initiates direct ZarinPal gateway checkout without prompting users with unnecessary multi-store selection bottom sheets.
@@ -451,14 +452,14 @@ To verify the integrity of all platform components:
 ```powershell
 dotnet test backend/LeitnerPlatform.Tests
 ```
-*Executes all 66 unit and integration tests covering Authentication, OTP validation, Admin Whitelist, Emergency Bypass, Platform Course & Package Filtering, and Tamper-Proof Purchases.*
+*Executes all 70 unit and integration tests covering Authentication, OTP validation, Admin Whitelist, Emergency Bypass, Platform Course & Package Filtering, Min Build Number Filtering, and Tamper-Proof Purchases.*
 
 #### Mobile App Unit & BLoC Tests (Flutter):
 ```powershell
 cd mobile-app
-flutter test test/flashcard_bloc_test.dart test/flavor_test.dart
+flutter test
 ```
-*Validates flavor configuration, `X-App-Platform` injection, mock payment rejection, and flashcard shuffling logic.*
+*Validates flavor configuration, `X-App-Platform` and `X-App-Build-Number` header injection, mock payment rejection, flashcard shuffling logic, and entity models across all 152 tests.*
 
 #### Admin Panel Build & Type-Check:
 ```powershell
@@ -466,3 +467,4 @@ cd admin-panel
 npm run build
 ```
 *Validates TypeScript types, React components, Vite bundling, and multi-language JSON schemas.*
+

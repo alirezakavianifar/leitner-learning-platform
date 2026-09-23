@@ -21,6 +21,9 @@ namespace LeitnerPlatform.Core.Entities
         // (zarinpal, bazaar, myket, googleplay, ios)
         public string AllowedPlatforms { get; set; } = "zarinpal,bazaar,myket,googleplay,ios";
 
+        // Minimum client application build number required to see this package
+        public int MinBuildNumber { get; set; } = 0;
+
         public ICollection<CoursePackageItem> Items { get; set; } = new List<CoursePackageItem>();
     }
 }

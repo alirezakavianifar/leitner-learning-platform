@@ -40,6 +40,7 @@ export const CoursesView: React.FC = () => {
   const [isPublished, setIsPublished] = useState(false);
   const [isCriticalUpdate, setIsCriticalUpdate] = useState(false);
   const [allowedPlatforms, setAllowedPlatforms] = useState<string[]>(['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios']);
+  const [minBuildNumber, setMinBuildNumber] = useState<number>(0);
 
   // Upload Fields
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -63,6 +64,7 @@ export const CoursesView: React.FC = () => {
   const [pkgIsPublished, setPkgIsPublished] = useState(true);
   const [pkgSelectedCourseIds, setPkgSelectedCourseIds] = useState<string[]>([]);
   const [pkgAllowedPlatforms, setPkgAllowedPlatforms] = useState<string[]>(['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios']);
+  const [pkgMinBuildNumber, setPkgMinBuildNumber] = useState<number>(0);
 
   const loadCourses = async () => {
     try {
@@ -126,6 +128,7 @@ export const CoursesView: React.FC = () => {
       ? course.allowed_platforms.split(',').map((s: string) => s.trim()).filter(Boolean)
       : ['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios'];
     setAllowedPlatforms(platforms);
+    setMinBuildNumber(course.min_build_number || 0);
     setShowEditModal(true);
   };
 
@@ -143,7 +146,8 @@ export const CoursesView: React.FC = () => {
         image_url: imageUrl.trim(),
         is_published: isPublished,
         is_critical_update: isCriticalUpdate,
-        allowed_platforms: allowedPlatforms.join(',')
+        allowed_platforms: allowedPlatforms.join(','),
+        min_build_number: minBuildNumber
       });
       toast.showSuccess(t('courses.alert_save_success', 'Course metadata updated successfully.'));
       setShowEditModal(false);
@@ -271,6 +275,7 @@ export const CoursesView: React.FC = () => {
     setPkgIsPublished(true);
     setPkgSelectedCourseIds([]);
     setPkgAllowedPlatforms(['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios']);
+    setPkgMinBuildNumber(0);
     setShowPackageModal(true);
   };
 
@@ -289,6 +294,7 @@ export const CoursesView: React.FC = () => {
       ? pkg.allowed_platforms.split(',').map((s: string) => s.trim()).filter(Boolean)
       : ['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios'];
     setPkgAllowedPlatforms(platforms);
+    setPkgMinBuildNumber(pkg.min_build_number || 0);
     setShowPackageModal(true);
   };
 
@@ -326,6 +332,7 @@ export const CoursesView: React.FC = () => {
         is_published: pkgIsPublished,
         course_ids: pkgSelectedCourseIds,
         allowed_platforms: pkgAllowedPlatforms.join(','),
+        min_build_number: pkgMinBuildNumber,
       };
 
       if (editingPackage) {
@@ -484,6 +491,20 @@ export const CoursesView: React.FC = () => {
                                       {p === 'bazaar' ? 'بازار' : p === 'zarinpal' ? 'زرین‌پال' : p === 'myket' ? 'مایکت' : p === 'googleplay' ? 'گوگل' : p === 'ios' ? 'iOS' : p}
                                     </span>
                                   ))}
+                                  {course.min_build_number !== undefined && course.min_build_number > 0 && (
+                                    <span
+                                      style={{
+                                        fontSize: '9.5px',
+                                        padding: '1px 5px',
+                                        borderRadius: '3px',
+                                        backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                                        color: '#eab308',
+                                        border: '1px solid currentColor'
+                                      }}
+                                    >
+                                      بیلد ≥ {course.min_build_number}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -688,6 +709,20 @@ export const CoursesView: React.FC = () => {
                                   {pkg.allowed_platforms.split(',').map((p) => p.trim()).filter(Boolean).map((p) => (
                                     <span key={p} className="badge badge-platform">{p}</span>
                                   ))}
+                                  {pkg.min_build_number !== undefined && pkg.min_build_number > 0 && (
+                                    <span
+                                      style={{
+                                        fontSize: '9.5px',
+                                        padding: '1px 5px',
+                                        borderRadius: '3px',
+                                        backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                                        color: '#eab308',
+                                        border: '1px solid currentColor'
+                                      }}
+                                    >
+                                      بیلد ≥ {pkg.min_build_number}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -884,6 +919,21 @@ export const CoursesView: React.FC = () => {
                   </div>
                   <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '6px', fontSize: '11px' }}>
                     در صورت برداشتن تیک کافه بازار یا هر نسخه دیگر، این دوره فقط در نسخه‌های مجاز نمایش داده می‌شود.
+                  </small>
+                </div>
+                <div className="form-group" style={{ marginTop: '12px' }}>
+                  <label style={{ fontWeight: 600, fontSize: '13px' }}>
+                    🔢 حداقل شماره بیلد اپلیکیشن (Min Build Number):
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={minBuildNumber}
+                    onChange={(e) => setMinBuildNumber(parseInt(e.target.value) || 0)}
+                    placeholder="0 = قابل مشاهده برای همه نسخه‌ها"
+                  />
+                  <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '4px', fontSize: '11px' }}>
+                    اگر بیلد جدیدی در بازار یا مایکت منتشر کرده‌اید (مثلاً بیلد 4)، این عدد را روی 4 بگذارید تا کاربران نسخه‌های قدیمی‌تر این دوره را مشاهده نکنند.
                   </small>
                 </div>
               </div>
@@ -1085,6 +1135,21 @@ export const CoursesView: React.FC = () => {
                   </div>
                   <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '6px', fontSize: '11px' }}>
                     در صورت برداشتن تیک کافه بازار یا هر مارکت دیگر، این پکیج فقط در نسخه‌های مجاز نمایش داده می‌شود.
+                  </small>
+                </div>
+                <div className="form-group" style={{ marginTop: '12px' }}>
+                  <label style={{ fontWeight: 600, fontSize: '13px' }}>
+                    🔢 حداقل شماره بیلد اپلیکیشن (Min Build Number):
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={pkgMinBuildNumber}
+                    onChange={(e) => setPkgMinBuildNumber(parseInt(e.target.value) || 0)}
+                    placeholder="0 = قابل مشاهده برای همه نسخه‌ها"
+                  />
+                  <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '4px', fontSize: '11px' }}>
+                    اگر بیلد جدیدی در بازار یا مایکت منتشر کرده‌اید (مثلاً بیلد 4)، این عدد را روی 4 بگذارید تا کاربران نسخه‌های قدیمی‌تر این پکیج را مشاهده نکنند.
                   </small>
                 </div>
               </div>

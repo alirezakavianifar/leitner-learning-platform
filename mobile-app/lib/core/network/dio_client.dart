@@ -14,6 +14,8 @@ class DioClient {
   /// Use this to clear credentials and redirect the user to the login screen.
   final VoidCallback? onUnauthorized;
   final String? flavor;
+  final String? appVersion;
+  final int? buildNumber;
 
   bool _isFailoverInProgress = false;
   bool _isRefreshingToken = false;
@@ -25,6 +27,8 @@ class DioClient {
     required String baseUrl,
     this.onUnauthorized,
     this.flavor,
+    this.appVersion,
+    this.buildNumber,
   }) {
     dio.options.baseUrl = normalizeApiBaseUrl(baseUrl);
     dio.options.connectTimeout = const Duration(seconds: 10);
@@ -33,6 +37,8 @@ class DioClient {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       if (flavor != null && flavor!.isNotEmpty) 'X-App-Platform': flavor,
+      if (appVersion != null && appVersion!.isNotEmpty) 'X-App-Version': appVersion,
+      if (buildNumber != null) 'X-App-Build-Number': buildNumber.toString(),
     };
 
     dio.interceptors.add(CorrelationInterceptor());
@@ -57,6 +63,12 @@ class DioClient {
           }
           if (flavor != null && flavor!.isNotEmpty) {
             options.headers['X-App-Platform'] = flavor;
+          }
+          if (appVersion != null && appVersion!.isNotEmpty) {
+            options.headers['X-App-Version'] = appVersion;
+          }
+          if (buildNumber != null) {
+            options.headers['X-App-Build-Number'] = buildNumber.toString();
           }
           return handler.next(options);
         },

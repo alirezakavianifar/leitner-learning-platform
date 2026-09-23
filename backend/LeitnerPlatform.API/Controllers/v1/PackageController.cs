@@ -90,10 +90,23 @@ namespace LeitnerPlatform.API.Controllers.v1
                 ).ToList();
             }
 
+            int clientBuildNumber = 0;
+            if (Request.Headers.TryGetValue("X-App-Build-Number", out var headerBuild) &&
+                int.TryParse(headerBuild.ToString().Trim(), out var parsedBuild))
+            {
+                clientBuildNumber = parsedBuild;
+            }
+
+            packages = packages.Where(pkg =>
+                completedPackagePurchases.Contains(pkg.Id) ||
+                pkg.MinBuildNumber <= clientBuildNumber
+            ).ToList();
+
             var result = packages.Select(pkg =>
             {
                 var validItems = pkg.Items
                     .Where(i => i.Course != null && (i.Course.IsPublished || completedCoursePurchases.Contains(i.CourseId)))
+                    .Where(i => completedCoursePurchases.Contains(i.CourseId) || i.Course!.MinBuildNumber <= clientBuildNumber)
                     .Where(i =>
                         completedCoursePurchases.Contains(i.CourseId) ||
                         string.IsNullOrEmpty(targetPlatform) ||
@@ -122,7 +135,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                         image_url = c.ImageUrl,
                         is_purchased = isCoursePurchased,
                         version = c.Version,
-                        allowed_platforms = c.AllowedPlatforms
+                        allowed_platforms = c.AllowedPlatforms,
+                        min_build_number = c.MinBuildNumber
                     };
                 }).ToList();
 
@@ -156,6 +170,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     owned_courses_count = ownedCoursesCount,
                     courses = courseDtos,
                     allowed_platforms = pkg.AllowedPlatforms,
+                    min_build_number = pkg.MinBuildNumber,
                     created_at = pkg.CreatedAt,
                     updated_at = pkg.UpdatedAt
                 };

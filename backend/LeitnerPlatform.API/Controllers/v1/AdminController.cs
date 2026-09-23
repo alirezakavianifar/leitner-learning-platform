@@ -1228,6 +1228,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 bool isPublished = true;
                 bool isCriticalUpdate = false;
                 string? allowedPlatforms = null;
+                int minBuildNumber = 0;
 
                 if (manifestPath != null && System.IO.File.Exists(manifestPath))
                 {
@@ -1252,6 +1253,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     if (root.TryGetProperty("is_published", out var pubProp)) isPublished = pubProp.GetBoolean();
                     if (root.TryGetProperty("is_critical_update", out var criticalProp)) isCriticalUpdate = criticalProp.GetBoolean();
                     if (root.TryGetProperty("allowed_platforms", out var platformsProp)) allowedPlatforms = platformsProp.GetString();
+                    if (root.TryGetProperty("min_build_number", out var minBuildProp)) minBuildNumber = minBuildProp.GetInt32();
                 }
                 else
                 {
@@ -1477,6 +1479,10 @@ namespace LeitnerPlatform.API.Controllers.v1
                             {
                                 existingCourse.AllowedPlatforms = allowedPlatforms.Trim();
                             }
+                            if (minBuildNumber > 0 || (manifestPath != null && System.IO.File.Exists(manifestPath)))
+                            {
+                                existingCourse.MinBuildNumber = minBuildNumber;
+                            }
                             // Re-uploading a package is an explicit admin action to bring the
                             // course back into circulation, so reverse any prior archive state.
                             existingCourse.IsArchived = false;
@@ -1518,6 +1524,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                                 CardCount = cardCount,
                                 IsCriticalUpdate = isCriticalUpdate,
                                 AllowedPlatforms = !string.IsNullOrWhiteSpace(allowedPlatforms) ? allowedPlatforms.Trim() : "zarinpal,bazaar,myket,googleplay,ios",
+                                MinBuildNumber = minBuildNumber,
                                 CreatedAt = DateTime.UtcNow,
                                 UpdatedAt = DateTime.UtcNow
                             };
@@ -1714,6 +1721,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             if (input.IsCriticalUpdate.HasValue) course.IsCriticalUpdate = input.IsCriticalUpdate.Value;
             if (input.ImageUrl != null) course.ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim();
             if (input.AllowedPlatforms != null) course.AllowedPlatforms = input.AllowedPlatforms.Trim();
+            if (input.MinBuildNumber.HasValue) course.MinBuildNumber = input.MinBuildNumber.Value;
             course.UpdatedAt = DateTime.UtcNow;
 
             _context.Entry(course).State = EntityState.Modified;
@@ -2071,6 +2079,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 is_archived = pkg.IsArchived,
                 display_order = pkg.DisplayOrder,
                 allowed_platforms = pkg.AllowedPlatforms,
+                min_build_number = pkg.MinBuildNumber,
                 created_at = pkg.CreatedAt,
                 updated_at = pkg.UpdatedAt,
                 courses = pkg.Items.OrderBy(i => i.DisplayOrder).Select(i => new
@@ -2133,6 +2142,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 IsPublished = input.IsPublished,
                 DisplayOrder = input.DisplayOrder,
                 AllowedPlatforms = !string.IsNullOrWhiteSpace(input.AllowedPlatforms) ? input.AllowedPlatforms.Trim() : "zarinpal,bazaar,myket,googleplay,ios",
+                MinBuildNumber = input.MinBuildNumber ?? 0,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -2219,6 +2229,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             if (input.IsArchived.HasValue) package.IsArchived = input.IsArchived.Value;
             if (input.DisplayOrder.HasValue) package.DisplayOrder = input.DisplayOrder.Value;
             if (input.AllowedPlatforms != null) package.AllowedPlatforms = input.AllowedPlatforms.Trim();
+            if (input.MinBuildNumber.HasValue) package.MinBuildNumber = input.MinBuildNumber.Value;
             package.UpdatedAt = DateTime.UtcNow;
 
             if (input.CourseIds != null)
@@ -2363,6 +2374,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         public bool IsPublished { get; set; } = true;
         public int DisplayOrder { get; set; } = 0;
         public string? AllowedPlatforms { get; set; }
+        public int? MinBuildNumber { get; set; }
         public System.Collections.Generic.List<Guid>? CourseIds { get; set; }
     }
 
@@ -2378,6 +2390,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         public bool? IsArchived { get; set; }
         public int? DisplayOrder { get; set; }
         public string? AllowedPlatforms { get; set; }
+        public int? MinBuildNumber { get; set; }
         public System.Collections.Generic.List<Guid>? CourseIds { get; set; }
     }
 
@@ -2392,6 +2405,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         public bool? IsPublished { get; set; }
         public bool? IsCriticalUpdate { get; set; }
         public string? AllowedPlatforms { get; set; }
+        public int? MinBuildNumber { get; set; }
     }
 
     public class AdminUserUpdateInput

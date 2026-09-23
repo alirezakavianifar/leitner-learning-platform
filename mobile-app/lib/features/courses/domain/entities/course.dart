@@ -12,6 +12,7 @@ class Course extends Equatable {
   final String? downloadUrl;
   final String? imageUrl;
   final int version;
+  final int minBuildNumber;
 
   // Server-side content lifecycle metadata
   final bool isArchived;
@@ -37,6 +38,7 @@ class Course extends Equatable {
     this.downloadUrl,
     this.imageUrl,
     required this.version,
+    this.minBuildNumber = 0,
     this.isArchived = false,
     this.isCriticalUpdate = false,
     this.updatedAt,
@@ -62,6 +64,7 @@ class Course extends Equatable {
     String? downloadUrl,
     String? imageUrl,
     int? version,
+    int? minBuildNumber,
     bool? isArchived,
     bool? isCriticalUpdate,
     DateTime? updatedAt,
@@ -81,6 +84,7 @@ class Course extends Equatable {
       downloadUrl: downloadUrl ?? this.downloadUrl,
       imageUrl: imageUrl ?? this.imageUrl,
       version: version ?? this.version,
+      minBuildNumber: minBuildNumber ?? this.minBuildNumber,
       isArchived: isArchived ?? this.isArchived,
       isCriticalUpdate: isCriticalUpdate ?? this.isCriticalUpdate,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -103,6 +107,7 @@ class Course extends Equatable {
         downloadUrl,
         imageUrl,
         version,
+        minBuildNumber,
         isArchived,
         isCriticalUpdate,
         updatedAt,

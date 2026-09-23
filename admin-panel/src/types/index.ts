@@ -35,6 +35,7 @@ export interface Course {
   archived_at?: string;
   is_critical_update: boolean;
   allowed_platforms?: string;
+  min_build_number?: number;
 }
 
 export interface Purchase {
@@ -114,6 +115,7 @@ export interface CoursePackage {
   created_at: string;
   updated_at?: string;
   allowed_platforms?: string;
+  min_build_number?: number;
   courses: {
     id: string;
     title: string;

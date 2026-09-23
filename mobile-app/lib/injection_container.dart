@@ -59,7 +59,14 @@ final sl = GetIt.instance;
 
 class AppConfig {
   final String flavor;
-  AppConfig({required this.flavor});
+  final String appVersion;
+  final int buildNumber;
+
+  AppConfig({
+    required this.flavor,
+    this.appVersion = const String.fromEnvironment('APP_VERSION', defaultValue: '1.0.2'),
+    this.buildNumber = const int.fromEnvironment('BUILD_NUMBER', defaultValue: 3),
+  });
 
   bool get isPremium => flavor == 'premium' || flavor == 'direct';
   bool get isDirect => flavor == 'direct' || flavor == 'premium';
@@ -71,8 +78,18 @@ class AppConfig {
   bool get hasNativeBilling => isBazaar || isMyket || isGooglePlay || isDirect;
 }
 
-Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
-  sl.registerSingleton<AppConfig>(AppConfig(flavor: flavor));
+Future<void> init({
+  String? apiBaseUrl,
+  String flavor = 'store',
+  String appVersion = const String.fromEnvironment('APP_VERSION', defaultValue: '1.0.2'),
+  int buildNumber = const int.fromEnvironment('BUILD_NUMBER', defaultValue: 3),
+}) async {
+  final config = AppConfig(
+    flavor: flavor,
+    appVersion: appVersion,
+    buildNumber: buildNumber,
+  );
+  sl.registerSingleton<AppConfig>(config);
   
   // 1. Core Services / Singletons
   final sharedPrefs = await SharedPreferences.getInstance();
@@ -107,6 +124,8 @@ Future<void> init({String? apiBaseUrl, String flavor = 'store'}) async {
     storageService: storageService,
     baseUrl: fallbackUrl,
     flavor: flavor,
+    appVersion: config.appVersion,
+    buildNumber: config.buildNumber,
     onUnauthorized: () {
       // Dispatch LogoutEvent on the AuthBloc so AuthGate redirects to login
       final context = navigatorKey.currentContext;
