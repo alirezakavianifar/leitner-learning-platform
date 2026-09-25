@@ -6,13 +6,14 @@ on:
       flavor:
         description: 'App Flavor to Build'
         required: true
-        default: 'premium'
+        default: 'all'
         type: choice
         options:
+          - all
           - premium
-          - direct
           - bazaar
           - myket
+          - direct
           - googleplay
           - store
       abi:
@@ -50,7 +51,7 @@ permissions:
 
 jobs:
   build-apk:
-    name: Build Android APK (${{ inputs.flavor || 'premium' }} - ${{ inputs.abi || 'arm64-v8a' }})
+    name: Build Android APK (${{ inputs.flavor || 'all' }} - ${{ inputs.abi || 'arm64-v8a' }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -86,109 +87,125 @@ jobs:
           flutter pub get
         shell: bash
 
-      - name: Compile Release APK & Package
+      - name: Compile Release APKs & Packages
         run: |
           cd mobile-app
-          FLAVOR="${{ inputs.flavor || 'premium' }}"
+          SELECTED_FLAVOR="${{ inputs.flavor || 'all' }}"
           ABI="${{ inputs.abi || 'arm64-v8a' }}"
           API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir/api/v1' }}"
           
-          echo "Building release APK for flavor: $FLAVOR (ABI: $ABI) with API: $API_URL"
+          if [ "$SELECTED_FLAVOR" = "all" ]; then
+            FLAVORS=("premium" "bazaar" "myket")
+          else
+            FLAVORS=("$SELECTED_FLAVOR")
+          fi
+          
+          echo "Target flavors to build: ${FLAVORS[*]} (ABI: $ABI) with API: $API_URL"
           
           SYMBOLS_DIR="build/app/outputs/symbols"
-          BUILD_ARGS=(
-            "build" "apk"
-            "--release"
-            "--flavor" "$FLAVOR"
-            "-t" "lib/main_${FLAVOR}.dart"
-            "--dart-define=API_BASE_URL=$API_URL"
-            "--obfuscate"
-            "--split-debug-info=$SYMBOLS_DIR"
-            "--tree-shake-icons"
-          )
-          
-          if [ "$ABI" = "arm64-v8a" ]; then
-            BUILD_ARGS+=("--split-per-abi" "--target-platform" "android-arm64")
-          elif [ "$ABI" = "all" ]; then
-            BUILD_ARGS+=("--split-per-abi")
-          fi
-          
-          flutter "${BUILD_ARGS[@]}"
-          
           APK_DIR="build/app/outputs/flutter-apk"
-          PRIMARY_APK=""
           
-          if [ "$ABI" = "arm64-v8a" ]; then
-            for candidate in \
-              "$APK_DIR/app-arm64-v8a-${FLAVOR}-release.apk" \
-              "$APK_DIR/app-${FLAVOR}-arm64-v8a-release.apk" \
-              "$APK_DIR/app-arm64-v8a-release.apk" \
-              "$APK_DIR/app-${FLAVOR}-release.apk"; do
-              if [ -f "$candidate" ]; then
-                PRIMARY_APK="$candidate"
-                break
+          for FLAVOR in "${FLAVORS[@]}"; do
+            echo "===================================================="
+            echo " Compiling Release APK for flavor: $FLAVOR"
+            echo "===================================================="
+            
+            BUILD_ARGS=(
+              "build" "apk"
+              "--release"
+              "--flavor" "$FLAVOR"
+              "-t" "lib/main_${FLAVOR}.dart"
+              "--dart-define=API_BASE_URL=$API_URL"
+              "--obfuscate"
+              "--split-debug-info=$SYMBOLS_DIR"
+              "--tree-shake-icons"
+            )
+            
+            if [ "$ABI" = "arm64-v8a" ]; then
+              BUILD_ARGS+=("--split-per-abi" "--target-platform" "android-arm64")
+            elif [ "$ABI" = "all" ]; then
+              BUILD_ARGS+=("--split-per-abi")
+            fi
+            
+            flutter "${BUILD_ARGS[@]}"
+            
+            PRIMARY_APK=""
+            if [ "$ABI" = "arm64-v8a" ]; then
+              for candidate in \
+                "$APK_DIR/app-arm64-v8a-${FLAVOR}-release.apk" \
+                "$APK_DIR/app-${FLAVOR}-arm64-v8a-release.apk" \
+                "$APK_DIR/app-arm64-v8a-release.apk" \
+                "$APK_DIR/app-${FLAVOR}-release.apk"; do
+                if [ -f "$candidate" ]; then
+                  PRIMARY_APK="$candidate"
+                  break
+                fi
+              done
+            elif [ "$ABI" = "universal" ]; then
+              for candidate in \
+                "$APK_DIR/app-${FLAVOR}-release.apk" \
+                "$APK_DIR/app-release.apk"; do
+                if [ -f "$candidate" ]; then
+                  PRIMARY_APK="$candidate"
+                  break
+                fi
+              done
+            elif [ "$ABI" = "all" ]; then
+              cp "$APK_DIR"/*.apk "${GITHUB_WORKSPACE}/" 2>/dev/null || true
+              PRIMARY_APK=$(ls "$APK_DIR"/*arm64*.apk 2>/dev/null | head -n 1)
+              if [ -z "$PRIMARY_APK" ]; then
+                PRIMARY_APK=$(ls "$APK_DIR"/*.apk 2>/dev/null | head -n 1)
               fi
-            done
-          elif [ "$ABI" = "universal" ]; then
-            for candidate in \
-              "$APK_DIR/app-${FLAVOR}-release.apk" \
-              "$APK_DIR/app-release.apk"; do
-              if [ -f "$candidate" ]; then
-                PRIMARY_APK="$candidate"
-                break
-              fi
-            done
-          elif [ "$ABI" = "all" ]; then
-            cp "$APK_DIR"/*.apk "${GITHUB_WORKSPACE}/" 2>/dev/null || true
-            PRIMARY_APK=$(ls "$APK_DIR"/*arm64*.apk 2>/dev/null | head -n 1)
-            if [ -z "$PRIMARY_APK" ]; then
+            fi
+            
+            if [ -z "$PRIMARY_APK" ] || [ ! -f "$PRIMARY_APK" ]; then
               PRIMARY_APK=$(ls "$APK_DIR"/*.apk 2>/dev/null | head -n 1)
             fi
-          fi
-          
-          if [ -z "$PRIMARY_APK" ] || [ ! -f "$PRIMARY_APK" ]; then
-            PRIMARY_APK=$(ls "$APK_DIR"/*.apk 2>/dev/null | head -n 1)
-          fi
-          
-          if [ -f "$PRIMARY_APK" ]; then
-            echo "Found compiled APK: $PRIMARY_APK"
-            cp "$PRIMARY_APK" "${GITHUB_WORKSPACE}/app-${FLAVOR}-release.apk"
-            if [ "$ABI" = "arm64-v8a" ]; then
-              cp "$PRIMARY_APK" "${GITHUB_WORKSPACE}/app-${FLAVOR}-arm64-v8a-release.apk"
-            fi
             
-            cd "${GITHUB_WORKSPACE}"
-            zip -j "app-${FLAVOR}-release.zip" "app-${FLAVOR}-release.apk"
-            echo "Created archive: app-${FLAVOR}-release.zip"
-            ls -lh app-*
-          else
-            echo "Error: No APK file was generated!"
-            exit 1
-          fi
-
-          if [ "$FLAVOR" = "googleplay" ]; then
-            echo "Building Google Play Android App Bundle (.aab)..."
-            flutter build appbundle \
-              --release \
-              --flavor googleplay \
-              -t lib/main_googleplay.dart \
-              --dart-define=API_BASE_URL=$API_URL \
-              --obfuscate \
-              --split-debug-info=$SYMBOLS_DIR \
-              --tree-shake-icons
-            
-            AAB_FILE=$(find build/app/outputs/bundle -name "*.aab" 2>/dev/null | head -n 1)
-            if [ -n "$AAB_FILE" ] && [ -f "$AAB_FILE" ]; then
-              echo "Found generated AAB: $AAB_FILE"
-              cp "$AAB_FILE" "${GITHUB_WORKSPACE}/app-googleplay-release.aab"
+            if [ -f "$PRIMARY_APK" ]; then
+              echo "Found compiled APK for $FLAVOR: $PRIMARY_APK"
+              cp "$PRIMARY_APK" "${GITHUB_WORKSPACE}/app-${FLAVOR}-release.apk"
+              if [ "$ABI" = "arm64-v8a" ]; then
+                cp "$PRIMARY_APK" "${GITHUB_WORKSPACE}/app-${FLAVOR}-arm64-v8a-release.apk"
+              fi
+              
+              cd "${GITHUB_WORKSPACE}"
+              zip -j "app-${FLAVOR}-release.zip" "app-${FLAVOR}-release.apk"
+              echo "Created archive: app-${FLAVOR}-release.zip"
+              cd mobile-app
+            else
+              echo "Error: No APK file was generated for $FLAVOR!"
+              exit 1
             fi
-          fi
+  
+            if [ "$FLAVOR" = "googleplay" ]; then
+              echo "Building Google Play Android App Bundle (.aab)..."
+              flutter build appbundle \
+                --release \
+                --flavor googleplay \
+                -t lib/main_googleplay.dart \
+                --dart-define=API_BASE_URL=$API_URL \
+                --obfuscate \
+                --split-debug-info=$SYMBOLS_DIR \
+                --tree-shake-icons
+              
+              AAB_FILE=$(find build/app/outputs/bundle -name "*.aab" 2>/dev/null | head -n 1)
+              if [ -n "$AAB_FILE" ] && [ -f "$AAB_FILE" ]; then
+                echo "Found generated AAB: $AAB_FILE"
+                cp "$AAB_FILE" "${GITHUB_WORKSPACE}/app-googleplay-release.aab"
+              fi
+            fi
+          done
+          
+          cd "${GITHUB_WORKSPACE}"
+          echo "All generated binaries:"
+          ls -lh app-*
         shell: bash
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-build-${{ inputs.flavor || 'premium' }}-${{ inputs.abi || 'arm64-v8a' }}
+          name: android-build-${{ inputs.flavor || 'all' }}-${{ inputs.abi || 'arm64-v8a' }}
           path: |
             app-*-release.apk
             app-*-release.aab
@@ -201,22 +218,29 @@ jobs:
         env:
           RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN || 'CBGADB0AFGZDLMGWVNLANQKRQDWYEONKZZUGWWHCFZVZDUUFQYKAVHKZMABOOHXL' }}
         run: |
-          FLAVOR="${{ inputs.flavor || 'premium' }}"
-          ZIP_FILE="app-${FLAVOR}-release.zip"
-          if [ -f "$ZIP_FILE" ]; then
-            echo "Sending $ZIP_FILE to Rubika Bot..."
-            python3 scripts/upload-to-rubika.py --file "$ZIP_FILE"
-          elif [ -f "app-${FLAVOR}-release.apk" ]; then
-            echo "Sending APK to Rubika Bot..."
-            python3 scripts/upload-to-rubika.py --file "app-${FLAVOR}-release.apk"
+          SELECTED_FLAVOR="${{ inputs.flavor || 'all' }}"
+          if [ "$SELECTED_FLAVOR" = "all" ]; then
+            FLAVORS=("premium" "bazaar" "myket")
+          else
+            FLAVORS=("$SELECTED_FLAVOR")
           fi
+          for FLV in "${FLAVORS[@]}"; do
+            ZIP_FILE="app-${FLV}-release.zip"
+            if [ -f "$ZIP_FILE" ]; then
+              echo "Sending $ZIP_FILE to Rubika Bot..."
+              python3 scripts/upload-to-rubika.py --file "$ZIP_FILE" || true
+            elif [ -f "app-${FLV}-release.apk" ]; then
+              echo "Sending APK to Rubika Bot..."
+              python3 scripts/upload-to-rubika.py --file "app-${FLV}-release.apk" || true
+            fi
+          done
         shell: bash
 
       - name: Resolve Release Tag & Information
         if: ${{ inputs.publish_release != false && success() }}
         id: release_info
         run: |
-          FLAVOR="${{ inputs.flavor || 'premium' }}"
+          FLAVOR="${{ inputs.flavor || 'all' }}"
           if [ -n "${{ inputs.tag_name }}" ]; then
             TAG="${{ inputs.tag_name }}"
           else
@@ -252,10 +276,10 @@ jobs:
           body: |
             ### 📱 Leitner Learning Platform Android Release (${{ steps.release_info.outputs.tag }})
             
-            **Flavor:** `${{ steps.release_info.outputs.flavor }}`
-            
             #### 📦 Download Packages
-            - **Android APK:** Direct installable APK file (`.apk`) & distribution archive (`.zip`)
+            - 🟢 **Android Direct (ZarinPal):** `app-premium-release.apk` & `app-premium-release.zip`
+            - ☕ **Android Cafe Bazaar:** `app-bazaar-release.apk` & `app-bazaar-release.zip`
+            - 🛍️ **Android Myket:** `app-myket-release.apk` & `app-myket-release.zip`
             
             ---
             #### 📝 What's Changed
@@ -263,4 +287,5 @@ jobs:
             app-*-release.apk
             app-*-release.aab
             app-*-release.zip
+
 

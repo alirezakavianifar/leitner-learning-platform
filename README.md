@@ -477,18 +477,18 @@ The repository is equipped with fully automated continuous integration, continuo
 #### A. Unified Mobile Build & GitHub Release Pipeline (`build-mobile.yml`)
 *   **Trigger:** Automatically triggered on every push to `master`/`main` affecting `mobile-app/**` or `scripts/**`, on version tags (`v*`), or manually via `workflow_dispatch`.
 *   **Parallel Cloud Runners:**
-    *   **Android Job (`ubuntu-latest`):** Compiles release APK (`app-premium-release.apk`), distribution ZIP (`app-premium-release.zip`), and optional Google Play App Bundle (`.aab`). Automatically uploads the APK package to the Rubika Bot (`@AliDeveloperBot`).
+    *   **Android Job (`ubuntu-latest`):** Automatically compiles release APKs and distribution ZIPs for all major distribution flavors (**`premium`**, **`bazaar`**, and **`myket`**), plus optional Google Play App Bundles (`.aab`). Automatically uploads the packages to the Rubika Bot (`@AliDeveloperBot`).
     *   **iOS Job (`macos-14`):** Compiles unsigned iOS physical device release bundle (`Payload/Runner.app`), packages it into `app-premium-release.ipa` and `app-premium-ios-release.zip`.
 *   **Automated GitHub Release Creation (`publish-release`):**
     *   Once builds succeed, the workflow automatically publishes an official **GitHub Release** under the repository's **Releases** tab.
-    *   Attaches all compiled packages (`.apk`, `.zip`, `.aab`, `.ipa`) as downloadable release assets.
+    *   Attaches all compiled packages (`app-premium-release.apk`, `app-bazaar-release.apk`, `app-myket-release.apk`, `.zip` archives, and iOS `app-premium-release.ipa`) as downloadable release assets.
     *   Automatically generates structured changelogs from commit history since the prior release.
     *   Tags releases using semantic versions extracted from `mobile-app/pubspec.yaml` (e.g., `v1.0.2`) or custom git tags.
 
 #### B. Dedicated Android APK Pipeline (`build-apk.yml`)
 *   **Trigger:** Manual execution via `workflow_dispatch` on `ubuntu-latest`.
-*   **Configurable Parameters:** Flavor (`premium`, `direct`, `bazaar`, `myket`, `googleplay`, `store`), ABI target (`arm64-v8a`, `universal`, `all`), backend target URL, Rubika bot dispatch toggle, and GitHub Release publication toggle (`publish_release`).
-*   **Artifacts:** Produces optimized, obfuscated APKs with ProGuard stripping and attaches them to GitHub Releases.
+*   **Configurable Parameters:** Flavor (`all`, `premium`, `bazaar`, `myket`, `direct`, `googleplay`, `store`), ABI target (`arm64-v8a`, `universal`, `all`), backend target URL, Rubika bot dispatch toggle, and GitHub Release publication toggle (`publish_release`).
+*   **Artifacts:** Produces optimized, obfuscated APKs with ProGuard stripping for selected flavors or all flavors concurrently and attaches them to GitHub Releases.
 
 #### C. Dedicated iOS Build Pipeline (`build-ios.yml`)
 *   **Trigger:** Manual execution via `workflow_dispatch` on `macos-14` Apple Silicon runners.
