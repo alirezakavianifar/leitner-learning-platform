@@ -477,8 +477,9 @@ The repository is equipped with fully automated continuous integration, continuo
 #### A. Unified Mobile Build & GitHub Release Pipeline (`build-mobile.yml`)
 *   **Trigger:** Automatically triggered on every push to `master`/`main` affecting `mobile-app/**` or `scripts/**`, on version tags (`v*`), or manually via `workflow_dispatch`.
 *   **Parallel Cloud Runners:**
-    *   **Android Job (`ubuntu-latest`):** Automatically compiles release APKs and distribution ZIPs for all major distribution flavors (**`premium`**, **`bazaar`**, and **`myket`**), plus optional Google Play App Bundles (`.aab`). Automatically uploads the packages to the Rubika Bot (`@AliDeveloperBot`).
+    *   **Android Job (`ubuntu-latest`):** Automatically compiles release APKs and distribution ZIPs for all major distribution flavors (**`premium`**, **`bazaar`**, and **`myket`**), plus optional Google Play App Bundles (`.aab`).
     *   **iOS Job (`macos-14`):** Compiles unsigned iOS physical device release bundle (`Payload/Runner.app`), packages it into `app-premium-release.ipa` and `app-premium-ios-release.zip`.
+    *   **Independent Rubika Bot Job (`upload-rubika`):** Fully decoupled, isolated notification job running on `ubuntu-latest`. Any temporary Rubika timeout, outage, or network issue runs isolated with `continue-on-error: true` and will never block or affect Android/iOS builds or GitHub Releases.
 *   **Automated GitHub Release Creation (`publish-release`):**
     *   Once builds succeed, the workflow automatically publishes an official **GitHub Release** under the repository's **Releases** tab.
     *   Attaches all compiled packages (`app-premium-release.apk`, `app-bazaar-release.apk`, `app-myket-release.apk`, `.zip` archives, and iOS `app-premium-release.ipa`) as downloadable release assets.
