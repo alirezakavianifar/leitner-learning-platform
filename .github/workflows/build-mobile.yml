@@ -9,6 +9,8 @@ on:
       - 'mobile-app/**'
       - 'scripts/**'
       - '.github/workflows/build-mobile.yml'
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       flavor:
@@ -42,6 +44,19 @@ on:
         required: false
         default: true
         type: boolean
+      publish_release:
+        description: 'Create & Publish GitHub Release'
+        required: false
+        default: true
+        type: boolean
+      tag_name:
+        description: 'Release Tag (leave empty for pubspec.yaml version, e.g. v1.0.2)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   # ===========================================================================
@@ -276,3 +291,94 @@ jobs:
             app-*-release.ipa
             app-*-ios-release.zip
           retention-days: 14
+
+  # ===========================================================================
+  #  3. Publish Official GitHub Release
+  # ===========================================================================
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-android, build-ios]
+    if: always() && !cancelled() && (needs.build-android.result == 'success' || needs.build-ios.result == 'success') && (github.event_name == 'push' || inputs.publish_release != false)
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare Release Directory
+        run: mkdir -p release-assets
+        shell: bash
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Resolve Release Tag & Information
+        id: release_info
+        run: |
+          FLAVOR="${{ inputs.flavor || 'premium' }}"
+          
+          # 1. Determine Tag Name
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          elif [ -n "${{ inputs.tag_name }}" ]; then
+            TAG="${{ inputs.tag_name }}"
+          else
+            RAW_VER=$(grep '^version:' mobile-app/pubspec.yaml | head -n 1 | awk '{print $2}' | tr -d '\r')
+            VER_NAME=$(echo "$RAW_VER" | cut -d'+' -f1)
+            BUILD_NUM=$(echo "$RAW_VER" | cut -d'+' -f2)
+            if [ -z "$VER_NAME" ]; then
+              VER_NAME="1.0.0"
+            fi
+            TAG="v${VER_NAME}"
+          fi
+          
+          # 2. Determine Title
+          TITLE="Release ${TAG}"
+          if [ -n "$BUILD_NUM" ] && [ "$BUILD_NUM" != "$VER_NAME" ]; then
+            TITLE="Release ${TAG} (Build ${BUILD_NUM})"
+          fi
+          
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
+          
+          echo "Resolved Tag: $TAG"
+          echo "Resolved Title: $TITLE"
+          echo "=== Release Assets in directory ==="
+          ls -lh release-assets/ || true
+        shell: bash
+
+      - name: Publish Official GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ steps.release_info.outputs.tag }}
+          name: ${{ steps.release_info.outputs.title }}
+          draft: false
+          prerelease: false
+          make_latest: true
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          body: |
+            ### 📱 Leitner Learning Platform Mobile Release (${{ steps.release_info.outputs.tag }})
+            
+            **Flavor:** `${{ steps.release_info.outputs.flavor }}`
+            
+            #### 📦 Download Packages
+            - **Android APK:** Direct installable APK file (`.apk`) & distribution archive (`.zip`)
+            - **iOS IPA:** Unsigned release package (`.ipa`) & distribution archive (`.zip`)
+            
+            ---
+            #### 📝 What's Changed
+          files: |
+            release-assets/*.apk
+            release-assets/*.zip
+            release-assets/*.aab
+            release-assets/*.ipa
+

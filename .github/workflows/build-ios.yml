@@ -20,6 +20,19 @@ on:
         required: true
         default: 'https://api.rightlearn.ir'
         type: string
+      publish_release:
+        description: 'Create & Publish GitHub Release'
+        required: false
+        default: true
+        type: boolean
+      tag_name:
+        description: 'Release Tag (leave empty for pubspec.yaml version, e.g. v1.0.2)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   build-ios:
@@ -85,3 +98,55 @@ jobs:
             app-*-release.ipa
             app-*-ios-release.zip
           retention-days: 14
+
+      - name: Resolve Release Tag & Information
+        if: ${{ inputs.publish_release != false && success() }}
+        id: release_info
+        run: |
+          FLAVOR="${{ inputs.flavor || 'premium' }}"
+          if [ -n "${{ inputs.tag_name }}" ]; then
+            TAG="${{ inputs.tag_name }}"
+          else
+            RAW_VER=$(grep '^version:' mobile-app/pubspec.yaml | head -n 1 | awk '{print $2}' | tr -d '\r')
+            VER_NAME=$(echo "$RAW_VER" | cut -d'+' -f1)
+            BUILD_NUM=$(echo "$RAW_VER" | cut -d'+' -f2)
+            if [ -z "$VER_NAME" ]; then
+              VER_NAME="1.0.0"
+            fi
+            TAG="v${VER_NAME}"
+          fi
+          TITLE="Release ${TAG}"
+          if [ -n "$BUILD_NUM" ] && [ "$BUILD_NUM" != "$VER_NAME" ]; then
+            TITLE="Release ${TAG} (Build ${BUILD_NUM})"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Publish Official GitHub Release
+        if: ${{ inputs.publish_release != false && success() }}
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ steps.release_info.outputs.tag }}
+          name: ${{ steps.release_info.outputs.title }}
+          draft: false
+          prerelease: false
+          make_latest: true
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          body: |
+            ### 📱 Leitner Learning Platform iOS Release (${{ steps.release_info.outputs.tag }})
+            
+            **Flavor:** `${{ steps.release_info.outputs.flavor }}`
+            
+            #### 📦 Download Packages
+            - **iOS IPA:** Release package (`.ipa`) & distribution archive (`.zip`)
+            
+            ---
+            #### 📝 What's Changed
+          files: |
+            app-*-release.ipa
+            app-*-ios-release.zip
+

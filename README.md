@@ -468,3 +468,37 @@ npm run build
 ```
 *Validates TypeScript types, React components, Vite bundling, and multi-language JSON schemas.*
 
+---
+
+### 6. Automated CI/CD Pipelines & GitHub Releases
+
+The repository is equipped with fully automated continuous integration, continuous delivery (CI/CD), and GitHub Releases workflows powered by GitHub Actions:
+
+#### A. Unified Mobile Build & GitHub Release Pipeline (`build-mobile.yml`)
+*   **Trigger:** Automatically triggered on every push to `master`/`main` affecting `mobile-app/**` or `scripts/**`, on version tags (`v*`), or manually via `workflow_dispatch`.
+*   **Parallel Cloud Runners:**
+    *   **Android Job (`ubuntu-latest`):** Compiles release APK (`app-premium-release.apk`), distribution ZIP (`app-premium-release.zip`), and optional Google Play App Bundle (`.aab`). Automatically uploads the APK package to the Rubika Bot (`@AliDeveloperBot`).
+    *   **iOS Job (`macos-14`):** Compiles unsigned iOS physical device release bundle (`Payload/Runner.app`), packages it into `app-premium-release.ipa` and `app-premium-ios-release.zip`.
+*   **Automated GitHub Release Creation (`publish-release`):**
+    *   Once builds succeed, the workflow automatically publishes an official **GitHub Release** under the repository's **Releases** tab.
+    *   Attaches all compiled packages (`.apk`, `.zip`, `.aab`, `.ipa`) as downloadable release assets.
+    *   Automatically generates structured changelogs from commit history since the prior release.
+    *   Tags releases using semantic versions extracted from `mobile-app/pubspec.yaml` (e.g., `v1.0.2`) or custom git tags.
+
+#### B. Dedicated Android APK Pipeline (`build-apk.yml`)
+*   **Trigger:** Manual execution via `workflow_dispatch` on `ubuntu-latest`.
+*   **Configurable Parameters:** Flavor (`premium`, `direct`, `bazaar`, `myket`, `googleplay`, `store`), ABI target (`arm64-v8a`, `universal`, `all`), backend target URL, Rubika bot dispatch toggle, and GitHub Release publication toggle (`publish_release`).
+*   **Artifacts:** Produces optimized, obfuscated APKs with ProGuard stripping and attaches them to GitHub Releases.
+
+#### C. Dedicated iOS Build Pipeline (`build-ios.yml`)
+*   **Trigger:** Manual execution via `workflow_dispatch` on `macos-14` Apple Silicon runners.
+*   **Configurable Parameters:** Flavor selection, backend target URL, and GitHub Release publication toggle (`publish_release`).
+*   **Artifacts:** Compiles physical device IPAs and distribution ZIP packages, publishing directly to GitHub Releases.
+
+#### D. Production Server Deployment Pipeline (`deploy-server.yml`)
+*   **Trigger:** Automatically triggers on push to `master` affecting `backend/**`, `admin-panel/**`, `deployment/**`, or `.env*`, or manually via `workflow_dispatch`.
+*   **Target Server:** Deploys containerized backend API, PostgreSQL, Redis, and Web Admin Panel to production server `45.94.215.188` with zero-downtime health-checks, automated database migrations, and SMS Gateway toggle controls (`ON`/`OFF`).
+
+---
+
+
