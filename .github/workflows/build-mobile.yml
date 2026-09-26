@@ -264,7 +264,15 @@ jobs:
       - name: Build iOS Release Bundle & Package IPA
         run: |
           cd mobile-app
-          FLAVOR="${{ inputs.flavor || 'premium' }}"
+          RAW_FLAVOR="${{ inputs.flavor || 'premium' }}"
+          if [ "$RAW_FLAVOR" = "all" ] || [ -z "$RAW_FLAVOR" ]; then
+            FLAVOR="premium"
+          else
+            FLAVOR="$RAW_FLAVOR"
+          fi
+          if [ ! -f "lib/main_${FLAVOR}.dart" ]; then
+            FLAVOR="premium"
+          fi
           API_URL="${{ inputs.target_url || 'https://api.rightlearn.ir/api/v1' }}"
           echo "Building iOS device release for flavor: $FLAVOR with API: $API_URL"
           

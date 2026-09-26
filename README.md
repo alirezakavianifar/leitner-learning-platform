@@ -484,7 +484,7 @@ The repository is equipped with fully automated continuous integration, continuo
     *   Once builds succeed, the workflow automatically publishes an official **GitHub Release** under the repository's **Releases** tab.
     *   Attaches all compiled packages (`app-premium-release.apk`, `app-bazaar-release.apk`, `app-myket-release.apk`, `.zip` archives, and iOS `app-premium-release.ipa`) as downloadable release assets.
     *   Automatically generates structured changelogs from commit history since the prior release.
-    *   Tags releases using semantic versions extracted from `mobile-app/pubspec.yaml` (e.g., `v1.0.2`) or custom git tags.
+    *   Tags releases using semantic versions extracted from `mobile-app/pubspec.yaml` (e.g., `v1.0.3`) or custom git tags.
 
 #### B. Dedicated Android APK Pipeline (`build-apk.yml`)
 *   **Trigger:** Manual execution via `workflow_dispatch` on `ubuntu-latest`.
