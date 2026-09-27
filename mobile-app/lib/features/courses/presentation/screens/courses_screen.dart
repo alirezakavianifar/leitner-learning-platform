@@ -602,6 +602,16 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     final config = sl<AppConfig>();
     final loc = AppLocalizations.of(context);
 
+    if (config.isMyket) {
+      // In Myket version, packages are view-only
+      PackageDetailsModal.show(
+        context,
+        package: package,
+        onPurchase: () {},
+      );
+      return;
+    }
+
     if (config.isStore) {
       showDialog(
         context: context,
@@ -609,7 +619,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
           return AlertDialog(
             backgroundColor: AppColors.surface,
             title: Text(
-              loc.translate('purchase_bundle'),
+              loc.translate('bundle_badge'),
               style: TextStyle(color: AppColors.textPrimary),
             ),
             content: Text(
@@ -697,6 +707,10 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
   void _purchaseCourse(Course course) async {
     final config = sl<AppConfig>();
     final loc = AppLocalizations.of(context);
+
+    if (config.isMyket) {
+      return;
+    }
 
     if (config.isStore) {
       // Generic non-IAP Store Version: show descriptive dialog directing to website
@@ -1460,23 +1474,26 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     }
 
     // Unpurchased
+    final isMyket = sl.isRegistered<AppConfig>() && sl<AppConfig>().isMyket;
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: AppColors.secondary,
-        foregroundColor: const Color(0xFF181837),
+        backgroundColor: isMyket ? AppColors.surface : AppColors.secondary,
+        foregroundColor: isMyket ? AppColors.textPrimary : const Color(0xFF181837),
         padding: const EdgeInsets.symmetric(vertical: 14),
       ),
       onPressed: () {
         Navigator.pop(sheetCtx);
-        _purchaseCourse(course);
+        if (!isMyket) {
+          _purchaseCourse(course);
+        }
       },
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.payment, size: 18),
+          Icon(isMyket ? Icons.visibility : Icons.payment, size: 18),
           const SizedBox(width: 8),
-          Text(loc.purchase, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          Text(isMyket ? loc.viewCourse : loc.purchase, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         ],
       ),
     );
@@ -1626,25 +1643,32 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     }
 
     // Unpurchased course
+    final isMyket = sl.isRegistered<AppConfig>() && sl<AppConfig>().isMyket;
     return SizedBox(
       height: 26,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          backgroundColor: AppColors.secondary,
-          foregroundColor: const Color(0xFF181837),
+          backgroundColor: isMyket
+              ? (isDark ? const Color(0xFF1B5E20).withOpacity(0.3) : const Color(0xFFE8F5E9))
+              : AppColors.secondary,
+          foregroundColor: isMyket
+              ? (isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32))
+              : const Color(0xFF181837),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         onPressed: () {
-          _purchaseCourse(course);
+          if (!isMyket) {
+            _purchaseCourse(course);
+          }
         },
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.payment, size: 12),
+            Icon(isMyket ? Icons.visibility : Icons.payment, size: 12),
             const SizedBox(width: 3),
-            Text(loc.purchase, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+            Text(isMyket ? loc.viewCourse : loc.purchase, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
           ],
         ),
       ),

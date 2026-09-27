@@ -3,6 +3,7 @@ import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/courses/domain/entities/course_package.dart';
 import 'package:mobile_app/core/utils/image_url_resolver.dart';
+import 'package:mobile_app/injection_container.dart';
 
 class PackageDetailsModal extends StatelessWidget {
   final CoursePackage package;
@@ -435,47 +436,55 @@ class PackageDetailsModal extends StatelessWidget {
             ),
 
             // Bottom Sticky Action Bar
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: package.isPurchased
-                        ? AppColors.surface
-                        : const Color(0xFFFF9800),
-                    foregroundColor: package.isPurchased
-                        ? AppColors.textPrimary
-                        : Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: package.isPurchased ? 0 : 4,
-                  ),
-                  onPressed: package.isPurchased ? () => Navigator.pop(context) : onPurchase,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        package.isPurchased ? Icons.check_circle : Icons.shopping_bag,
-                        size: 20,
-                        color: package.isPurchased ? AppColors.courseDownloaded : Colors.white,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        package.isPurchased
-                            ? loc.translate('all_courses_in_bundle_unlocked')
-                            : '${loc.translate('purchase_bundle')} • ${_formatPrice(package.price, context)}',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
+            Builder(
+              builder: (context) {
+                final isMyket = sl.isRegistered<AppConfig>() && sl<AppConfig>().isMyket;
+                final isViewOnly = package.isPurchased || isMyket;
+                return Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isViewOnly
+                            ? AppColors.surface
+                            : const Color(0xFFFF9800),
+                        foregroundColor: isViewOnly
+                            ? AppColors.textPrimary
+                            : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
+                        elevation: isViewOnly ? 0 : 4,
                       ),
-                    ],
+                      onPressed: isViewOnly ? () => Navigator.pop(context) : onPurchase,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isViewOnly ? Icons.check_circle : Icons.shopping_bag,
+                            size: 20,
+                            color: isViewOnly ? AppColors.courseDownloaded : Colors.white,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            package.isPurchased
+                                ? loc.translate('all_courses_in_bundle_unlocked')
+                                : (isMyket
+                                    ? loc.translate('courses_in_bundle')
+                                    : '${loc.translate('purchase_bundle')} • ${_formatPrice(package.price, context)}'),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),

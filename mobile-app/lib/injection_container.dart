@@ -65,7 +65,7 @@ class AppConfig {
   AppConfig({
     required this.flavor,
     this.appVersion = const String.fromEnvironment('APP_VERSION', defaultValue: '1.0.3'),
-    this.buildNumber = const int.fromEnvironment('BUILD_NUMBER', defaultValue: 4),
+    this.buildNumber = const int.fromEnvironment('BUILD_NUMBER', defaultValue: 5),
   });
 
   bool get isPremium => flavor == 'premium' || flavor == 'direct';
@@ -75,14 +75,14 @@ class AppConfig {
   bool get isGooglePlay => flavor == 'googleplay';
   bool get isStore => flavor == 'store';
 
-  bool get hasNativeBilling => isBazaar || isMyket || isGooglePlay || isDirect;
+  bool get hasNativeBilling => isBazaar || isGooglePlay || isDirect;
 }
 
 Future<void> init({
   String? apiBaseUrl,
   String flavor = 'store',
   String appVersion = const String.fromEnvironment('APP_VERSION', defaultValue: '1.0.3'),
-  int buildNumber = const int.fromEnvironment('BUILD_NUMBER', defaultValue: 4),
+  int buildNumber = const int.fromEnvironment('BUILD_NUMBER', defaultValue: 5),
 }) async {
   final config = AppConfig(
     flavor: flavor,

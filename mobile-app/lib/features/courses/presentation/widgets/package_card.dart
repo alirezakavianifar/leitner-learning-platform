@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/app/theme.dart';
 import 'package:mobile_app/core/localization/app_localizations.dart';
 import 'package:mobile_app/features/courses/domain/entities/course_package.dart';
+import 'package:mobile_app/injection_container.dart';
 
 class PackageCard extends StatelessWidget {
   final CoursePackage package;
@@ -254,50 +255,56 @@ class PackageCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          SizedBox(
-                            height: 26,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                backgroundColor: package.isPurchased
-                                    ? (isDark
-                                        ? const Color(0xFF1B5E20).withOpacity(0.3)
-                                        : const Color(0xFFE8F5E9))
-                                    : const Color(0xFFFF9800),
-                                foregroundColor: package.isPurchased
-                                    ? (isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32))
-                                    : Colors.white,
-                                side: package.isPurchased
-                                    ? BorderSide(
-                                        color: isDark ? const Color(0xFF2E7D32) : const Color(0xFF81C784),
-                                        width: 1,
-                                      )
-                                    : null,
-                                elevation: 0,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              onPressed: package.isPurchased ? onTap : onPurchase,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    package.isPurchased ? Icons.visibility : Icons.shopping_cart_checkout,
-                                    size: 12,
+                          Builder(
+                            builder: (context) {
+                              final isMyket = sl.isRegistered<AppConfig>() && sl<AppConfig>().isMyket;
+                              final isViewOnly = package.isPurchased || isMyket;
+                              return SizedBox(
+                                height: 26,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                    backgroundColor: isViewOnly
+                                        ? (isDark
+                                            ? const Color(0xFF1B5E20).withOpacity(0.3)
+                                            : const Color(0xFFE8F5E9))
+                                        : const Color(0xFFFF9800),
+                                    foregroundColor: isViewOnly
+                                        ? (isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32))
+                                        : Colors.white,
+                                    side: isViewOnly
+                                        ? BorderSide(
+                                            color: isDark ? const Color(0xFF2E7D32) : const Color(0xFF81C784),
+                                            width: 1,
+                                          )
+                                        : null,
+                                    elevation: 0,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    package.isPurchased
-                                        ? loc.translate('view_bundle')
-                                        : loc.translate('purchase_bundle'),
-                                    style: const TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  onPressed: isViewOnly ? onTap : onPurchase,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isViewOnly ? Icons.visibility : Icons.shopping_cart_checkout,
+                                        size: 12,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        isViewOnly
+                                            ? loc.translate('view_bundle')
+                                            : loc.translate('purchase_bundle'),
+                                        style: const TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),

@@ -51,6 +51,7 @@ class AppLocalizations {
       'courses_included': '{count} Courses Included',
       'save_amount': 'Save {percent}%',
       'view_bundle': 'View Bundle',
+      'view_course': 'View Course',
       'purchase_bundle': 'Purchase Bundle',
       'bundle_unlocked_success': "Bundle '{title}' successfully unlocked!",
       'already_owned_in_bundle': '{owned} of {total} courses owned',
@@ -435,7 +436,8 @@ class AppLocalizations {
       'bundle_badge': 'بسته ویژه',
       'courses_included': 'شامل {count} دوره',
       'save_amount': '{percent}٪ صرفه‌جویی',
-      'view_bundle': 'مشاهده و خرید پکیج',
+      'view_bundle': 'مشاهده پکیج',
+      'view_course': 'مشاهده دوره',
       'purchase_bundle': 'خرید پکیج',
       'bundle_unlocked_success': "پکیج '{title}' با موفقیت فعال شد!",
       'already_owned_in_bundle': '{owned} از {total} دوره را دارید',
@@ -835,6 +837,8 @@ class AppLocalizations {
   String get updateAvailable => translate('update_available');
   String get updateNow => translate('update_now');
   String get purchase => translate('purchase');
+  String get viewCourse => translate('view_course');
+  String get viewBundle => translate('view_bundle');
   String get free => translate('free');
   String get toman => translate('toman');
   String get cardsCount => translate('cards_count');

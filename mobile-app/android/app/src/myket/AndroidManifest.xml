@@ -1,16 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- In-App Billing permission for Myket -->
-    <uses-permission android:name="ir.mservices.market.BILLING" />
-
-    <!-- Strictly prevent Cafe Bazaar payment permission from appearing in Myket APK -->
+    <!-- Strictly strip all store billing permissions for Myket review compliance -->
+    <uses-permission
+        android:name="ir.mservices.market.BILLING"
+        tools:node="remove" />
+    <uses-permission
+        android:name="com.android.vending.BILLING"
+        tools:node="remove" />
     <uses-permission
         android:name="com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR"
         tools:node="remove" />
 
     <queries>
-        <!-- Package visibility query for Myket In-App Billing service (Android 11+) -->
+        <!-- Package visibility query for Myket service (Android 11+) -->
         <package android:name="ir.mservices.market" />
     </queries>
 </manifest>

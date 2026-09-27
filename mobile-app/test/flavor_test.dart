@@ -37,6 +37,15 @@ void main() {
       expect(config.isStore, true);
       expect(config.isPremium, false);
     });
+
+    test('should return true for isMyket and false for hasNativeBilling when flavor is myket', () {
+      final config = AppConfig(flavor: 'myket');
+      expect(config.flavor, 'myket');
+      expect(config.isMyket, true);
+      expect(config.hasNativeBilling, false);
+      expect(config.isPremium, false);
+      expect(config.isBazaar, false);
+    });
   });
 
   group('DioClient Platform Header Tests', () {
