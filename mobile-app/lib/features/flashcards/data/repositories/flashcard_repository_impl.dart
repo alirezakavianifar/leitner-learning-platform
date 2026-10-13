@@ -812,10 +812,10 @@ class FlashcardRepositoryImpl implements FlashcardRepository {
 
     // 2. Try separate authoring columns (e.g. from templateDB or legacy schemas)
     const optKeys = [
-      ['firstoption', 'option1', 'opt1', 'choice1', '1stoption'],
-      ['secondoption', 'option2', 'opt2', 'choice2', '2ndoption'],
-      ['thirdoption', 'option3', 'opt3', 'choice3', '3rdoption'],
-      ['fourthoption', 'option4', 'opt4', 'choice4', '4thoption'],
+      ['firstoption', 'option1', 'opt1', 'choice1', '1stoption', 'optiona', 'opta', 'choicea', 'gozine1', 'gozineh1', 'oneoption', '1st', 'opt1', 'opta'],
+      ['secondoption', 'option2', 'opt2', 'choice2', '2ndoption', 'optionb', 'optb', 'choiceb', 'gozine2', 'gozineh2', 'twooption', '2nd', 'opt2', 'optb'],
+      ['thirdoption', 'option3', 'opt3', 'choice3', '3rdoption', 'optionc', 'optc', 'choicec', 'gozine3', 'gozineh3', 'threeoption', '3rd', 'opt3', 'optc'],
+      ['fourthoption', 'forthoption', 'option4', 'opt4', 'choice4', '4thoption', 'fouroption', 'optiond', 'optd', 'choiced', 'gozine4', 'gozineh4', 'four', '4th', 'opt4', 'optd'],
     ];
 
     final cleanMap = <String, dynamic>{};

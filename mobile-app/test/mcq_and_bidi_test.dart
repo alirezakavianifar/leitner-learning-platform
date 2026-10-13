@@ -32,10 +32,10 @@ List<String>? parseTestCardOptions(Map<String, dynamic> cardMap) {
 
   // 2. Try separate authoring columns (e.g. from templateDB or legacy schemas)
   const optKeys = [
-    ['firstoption', 'option1', 'opt1', 'choice1', '1stoption'],
-    ['secondoption', 'option2', 'opt2', 'choice2', '2ndoption'],
-    ['thirdoption', 'option3', 'opt3', 'choice3', '3rdoption'],
-    ['fourthoption', 'option4', 'opt4', 'choice4', '4thoption'],
+    ['firstoption', 'option1', 'opt1', 'choice1', '1stoption', 'optiona', 'opta', 'choicea', 'gozine1', 'gozineh1', 'oneoption', '1st', 'opt1', 'opta'],
+    ['secondoption', 'option2', 'opt2', 'choice2', '2ndoption', 'optionb', 'optb', 'choiceb', 'gozine2', 'gozineh2', 'twooption', '2nd', 'opt2', 'optb'],
+    ['thirdoption', 'option3', 'opt3', 'choice3', '3rdoption', 'optionc', 'optc', 'choicec', 'gozine3', 'gozineh3', 'threeoption', '3rd', 'opt3', 'optc'],
+    ['fourthoption', 'forthoption', 'option4', 'opt4', 'choice4', '4thoption', 'fouroption', 'optiond', 'optd', 'choiced', 'gozine4', 'gozineh4', 'four', '4th', 'opt4', 'optd'],
   ];
 
   final cleanMap = <String, dynamic>{};
@@ -139,6 +139,39 @@ void main() {
       };
       final result = parseTestCardOptions(map);
       expect(result, equals(['am', 'is', 'are', 'be']));
+    });
+
+    test('Parses misspelled forthoption (without u)', () {
+      final map = {
+        'firstoption': 'until',
+        'secondoption': 'unless',
+        'thirdoption': 'despite',
+        'forthoption': 'because',
+      };
+      final result = parseTestCardOptions(map);
+      expect(result, equals(['until', 'unless', 'despite', 'because']));
+    });
+
+    test('Parses letter-based columns (option_a .. option_d)', () {
+      final map = {
+        'option_a': 'Option A',
+        'option_b': 'Option B',
+        'option_c': 'Option C',
+        'option_d': 'Option D',
+      };
+      final result = parseTestCardOptions(map);
+      expect(result, equals(['Option A', 'Option B', 'Option C', 'Option D']));
+    });
+
+    test('Parses Persian option columns (gozine1 .. gozine4)', () {
+      final map = {
+        'gozine1': 'الف',
+        'gozine2': 'ب',
+        'gozine3': 'ج',
+        'gozine4': 'د',
+      };
+      final result = parseTestCardOptions(map);
+      expect(result, equals(['الف', 'ب', 'ج', 'د']));
     });
 
     test('Ignores literal string NULL in non-MCQ cards', () {

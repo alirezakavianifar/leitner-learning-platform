@@ -1324,10 +1324,10 @@ namespace LeitnerPlatform.API.Controllers.v1
                     int idxAudio = FindCol("audioname", "frontvoice", "audio", "audiourl");
                     int idxOptions = FindCol("options", "choices");
 
-                    int idxOpt1 = FindCol("firstoption", "option1", "opt1", "choice1", "1stoption");
-                    int idxOpt2 = FindCol("secondoption", "option2", "opt2", "choice2", "2ndoption");
-                    int idxOpt3 = FindCol("thirdoption", "option3", "opt3", "choice3", "3rdoption");
-                    int idxOpt4 = FindCol("fourthoption", "option4", "opt4", "choice4", "4thoption");
+                    int idxOpt1 = FindCol("firstoption", "option1", "opt1", "choice1", "1stoption", "optiona", "opta", "choicea", "gozine1", "gozineh1", "oneoption", "1st", "opt_1", "opt_a");
+                    int idxOpt2 = FindCol("secondoption", "option2", "opt2", "choice2", "2ndoption", "optionb", "optb", "choiceb", "gozine2", "gozineh2", "twooption", "2nd", "opt_2", "opt_b");
+                    int idxOpt3 = FindCol("thirdoption", "option3", "opt3", "choice3", "3rdoption", "optionc", "optc", "choicec", "gozine3", "gozineh3", "threeoption", "3rd", "opt_3", "opt_c");
+                    int idxOpt4 = FindCol("fourthoption", "forthoption", "option4", "opt4", "choice4", "4thoption", "fouroption", "optiond", "optd", "choiced", "gozine4", "gozineh4", "four", "4th", "opt_4", "opt_d");
 
                     using (var sqliteCmd = new Microsoft.Data.Sqlite.SqliteCommand("SELECT * FROM cards", sqliteConn))
                     using (var reader = await sqliteCmd.ExecuteReaderAsync())

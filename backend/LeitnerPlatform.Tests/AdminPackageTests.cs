@@ -506,5 +506,91 @@ namespace LeitnerPlatform.Tests
                 }
             }
         }
+
+        [Fact]
+        public async Task BackfillMissingChecksumsAsync_NormalizesForthoptionAndLetterColumns()
+        {
+            var db = GetDatabaseContext();
+            var courseId = Guid.NewGuid();
+            var tempRoot = Path.Combine(Path.GetTempPath(), $"test_backfill_aliases_{Guid.NewGuid()}");
+            Directory.CreateDirectory(tempRoot);
+            var coursesFolder = Path.Combine(tempRoot, "courses");
+            Directory.CreateDirectory(coursesFolder);
+
+            try
+            {
+                var zipName = $"{courseId}.zip";
+                var zipPath = Path.Combine(coursesFolder, zipName);
+
+                var tempPkgDir = Path.Combine(Path.GetTempPath(), $"pkg_raw_{Guid.NewGuid()}");
+                var subDir = Path.Combine(tempPkgDir, "raw");
+                Directory.CreateDirectory(subDir);
+                var rawDbPath = Path.Combine(subDir, "data.db");
+
+                using (var conn = new SqliteConnection($"Data Source={rawDbPath}"))
+                {
+                    await conn.OpenAsync();
+                    using var createCmd = conn.CreateCommand();
+                    createCmd.CommandText = @"
+                        CREATE TABLE cards (
+                            cardnumber INTEGER,
+                            question TEXT,
+                            firstoption TEXT,
+                            secondoption TEXT,
+                            thirdoption TEXT,
+                            forthoption TEXT,
+                            answer TEXT
+                        );
+                        INSERT INTO cards (cardnumber, question, firstoption, secondoption, thirdoption, forthoption, answer)
+                        VALUES (1, 'Q1', 'Opt A', 'Opt B', 'Opt C', 'Opt D', 'Ans');
+                    ";
+                    await createCmd.ExecuteNonQueryAsync();
+                }
+                SqliteConnection.ClearAllPools();
+
+                ZipFile.CreateFromDirectory(tempPkgDir, zipPath);
+                Directory.Delete(tempPkgDir, true);
+
+                var course = new Course
+                {
+                    Id = courseId,
+                    Title = "forth_test",
+                    DownloadUrl = $"/courses/{zipName}",
+                    ChecksumSha256 = null,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                db.Courses.Add(course);
+                await db.SaveChangesAsync();
+
+                await ChecksumBackfiller.BackfillMissingChecksumsAsync(db, tempRoot, _ => { });
+
+                using (var zip = ZipFile.OpenRead(zipPath))
+                {
+                    var entry = zip.GetEntry("course.db");
+                    Assert.NotNull(entry);
+                    var extractedDb = Path.Combine(tempRoot, "verified.db");
+                    entry.ExtractToFile(extractedDb, true);
+
+                    using var conn = new SqliteConnection($"Data Source={extractedDb}");
+                    await conn.OpenAsync();
+                    using var selectCmd = conn.CreateCommand();
+                    selectCmd.CommandText = "SELECT card_number, options FROM cards ORDER BY card_number;";
+                    using var reader = await selectCmd.ExecuteReaderAsync();
+
+                    Assert.True(await reader.ReadAsync());
+                    var optionsStr = reader.GetString(1);
+                    Assert.Equal("[\"Opt A\",\"Opt B\",\"Opt C\",\"Opt D\"]", optionsStr);
+                }
+                SqliteConnection.ClearAllPools();
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot))
+                {
+                    try { Directory.Delete(tempRoot, true); } catch { }
+                }
+            }
+        }
     }
 }
