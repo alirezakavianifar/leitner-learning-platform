@@ -42,6 +42,8 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedUserData, setSelectedUserData] = useState<User | null>(null);
 
+  const [idOrSearchQuery, setIdOrSearchQuery] = useState('');
+
   const [availableCourses, setAvailableCourses] = useState<any[]>(coursesList || []);
   const [availablePackages, setAvailablePackages] = useState<any[]>(packagesList || []);
   const [loadingItems, setLoadingItems] = useState(false);
@@ -54,15 +56,14 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
       setGrantType(initialType);
       setSelectedCourseId(initialCourseId || '');
       setSelectedPackageId(initialPackageId || '');
+      setIdOrSearchQuery('');
       setReason('');
       setMobileNumber('');
       setSuggestedUsers([]);
       setSelectedUserData(null);
       setShowSuggestions(false);
 
-      if ((!coursesList || coursesList.length === 0) || (!packagesList || packagesList.length === 0)) {
-        loadCatalogs();
-      }
+      loadCatalogs();
     }
   }, [isOpen, initialType, initialCourseId, initialPackageId]);
 
@@ -90,6 +91,39 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
       // ignore
     } finally {
       setLoadingItems(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+        toast.showSuccess('شناسه در کلیپ‌بورد کپی شد.');
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleIdOrSearchChange = (val: string) => {
+    setIdOrSearchQuery(val);
+    const trimmed = val.trim().toLowerCase();
+    if (!trimmed) return;
+
+    if (grantType === 'COURSE') {
+      const match = availableCourses.find(
+        (c) => c.id.toLowerCase() === trimmed || c.id.toLowerCase().startsWith(trimmed)
+      );
+      if (match) {
+        setSelectedCourseId(match.id);
+      }
+    } else {
+      const match = availablePackages.find(
+        (p) => p.id.toLowerCase() === trimmed || p.id.toLowerCase().startsWith(trimmed)
+      );
+      if (match) {
+        setSelectedPackageId(match.id);
+      }
     }
   };
 
@@ -183,12 +217,24 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
     }
   };
 
+  const filteredCourses = availableCourses.filter((c) => {
+    if (!idOrSearchQuery.trim()) return true;
+    const q = idOrSearchQuery.trim().toLowerCase();
+    return c.id.toLowerCase().includes(q) || (c.title && c.title.toLowerCase().includes(q));
+  });
+
+  const filteredPackages = availablePackages.filter((p) => {
+    if (!idOrSearchQuery.trim()) return true;
+    const q = idOrSearchQuery.trim().toLowerCase();
+    return p.id.toLowerCase().includes(q) || (p.title && p.title.toLowerCase().includes(q));
+  });
+
   const selectedCourse = availableCourses.find((c) => c.id === selectedCourseId);
   const selectedPackage = availablePackages.find((p) => p.id === selectedPackageId);
 
   return (
     <div className="modal-overlay" style={{ zIndex: 1200 }}>
-      <div className="modal-content" style={{ maxWidth: '540px', overflow: 'visible' }}>
+      <div className="modal-content" style={{ maxWidth: '560px', overflow: 'visible' }}>
         <div className="modal-header">
           <div>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -212,7 +258,10 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
                 type="button"
                 className={`btn ${grantType === 'COURSE' ? 'btn-primary' : 'btn-secondary'}`}
                 style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}
-                onClick={() => setGrantType('COURSE')}
+                onClick={() => {
+                  setGrantType('COURSE');
+                  setIdOrSearchQuery('');
+                }}
               >
                 {t('quick_grant.tab_course', 'تک دوره')}
               </button>
@@ -220,10 +269,36 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
                 type="button"
                 className={`btn ${grantType === 'PACKAGE' ? 'btn-primary' : 'btn-secondary'}`}
                 style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}
-                onClick={() => setGrantType('PACKAGE')}
+                onClick={() => {
+                  setGrantType('PACKAGE');
+                  setIdOrSearchQuery('');
+                }}
               >
                 {t('quick_grant.tab_package', 'بسته کامل (پکیج)')}
               </button>
+            </div>
+
+            {/* Contextual Guidance Banner */}
+            <div
+              style={{
+                fontSize: '11px',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                lineHeight: '1.5',
+                background: grantType === 'COURSE' ? 'rgba(56, 189, 248, 0.08)' : 'rgba(234, 179, 8, 0.08)',
+                border: grantType === 'COURSE' ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(234, 179, 8, 0.25)',
+                color: grantType === 'COURSE' ? 'var(--accent-cyan)' : '#facc15',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>{grantType === 'COURSE' ? '📘' : '📦'}</span>
+              <span>
+                {grantType === 'COURSE'
+                  ? t('quick_grant.tab_course_hint', 'مخصوص دوره‌های تکی بارگذاری‌شده (مانند زبان، هوش، ریاضی یا سایر دوره‌ها). هر دوره یک شناسه Course ID اختصاصی دارد.')
+                  : t('quick_grant.tab_package_hint', 'مخصوص بسته‌های جامع چنددوره‌ای. برای تجمیع دوره‌های بارگذاری‌شده در یک بسته جدید، به تب «بسته دوره‌ها» رفته و «ایجاد پکیج جدید» را انتخاب کنید.')}
+              </span>
             </div>
 
             {/* Recipient Mobile Number with Live Suggestions */}
@@ -360,6 +435,29 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
               )}
             </div>
 
+            {/* Direct ID (UUID) or Title Search Field */}
+            <div className="form-group" style={{ marginBottom: '-4px' }}>
+              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{t('quick_grant.label_id_search', 'ورود مستقیم شناسه (Course ID / UUID) یا فیلتر نام:')}</span>
+                {idOrSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setIdOrSearchQuery('')}
+                    style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', fontSize: '11px', cursor: 'pointer', padding: 0 }}
+                  >
+                    پاک کردن فیلتر ✖
+                  </button>
+                )}
+              </label>
+              <input
+                type="text"
+                placeholder={t('quick_grant.placeholder_id_search', 'شناسه دوره/پکیج (UUID) را پیست کنید یا بخشی از نام آن را بنویسید...')}
+                value={idOrSearchQuery}
+                onChange={(e) => handleIdOrSearchChange(e.target.value)}
+                style={{ width: '100%', fontFamily: 'monospace', fontSize: '12px', padding: '8px 12px' }}
+              />
+            </div>
+
             {/* Course or Package Selector */}
             {grantType === 'COURSE' ? (
               <div className="form-group">
@@ -372,15 +470,52 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
                   style={{ width: '100%', padding: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-main)' }}
                 >
                   <option value="">{t('quick_grant.select_course', '-- انتخاب دوره --')}</option>
-                  {availableCourses.map((c) => (
+                  {filteredCourses.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.title} ({c.price > 0 ? `${formatPrice(c.price)} تومان` : 'رایگان'})
+                      {c.title} — [{c.id.substring(0, 8)}...] ({c.price > 0 ? `${formatPrice(c.price)} تومان` : 'رایگان'})
                     </option>
                   ))}
                 </select>
+
+                {filteredCourses.length === 0 && (
+                  <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--accent-red)' }}>
+                    {t('quick_grant.no_courses_hint', 'هیچ دوره‌ای با این مشخصات یافت نشد.')}
+                  </div>
+                )}
+
                 {selectedCourse && (
-                  <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--accent-cyan)' }}>
-                    قیمت اصلی دوره: {selectedCourse.price > 0 ? `${formatPrice(selectedCourse.price)} تومان` : 'رایگان'} — کارت‌ها: {selectedCourse.card_count}
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      background: 'rgba(0,0,0,0.25)',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      fontSize: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('quick_grant.course_id_label', 'شناسه دوره (Course ID):')}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <code style={{ fontSize: '11px', color: 'var(--accent-cyan)', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                          {selectedCourse.id}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(selectedCourse.id)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', padding: '0 2px' }}
+                          title="کپی شناسه"
+                        >
+                          📋
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                      قیمت: {selectedCourse.price > 0 ? `${formatPrice(selectedCourse.price)} تومان` : 'رایگان'} — تعداد فلش‌کارت‌ها: {selectedCourse.card_count}
+                    </div>
                   </div>
                 )}
               </div>
@@ -395,15 +530,62 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
                   style={{ width: '100%', padding: '10px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-main)' }}
                 >
                   <option value="">{t('quick_grant.select_package', '-- انتخاب پکیج --')}</option>
-                  {availablePackages.map((p) => (
+                  {filteredPackages.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.title} ({formatPrice(p.price)} تومان - شامل {p.courses?.length || 0} دوره)
+                      {p.title} — [{p.id.substring(0, 8)}...] ({formatPrice(p.price)} تومان - شامل {p.courses?.length || 0} دوره)
                     </option>
                   ))}
                 </select>
+
+                {filteredPackages.length === 0 && (
+                  <div
+                    style={{
+                      marginTop: '6px',
+                      fontSize: '12px',
+                      color: '#facc15',
+                      background: 'rgba(234, 179, 8, 0.08)',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(234, 179, 8, 0.2)'
+                    }}
+                  >
+                    ⚠️ {t('quick_grant.no_packages_hint', 'هیچ پکیجی یافت نشد. اگر قصد اعطای دوره‌های بارگذاری‌شده تکی (مانند زبان، هوش، ریاضی) را دارید، از تب «تک دوره» در بالا استفاده کنید.')}
+                  </div>
+                )}
+
                 {selectedPackage && (
-                  <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--accent-cyan)' }}>
-                    قیمت پکیج: {formatPrice(selectedPackage.price)} تومان — شامل دوره‌های: {selectedPackage.courses?.map((c: any) => c.title).join('، ')}
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      background: 'rgba(0,0,0,0.25)',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      fontSize: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('quick_grant.package_id_label', 'شناسه پکیج (Package ID):')}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <code style={{ fontSize: '11px', color: '#facc15', background: 'rgba(234, 179, 8, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                          {selectedPackage.id}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(selectedPackage.id)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', padding: '0 2px' }}
+                          title="کپی شناسه"
+                        >
+                          📋
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                      قیمت: {formatPrice(selectedPackage.price)} تومان — دوره‌های مشمول ({selectedPackage.courses?.length || 0}): {selectedPackage.courses?.map((c: any) => c.title).join('، ') || 'بدون دوره'}
+                    </div>
                   </div>
                 )}
               </div>

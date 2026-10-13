@@ -406,6 +406,14 @@
     "suggestions_title": "Suggested Users:",
     "searching_users": "Searching users...",
     "no_users_found": "No matching users found",
-    "user_selected": "Selected User:"
+    "user_selected": "Selected User:",
+    "tab_course_hint": "For individual uploaded courses (e.g. English, Math, Logic, etc.). Each course has its own unique Course ID.",
+    "tab_package_hint": "For multi-course bundles. To group individual courses into a package bundle, go to 'Course Packages' and click 'Create Package'.",
+    "label_id_search": "Direct Identifier (Course ID / UUID) or Title Filter:",
+    "placeholder_id_search": "Paste Course ID / Package ID (UUID) or search by title...",
+    "course_id_label": "Course ID:",
+    "package_id_label": "Package ID:",
+    "no_packages_hint": "No packages found. If you want to grant access to an individual course (e.g. English, Math), switch to the 'Single Course' tab above.",
+    "no_courses_hint": "No courses found matching this criteria."
   }
 }
