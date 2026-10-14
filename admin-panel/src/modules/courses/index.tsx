@@ -66,6 +66,13 @@ export const CoursesView: React.FC = () => {
   const [pkgAllowedPlatforms, setPkgAllowedPlatforms] = useState<string[]>(['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios']);
   const [pkgMinBuildNumber, setPkgMinBuildNumber] = useState<number>(0);
 
+  const copyToClipboard = (text: string, label: string) => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      toast.showSuccess(`${label} در حافظه کپی شد`);
+    }
+  };
+
   const loadCourses = async () => {
     try {
       setLoading(true);
@@ -474,6 +481,30 @@ export const CoursesView: React.FC = () => {
                               <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {course.description || t('courses.no_description', 'No description provided')}
                               </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
+                                <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                  SKU بازار/مایکت: {course.id.substring(0, 8)}...
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); copyToClipboard(course.id, 'شناسه دوره (SKU)'); }}
+                                  style={{
+                                    background: 'rgba(59, 130, 246, 0.12)',
+                                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                                    borderRadius: '4px',
+                                    padding: '1px 6px',
+                                    fontSize: '10px',
+                                    color: '#3b82f6',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px'
+                                  }}
+                                  title="کپی شناسه کامل دوره جهت ثبت در پیشخان بازار یا مایکت"
+                                >
+                                  📋 کپی SKU
+                                </button>
+                              </div>
                               {course.allowed_platforms && (
                                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
                                   {course.allowed_platforms.split(',').map((p) => p.trim()).filter(Boolean).map((p) => (
@@ -704,6 +735,30 @@ export const CoursesView: React.FC = () => {
                                   {pkg.description}
                                 </div>
                               )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
+                                <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                  SKU بازار/مایکت: {pkg.id.substring(0, 8)}...
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); copyToClipboard(pkg.id, 'شناسه پکیج (SKU)'); }}
+                                  style={{
+                                    background: 'rgba(59, 130, 246, 0.12)',
+                                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                                    borderRadius: '4px',
+                                    padding: '1px 6px',
+                                    fontSize: '10px',
+                                    color: '#3b82f6',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px'
+                                  }}
+                                  title="کپی شناسه کامل پکیج جهت ثبت در پیشخان بازار یا مایکت"
+                                >
+                                  📋 کپی SKU
+                                </button>
+                              </div>
                               {pkg.allowed_platforms && (
                                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
                                   {pkg.allowed_platforms.split(',').map((p) => p.trim()).filter(Boolean).map((p) => (
@@ -815,6 +870,37 @@ export const CoursesView: React.FC = () => {
             </div>
             <form onSubmit={handleEditSubmit}>
               <div className="modal-body">
+                {editingCourse && (
+                  <div style={{
+                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                        شناسه کالا جهت ثبت در پیشخان بازار و مایکت (Product ID / SKU):
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#3b82f6', marginTop: '3px' }}>
+                        {editingCourse.id}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      onClick={() => copyToClipboard(editingCourse.id, 'شناسه دوره (SKU)')}
+                    >
+                      📋 کپی شناسه SKU
+                    </button>
+                  </div>
+                )}
                 <div className="form-group">
                   <label>{t('courses.field_title')}</label>
                   <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -960,6 +1046,37 @@ export const CoursesView: React.FC = () => {
             </div>
             <form onSubmit={handlePackageSubmit}>
               <div className="modal-body">
+                {editingPackage && (
+                  <div style={{
+                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                        شناسه پکیج جهت ثبت در پیشخان بازار و مایکت (Product ID / SKU):
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: '#3b82f6', marginTop: '3px' }}>
+                        {editingPackage.id}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      onClick={() => copyToClipboard(editingPackage.id, 'شناسه پکیج (SKU)')}
+                    >
+                      📋 کپی شناسه SKU
+                    </button>
+                  </div>
+                )}
                 <div className="form-group">
                   <label>عنوان بسته آموزشی *</label>
                   <input
