@@ -169,7 +169,7 @@ class PackageCard extends StatelessWidget {
                                 const Icon(Icons.layers_outlined, size: 10, color: Color(0xFFFF9800)),
                                 const SizedBox(width: 3),
                                 Text(
-                                  loc.translate('courses_included').replaceAll('{count}', '${package.courses.length}'),
+                                  loc.translate('courses_included').replaceAll('{count}', '${package.coursesCount > 0 ? package.coursesCount : package.courses.length}'),
                                   style: const TextStyle(
                                     color: Color(0xFFFF9800),
                                     fontSize: 9.5,

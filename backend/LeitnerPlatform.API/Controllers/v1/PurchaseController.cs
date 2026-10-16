@@ -543,7 +543,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                         titleFa: "پرداخت لغو شد",
                         titleEn: "Payment Cancelled",
                         descriptionFa: "تراکنش توسط کاربر لغو گردید یا پرداخت ناموفق بود.",
-                        descriptionEn: "The transaction was cancelled or unsuccessful."
+                        descriptionEn: "The transaction was cancelled or unsuccessful.",
+                        isCancelled: true
                     );
                     return Content(html, "text/html; charset=utf-8");
                 }
@@ -651,7 +652,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                     titleFa: "پرداخت لغو شد",
                     titleEn: "Payment Cancelled",
                     descriptionFa: "تراکنش توسط کاربر لغو گردید یا پرداخت ناموفق بود.",
-                    descriptionEn: "The transaction was cancelled or unsuccessful."
+                    descriptionEn: "The transaction was cancelled or unsuccessful.",
+                    isCancelled: true
                 );
                 return Content(html, "text/html; charset=utf-8");
             }
@@ -712,18 +714,21 @@ namespace LeitnerPlatform.API.Controllers.v1
             string descriptionFa,
             string descriptionEn,
             string? refId = null,
-            string? errorMessage = null)
+            string? errorMessage = null,
+            bool isCancelled = false)
         {
-            var status = isSuccess ? "success" : "failed";
+            var status = isSuccess ? "success" : (isCancelled ? "cancelled" : "failed");
             var deepLink = string.IsNullOrEmpty(refId)
                 ? $"leitnerapp://payment-result?status={status}"
                 : $"leitnerapp://payment-result?status={status}&ref_id={refId}";
 
-            var primaryColor = isSuccess ? "#16a34a" : "#dc2626";
-            var iconBg = isSuccess ? "#dcfce7" : "#fee2e2";
+            var primaryColor = isSuccess ? "#16a34a" : (isCancelled ? "#d97706" : "#dc2626");
+            var iconBg = isSuccess ? "#dcfce7" : (isCancelled ? "#fef3c7" : "#fee2e2");
             var iconSvg = isSuccess
                 ? @"<svg width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='#16a34a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M22 11.08V12a10 10 0 1 1-5.93-9.14'></path><polyline points='22 4 12 14.01 9 11.01'></polyline></svg>"
-                : @"<svg width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='#dc2626' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><line x1='15' y1='9' x2='9' y2='15'></line><line x1='9' y1='9' x2='15' y2='15'></line></svg>";
+                : (isCancelled
+                    ? @"<svg width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='#d97706' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><line x1='12' y1='8' x2='12' y2='12'></line><line x1='12' y1='16' x2='12.01' y2='16'></line></svg>"
+                    : @"<svg width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='#dc2626' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><line x1='15' y1='9' x2='9' y2='15'></line><line x1='9' y1='9' x2='15' y2='15'></line></svg>");
 
             var refIdBlock = !string.IsNullOrEmpty(refId)
                 ? $@"<div style='background:#f8fafc; border-radius:12px; padding:14px 20px; margin:20px 0; border:1.5px dashed #cbd5e1;'>

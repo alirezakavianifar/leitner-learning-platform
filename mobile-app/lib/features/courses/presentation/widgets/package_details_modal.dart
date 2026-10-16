@@ -296,7 +296,7 @@ class PackageDetailsModal extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            '${package.courses.length} دوره • ${package.totalCardCount} کارت',
+                            '${package.coursesCount > 0 ? package.coursesCount : package.courses.length} دوره • ${package.totalCardCount} کارت',
                             style: TextStyle(
                               color: AppColors.primary,
                               fontSize: 12,

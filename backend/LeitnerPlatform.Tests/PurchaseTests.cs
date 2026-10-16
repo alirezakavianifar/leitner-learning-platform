@@ -629,6 +629,118 @@ namespace LeitnerPlatform.Tests
             var purchase = await db.Purchases.FirstOrDefaultAsync(p => p.UserId == userId && p.CourseId == course.Id);
             Assert.Null(purchase);
         }
+
+        [Fact]
+        public async Task ZarinPalCallback_WhenStatusIsNOK_CoursePurchase_ShouldMarkCancelledAndReturnCancelledDeepLink()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var userId = Guid.NewGuid();
+            var course = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Test Course",
+                Price = 50000m,
+                IsPublished = true
+            };
+            await db.Courses.AddAsync(course);
+
+            var purchase = new Purchase
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                CourseId = course.Id,
+                PaymentProvider = "ZARINPAL",
+                TransactionId = "A00000000000000000000000000012345678",
+                Status = "PENDING",
+                PurchasedAt = DateTime.UtcNow
+            };
+            await db.Purchases.AddAsync(purchase);
+            await db.SaveChangesAsync();
+
+            var mockEventBus = new Mock<IEventBus>();
+            var mockZarinPalService = new Mock<IZarinPalService>();
+            var mockConfig = new Mock<IConfiguration>();
+            var mockLogger = new Mock<ILogger<PurchaseController>>();
+            var mockStoreVerification = new Mock<IStoreVerificationService>();
+
+            var controller = new PurchaseController(
+                db,
+                mockEventBus.Object,
+                mockZarinPalService.Object,
+                mockConfig.Object,
+                mockLogger.Object,
+                mockStoreVerification.Object);
+
+            // Act
+            var result = await controller.ZarinPalCallback(purchase.TransactionId, "NOK", null, null);
+
+            // Assert
+            var contentResult = Assert.IsType<ContentResult>(result);
+            Assert.Equal("text/html; charset=utf-8", contentResult.ContentType);
+            Assert.Contains("leitnerapp://payment-result?status=cancelled", contentResult.Content);
+            Assert.Contains("پرداخت لغو شد", contentResult.Content);
+
+            var updatedPurchase = await db.Purchases.FindAsync(purchase.Id);
+            Assert.NotNull(updatedPurchase);
+            Assert.Equal("CANCELLED", updatedPurchase.Status);
+        }
+
+        [Fact]
+        public async Task ZarinPalCallback_WhenStatusIsNOK_PackagePurchase_ShouldMarkCancelledAndReturnCancelledDeepLink()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var userId = Guid.NewGuid();
+            var package = new CoursePackage
+            {
+                Id = Guid.NewGuid(),
+                Title = "Test Bundle",
+                Price = 90000m,
+                IsPublished = true
+            };
+            await db.CoursePackages.AddAsync(package);
+
+            var pkgPurchase = new PackagePurchase
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                PackageId = package.Id,
+                PaymentProvider = "ZARINPAL",
+                TransactionId = "A00000000000000000000000000087654321",
+                Status = "PENDING",
+                PurchasedAt = DateTime.UtcNow
+            };
+            await db.PackagePurchases.AddAsync(pkgPurchase);
+            await db.SaveChangesAsync();
+
+            var mockEventBus = new Mock<IEventBus>();
+            var mockZarinPalService = new Mock<IZarinPalService>();
+            var mockConfig = new Mock<IConfiguration>();
+            var mockLogger = new Mock<ILogger<PurchaseController>>();
+            var mockStoreVerification = new Mock<IStoreVerificationService>();
+
+            var controller = new PurchaseController(
+                db,
+                mockEventBus.Object,
+                mockZarinPalService.Object,
+                mockConfig.Object,
+                mockLogger.Object,
+                mockStoreVerification.Object);
+
+            // Act
+            var result = await controller.ZarinPalCallback(pkgPurchase.TransactionId, "NOK", null, null);
+
+            // Assert
+            var contentResult = Assert.IsType<ContentResult>(result);
+            Assert.Equal("text/html; charset=utf-8", contentResult.ContentType);
+            Assert.Contains("leitnerapp://payment-result?status=cancelled", contentResult.Content);
+            Assert.Contains("پرداخت لغو شد", contentResult.Content);
+
+            var updatedPkgPurchase = await db.PackagePurchases.FindAsync(pkgPurchase.Id);
+            Assert.NotNull(updatedPkgPurchase);
+            Assert.Equal("CANCELLED", updatedPkgPurchase.Status);
+        }
     }
 }
 
