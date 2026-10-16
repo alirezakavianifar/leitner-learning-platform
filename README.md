@@ -86,6 +86,8 @@ The Leitner Learning Platform is designed around the classic Leitner flashcard s
 
 ### 3. Course Bundles & Package Purchases
 *   **Multi-Course Packages:** Multiple related courses can be grouped into promotional packages/bundles and offered at a discounted bundle price.
+*   **Bundle-Only Courses (`is_bundle_only`):** Courses can be designated as "Bundle-Only" (or assigned `allowed_platforms: "none"`), hiding them from the individual course store catalog across all platforms while keeping the parent course package visible and purchasable. Upon purchasing the package (or receiving an administrative grant), buyers unlock full download and study access to all constituent courses in their "My Courses" tab.
+*   **Fair Package Ownership Calculation:** Paid packages (`price > 0`) are never falsely marked as "Already Owned" (`is_purchased: true`) simply because constituent courses are free or zero-priced; paid packages are only marked owned if the package itself was purchased or all paid constituent courses were individually acquired.
 *   **Unified Checkout & Atomic Fulfillment:** Purchasing a package automatically and atomically unlocks full access to all individual constituent courses in that bundle.
 *   **Package Discovery & Badges:** Courses belonging to active packages display contextual bundle recommendation chips (*"Available in [Package Name] with XX% discount"*).
 *   **Admin Bundle Management:** Administrators can create, edit, publish, and delete bundles directly in the Web Admin Panel with custom pricing, discount calculation, and multi-course selection.
