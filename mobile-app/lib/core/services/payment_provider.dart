@@ -245,6 +245,20 @@ class DirectPaymentProvider implements PaymentProvider {
   @override
   String get providerName => 'ZARINPAL';
 
+  String _resolvePaymentUrl(String rawUrl) {
+    if (rawUrl.contains('zarinpal.com/pg/StartPay/')) {
+      final uri = Uri.tryParse(rawUrl);
+      if (uri != null && uri.pathSegments.isNotEmpty) {
+        final authority = uri.pathSegments.last;
+        if (authority.isNotEmpty && authority != 'StartPay') {
+          final baseUrl = dioClient.dio.options.baseUrl.replaceAll(RegExp(r'/+$'), '');
+          return '$baseUrl/purchases/zarinpal/gateway?authority=$authority';
+        }
+      }
+    }
+    return rawUrl;
+  }
+
   @override
   Future<bool> purchaseCourse(String courseId) async {
     try {
@@ -258,9 +272,10 @@ class DirectPaymentProvider implements PaymentProvider {
           return true;
         }
 
-        final paymentUrl = data['payment_url'] as String?;
-        if (paymentUrl != null && paymentUrl.isNotEmpty) {
-          final uri = Uri.parse(paymentUrl);
+        final rawPaymentUrl = data['payment_url'] as String?;
+        if (rawPaymentUrl != null && rawPaymentUrl.isNotEmpty) {
+          final targetUrl = _resolvePaymentUrl(rawPaymentUrl);
+          final uri = Uri.parse(targetUrl);
           bool launched = false;
           try {
             launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -293,9 +308,10 @@ class DirectPaymentProvider implements PaymentProvider {
           return true;
         }
 
-        final paymentUrl = data['payment_url'] as String?;
-        if (paymentUrl != null && paymentUrl.isNotEmpty) {
-          final uri = Uri.parse(paymentUrl);
+        final rawPaymentUrl = data['payment_url'] as String?;
+        if (rawPaymentUrl != null && rawPaymentUrl.isNotEmpty) {
+          final targetUrl = _resolvePaymentUrl(rawPaymentUrl);
+          final uri = Uri.parse(targetUrl);
           bool launched = false;
           try {
             launched = await launchUrl(uri, mode: LaunchMode.externalApplication);

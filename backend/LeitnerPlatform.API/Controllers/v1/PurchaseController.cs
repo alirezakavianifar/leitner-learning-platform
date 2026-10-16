@@ -247,14 +247,16 @@ namespace LeitnerPlatform.API.Controllers.v1
             }
 
             await _context.SaveChangesAsync();
-            _logger.LogInformation("PurchaseController: RequestZarinPalPayment: Saved purchase record, returning payment_url = '{PaymentUrl}'", requestResult.PaymentUrl);
+            var bridgeUrl = BuildGatewayBridgeUrl(requestResult.Authority, callbackUrl);
+            _logger.LogInformation("PurchaseController: RequestZarinPalPayment: Saved purchase record, returning payment_url = '{BridgeUrl}', direct = '{PaymentUrl}'", bridgeUrl, requestResult.PaymentUrl);
 
             return Ok(new
             {
                 success = true,
                 purchase_id = existingPurchase.Id,
                 authority = requestResult.Authority,
-                payment_url = requestResult.PaymentUrl
+                payment_url = bridgeUrl,
+                direct_payment_url = requestResult.PaymentUrl
             });
         }
 
@@ -470,13 +472,16 @@ namespace LeitnerPlatform.API.Controllers.v1
             }
 
             await _context.SaveChangesAsync();
+            var bridgeUrl = BuildGatewayBridgeUrl(requestResult.Authority, callbackUrl);
+            _logger.LogInformation("PurchaseController: RequestZarinPalPackagePayment: Saved package purchase record, returning payment_url = '{BridgeUrl}', direct = '{PaymentUrl}'", bridgeUrl, requestResult.PaymentUrl);
 
             return Ok(new
             {
                 success = true,
                 purchase_id = existingPkgPurchase.Id,
                 authority = requestResult.Authority,
-                payment_url = requestResult.PaymentUrl
+                payment_url = bridgeUrl,
+                direct_payment_url = requestResult.PaymentUrl
             });
         }
 
@@ -840,6 +845,179 @@ namespace LeitnerPlatform.API.Controllers.v1
         {errorBlock}
         <a href='{deepLink}' class='btn'>بازگشت به اپلیکیشن / Return to App</a>
         <div class='redirect-notice'>در حال انتقال خودکار به اپلیکیشن...<br>Automatically redirecting to the app...</div>
+    </div>
+</body>
+</html>";
+        }
+
+        private string BuildGatewayBridgeUrl(string authority, string callbackUrl)
+        {
+            var gatewayBaseUrl = Environment.GetEnvironmentVariable("ZARINPAL_GATEWAY_URL")
+                                 ?? _configuration["ZarinPal:GatewayUrl"];
+
+            if (string.IsNullOrWhiteSpace(gatewayBaseUrl))
+            {
+                if (Uri.TryCreate(callbackUrl, UriKind.Absolute, out var cbUri))
+                {
+                    gatewayBaseUrl = $"{cbUri.Scheme}://{cbUri.Authority}";
+                }
+                else
+                {
+                    gatewayBaseUrl = $"{Request.Scheme}://{Request.Host}";
+                }
+            }
+
+            return $"{gatewayBaseUrl.TrimEnd('/')}/api/v1/purchases/zarinpal/gateway?authority={authority}";
+        }
+
+        [AllowAnonymous]
+        [HttpGet("zarinpal/gateway")]
+        [HttpGet("zarinpal/gateway/{authority}")]
+        public IActionResult ZarinPalGatewayBridge([FromQuery] string? authority, [FromRoute] string? authorityRoute = null)
+        {
+            var auth = !string.IsNullOrWhiteSpace(authority) ? authority.Trim() : authorityRoute?.Trim();
+            _logger.LogInformation("PurchaseController: ZarinPalGatewayBridge: Received authority='{Authority}'", auth);
+
+            if (string.IsNullOrEmpty(auth))
+            {
+                _logger.LogWarning("PurchaseController: ZarinPalGatewayBridge: Authority parameter is missing.");
+                return BadRequest(new { success = false, message = "Authority parameter is missing." });
+            }
+
+            var isSandbox = bool.TryParse(Environment.GetEnvironmentVariable("ZARINPAL_SANDBOX") ?? _configuration["ZarinPal:IsSandbox"], out var sb) && sb;
+            var targetUrl = isSandbox
+                ? $"https://sandbox.zarinpal.com/pg/StartPay/{auth}"
+                : $"https://www.zarinpal.com/pg/StartPay/{auth}";
+
+            Response.Headers["Referrer-Policy"] = "unsafe-url";
+            Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+
+            var html = BuildGatewayBridgeHtml(targetUrl, auth);
+            return Content(html, "text/html; charset=utf-8");
+        }
+
+        private static string BuildGatewayBridgeHtml(string targetUrl, string authority)
+        {
+            return $@"<!DOCTYPE html>
+<html lang='fa' dir='rtl'>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <meta name='referrer' content='always'>
+    <meta name='referrer' content='unsafe-url'>
+    <meta http-equiv='refresh' content='0;url={targetUrl}'>
+    <title>در حال انتقال به درگاه پرداخت شاپرک...</title>
+    <style>
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Tahoma, Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #1e293b;
+        }}
+        .card {{
+            background: #ffffff;
+            width: 100%;
+            max-width: 440px;
+            border-radius: 24px;
+            padding: 36px 28px;
+            text-align: center;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.4s ease-out;
+        }}
+        @keyframes fadeIn {{
+            from {{ opacity: 0; transform: translateY(15px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+        .spinner {{
+            width: 56px;
+            height: 56px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #2563eb;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            animation: spin 0.8s linear infinite;
+        }}
+        @keyframes spin {{
+            0% {{ transform: rotate(0deg); }}
+            100% {{ transform: rotate(360deg); }}
+        }}
+        h2 {{
+            color: #0f172a;
+            font-size: 20px;
+            margin-bottom: 8px;
+            font-weight: 800;
+        }}
+        .sub-title {{
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 20px;
+            font-weight: 500;
+            direction: ltr;
+        }}
+        .desc {{
+            font-size: 14px;
+            color: #475569;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }}
+        .btn {{
+            display: inline-block;
+            width: 100%;
+            padding: 14px 20px;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 14px;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }}
+        .btn:hover {{
+            background: #1d4ed8;
+        }}
+        .badge {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 12px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            margin-top: 18px;
+        }}
+    </style>
+    <script>
+        try {{
+            window.location.replace('{targetUrl}');
+        }} catch (e) {{
+            window.location.href = '{targetUrl}';
+        }}
+        window.addEventListener('DOMContentLoaded', function() {{
+            setTimeout(function() {{
+                try {{
+                    window.location.replace('{targetUrl}');
+                }} catch (e) {{}}
+            }}, 300);
+        }});
+    </script>
+</head>
+<body>
+    <div class='card'>
+        <div class='spinner'></div>
+        <h2>در حال اتصال به درگاه پرداخت شاپرک...</h2>
+        <div class='sub-title'>Connecting to Shaparak Payment Gateway...</div>
+        <p class='desc'>لطفاً چند لحظه شکیبا باشید. در حال انتقال امن به شبکه پرداخت الکترونیکی کشور هستید.</p>
+        <a id='payBtn' href='{targetUrl}' rel='noreferrer-when-downgrade' class='btn'>ورود مستقیم به درگاه پرداخت</a>
+        <div class='badge'>
+            <span>🔒 اتصال رمزنگاری شده و ایمن زرین‌پال</span>
+        </div>
     </div>
 </body>
 </html>";

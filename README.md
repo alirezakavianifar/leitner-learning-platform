@@ -164,6 +164,7 @@ The entire backend infrastructure (Database, Cache, API, Background Worker, and 
     ZARINPAL_MERCHANT_ID=167ccd1b-f5d3-407d-85d1-a73c4f2ba3eb
     ZARINPAL_SANDBOX=false
     ZARINPAL_CALLBACK_URL=https://api.rightlearn.ir/api/v1/purchases/zarinpal/callback
+    ZARINPAL_GATEWAY_URL=https://api.rightlearn.ir
     ```
 
 #### Running the Stack

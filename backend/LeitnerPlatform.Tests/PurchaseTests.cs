@@ -160,6 +160,65 @@ namespace LeitnerPlatform.Tests
             Assert.Equal("PENDING", purchase.Status);
             Assert.Equal("ZARINPAL", purchase.PaymentProvider);
             Assert.Equal("A00000000000000000000000000000000000", purchase.TransactionId);
+
+            var dynamicData = okResult.Value;
+            var paymentUrlProp = dynamicData?.GetType().GetProperty("payment_url")?.GetValue(dynamicData)?.ToString();
+            Assert.NotNull(paymentUrlProp);
+            Assert.Contains("/api/v1/purchases/zarinpal/gateway?authority=A00000000000000000000000000000000000", paymentUrlProp);
+        }
+
+        [Fact]
+        public void PurchaseController_ZarinPalGatewayBridge_ReturnsHtmlWithReferrerMetaAndTarget()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var mockEventBus = new Mock<IEventBus>();
+            var mockZarinPalService = new Mock<IZarinPalService>();
+            var mockConfig = new Mock<IConfiguration>();
+            mockConfig.Setup(c => c["ZarinPal:IsSandbox"]).Returns("false");
+            var mockLogger = new Mock<ILogger<PurchaseController>>();
+
+            var controller = new PurchaseController(db, mockEventBus.Object, mockZarinPalService.Object, mockConfig.Object, mockLogger.Object);
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            };
+
+            var testAuthority = "A0000000000000000000000000003m81x1l8";
+
+            // Act
+            var result = controller.ZarinPalGatewayBridge(testAuthority);
+
+            // Assert
+            var contentResult = Assert.IsType<ContentResult>(result);
+            Assert.Equal("text/html; charset=utf-8", contentResult.ContentType);
+            Assert.NotNull(contentResult.Content);
+            Assert.Contains("meta name='referrer' content='always'", contentResult.Content);
+            Assert.Contains($"https://www.zarinpal.com/pg/StartPay/{testAuthority}", contentResult.Content);
+            Assert.Equal("unsafe-url", controller.Response.Headers["Referrer-Policy"]);
+        }
+
+        [Fact]
+        public void PurchaseController_ZarinPalGatewayBridge_WhenAuthorityMissing_ReturnsBadRequest()
+        {
+            // Arrange
+            var db = GetDatabaseContext();
+            var mockEventBus = new Mock<IEventBus>();
+            var mockZarinPalService = new Mock<IZarinPalService>();
+            var mockConfig = new Mock<IConfiguration>();
+            var mockLogger = new Mock<ILogger<PurchaseController>>();
+
+            var controller = new PurchaseController(db, mockEventBus.Object, mockZarinPalService.Object, mockConfig.Object, mockLogger.Object);
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            };
+
+            // Act
+            var result = controller.ZarinPalGatewayBridge(null);
+
+            // Assert
+            Assert.IsType<BadRequestObjectResult>(result);
         }
 
         [Fact]
