@@ -108,6 +108,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     .Where(i => i.Course != null && (i.Course.IsPublished || completedCoursePurchases.Contains(i.CourseId)))
                     .Where(i => completedCoursePurchases.Contains(i.CourseId) || i.Course!.MinBuildNumber <= clientBuildNumber)
                     .Where(i =>
+                        i.Course!.IsBundleOnly ||
                         completedCoursePurchases.Contains(i.CourseId) ||
                         string.IsNullOrEmpty(targetPlatform) ||
                         string.IsNullOrEmpty(i.Course?.AllowedPlatforms) ||
@@ -122,7 +123,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 var courseDtos = validItems.Select(i =>
                 {
                     var c = i.Course!;
-                    var isCoursePurchased = c.Price == 0 || completedCoursePurchases.Contains(c.Id);
+                    var isCoursePurchased = completedCoursePurchases.Contains(c.Id) || (c.Price == 0 && !c.IsBundleOnly);
                     return new
                     {
                         id = c.Id,
@@ -134,6 +135,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                         card_count = c.CardCount,
                         image_url = c.ImageUrl,
                         is_purchased = isCoursePurchased,
+                        is_bundle_only = c.IsBundleOnly,
                         version = c.Version,
                         allowed_platforms = c.AllowedPlatforms,
                         min_build_number = c.MinBuildNumber
@@ -150,9 +152,11 @@ namespace LeitnerPlatform.API.Controllers.v1
                     discountPercent = (int)Math.Round((1.0m - (pkg.Price / originalPrice.Value)) * 100m);
                 }
 
-                var ownedCoursesCount = courseDtos.Count(c => c.is_purchased);
-                var isFullyOwned = courseDtos.Count > 0 && ownedCoursesCount == courseDtos.Count;
-                var isPackagePurchased = completedPackagePurchases.Contains(pkg.Id) || isFullyOwned;
+                var ownedPaidCoursesCount = validItems.Count(i => completedCoursePurchases.Contains(i.CourseId));
+                var isFullyOwnedByPurchase = validItems.Count > 0 && ownedPaidCoursesCount == validItems.Count;
+                var isPackagePurchased = completedPackagePurchases.Contains(pkg.Id) ||
+                                         (pkg.Price == 0 && validItems.All(i => i.Course?.Price == 0 && !i.Course.IsBundleOnly)) ||
+                                         (pkg.Price > 0 && isFullyOwnedByPurchase);
 
                 return new
                 {
@@ -167,7 +171,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     total_card_count = totalCardCount,
                     is_purchased = isPackagePurchased,
                     courses_count = courseDtos.Count,
-                    owned_courses_count = ownedCoursesCount,
+                    owned_courses_count = ownedPaidCoursesCount,
                     courses = courseDtos,
                     allowed_platforms = pkg.AllowedPlatforms,
                     min_build_number = pkg.MinBuildNumber,
@@ -237,7 +241,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             var courseDtos = validItems.Select(i =>
             {
                 var c = i.Course!;
-                var isCoursePurchased = c.Price == 0 || completedCoursePurchases.Contains(c.Id);
+                var isCoursePurchased = completedCoursePurchases.Contains(c.Id) || (c.Price == 0 && !c.IsBundleOnly);
                 return new
                 {
                     id = c.Id,
@@ -249,6 +253,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     card_count = c.CardCount,
                     image_url = c.ImageUrl,
                     is_purchased = isCoursePurchased,
+                    is_bundle_only = c.IsBundleOnly,
                     version = c.Version,
                     allowed_platforms = c.AllowedPlatforms
                 };
@@ -264,8 +269,11 @@ namespace LeitnerPlatform.API.Controllers.v1
                 discountPercent = (int)Math.Round((1.0m - (pkg.Price / originalPrice.Value)) * 100m);
             }
 
-            var ownedCoursesCount = courseDtos.Count(c => c.is_purchased);
-            var isFullyOwned = courseDtos.Count > 0 && ownedCoursesCount == courseDtos.Count;
+            var ownedPaidCoursesCount = validItems.Count(i => completedCoursePurchases.Contains(i.CourseId));
+            var isFullyOwnedByPurchase = validItems.Count > 0 && ownedPaidCoursesCount == validItems.Count;
+            var finalIsPackagePurchased = isPackagePurchased ||
+                                         (pkg.Price == 0 && validItems.All(i => i.Course?.Price == 0 && !i.Course.IsBundleOnly)) ||
+                                         (pkg.Price > 0 && isFullyOwnedByPurchase);
 
             return Ok(new
             {
@@ -278,9 +286,9 @@ namespace LeitnerPlatform.API.Controllers.v1
                 image_url = pkg.ImageUrl,
                 discount_percentage = discountPercent,
                 total_card_count = totalCardCount,
-                is_purchased = isPackagePurchased || isFullyOwned,
+                is_purchased = finalIsPackagePurchased,
                 courses_count = courseDtos.Count,
-                owned_courses_count = ownedCoursesCount,
+                owned_courses_count = ownedPaidCoursesCount,
                 courses = courseDtos,
                 allowed_platforms = pkg.AllowedPlatforms,
                 created_at = pkg.CreatedAt,

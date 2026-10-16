@@ -18,6 +18,7 @@ class Course extends Equatable {
   final bool isArchived;
   final bool isCriticalUpdate;
   final DateTime? updatedAt;
+  final bool isBundleOnly;
 
   // Client-side computed state
   final bool isDownloaded;
@@ -42,6 +43,7 @@ class Course extends Equatable {
     this.isArchived = false,
     this.isCriticalUpdate = false,
     this.updatedAt,
+    this.isBundleOnly = false,
     this.isDownloaded = false,
     this.localDbPath,
     this.downloadedVersion,
@@ -68,6 +70,7 @@ class Course extends Equatable {
     bool? isArchived,
     bool? isCriticalUpdate,
     DateTime? updatedAt,
+    bool? isBundleOnly,
     bool? isDownloaded,
     String? localDbPath,
     int? downloadedVersion,
@@ -88,6 +91,7 @@ class Course extends Equatable {
       isArchived: isArchived ?? this.isArchived,
       isCriticalUpdate: isCriticalUpdate ?? this.isCriticalUpdate,
       updatedAt: updatedAt ?? this.updatedAt,
+      isBundleOnly: isBundleOnly ?? this.isBundleOnly,
       isDownloaded: isDownloaded ?? this.isDownloaded,
       localDbPath: localDbPath ?? this.localDbPath,
       downloadedVersion: downloadedVersion ?? this.downloadedVersion,
@@ -111,6 +115,7 @@ class Course extends Equatable {
         isArchived,
         isCriticalUpdate,
         updatedAt,
+        isBundleOnly,
         isDownloaded,
         localDbPath,
         downloadedVersion,

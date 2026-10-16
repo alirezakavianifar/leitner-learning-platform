@@ -62,11 +62,11 @@ namespace LeitnerPlatform.API.Controllers.v1
                 targetPlatform = headerPlatform.ToString().Trim().ToLower();
             }
 
-            // Catalog = published, non-archived courses (visible to everyone), plus any
-            // course this user has purchased even if it has since been archived/unpublished.
+            // Catalog = published, non-archived, non-bundle-only courses (visible to everyone),
+            // plus any course this user has purchased even if it has since been archived/unpublished/bundle-only.
             var courses = await _context.Courses
                 .AsNoTracking()
-                .Where(c => (c.IsPublished && !c.IsArchived) || completedPurchases.Contains(c.Id))
+                .Where(c => (c.IsPublished && !c.IsArchived && !c.IsBundleOnly) || completedPurchases.Contains(c.Id))
                 .OrderBy(c => c.Title)
                 .ToListAsync();
 
@@ -75,11 +75,21 @@ namespace LeitnerPlatform.API.Controllers.v1
             {
                 courses = courses.Where(c =>
                     completedPurchases.Contains(c.Id) ||
-                    string.IsNullOrEmpty(c.AllowedPlatforms) ||
-                    c.AllowedPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                        .Any(p => p.Equals(targetPlatform, StringComparison.OrdinalIgnoreCase) ||
-                                 (targetPlatform == "premium" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)) ||
-                                 (targetPlatform == "direct" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)))
+                    (!string.Equals(c.AllowedPlatforms, "none", StringComparison.OrdinalIgnoreCase) &&
+                     !string.IsNullOrWhiteSpace(c.AllowedPlatforms) &&
+                     c.AllowedPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                         .Any(p => p.Equals(targetPlatform, StringComparison.OrdinalIgnoreCase) ||
+                                  (targetPlatform == "premium" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)) ||
+                                  (targetPlatform == "direct" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase))))
+                ).ToList();
+            }
+            else
+            {
+                // If no platform header was provided, exclude courses explicitly marked "none" or empty
+                courses = courses.Where(c =>
+                    completedPurchases.Contains(c.Id) ||
+                    (!string.Equals(c.AllowedPlatforms, "none", StringComparison.OrdinalIgnoreCase) &&
+                     !string.IsNullOrWhiteSpace(c.AllowedPlatforms))
                 ).ToList();
             }
 
@@ -98,7 +108,7 @@ namespace LeitnerPlatform.API.Controllers.v1
 
             var result = courses.Select(c =>
             {
-                var isPurchased = c.Price == 0 || completedPurchases.Contains(c.Id);
+                var isPurchased = (c.Price == 0 && !c.IsBundleOnly) || completedPurchases.Contains(c.Id);
                 
                 // Formulate absolute or relative download URL if purchased
                 string? downloadUrl = null;
@@ -125,6 +135,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     updated_at = c.UpdatedAt,
                     is_critical_update = c.IsCriticalUpdate,
                     is_archived = c.IsArchived,
+                    is_bundle_only = c.IsBundleOnly,
                     allowed_platforms = c.AllowedPlatforms,
                     min_build_number = c.MinBuildNumber
                 };

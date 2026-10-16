@@ -592,5 +592,38 @@ namespace LeitnerPlatform.Tests
                 }
             }
         }
+
+        [Fact]
+        public async Task UpdateCourse_CanSetIsBundleOnly_AndSanitizesEmptyPlatforms()
+        {
+            var db = GetDatabaseContext();
+            var course = new Course
+            {
+                Id = Guid.NewGuid(),
+                Title = "Constituent Course",
+                Version = 1,
+                IsBundleOnly = false,
+                AllowedPlatforms = "zarinpal,bazaar,myket"
+            };
+            await db.Courses.AddAsync(course);
+            await db.SaveChangesAsync();
+
+            var controller = CreateController(db);
+            var updateInput = new AdminCourseUpdateInput
+            {
+                Title = "Updated Constituent Course",
+                IsBundleOnly = true,
+                AllowedPlatforms = "" // Unchecked all platforms
+            };
+
+            var actionResult = await controller.UpdateCourse(course.Id, updateInput);
+            var okResult = Assert.IsType<OkObjectResult>(actionResult);
+
+            var updated = await db.Courses.FindAsync(course.Id);
+            Assert.NotNull(updated);
+            Assert.True(updated.IsBundleOnly);
+            Assert.Equal("none", updated.AllowedPlatforms);
+        }
     }
 }
+

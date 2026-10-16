@@ -36,6 +36,7 @@ export interface Course {
   is_critical_update: boolean;
   allowed_platforms?: string;
   min_build_number?: number;
+  is_bundle_only?: boolean;
 }
 
 export interface Purchase {

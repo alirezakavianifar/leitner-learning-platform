@@ -39,6 +39,7 @@ export const CoursesView: React.FC = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [isPublished, setIsPublished] = useState(false);
   const [isCriticalUpdate, setIsCriticalUpdate] = useState(false);
+  const [isBundleOnly, setIsBundleOnly] = useState(false);
   const [allowedPlatforms, setAllowedPlatforms] = useState<string[]>(['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios']);
   const [minBuildNumber, setMinBuildNumber] = useState<number>(0);
 
@@ -131,9 +132,16 @@ export const CoursesView: React.FC = () => {
     setImageUrl(course.image_url || '');
     setIsPublished(course.is_published || false);
     setIsCriticalUpdate(course.is_critical_update || false);
-    const platforms = course.allowed_platforms
-      ? course.allowed_platforms.split(',').map((s: string) => s.trim()).filter(Boolean)
-      : ['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios'];
+    setIsBundleOnly(course.is_bundle_only || false);
+    let platforms: string[] = ['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios'];
+    if (course.allowed_platforms !== undefined && course.allowed_platforms !== null) {
+      const clean = course.allowed_platforms.trim();
+      if (clean === '' || clean.toLowerCase() === 'none') {
+        platforms = [];
+      } else {
+        platforms = clean.split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+    }
     setAllowedPlatforms(platforms);
     setMinBuildNumber(course.min_build_number || 0);
     setShowEditModal(true);
@@ -144,6 +152,7 @@ export const CoursesView: React.FC = () => {
     if (!editingCourse) return;
 
     try {
+      const finalPlatforms = allowedPlatforms.length === 0 ? 'none' : allowedPlatforms.join(',');
       await api.admin.updateCourse(editingCourse.id, {
         title,
         description,
@@ -153,7 +162,8 @@ export const CoursesView: React.FC = () => {
         image_url: imageUrl.trim(),
         is_published: isPublished,
         is_critical_update: isCriticalUpdate,
-        allowed_platforms: allowedPlatforms.join(','),
+        is_bundle_only: isBundleOnly,
+        allowed_platforms: finalPlatforms,
         min_build_number: minBuildNumber
       });
       toast.showSuccess(t('courses.alert_save_success', 'Course metadata updated successfully.'));
@@ -569,6 +579,11 @@ export const CoursesView: React.FC = () => {
                               {t('courses.badge_critical', 'Critical')}
                             </span>
                           )}
+                          {course.is_bundle_only && (
+                            <span style={{ fontSize: '10px', backgroundColor: 'rgba(168, 85, 247, 0.15)', color: '#a855f7', border: '1px solid rgba(168, 85, 247, 0.3)', padding: '1px 5px', borderRadius: '4px', marginRight: '4px' }}>
+                              📦 فقط پکیج
+                            </span>
+                          )}
                         </td>
                         <td>
                           {course.is_archived ? (
@@ -973,6 +988,23 @@ export const CoursesView: React.FC = () => {
                       {t('courses.field_critical_update', 'Mark as critical fix (prompts existing users to update)')}
                     </label>
                   </div>
+                </div>
+                <div className="form-group" style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(168, 85, 247, 0.08)', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.25)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      id="courseBundleOnly"
+                      checked={isBundleOnly}
+                      onChange={(e) => setIsBundleOnly(e.target.checked)}
+                      style={{ width: 'auto' }}
+                    />
+                    <label htmlFor="courseBundleOnly" style={{ margin: 0, cursor: 'pointer', fontWeight: 600, color: '#a855f7' }}>
+                      📦 دوره فقط در قالب پکیج (مخفی از کاتالوگ دوره‌های تکی)
+                    </label>
+                  </div>
+                  <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '4px', fontSize: '11px' }}>
+                    با فعال‌سازی این گزینه، این دوره به صورت تکی در صفحه دوره‌های اپلیکیشن نمایش داده نمی‌شود و تنها کاربرانی که پکیج حاوی این دوره را خریداری کرده باشند به آن دسترسی خواهند داشت.
+                  </small>
                 </div>
                 <div className="form-group" style={{ marginTop: '14px', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <label style={{ fontWeight: 'bold', marginBottom: '8px', display: 'block', fontSize: '13px' }}>

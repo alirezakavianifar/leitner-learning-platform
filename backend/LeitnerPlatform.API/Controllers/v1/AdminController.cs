@@ -1720,8 +1720,13 @@ namespace LeitnerPlatform.API.Controllers.v1
             if (input.IsPublished.HasValue) course.IsPublished = input.IsPublished.Value;
             if (input.IsCriticalUpdate.HasValue) course.IsCriticalUpdate = input.IsCriticalUpdate.Value;
             if (input.ImageUrl != null) course.ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim();
-            if (input.AllowedPlatforms != null) course.AllowedPlatforms = input.AllowedPlatforms.Trim();
+            if (input.AllowedPlatforms != null)
+            {
+                var trimmed = input.AllowedPlatforms.Trim();
+                course.AllowedPlatforms = string.IsNullOrWhiteSpace(trimmed) ? "none" : trimmed;
+            }
             if (input.MinBuildNumber.HasValue) course.MinBuildNumber = input.MinBuildNumber.Value;
+            if (input.IsBundleOnly.HasValue) course.IsBundleOnly = input.IsBundleOnly.Value;
             course.UpdatedAt = DateTime.UtcNow;
 
             _context.Entry(course).State = EntityState.Modified;
@@ -2406,6 +2411,7 @@ namespace LeitnerPlatform.API.Controllers.v1
         public bool? IsCriticalUpdate { get; set; }
         public string? AllowedPlatforms { get; set; }
         public int? MinBuildNumber { get; set; }
+        public bool? IsBundleOnly { get; set; }
     }
 
     public class AdminUserUpdateInput

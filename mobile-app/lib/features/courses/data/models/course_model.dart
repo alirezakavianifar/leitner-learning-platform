@@ -17,6 +17,7 @@ class CourseModel extends Course {
     bool isArchived = false,
     bool isCriticalUpdate = false,
     DateTime? updatedAt,
+    bool isBundleOnly = false,
     bool isDownloaded = false,
     String? localDbPath,
     int? downloadedVersion,
@@ -36,6 +37,7 @@ class CourseModel extends Course {
           isArchived: isArchived,
           isCriticalUpdate: isCriticalUpdate,
           updatedAt: updatedAt,
+          isBundleOnly: isBundleOnly,
           isDownloaded: isDownloaded,
           localDbPath: localDbPath,
           downloadedVersion: downloadedVersion,
@@ -58,6 +60,7 @@ class CourseModel extends Course {
       isArchived: json['is_archived'] as bool? ?? false,
       isCriticalUpdate: json['is_critical_update'] as bool? ?? false,
       updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at'] as String) : null,
+      isBundleOnly: json['is_bundle_only'] as bool? ?? false,
     );
   }
 
@@ -78,6 +81,7 @@ class CourseModel extends Course {
       'is_archived': isArchived,
       'is_critical_update': isCriticalUpdate,
       'updated_at': updatedAt?.toIso8601String(),
+      'is_bundle_only': isBundleOnly,
     };
   }
 
@@ -97,6 +101,7 @@ class CourseModel extends Course {
       isArchived: (map['is_archived'] as int?) == 1,
       isCriticalUpdate: (map['is_critical_update'] as int?) == 1,
       updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'] as String) : null,
+      isBundleOnly: (map['is_bundle_only'] as int?) == 1,
       isDownloaded: isDownloaded,
       localDbPath: localDbPath,
       downloadedVersion: map['downloaded_version'] as int?,
@@ -119,6 +124,7 @@ class CourseModel extends Course {
       'is_archived': isArchived ? 1 : 0,
       'is_critical_update': isCriticalUpdate ? 1 : 0,
       'updated_at': updatedAt?.toIso8601String(),
+      'is_bundle_only': isBundleOnly ? 1 : 0,
       // downloaded_version is intentionally omitted: it is client-owned state
       // and must be preserved across re-caches, not overwritten from the server.
     };

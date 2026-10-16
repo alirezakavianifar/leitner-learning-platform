@@ -35,5 +35,9 @@ namespace LeitnerPlatform.Core.Entities
 
         // Minimum client application build number required to see this course
         public int MinBuildNumber { get; set; } = 0;
+
+        // When true, this course is only available as part of a course package (bundle)
+        // and is hidden from the public single-course store catalog across all versions.
+        public bool IsBundleOnly { get; set; } = false;
     }
 }

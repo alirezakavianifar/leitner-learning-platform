@@ -464,6 +464,11 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                   sortedCourses = sortedCourses
                       .where((c) => (c.isPurchased && c.isDownloaded) || (kIsWeb && c.isPurchased))
                       .toList();
+                } else {
+                  // In Catalog tab (_selectedTab == 0), hide bundle-only courses unless already purchased
+                  sortedCourses = sortedCourses
+                      .where((c) => !c.isBundleOnly || c.isPurchased)
+                      .toList();
                 }
 
                 final shouldShowPackages = _selectedTab == 0 &&
