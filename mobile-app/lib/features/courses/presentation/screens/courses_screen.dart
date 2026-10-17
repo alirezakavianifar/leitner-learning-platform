@@ -688,6 +688,46 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
           ),
         );
       }
+    } else if (provider is BazaarPaymentProvider) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('bundle_unlocked_success').replaceAll('{title}', package.title)),
+            backgroundColor: AppColors.courseDownloaded,
+          ),
+        );
+        // Reload courses to reflect newly unlocked courses in both Catalog and My Courses
+        context.read<CoursesBloc>().add(LoadCoursesEvent());
+      } else if (provider.lastPurchaseWasCancelled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('payment_cancelled')),
+            backgroundColor: Colors.orange.shade700,
+          ),
+        );
+      } else if (provider.lastErrorWasBazaarNotInstalled) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: Text(loc.translate('bazaar_not_installed'), style: TextStyle(color: AppColors.textPrimary)),
+            content: Text(loc.translate('bazaar_not_installed_desc'), style: TextStyle(color: AppColors.textSecondary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('purchase_failed')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } else {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -783,6 +823,46 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
           SnackBar(
             content: Text(loc.translate('redirecting_to_gateway')),
             backgroundColor: AppColors.primary,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('purchase_failed')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } else if (provider is BazaarPaymentProvider) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('course_unlocked_success').replaceAll('{title}', course.title)),
+            backgroundColor: AppColors.courseDownloaded,
+          ),
+        );
+        // Reload courses to update purchased status
+        context.read<CoursesBloc>().add(LoadCoursesEvent());
+      } else if (provider.lastPurchaseWasCancelled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('payment_cancelled')),
+            backgroundColor: Colors.orange.shade700,
+          ),
+        );
+      } else if (provider.lastErrorWasBazaarNotInstalled) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: Text(loc.translate('bazaar_not_installed'), style: TextStyle(color: AppColors.textPrimary)),
+            content: Text(loc.translate('bazaar_not_installed_desc'), style: TextStyle(color: AppColors.textSecondary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
+              ),
+            ],
           ),
         );
       } else {

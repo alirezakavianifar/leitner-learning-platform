@@ -18,6 +18,7 @@ class CourseModel extends Course {
     bool isCriticalUpdate = false,
     DateTime? updatedAt,
     bool isBundleOnly = false,
+    String? bazaarSku,
     bool isDownloaded = false,
     String? localDbPath,
     int? downloadedVersion,
@@ -38,6 +39,7 @@ class CourseModel extends Course {
           isCriticalUpdate: isCriticalUpdate,
           updatedAt: updatedAt,
           isBundleOnly: isBundleOnly,
+          bazaarSku: bazaarSku,
           isDownloaded: isDownloaded,
           localDbPath: localDbPath,
           downloadedVersion: downloadedVersion,
@@ -61,6 +63,7 @@ class CourseModel extends Course {
       isCriticalUpdate: json['is_critical_update'] as bool? ?? false,
       updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at'] as String) : null,
       isBundleOnly: json['is_bundle_only'] as bool? ?? false,
+      bazaarSku: json['bazaar_sku'] as String?,
     );
   }
 
@@ -82,6 +85,7 @@ class CourseModel extends Course {
       'is_critical_update': isCriticalUpdate,
       'updated_at': updatedAt?.toIso8601String(),
       'is_bundle_only': isBundleOnly,
+      'bazaar_sku': bazaarSku,
     };
   }
 

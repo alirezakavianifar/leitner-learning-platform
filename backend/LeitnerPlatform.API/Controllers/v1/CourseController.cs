@@ -137,7 +137,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                     is_archived = c.IsArchived,
                     is_bundle_only = c.IsBundleOnly,
                     allowed_platforms = c.AllowedPlatforms,
-                    min_build_number = c.MinBuildNumber
+                    min_build_number = c.MinBuildNumber,
+                    bazaar_sku = c.BazaarSku
                 };
             });
 

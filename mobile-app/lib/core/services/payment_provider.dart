@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:mobile_app/core/network/dio_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_poolakey/flutter_poolakey.dart';
@@ -36,11 +37,46 @@ class GooglePlayPaymentProvider implements PaymentProvider {
 class BazaarPaymentProvider implements PaymentProvider {
   final DioClient dioClient;
   final String? rsaKey;
+  bool _isConnected = false;
+
+  bool lastPurchaseWasCancelled = false;
+  bool lastErrorWasBazaarNotInstalled = false;
 
   BazaarPaymentProvider(this.dioClient, {this.rsaKey});
 
   @override
   String get providerName => 'BAZAAR';
+
+  Future<bool> _ensureConnected() async {
+    if (_isConnected) return true;
+    try {
+      final key = (rsaKey != null && rsaKey!.isNotEmpty) ? rsaKey : null;
+      await FlutterPoolakey.connect(key);
+      _isConnected = true;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<String> _resolveSku(String itemId) async {
+    final candidates = <String>[
+      itemId,
+      itemId.replaceAll('-', ''),
+      itemId.replaceAll('-', '_'),
+    ];
+    try {
+      final details = await FlutterPoolakey.getInAppSkuDetails(candidates);
+      for (final skuDetail in details) {
+        if (candidates.contains(skuDetail.sku)) {
+          return skuDetail.sku;
+        }
+      }
+    } catch (_) {
+      // If querying SKU details fails or is not supported in sandbox, use original itemId
+    }
+    return itemId;
+  }
 
   /// Submits a verified purchase token to the backend server
   Future<bool> verifyAndCompletePurchase({
@@ -80,15 +116,29 @@ class BazaarPaymentProvider implements PaymentProvider {
 
   @override
   Future<bool> purchaseCourse(String courseId) async {
+    lastPurchaseWasCancelled = false;
+    lastErrorWasBazaarNotInstalled = false;
+
+    final connected = await _ensureConnected();
+    if (!connected) {
+      lastErrorWasBazaarNotInstalled = true;
+      return false;
+    }
+
     try {
-      final key = (rsaKey != null && rsaKey!.isNotEmpty) ? rsaKey : null;
-      await FlutterPoolakey.connect(key);
-      final purchaseInfo = await FlutterPoolakey.purchase(courseId);
+      final skuToUse = await _resolveSku(courseId);
+      final purchaseInfo = await FlutterPoolakey.purchase(skuToUse);
       if (purchaseInfo.purchaseToken.isNotEmpty) {
         return await verifyAndCompletePurchase(
           courseId: courseId,
           purchaseToken: purchaseInfo.purchaseToken,
         );
+      }
+    } on PlatformException catch (pe) {
+      if (pe.code == 'PURCHASE_CANCELLED') {
+        lastPurchaseWasCancelled = true;
+      } else if (pe.code == 'CONNECTION_FAILED' || pe.code.contains('NOT_CONNECTED')) {
+        lastErrorWasBazaarNotInstalled = true;
       }
     } catch (_) {
       // Clean fallback if Bazaar is not installed or cancelled
@@ -98,15 +148,29 @@ class BazaarPaymentProvider implements PaymentProvider {
 
   @override
   Future<bool> purchasePackage(String packageId) async {
+    lastPurchaseWasCancelled = false;
+    lastErrorWasBazaarNotInstalled = false;
+
+    final connected = await _ensureConnected();
+    if (!connected) {
+      lastErrorWasBazaarNotInstalled = true;
+      return false;
+    }
+
     try {
-      final key = (rsaKey != null && rsaKey!.isNotEmpty) ? rsaKey : null;
-      await FlutterPoolakey.connect(key);
-      final purchaseInfo = await FlutterPoolakey.purchase(packageId);
+      final skuToUse = await _resolveSku(packageId);
+      final purchaseInfo = await FlutterPoolakey.purchase(skuToUse);
       if (purchaseInfo.purchaseToken.isNotEmpty) {
         return await verifyAndCompletePurchase(
           packageId: packageId,
           purchaseToken: purchaseInfo.purchaseToken,
         );
+      }
+    } on PlatformException catch (pe) {
+      if (pe.code == 'PURCHASE_CANCELLED') {
+        lastPurchaseWasCancelled = true;
+      } else if (pe.code == 'CONNECTION_FAILED' || pe.code.contains('NOT_CONNECTED')) {
+        lastErrorWasBazaarNotInstalled = true;
       }
     } catch (_) {
       // Clean fallback

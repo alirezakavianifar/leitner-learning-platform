@@ -24,6 +24,9 @@ namespace LeitnerPlatform.Core.Entities
         // Minimum client application build number required to see this package
         public int MinBuildNumber { get; set; } = 0;
 
+        // Optional custom SKU for Cafe Bazaar In-App Billing
+        public string? BazaarSku { get; set; }
+
         public ICollection<CoursePackageItem> Items { get; set; } = new List<CoursePackageItem>();
     }
 }

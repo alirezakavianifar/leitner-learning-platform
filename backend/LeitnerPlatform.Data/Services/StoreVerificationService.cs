@@ -119,25 +119,39 @@ namespace LeitnerPlatform.Data.Services
                     return new StoreVerificationResult { IsValid = false, Message = "Empty access token from Cafe Bazaar API." };
                 }
 
-                // 2. Validate in-app purchase
-                var validateUrl = $"https://pardakht.cafebazaar.ir/devapi/v2/api/validate/{packageName}/inapp/{productId}/purchases/{purchaseToken}/?access_token={tokenJson.AccessToken}";
-                var validateResponse = await _httpClient.GetAsync(validateUrl);
+                // 2. Validate in-app purchase with candidate product IDs (raw, without hyphens, with underscores)
+                var candidateProductIds = new List<string> { productId };
+                var noHyphen = productId.Replace("-", "");
+                if (!candidateProductIds.Contains(noHyphen)) candidateProductIds.Add(noHyphen);
+                var underscore = productId.Replace("-", "_");
+                if (!candidateProductIds.Contains(underscore)) candidateProductIds.Add(underscore);
 
-                if (!validateResponse.IsSuccessStatusCode)
+                HttpResponseMessage? lastResponse = null;
+                BazaarPurchaseValidationResponse? purchaseData = null;
+
+                foreach (var candidateId in candidateProductIds)
                 {
-                    _logger.LogWarning("Cafe Bazaar purchase validation failed for token: {Token}, Status: {Status}", purchaseToken, validateResponse.StatusCode);
-                    return new StoreVerificationResult { IsValid = false, Message = "Purchase validation failed with Cafe Bazaar." };
+                    var validateUrl = $"https://pardakht.cafebazaar.ir/devapi/v2/api/validate/{packageName}/inapp/{candidateId}/purchases/{purchaseToken}/?access_token={tokenJson.AccessToken}";
+                    lastResponse = await _httpClient.GetAsync(validateUrl);
+                    if (lastResponse.IsSuccessStatusCode)
+                    {
+                        purchaseData = await lastResponse.Content.ReadFromJsonAsync<BazaarPurchaseValidationResponse>();
+                        if (purchaseData != null && purchaseData.PurchaseState == 0)
+                        {
+                            return new StoreVerificationResult
+                            {
+                                IsValid = true,
+                                PurchaseToken = purchaseToken,
+                                Message = "Purchase verified with Cafe Bazaar."
+                            };
+                        }
+                    }
                 }
 
-                var purchaseData = await validateResponse.Content.ReadFromJsonAsync<BazaarPurchaseValidationResponse>();
-                if (purchaseData != null && purchaseData.PurchaseState == 0)
+                if (lastResponse == null || !lastResponse.IsSuccessStatusCode)
                 {
-                    return new StoreVerificationResult
-                    {
-                        IsValid = true,
-                        PurchaseToken = purchaseToken,
-                        Message = "Purchase verified with Cafe Bazaar."
-                    };
+                    _logger.LogWarning("Cafe Bazaar purchase validation failed for token: {Token}, Status: {Status}", purchaseToken, lastResponse?.StatusCode);
+                    return new StoreVerificationResult { IsValid = false, Message = "Purchase validation failed with Cafe Bazaar." };
                 }
 
                 return new StoreVerificationResult

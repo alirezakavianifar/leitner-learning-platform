@@ -51,6 +51,8 @@
 -keep class ir.cafebazaar.poolakey.** { *; }
 -keep interface ir.cafebazaar.poolakey.** { *; }
 -dontwarn ir.cafebazaar.poolakey.**
+-keep class ir.cafebazaar.flutter_poolakey.** { *; }
+-dontwarn ir.cafebazaar.flutter_poolakey.**
 
 # Myket In-App Billing
 -keep class ir.mservices.market.** { *; }

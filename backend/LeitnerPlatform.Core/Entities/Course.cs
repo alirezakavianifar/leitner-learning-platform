@@ -39,5 +39,8 @@ namespace LeitnerPlatform.Core.Entities
         // When true, this course is only available as part of a course package (bundle)
         // and is hidden from the public single-course store catalog across all versions.
         public bool IsBundleOnly { get; set; } = false;
+
+        // Optional custom SKU for Cafe Bazaar In-App Billing
+        public string? BazaarSku { get; set; }
     }
 }

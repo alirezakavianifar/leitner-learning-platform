@@ -11,27 +11,41 @@ import ir.cafebazaar.poolakey.request.PurchaseRequest
 import java.security.InvalidParameterException
 
 class PaymentActivity : ComponentActivity() {
+    private var hasReplied = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val callback: PurchaseCallback.() -> Unit = {
             purchaseSucceed {
-                result.success(it.toMap())
+                if (!hasReplied) {
+                    hasReplied = true
+                    result.success(it.toMap())
+                }
                 finish()
             }
             purchaseCanceled {
-                result.error("PURCHASE_CANCELLED", "Purchase flow has been canceled", null)
+                if (!hasReplied) {
+                    hasReplied = true
+                    result.error("PURCHASE_CANCELLED", "Purchase flow has been canceled", null)
+                }
                 finish()
             }
             purchaseFailed {
-                result.error("PURCHASE_FAILED", "Purchase flow has been failed", null)
+                if (!hasReplied) {
+                    hasReplied = true
+                    result.error("PURCHASE_FAILED", "Purchase flow has been failed", null)
+                }
                 finish()
             }
             purchaseFlowBegan {
                 // Nothing
             }
             failedToBeginFlow {
-                result.error("FAILED_TO_BEGIN_FLOW", it.toString(), null)
+                if (!hasReplied) {
+                    hasReplied = true
+                    result.error("FAILED_TO_BEGIN_FLOW", it.toString(), null)
+                }
                 finish()
             }
         }
@@ -39,6 +53,16 @@ class PaymentActivity : ComponentActivity() {
             Command.Purchase -> purchaseProduct(callback)
             Command.Subscribe -> subscribeProduct(callback)
             else -> throw InvalidParameterException("Undefined command: $command")
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (!hasReplied) {
+            hasReplied = true
+            try {
+                result.error("PURCHASE_CANCELLED", "Purchase activity destroyed without result", null)
+            } catch (_: Exception) {}
         }
     }
 

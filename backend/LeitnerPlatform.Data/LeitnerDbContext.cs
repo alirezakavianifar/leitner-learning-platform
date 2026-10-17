@@ -47,6 +47,7 @@ namespace LeitnerPlatform.Data
                 entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
                 entity.Property(e => e.AllowedPlatforms).HasColumnName("allowed_platforms").HasMaxLength(255).HasDefaultValue("zarinpal,bazaar,myket,googleplay,ios");
                 entity.Property(e => e.MinBuildNumber).HasColumnName("min_build_number").HasDefaultValue(0);
+                entity.Property(e => e.BazaarSku).HasColumnName("bazaar_sku").HasMaxLength(255);
             });
 
             // CoursePackageItem mapping
@@ -136,6 +137,7 @@ namespace LeitnerPlatform.Data
                 entity.Property(e => e.AllowedPlatforms).HasColumnName("allowed_platforms").HasMaxLength(255).HasDefaultValue("zarinpal,bazaar,myket,googleplay,ios");
                 entity.Property(e => e.MinBuildNumber).HasColumnName("min_build_number").HasDefaultValue(0);
                 entity.Property(e => e.IsBundleOnly).HasColumnName("is_bundle_only").HasDefaultValue(false);
+                entity.Property(e => e.BazaarSku).HasColumnName("bazaar_sku").HasMaxLength(255);
             });
 
             // Card mapping

@@ -41,7 +41,8 @@ class FlutterPoolakey {
       VoidCallback? onDisconnected}) async {
     _registerConnectCallBack(onSucceed, onFailed, onDisconnected);
     await _channel
-        .invokeMethod('connect', {'in_app_billing_key': inAppBillingKey});
+        .invokeMethod('connect', {'in_app_billing_key': inAppBillingKey})
+        .timeout(const Duration(seconds: 10));
   }
 
   static void _registerConnectCallBack(VoidCallback? onConnectionSucceed,

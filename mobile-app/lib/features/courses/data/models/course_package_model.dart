@@ -18,6 +18,7 @@ class CoursePackageModel extends CoursePackage {
     int ownedCoursesCount = 0,
     List<Course> courses = const [],
     int minBuildNumber = 0,
+    String? bazaarSku,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super(
@@ -35,6 +36,7 @@ class CoursePackageModel extends CoursePackage {
           ownedCoursesCount: ownedCoursesCount,
           courses: courses,
           minBuildNumber: minBuildNumber,
+          bazaarSku: bazaarSku,
           createdAt: createdAt,
           updatedAt: updatedAt,
         );
@@ -64,6 +66,7 @@ class CoursePackageModel extends CoursePackage {
       ownedCoursesCount: json['owned_courses_count'] as int? ?? 0,
       courses: coursesList,
       minBuildNumber: json['min_build_number'] as int? ?? 0,
+      bazaarSku: json['bazaar_sku'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)
           : null,
@@ -88,6 +91,7 @@ class CoursePackageModel extends CoursePackage {
       'courses_count': coursesCount,
       'owned_courses_count': ownedCoursesCount,
       'min_build_number': minBuildNumber,
+      'bazaar_sku': bazaarSku,
       'courses': courses.map((c) {
         if (c is CourseModel) return c.toJson();
         return {

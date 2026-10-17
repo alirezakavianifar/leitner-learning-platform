@@ -138,7 +138,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                         is_bundle_only = c.IsBundleOnly,
                         version = c.Version,
                         allowed_platforms = c.AllowedPlatforms,
-                        min_build_number = c.MinBuildNumber
+                        min_build_number = c.MinBuildNumber,
+                        bazaar_sku = c.BazaarSku
                     };
                 }).ToList();
 
@@ -175,6 +176,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                     courses = courseDtos,
                     allowed_platforms = pkg.AllowedPlatforms,
                     min_build_number = pkg.MinBuildNumber,
+                    bazaar_sku = pkg.BazaarSku,
                     created_at = pkg.CreatedAt,
                     updated_at = pkg.UpdatedAt
                 };
@@ -255,7 +257,8 @@ namespace LeitnerPlatform.API.Controllers.v1
                     is_purchased = isCoursePurchased,
                     is_bundle_only = c.IsBundleOnly,
                     version = c.Version,
-                    allowed_platforms = c.AllowedPlatforms
+                    allowed_platforms = c.AllowedPlatforms,
+                    bazaar_sku = c.BazaarSku
                 };
             }).ToList();
 
@@ -291,6 +294,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 owned_courses_count = ownedPaidCoursesCount,
                 courses = courseDtos,
                 allowed_platforms = pkg.AllowedPlatforms,
+                bazaar_sku = pkg.BazaarSku,
                 created_at = pkg.CreatedAt,
                 updated_at = pkg.UpdatedAt
             });
