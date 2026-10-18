@@ -64,8 +64,8 @@ class AppConfig {
 
   AppConfig({
     required this.flavor,
-    this.appVersion = const String.fromEnvironment('APP_VERSION', defaultValue: '1.0.3'),
-    this.buildNumber = const int.fromEnvironment('BUILD_NUMBER', defaultValue: 5),
+    this.appVersion = const String.fromEnvironment('APP_VERSION', defaultValue: '1.0.4'),
+    this.buildNumber = const int.fromEnvironment('BUILD_NUMBER', defaultValue: 6),
   });
 
   bool get isPremium => flavor == 'premium' || flavor == 'direct';
@@ -81,8 +81,8 @@ class AppConfig {
 Future<void> init({
   String? apiBaseUrl,
   String flavor = 'store',
-  String appVersion = const String.fromEnvironment('APP_VERSION', defaultValue: '1.0.3'),
-  int buildNumber = const int.fromEnvironment('BUILD_NUMBER', defaultValue: 5),
+  String appVersion = const String.fromEnvironment('APP_VERSION', defaultValue: '1.0.4'),
+  int buildNumber = const int.fromEnvironment('BUILD_NUMBER', defaultValue: 6),
 }) async {
   final config = AppConfig(
     flavor: flavor,
