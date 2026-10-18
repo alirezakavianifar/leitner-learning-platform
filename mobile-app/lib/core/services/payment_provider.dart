@@ -299,7 +299,8 @@ class MyketPaymentProvider implements PaymentProvider {
           return false;
         }
 
-        if (iabResult.mResponse == Constants.BILLING_RESPONSE_RESULT_BILLING_UNAVAILABLE) {
+        if (iabResult.mResponse == Constants.BILLING_RESPONSE_RESULT_BILLING_UNAVAILABLE ||
+            iabResult.mMessage.toLowerCase().contains('not installed')) {
           lastErrorWasMyketNotInstalled = true;
           return false;
         }
@@ -353,7 +354,8 @@ class MyketPaymentProvider implements PaymentProvider {
           return false;
         }
 
-        if (iabResult.mResponse == Constants.BILLING_RESPONSE_RESULT_BILLING_UNAVAILABLE) {
+        if (iabResult.mResponse == Constants.BILLING_RESPONSE_RESULT_BILLING_UNAVAILABLE ||
+            iabResult.mMessage.toLowerCase().contains('not installed')) {
           lastErrorWasMyketNotInstalled = true;
           return false;
         }

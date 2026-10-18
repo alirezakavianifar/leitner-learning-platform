@@ -14,68 +14,131 @@ class MyketIAP {
 
   static Future<IabResult?> init(
       {required String rsaKey, bool enableDebugLogging = false}) async {
-    var iabResult = await _channel.invokeMethod("init", <String, dynamic>{
-      'rsa': rsaKey,
-      'enableDebugLogging': enableDebugLogging,
-    });
-    var iabResultJson = iabResult != null ? json.decode(iabResult) : null;
-    return iabResultJson != null ? IabResult.fromJson(iabResultJson) : null;
+    try {
+      final dynamic raw = await _channel.invokeMethod("init", <String, dynamic>{
+        'rsa': rsaKey,
+        'enableDebugLogging': enableDebugLogging,
+      });
+      if (raw == null || raw is! String || raw.isEmpty || raw == "null") {
+        return null;
+      }
+      final decoded = json.decode(raw);
+      return decoded != null ? IabResult.fromJson(decoded) : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<Map> launchPurchaseFlow(
       {required String sku, String? payload}) async {
-    var map =
-        await _channel.invokeMethod("launchPurchaseFlow", <String, dynamic>{
-      'sku': sku,
-      'payload': payload,
-    });
-    var purchaseJson = json.decode(map["purchase"]);
-    var resultJson = json.decode(map["result"]);
-    return {
-      RESULT: resultJson != null ? IabResult.fromJson(resultJson) : null,
-      PURCHASE: purchaseJson != null ? Purchase.fromJson(purchaseJson) : null,
-    };
+    try {
+      final dynamic map =
+          await _channel.invokeMethod("launchPurchaseFlow", <String, dynamic>{
+        'sku': sku,
+        'payload': payload,
+      });
+      if (map is! Map) {
+        return {RESULT: null, PURCHASE: null};
+      }
+      final rawPurchase = map["purchase"];
+      final rawResult = map["result"];
+      final purchaseJson = rawPurchase != null && rawPurchase is String && rawPurchase.isNotEmpty && rawPurchase != "null"
+          ? json.decode(rawPurchase)
+          : null;
+      final resultJson = rawResult != null && rawResult is String && rawResult.isNotEmpty && rawResult != "null"
+          ? json.decode(rawResult)
+          : null;
+      return {
+        RESULT: resultJson != null ? IabResult.fromJson(resultJson) : null,
+        PURCHASE: purchaseJson != null ? Purchase.fromJson(purchaseJson) : null,
+      };
+    } catch (_) {
+      return {RESULT: null, PURCHASE: null};
+    }
   }
 
   static Future<Map> consume({required Purchase purchase}) async {
-    var map = await _channel.invokeMethod("consume", <String, dynamic>{
-      'purchase': json.encode(purchase.toJson()),
-    });
-    var purchaseJson = json.decode(map["purchase"]);
-    var resultJson = json.decode(map["result"]);
-    return {
-      RESULT: resultJson != null ? IabResult.fromJson(resultJson) : null,
-      PURCHASE: purchaseJson != null ? Purchase.fromJson(purchaseJson) : null,
-    };
+    try {
+      final dynamic map = await _channel.invokeMethod("consume", <String, dynamic>{
+        'purchase': json.encode(purchase.toJson()),
+      });
+      if (map is! Map) {
+        return {RESULT: null, PURCHASE: null};
+      }
+      final rawPurchase = map["purchase"];
+      final rawResult = map["result"];
+      final purchaseJson = rawPurchase != null && rawPurchase is String && rawPurchase.isNotEmpty && rawPurchase != "null"
+          ? json.decode(rawPurchase)
+          : null;
+      final resultJson = rawResult != null && rawResult is String && rawResult.isNotEmpty && rawResult != "null"
+          ? json.decode(rawResult)
+          : null;
+      return {
+        RESULT: resultJson != null ? IabResult.fromJson(resultJson) : null,
+        PURCHASE: purchaseJson != null ? Purchase.fromJson(purchaseJson) : null,
+      };
+    } catch (_) {
+      return {RESULT: null, PURCHASE: null};
+    }
   }
 
   static Future<Map> getPurchase(
       {required String sku, bool querySkuDetails = false}) async {
-    var map = await _channel.invokeMethod("getPurchase", <String, dynamic>{
-      'sku': sku,
-      'querySkuDetails': querySkuDetails,
-    });
-    var purchaseJson = json.decode(map["purchase"]);
-    var resultJson = json.decode(map["result"]);
-    return {
-      RESULT: resultJson != null ? IabResult.fromJson(resultJson) : null,
-      PURCHASE: purchaseJson != null ? Purchase.fromJson(purchaseJson) : null,
-    };
+    try {
+      final dynamic map = await _channel.invokeMethod("getPurchase", <String, dynamic>{
+        'sku': sku,
+        'querySkuDetails': querySkuDetails,
+      });
+      if (map is! Map) {
+        return {RESULT: null, PURCHASE: null};
+      }
+      final rawPurchase = map["purchase"];
+      final rawResult = map["result"];
+      final purchaseJson = rawPurchase != null && rawPurchase is String && rawPurchase.isNotEmpty && rawPurchase != "null"
+          ? json.decode(rawPurchase)
+          : null;
+      final resultJson = rawResult != null && rawResult is String && rawResult.isNotEmpty && rawResult != "null"
+          ? json.decode(rawResult)
+          : null;
+      return {
+        RESULT: resultJson != null ? IabResult.fromJson(resultJson) : null,
+        PURCHASE: purchaseJson != null ? Purchase.fromJson(purchaseJson) : null,
+      };
+    } catch (_) {
+      return {RESULT: null, PURCHASE: null};
+    }
   }
 
   static Future dispose() async {
-    return await _channel.invokeMethod("dispose");
+    try {
+      return await _channel.invokeMethod("dispose");
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<Map> queryInventory(
       {bool querySkuDetails = false, List<String>? skus}) async {
-    var map = await _channel.invokeMethod("queryInventory",
-        <String, dynamic>{'querySkuDetails': querySkuDetails, 'skus': skus});
-    var purchaseJson = json.decode(map["inventory"]);
-    var resultJson = json.decode(map["result"]);
-    return {
-      RESULT: resultJson != null ? IabResult.fromJson(resultJson) : null,
-      INVENTORY: purchaseJson != null ? Inventory.fromJson(purchaseJson) : null,
-    };
+    try {
+      final dynamic map = await _channel.invokeMethod("queryInventory",
+          <String, dynamic>{'querySkuDetails': querySkuDetails, 'skus': skus});
+      if (map is! Map) {
+        return {RESULT: null, INVENTORY: null};
+      }
+      final rawInventory = map["inventory"];
+      final rawResult = map["result"];
+      final inventoryJson = rawInventory != null && rawInventory is String && rawInventory.isNotEmpty && rawInventory != "null"
+          ? json.decode(rawInventory)
+          : null;
+      final resultJson = rawResult != null && rawResult is String && rawResult.isNotEmpty && rawResult != "null"
+          ? json.decode(rawResult)
+          : null;
+      return {
+        RESULT: resultJson != null ? IabResult.fromJson(resultJson) : null,
+        INVENTORY: inventoryJson != null ? Inventory.fromJson(inventoryJson) : null,
+      };
+    } catch (_) {
+      return {RESULT: null, INVENTORY: null};
+    }
   }
 }

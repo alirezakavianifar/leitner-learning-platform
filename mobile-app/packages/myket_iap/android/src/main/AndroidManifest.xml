@@ -1,15 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="ir.mservices.myketiap">
+    package="ir.myket.billingclient">
 
     <application>
         <activity
             android:name="ir.myket.billingclient.util.ProxyBillingActivity"
-            android:exported="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+            android:exported="false"
+            android:theme="@style/MyketTranslucentTheme" />
         <activity
             android:name="ir.myket.billingclient.util.DialogActivity"
-            android:exported="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+            android:exported="false"
+            android:theme="@style/MyketTranslucentTheme" />
 
         <meta-data
             android:name="market_id"

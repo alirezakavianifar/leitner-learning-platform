@@ -61,6 +61,8 @@
 -keep class ir.myket.** { *; }
 -keep interface ir.myket.** { *; }
 -dontwarn ir.myket.**
+-keep class ir.myket.billingclient.R$* { *; }
+-keep class ir.myket.billingclient.R { *; }
 -keep class ir.mservices.myketiap.** { *; }
 -dontwarn ir.mservices.myketiap.**
 
