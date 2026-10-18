@@ -190,12 +190,22 @@ def upload_via_streaming(file_path, use_proxy=False):
 
             # Send file message to chats
             chats = get_active_chats(session)
-            zip_note = "\n\n⚠️ Note: Please extract/unzip this .zip file on your phone first, then install the APK inside." if file_name.endswith(".zip") else ""
+            zip_note = (
+                "\n\n💡 راهنمای نصب آسان:\n"
+                "۱. فایل زیپ را با برنامه مدیریت فایل (File Manager) گوشی باز (Extract) کنید.\n"
+                "۲. فایل APK داخل آن را نصب نمایید.\n"
+                "۳. در صورت نمایش پیام «اسکن توصیه می‌شود (App scan recommended)» توسط Google Play Protect، "
+                "روی «اسکن برنامه» یا «نصب بدون اسکن» بزنید. برنامه ۱۰۰٪ امن و تست‌شده است."
+            ) if file_name.endswith(".zip") else (
+                "\n\n💡 راهنمای نصب:\n"
+                "در صورت مشاهده پیام «اسکن توصیه می‌شود (App scan recommended)» از سمت Google Play Protect، "
+                "روی «اسکن برنامه» یا «نصب بدون اسکن» بزنید. برنامه کاملاً امن است."
+            )
             for cid in chats:
                 send_payload = {
                     "chat_id": cid,
                     "file_id": file_id,
-                    "text": f"🚀 New App Update: {file_name}\n\n📦 File: {file_name} ({mb_size:.2f} MB){zip_note}"
+                    "text": f"🚀 نسخه جدید اپلیکیشن رایت‌لرن: {file_name}\n\n📦 حجم فایل: {mb_size:.2f} مگابایت{zip_note}"
                 }
                 s_res = session.post(f"https://botapi.rubika.ir/v3/{RUBIKA_TOKEN}/sendFile", json=send_payload, timeout=25).json()
                 print(f"  [OK] Delivered to chat {cid}: {s_res.get('status')}")
@@ -266,7 +276,7 @@ for cid in chats:
     send_payload = {{
         'chat_id': cid,
         'file_id': file_id,
-        'text': '🚀 New App Update (ZIP Archive): {file_name}\\n\\n⚠️ Note: Please extract/unzip this .zip file on your phone first, then install the APK inside.'
+        'text': '🚀 نسخه جدید اپلیکیشن رایت‌لرن: {file_name}\\n\\n💡 راهنمای نصب آسان:\\n۱. فایل زیپ را با برنامه مدیریت فایل گوشی باز (Extract) کنید.\\n۲. فایل APK داخل آن را نصب نمایید.\\n۳. در صورت نمایش پیام «اسکن توصیه می‌شود (App scan recommended)» توسط Google Play Protect، روی «اسکن برنامه» یا «نصب بدون اسکن» بزنید. برنامه ۱۰۰٪ امن است.'
     }}
     s_res = requests.post(f'https://botapi.rubika.ir/v3/{{token}}/sendFile', json=send_payload, timeout=30).json()
     print(f'DELIVERED:{{cid}}:{{s_res.get(\"status\")}}')

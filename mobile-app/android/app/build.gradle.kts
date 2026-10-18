@@ -44,30 +44,31 @@ android {
         create("release") {
             if (keystorePropertiesFile.exists()) {
                 val keyStorePath = keystoreProperties.getProperty("storeFile") ?: "upload-keystore.jks"
-                val resolvedStoreFile = if (file(keyStorePath).exists()) {
-                    file(keyStorePath)
-                } else if (file("app/$keyStorePath").exists()) {
-                    file("app/$keyStorePath")
-                } else if (rootProject.file("app/$keyStorePath").exists()) {
+                val resolvedStoreFile = sequenceOf(
+                    file(keyStorePath),
+                    file("app/$keyStorePath"),
+                    rootProject.file(keyStorePath),
                     rootProject.file("app/$keyStorePath")
-                } else {
-                    file(keyStorePath)
-                }
+                ).firstOrNull { it.exists() } ?: file(keyStorePath)
+
                 keyAlias = keystoreProperties.getProperty("keyAlias") ?: "upload"
                 keyPassword = keystoreProperties.getProperty("keyPassword") ?: "leitner123456"
                 storeFile = resolvedStoreFile
                 storePassword = keystoreProperties.getProperty("storePassword") ?: "leitner123456"
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            val releaseSigning = signingConfigs.getByName("release")
+            if (!keystorePropertiesFile.exists() || releaseSigning.storeFile == null || !releaseSigning.storeFile!!.exists()) {
+                throw GradleException("Release build cannot be signed: keystore file does not exist at '${releaseSigning.storeFile}'! Please verify key.properties and upload-keystore.jks.")
             }
+            signingConfig = releaseSigning
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
