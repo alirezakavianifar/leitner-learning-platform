@@ -201,27 +201,42 @@ namespace LeitnerPlatform.Data.Services
 
             try
             {
-                var request = new HttpRequestMessage(
-                    HttpMethod.Get,
-                    $"https://developer.myket.ir/api/applications/{packageName}/purchases/products/{productId}/tokens/{purchaseToken}");
-                request.Headers.Add("X-Access-Token", accessToken);
+                var candidateProductIds = new List<string> { productId };
+                var noHyphen = productId.Replace("-", "");
+                if (!candidateProductIds.Contains(noHyphen)) candidateProductIds.Add(noHyphen);
+                var underscore = productId.Replace("-", "_");
+                if (!candidateProductIds.Contains(underscore)) candidateProductIds.Add(underscore);
 
-                var response = await _httpClient.SendAsync(request);
-                if (!response.IsSuccessStatusCode)
+                HttpResponseMessage? lastResponse = null;
+                MyketPurchaseValidationResponse? purchaseData = null;
+
+                foreach (var candidateId in candidateProductIds)
                 {
-                    _logger.LogWarning("Myket purchase validation failed for token: {Token}, Status: {Status}", purchaseToken, response.StatusCode);
-                    return new StoreVerificationResult { IsValid = false, Message = "Purchase validation failed with Myket." };
+                    var request = new HttpRequestMessage(
+                        HttpMethod.Get,
+                        $"https://developer.myket.ir/api/applications/{packageName}/purchases/products/{candidateId}/tokens/{purchaseToken}");
+                    request.Headers.Add("X-Access-Token", accessToken);
+
+                    lastResponse = await _httpClient.SendAsync(request);
+                    if (lastResponse.IsSuccessStatusCode)
+                    {
+                        purchaseData = await lastResponse.Content.ReadFromJsonAsync<MyketPurchaseValidationResponse>();
+                        if (purchaseData != null && purchaseData.PurchaseState == 0)
+                        {
+                            return new StoreVerificationResult
+                            {
+                                IsValid = true,
+                                PurchaseToken = purchaseToken,
+                                Message = "Purchase verified with Myket."
+                            };
+                        }
+                    }
                 }
 
-                var purchaseData = await response.Content.ReadFromJsonAsync<MyketPurchaseValidationResponse>();
-                if (purchaseData != null && purchaseData.PurchaseState == 0)
+                if (lastResponse == null || !lastResponse.IsSuccessStatusCode)
                 {
-                    return new StoreVerificationResult
-                    {
-                        IsValid = true,
-                        PurchaseToken = purchaseToken,
-                        Message = "Purchase verified with Myket."
-                    };
+                    _logger.LogWarning("Myket purchase validation failed for token: {Token}, Status: {Status}", purchaseToken, lastResponse?.StatusCode);
+                    return new StoreVerificationResult { IsValid = false, Message = "Purchase validation failed with Myket." };
                 }
 
                 return new StoreVerificationResult

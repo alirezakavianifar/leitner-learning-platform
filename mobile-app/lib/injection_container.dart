@@ -75,7 +75,7 @@ class AppConfig {
   bool get isGooglePlay => flavor == 'googleplay';
   bool get isStore => flavor == 'store';
 
-  bool get hasNativeBilling => isBazaar || isGooglePlay || isDirect;
+  bool get hasNativeBilling => isBazaar || isMyket || isGooglePlay || isDirect;
 }
 
 Future<void> init({

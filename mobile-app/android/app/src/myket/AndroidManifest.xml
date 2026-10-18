@@ -1,10 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Strictly strip all store billing permissions for Myket review compliance -->
-    <uses-permission
-        android:name="ir.mservices.market.BILLING"
-        tools:node="remove" />
+    <!-- In-App Billing permission for Myket -->
+    <uses-permission android:name="ir.mservices.market.BILLING" />
+
+    <!-- Strictly prevent third-party store billing permissions from appearing in Myket APK -->
     <uses-permission
         android:name="com.android.vending.BILLING"
         tools:node="remove" />

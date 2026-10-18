@@ -607,16 +607,6 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     final config = sl<AppConfig>();
     final loc = AppLocalizations.of(context);
 
-    if (config.isMyket) {
-      // In Myket version, packages are view-only
-      PackageDetailsModal.show(
-        context,
-        package: package,
-        onPurchase: () {},
-      );
-      return;
-    }
-
     if (config.isStore) {
       showDialog(
         context: context,
@@ -728,6 +718,46 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
           ),
         );
       }
+    } else if (provider is MyketPaymentProvider) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('bundle_unlocked_success').replaceAll('{title}', package.title)),
+            backgroundColor: AppColors.courseDownloaded,
+          ),
+        );
+        // Reload courses to reflect newly unlocked courses in both Catalog and My Courses
+        context.read<CoursesBloc>().add(LoadCoursesEvent());
+      } else if (provider.lastPurchaseWasCancelled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('payment_cancelled')),
+            backgroundColor: Colors.orange.shade700,
+          ),
+        );
+      } else if (provider.lastErrorWasMyketNotInstalled) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: Text(loc.translate('myket_not_installed'), style: TextStyle(color: AppColors.textPrimary)),
+            content: Text(loc.translate('myket_not_installed_desc'), style: TextStyle(color: AppColors.textSecondary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('purchase_failed')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } else {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -752,10 +782,6 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
   void _purchaseCourse(Course course) async {
     final config = sl<AppConfig>();
     final loc = AppLocalizations.of(context);
-
-    if (config.isMyket) {
-      return;
-    }
 
     if (config.isStore) {
       // Generic non-IAP Store Version: show descriptive dialog directing to website
@@ -857,6 +883,46 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
             backgroundColor: AppColors.surface,
             title: Text(loc.translate('bazaar_not_installed'), style: TextStyle(color: AppColors.textPrimary)),
             content: Text(loc.translate('bazaar_not_installed_desc'), style: TextStyle(color: AppColors.textSecondary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(loc.cancel, style: TextStyle(color: AppColors.textSecondary)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('purchase_failed')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } else if (provider is MyketPaymentProvider) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('course_unlocked_success').replaceAll('{title}', course.title)),
+            backgroundColor: AppColors.courseDownloaded,
+          ),
+        );
+        // Reload courses to update purchased status
+        context.read<CoursesBloc>().add(LoadCoursesEvent());
+      } else if (provider.lastPurchaseWasCancelled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.translate('payment_cancelled')),
+            backgroundColor: Colors.orange.shade700,
+          ),
+        );
+      } else if (provider.lastErrorWasMyketNotInstalled) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: Text(loc.translate('myket_not_installed'), style: TextStyle(color: AppColors.textPrimary)),
+            content: Text(loc.translate('myket_not_installed_desc'), style: TextStyle(color: AppColors.textSecondary)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
@@ -1559,26 +1625,23 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     }
 
     // Unpurchased
-    final isMyket = sl.isRegistered<AppConfig>() && sl<AppConfig>().isMyket;
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: isMyket ? AppColors.surface : AppColors.secondary,
-        foregroundColor: isMyket ? AppColors.textPrimary : const Color(0xFF181837),
+        backgroundColor: AppColors.secondary,
+        foregroundColor: const Color(0xFF181837),
         padding: const EdgeInsets.symmetric(vertical: 14),
       ),
       onPressed: () {
         Navigator.pop(sheetCtx);
-        if (!isMyket) {
-          _purchaseCourse(course);
-        }
+        _purchaseCourse(course);
       },
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(isMyket ? Icons.visibility : Icons.payment, size: 18),
+          const Icon(Icons.payment, size: 18),
           const SizedBox(width: 8),
-          Text(isMyket ? loc.viewCourse : loc.purchase, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          Text(loc.purchase, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         ],
       ),
     );
@@ -1728,32 +1791,25 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     }
 
     // Unpurchased course
-    final isMyket = sl.isRegistered<AppConfig>() && sl<AppConfig>().isMyket;
     return SizedBox(
       height: 26,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          backgroundColor: isMyket
-              ? (isDark ? const Color(0xFF1B5E20).withOpacity(0.3) : const Color(0xFFE8F5E9))
-              : AppColors.secondary,
-          foregroundColor: isMyket
-              ? (isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32))
-              : const Color(0xFF181837),
+          backgroundColor: AppColors.secondary,
+          foregroundColor: const Color(0xFF181837),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         onPressed: () {
-          if (!isMyket) {
-            _purchaseCourse(course);
-          }
+          _purchaseCourse(course);
         },
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(isMyket ? Icons.visibility : Icons.payment, size: 12),
+            const Icon(Icons.payment, size: 12),
             const SizedBox(width: 3),
-            Text(isMyket ? loc.viewCourse : loc.purchase, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+            Text(loc.purchase, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
           ],
         ),
       ),

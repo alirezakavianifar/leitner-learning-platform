@@ -6,6 +6,7 @@ import 'package:myket_iap/myket_iap.dart';
 import 'package:myket_iap/util/constants.dart';
 import 'package:myket_iap/util/iab_result.dart';
 import 'package:myket_iap/util/purchase.dart';
+import 'package:myket_iap/util/inventory.dart';
 
 
 abstract class PaymentProvider {
@@ -183,6 +184,8 @@ class MyketPaymentProvider implements PaymentProvider {
   final DioClient dioClient;
   final String? rsaKey;
   bool _isInitialized = false;
+  bool lastPurchaseWasCancelled = false;
+  bool lastErrorWasMyketNotInstalled = false;
 
   MyketPaymentProvider(this.dioClient, {this.rsaKey});
 
@@ -199,6 +202,34 @@ class MyketPaymentProvider implements PaymentProvider {
     } catch (_) {
       return false;
     }
+  }
+
+  /// Resolves the candidate SKU that matches Myket Console registration
+  Future<String> _resolveSku(String itemId) async {
+    final candidateSkus = <String>[
+      itemId,
+      itemId.replaceAll('-', ''),
+      itemId.replaceAll('-', '_'),
+    ];
+
+    try {
+      final inventoryRes = await MyketIAP.queryInventory(
+        querySkuDetails: true,
+        skus: candidateSkus,
+      );
+      final inventory = inventoryRes[MyketIAP.INVENTORY] as Inventory?;
+      if (inventory != null && inventory.mSkuMap.isNotEmpty) {
+        for (final candidate in candidateSkus) {
+          if (inventory.mSkuMap.containsKey(candidate)) {
+            return candidate;
+          }
+        }
+      }
+    } catch (_) {
+      // Graceful fallback to default candidate
+    }
+
+    return candidateSkus.first;
   }
 
   /// Submits a verified Myket purchase token to the backend server
@@ -239,28 +270,50 @@ class MyketPaymentProvider implements PaymentProvider {
 
   @override
   Future<bool> purchaseCourse(String courseId) async {
+    lastPurchaseWasCancelled = false;
+    lastErrorWasMyketNotInstalled = false;
+
     try {
-      await _ensureInitialized();
-      final flowResult = await MyketIAP.launchPurchaseFlow(sku: courseId);
+      final connected = await _ensureInitialized();
+      if (!connected) {
+        lastErrorWasMyketNotInstalled = true;
+        return false;
+      }
+
+      final skuToUse = await _resolveSku(courseId);
+      final flowResult = await MyketIAP.launchPurchaseFlow(sku: skuToUse);
       final IabResult? iabResult = flowResult[MyketIAP.RESULT] as IabResult?;
       Purchase? purchase = flowResult[MyketIAP.PURCHASE] as Purchase?;
 
-      if (iabResult != null && iabResult.isSuccess() && purchase != null && purchase.mToken.isNotEmpty) {
-        return await verifyAndCompletePurchase(
-          courseId: courseId,
-          purchaseToken: purchase.mToken,
-        );
-      }
-
-      // If already owned in Myket, retrieve existing purchase token and verify
-      if (iabResult?.mResponse == Constants.BILLING_RESPONSE_RESULT_ITEM_ALREADY_OWNED) {
-        final queryResult = await MyketIAP.getPurchase(sku: courseId);
-        purchase = queryResult[MyketIAP.PURCHASE] as Purchase?;
-        if (purchase != null && purchase.mToken.isNotEmpty) {
+      if (iabResult != null) {
+        if (iabResult.isSuccess() && purchase != null && purchase.mToken.isNotEmpty) {
           return await verifyAndCompletePurchase(
             courseId: courseId,
             purchaseToken: purchase.mToken,
           );
+        }
+
+        if (iabResult.mResponse == Constants.BILLING_RESPONSE_RESULT_USER_CANCELED ||
+            iabResult.mResponse == Constants.IABHELPER_USER_CANCELLED) {
+          lastPurchaseWasCancelled = true;
+          return false;
+        }
+
+        if (iabResult.mResponse == Constants.BILLING_RESPONSE_RESULT_BILLING_UNAVAILABLE) {
+          lastErrorWasMyketNotInstalled = true;
+          return false;
+        }
+
+        // If already owned in Myket, retrieve existing purchase token and verify
+        if (iabResult.mResponse == Constants.BILLING_RESPONSE_RESULT_ITEM_ALREADY_OWNED) {
+          final queryResult = await MyketIAP.getPurchase(sku: skuToUse);
+          purchase = queryResult[MyketIAP.PURCHASE] as Purchase?;
+          if (purchase != null && purchase.mToken.isNotEmpty) {
+            return await verifyAndCompletePurchase(
+              courseId: courseId,
+              purchaseToken: purchase.mToken,
+            );
+          }
         }
       }
     } catch (_) {
@@ -271,28 +324,50 @@ class MyketPaymentProvider implements PaymentProvider {
 
   @override
   Future<bool> purchasePackage(String packageId) async {
+    lastPurchaseWasCancelled = false;
+    lastErrorWasMyketNotInstalled = false;
+
     try {
-      await _ensureInitialized();
-      final flowResult = await MyketIAP.launchPurchaseFlow(sku: packageId);
+      final connected = await _ensureInitialized();
+      if (!connected) {
+        lastErrorWasMyketNotInstalled = true;
+        return false;
+      }
+
+      final skuToUse = await _resolveSku(packageId);
+      final flowResult = await MyketIAP.launchPurchaseFlow(sku: skuToUse);
       final IabResult? iabResult = flowResult[MyketIAP.RESULT] as IabResult?;
       Purchase? purchase = flowResult[MyketIAP.PURCHASE] as Purchase?;
 
-      if (iabResult != null && iabResult.isSuccess() && purchase != null && purchase.mToken.isNotEmpty) {
-        return await verifyAndCompletePurchase(
-          packageId: packageId,
-          purchaseToken: purchase.mToken,
-        );
-      }
-
-      // If already owned in Myket, retrieve existing purchase token and verify
-      if (iabResult?.mResponse == Constants.BILLING_RESPONSE_RESULT_ITEM_ALREADY_OWNED) {
-        final queryResult = await MyketIAP.getPurchase(sku: packageId);
-        purchase = queryResult[MyketIAP.PURCHASE] as Purchase?;
-        if (purchase != null && purchase.mToken.isNotEmpty) {
+      if (iabResult != null) {
+        if (iabResult.isSuccess() && purchase != null && purchase.mToken.isNotEmpty) {
           return await verifyAndCompletePurchase(
             packageId: packageId,
             purchaseToken: purchase.mToken,
           );
+        }
+
+        if (iabResult.mResponse == Constants.BILLING_RESPONSE_RESULT_USER_CANCELED ||
+            iabResult.mResponse == Constants.IABHELPER_USER_CANCELLED) {
+          lastPurchaseWasCancelled = true;
+          return false;
+        }
+
+        if (iabResult.mResponse == Constants.BILLING_RESPONSE_RESULT_BILLING_UNAVAILABLE) {
+          lastErrorWasMyketNotInstalled = true;
+          return false;
+        }
+
+        // If already owned in Myket, retrieve existing purchase token and verify
+        if (iabResult.mResponse == Constants.BILLING_RESPONSE_RESULT_ITEM_ALREADY_OWNED) {
+          final queryResult = await MyketIAP.getPurchase(sku: skuToUse);
+          purchase = queryResult[MyketIAP.PURCHASE] as Purchase?;
+          if (purchase != null && purchase.mToken.isNotEmpty) {
+            return await verifyAndCompletePurchase(
+              packageId: packageId,
+              purchaseToken: purchase.mToken,
+            );
+          }
         }
       }
     } catch (_) {
