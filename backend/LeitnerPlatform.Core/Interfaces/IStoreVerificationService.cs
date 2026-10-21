@@ -13,5 +13,6 @@ namespace LeitnerPlatform.Core.Interfaces
     public interface IStoreVerificationService
     {
         Task<StoreVerificationResult> VerifyPurchaseAsync(string provider, string productId, string purchaseToken);
+        Task<StoreVerificationResult> VerifyPurchaseAsync(string provider, string productId, string purchaseToken, string? alternateSku);
     }
 }

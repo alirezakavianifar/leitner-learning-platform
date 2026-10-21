@@ -17,11 +17,14 @@ import ir.myket.billingclient.util.IabResult
 import ir.myket.billingclient.util.Inventory
 import ir.myket.billingclient.util.Purchase
 
+import io.flutter.plugin.common.PluginRegistry
+
 /** MyketPlugin - Crash-Proof and Resilient Implementation */
-class MyketPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
+class MyketPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, PluginRegistry.ActivityResultListener {
     private lateinit var channel: MethodChannel
     private lateinit var context: Context
     private var activity: Activity? = null
+    private var activityBinding: ActivityPluginBinding? = null
     private val gson: Gson = Gson()
     private var mHelper: IabHelper? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -261,19 +264,31 @@ class MyketPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         mHelper = null
     }
 
-    override fun onDetachedFromActivity() {
-        activity = null
-    }
-
-    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
-        activity = binding.activity
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?): Boolean {
+        return false
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
+        activityBinding = binding
+        binding.addActivityResultListener(this)
+    }
+
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        activity = binding.activity
+        activityBinding = binding
+        binding.addActivityResultListener(this)
+    }
+
+    override fun onDetachedFromActivity() {
+        activityBinding?.removeActivityResultListener(this)
+        activityBinding = null
+        activity = null
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
+        activityBinding?.removeActivityResultListener(this)
+        activityBinding = null
         activity = null
     }
 }

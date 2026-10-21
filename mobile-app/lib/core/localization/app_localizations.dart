@@ -401,6 +401,10 @@ class AppLocalizations {
       'ai_tutor_settings_title': 'AI Tutor (Smart Assistant)',
       'ai_tutor_settings_desc': 'Enable AI-powered card hints, vocabulary insights, and study assistance.',
       'question_label': 'Question',
+      'restore_purchases_btn': 'Restore',
+      'restore_purchases': 'Restore Purchases',
+      'purchases_restored_success': '{count} purchased item(s) restored successfully!',
+      'no_purchases_found_restore': 'No previous purchases found to restore.',
     },
     'fa': {
       'app_title': 'رایت لرن',
@@ -795,6 +799,10 @@ class AppLocalizations {
       'ai_tutor_settings_title': 'دستیار هوش مصنوعی (AI Tutor)',
       'ai_tutor_settings_desc': 'فعال‌سازی تحلیل هوشمند، نکات یادگیری و راهنمای هوش مصنوعی در هنگام مطالعه کارت‌ها',
       'question_label': 'صورت سوال',
+      'restore_purchases_btn': 'بازیابی خریدها',
+      'restore_purchases': 'بازیابی خریدهای پیشین',
+      'purchases_restored_success': '{count} دوره خریداری‌شده با موفقیت بازیابی شد.',
+      'no_purchases_found_restore': 'هیچ خرید قبلی برای بازیابی یافت نشد.',
     },
   };
 

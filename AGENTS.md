@@ -45,6 +45,53 @@ When performing git operations, follow these specific guidelines based on the us
 
 **Note:** You should proactively execute these commands without asking for extra confirmation.
 
+## Mobile App Versioning & Release Protocol
+
+Whenever releasing or updating the mobile application (for Direct/Rubika, Myket, Cafe Bazaar, or Google Play), you MUST strictly follow this release checklist:
+
+### 1. Mandatory Version Bumping (Preventing Store Upload Errors)
+App stores (Myket, Cafe Bazaar, Google Play) strictly reject any APK where `versionCode <= previousVersionCode` with errors like:
+*«نسخه‌ای با همین version code یا version code بالاتر قبلا ثبت شده است. لطفا version code را افزایش دهید و دوباره بارگذاری کنید.»*
+
+Before compiling a new release:
+1. **`mobile-app/pubspec.yaml`**:
+   - Increment `version: <versionName>+<buildNumber>` (e.g., `version: 1.0.4+6` -> `version: 1.0.5+7`).
+   - Note: Flutter `--split-per-abi` for `arm64-v8a` computes `versionCode = 2000 + buildNumber` (e.g. build 6 = 2006). If ever switching between universal and split APKs, ensure the new `versionCode` is strictly greater than all historical builds uploaded to that store.
+2. **`mobile-app/lib/injection_container.dart`**:
+   - Synchronize runtime default values:
+     `this.appVersion = const String.fromEnvironment('APP_VERSION', defaultValue: '<versionName>')`
+     `this.buildNumber = const int.fromEnvironment('BUILD_NUMBER', defaultValue: <buildNumber>)`
+3. **`mobile-app/android/local.properties`**:
+   - Update: `flutter.versionName=<versionName>` and `flutter.versionCode=<buildNumber>`.
+4. Run `flutter pub get` inside `mobile-app/` to update metadata.
+
+### 2. Keystore Signing & Security Standards
+- **Keystore**: Release APKs MUST be signed with the production keystore:
+  - File: `mobile-app/android/app/upload-keystore.jks`
+  - Alias: `upload`
+  - Certificate DN: `CN=RightLearn Developer, OU=Mobile Development, O=Leitner Learning Platform, L=Tehran, ST=Tehran, C=IR`
+- **Never Fall Back to Debug Keys**: The Gradle build will intentionally throw an error if `upload-keystore.jks` or `key.properties` is missing. NEVER sign release builds with `CN=Android Debug`.
+- **Signature Schemes**: APK Signature Scheme **v2 and v3** are mandatory.
+- **Verification Command**:
+  ```powershell
+  E:\Android_sdk\build-tools\35.0.0\apksigner.bat verify --verbose --print-certs <path-to-apk>
+  ```
+  Ensure signer is `CN=RightLearn Developer` and `Verified using v2 scheme: true` / `v3 scheme: true`.
+
+### 3. Google Play Protect & Sideloading Compliance
+- **Restricted Permissions**: NEVER add `android.permission.USE_EXACT_ALARM` to `AndroidManifest.xml`. Use standard `SCHEDULE_EXACT_ALARM`.
+- **Network Security**: Strict HTTPS is enforced via `res/xml/network_security_config.xml`. Do NOT use global `android:usesCleartextTraffic="true"`.
+- **First-Time Install Scanning**: Google Play Protect shows "App scan recommended" on newly generated APK hashes downloaded outside stores. When deploying a new direct APK:
+  - Install it once on a test device and click **"Scan app"** to catalog the hash with Google's cloud scanner.
+  - Deliver the 2-step Persian reassurance guide in Rubika and website messages so users proceed without hesitation.
+  - Whitelist portal: If needed, submit to Google's official [Play Protect Appeal Form](https://support.google.com/googleplay/android-developer/contact/protectappeals).
+
+### 4. Flavor-Specific Targets
+- **Direct / Premium**: `.\scripts\build-apk.ps1 -Flavor "premium"` -> generates `app-premium-release.apk` with direct web payment.
+- **Myket**: `flutter build apk --release --flavor myket -t lib/main_myket.dart --split-per-abi --target-platform android-arm64` -> generates `app-arm64-v8a-myket-release.apk` (packaged to `app-myket-release.apk`) with `ir.mservices.market.BILLING`.
+- **Cafe Bazaar**: `flutter build apk --release --flavor bazaar -t lib/main_bazaar.dart --split-per-abi --target-platform android-arm64` -> generates `app-arm64-v8a-bazaar-release.apk` with `com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR`.
+- **Google Play**: `flutter build appbundle --release --flavor googleplay -t lib/main_googleplay.dart` -> generates `.aab`.
+
 ## Language Rule
 
 - Always respond and answer in English. Even if the user asks questions or provides input in another language (such as Persian), the agent must write all explanations, responses, and comments in English.

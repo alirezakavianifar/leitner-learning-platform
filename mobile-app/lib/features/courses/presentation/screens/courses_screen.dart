@@ -167,6 +167,43 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     }
   }
 
+  void _restorePurchases() async {
+    final loc = AppLocalizations.of(context);
+    final provider = sl<PaymentProvider>();
+
+    showDialog(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+
+    final count = await provider.restorePurchases();
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+    if (!mounted) return;
+
+    if (count > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.translate('purchases_restored_success').replaceAll('{count}', count.toString())),
+          backgroundColor: AppColors.courseDownloaded,
+        ),
+      );
+      context.read<CoursesBloc>().add(LoadCoursesEvent());
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.translate('no_purchases_found_restore')),
+          backgroundColor: AppColors.textSecondary,
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -323,6 +360,37 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                 ),
               ),
             ),
+            if (sl<AppConfig>().isMyket || sl<AppConfig>().isBazaar) ...[
+              const SizedBox(width: 4),
+              InkWell(
+                onTap: _restorePurchases,
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  height: 38,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.history_toggle_off, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        loc.translate('restore_purchases_btn'),
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -655,7 +723,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
       ),
     );
 
-    final success = await provider.purchasePackage(package.id);
+    final success = await provider.purchasePackage(package.id, sku: package.bazaarSku);
     if (mounted) {
       Navigator.of(context, rootNavigator: true).pop(); // Close loading dialog safely
     }
@@ -835,7 +903,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
       ),
     );
 
-    final success = await provider.purchaseCourse(course.id);
+    final success = await provider.purchaseCourse(course.id, sku: course.bazaarSku);
     
     if (mounted) {
       Navigator.of(context, rootNavigator: true).pop(); // Close loading dialog safely

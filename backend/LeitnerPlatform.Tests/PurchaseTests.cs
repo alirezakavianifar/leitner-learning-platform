@@ -534,7 +534,7 @@ namespace LeitnerPlatform.Tests
             var mockStoreVerification = new Mock<IStoreVerificationService>();
 
             mockStoreVerification
-                .Setup(s => s.VerifyPurchaseAsync("BAZAAR", course.Id.ToString(), "VALID_BZ_TOKEN_12345"))
+                .Setup(s => s.VerifyPurchaseAsync("BAZAAR", course.Id.ToString(), "VALID_BZ_TOKEN_12345", It.IsAny<string?>()))
                 .ReturnsAsync(new StoreVerificationResult { IsValid = true, PurchaseToken = "VALID_BZ_TOKEN_12345" });
 
             var controller = new PurchaseController(
@@ -595,7 +595,7 @@ namespace LeitnerPlatform.Tests
             var mockStoreVerification = new Mock<IStoreVerificationService>();
 
             mockStoreVerification
-                .Setup(s => s.VerifyPurchaseAsync("MYKET", course.Id.ToString(), "INVALID_MYKET_TOKEN"))
+                .Setup(s => s.VerifyPurchaseAsync("MYKET", course.Id.ToString(), "INVALID_MYKET_TOKEN", It.IsAny<string?>()))
                 .ReturnsAsync(new StoreVerificationResult { IsValid = false, Message = "Token not found on Myket server." });
 
             var controller = new PurchaseController(

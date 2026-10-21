@@ -11,8 +11,9 @@ import 'package:myket_iap/util/inventory.dart';
 
 abstract class PaymentProvider {
   String get providerName;
-  Future<bool> purchaseCourse(String courseId);
-  Future<bool> purchasePackage(String packageId);
+  Future<bool> purchaseCourse(String courseId, {String? sku});
+  Future<bool> purchasePackage(String packageId, {String? sku});
+  Future<int> restorePurchases();
 }
 
 class GooglePlayPaymentProvider implements PaymentProvider {
@@ -23,16 +24,19 @@ class GooglePlayPaymentProvider implements PaymentProvider {
   String get providerName => 'GOOGLE_PLAY';
 
   @override
-  Future<bool> purchaseCourse(String courseId) async {
+  Future<bool> purchaseCourse(String courseId, {String? sku}) async {
     // Requires real Google Play Billing verification token
     return false;
   }
 
   @override
-  Future<bool> purchasePackage(String packageId) async {
+  Future<bool> purchasePackage(String packageId, {String? sku}) async {
     // Requires real Google Play Billing verification token
     return false;
   }
+
+  @override
+  Future<int> restorePurchases() async => 0;
 }
 
 class BazaarPaymentProvider implements PaymentProvider {
@@ -111,12 +115,28 @@ class BazaarPaymentProvider implements PaymentProvider {
       }
       return false;
     } catch (_) {
+      // Secondary fallback check: verify if the transaction was recorded in the database
+      try {
+        if (packageId != null && packageId.isNotEmpty) {
+          final checkRes = await dioClient.dio.get('/packages/$packageId');
+          if (checkRes.statusCode == 200 && checkRes.data != null) {
+            final isPurchased = checkRes.data['is_purchased'] == true;
+            if (isPurchased) return true;
+          }
+        } else if (courseId != null && courseId.isNotEmpty) {
+          final checkRes = await dioClient.dio.get('/courses/$courseId');
+          if (checkRes.statusCode == 200 && checkRes.data != null) {
+            final isPurchased = checkRes.data['is_purchased'] == true;
+            if (isPurchased) return true;
+          }
+        }
+      } catch (_) {}
       return false;
     }
   }
 
   @override
-  Future<bool> purchaseCourse(String courseId) async {
+  Future<bool> purchaseCourse(String courseId, {String? sku}) async {
     lastPurchaseWasCancelled = false;
     lastErrorWasBazaarNotInstalled = false;
 
@@ -127,7 +147,8 @@ class BazaarPaymentProvider implements PaymentProvider {
     }
 
     try {
-      final skuToUse = await _resolveSku(courseId);
+      final targetId = (sku != null && sku.trim().isNotEmpty) ? sku.trim() : courseId;
+      final skuToUse = await _resolveSku(targetId);
       final purchaseInfo = await FlutterPoolakey.purchase(skuToUse);
       if (purchaseInfo.purchaseToken.isNotEmpty) {
         return await verifyAndCompletePurchase(
@@ -148,7 +169,7 @@ class BazaarPaymentProvider implements PaymentProvider {
   }
 
   @override
-  Future<bool> purchasePackage(String packageId) async {
+  Future<bool> purchasePackage(String packageId, {String? sku}) async {
     lastPurchaseWasCancelled = false;
     lastErrorWasBazaarNotInstalled = false;
 
@@ -159,7 +180,8 @@ class BazaarPaymentProvider implements PaymentProvider {
     }
 
     try {
-      final skuToUse = await _resolveSku(packageId);
+      final targetId = (sku != null && sku.trim().isNotEmpty) ? sku.trim() : packageId;
+      final skuToUse = await _resolveSku(targetId);
       final purchaseInfo = await FlutterPoolakey.purchase(skuToUse);
       if (purchaseInfo.purchaseToken.isNotEmpty) {
         return await verifyAndCompletePurchase(
@@ -177,6 +199,29 @@ class BazaarPaymentProvider implements PaymentProvider {
       // Clean fallback
     }
     return false;
+  }
+
+  @override
+  Future<int> restorePurchases() async {
+    final connected = await _ensureConnected();
+    if (!connected) return 0;
+
+    try {
+      final purchases = await FlutterPoolakey.getAllPurchasedProducts();
+      int restored = 0;
+      for (final p in purchases) {
+        if (p.productId.isNotEmpty && p.purchaseToken.isNotEmpty) {
+          final ok = await verifyAndCompletePurchase(
+            courseId: p.productId,
+            purchaseToken: p.purchaseToken,
+          );
+          if (ok) restored++;
+        }
+      }
+      return restored;
+    } catch (_) {
+      return 0;
+    }
   }
 }
 
@@ -205,8 +250,9 @@ class MyketPaymentProvider implements PaymentProvider {
   }
 
   /// Resolves the candidate SKU that matches Myket Console registration
-  Future<String> _resolveSku(String itemId) async {
+  Future<String> _resolveSku(String itemId, {String? customSku}) async {
     final candidateSkus = <String>[
+      if (customSku != null && customSku.trim().isNotEmpty) customSku.trim(),
       itemId,
       itemId.replaceAll('-', ''),
       itemId.replaceAll('-', '_'),
@@ -264,12 +310,28 @@ class MyketPaymentProvider implements PaymentProvider {
       }
       return false;
     } catch (_) {
+      // Secondary fallback check: verify if the transaction was recorded in the database
+      try {
+        if (packageId != null && packageId.isNotEmpty) {
+          final checkRes = await dioClient.dio.get('/packages/$packageId');
+          if (checkRes.statusCode == 200 && checkRes.data != null) {
+            final isPurchased = checkRes.data['is_purchased'] == true;
+            if (isPurchased) return true;
+          }
+        } else if (courseId != null && courseId.isNotEmpty) {
+          final checkRes = await dioClient.dio.get('/courses/$courseId');
+          if (checkRes.statusCode == 200 && checkRes.data != null) {
+            final isPurchased = checkRes.data['is_purchased'] == true;
+            if (isPurchased) return true;
+          }
+        }
+      } catch (_) {}
       return false;
     }
   }
 
   @override
-  Future<bool> purchaseCourse(String courseId) async {
+  Future<bool> purchaseCourse(String courseId, {String? sku}) async {
     lastPurchaseWasCancelled = false;
     lastErrorWasMyketNotInstalled = false;
 
@@ -280,7 +342,7 @@ class MyketPaymentProvider implements PaymentProvider {
         return false;
       }
 
-      final skuToUse = await _resolveSku(courseId);
+      final skuToUse = await _resolveSku(courseId, customSku: sku);
       final flowResult = await MyketIAP.launchPurchaseFlow(sku: skuToUse);
       final IabResult? iabResult = flowResult[MyketIAP.RESULT] as IabResult?;
       Purchase? purchase = flowResult[MyketIAP.PURCHASE] as Purchase?;
@@ -324,7 +386,7 @@ class MyketPaymentProvider implements PaymentProvider {
   }
 
   @override
-  Future<bool> purchasePackage(String packageId) async {
+  Future<bool> purchasePackage(String packageId, {String? sku}) async {
     lastPurchaseWasCancelled = false;
     lastErrorWasMyketNotInstalled = false;
 
@@ -335,7 +397,7 @@ class MyketPaymentProvider implements PaymentProvider {
         return false;
       }
 
-      final skuToUse = await _resolveSku(packageId);
+      final skuToUse = await _resolveSku(packageId, customSku: sku);
       final flowResult = await MyketIAP.launchPurchaseFlow(sku: skuToUse);
       final IabResult? iabResult = flowResult[MyketIAP.RESULT] as IabResult?;
       Purchase? purchase = flowResult[MyketIAP.PURCHASE] as Purchase?;
@@ -377,6 +439,35 @@ class MyketPaymentProvider implements PaymentProvider {
     }
     return false;
   }
+
+  @override
+  Future<int> restorePurchases() async {
+    try {
+      final connected = await _ensureInitialized();
+      if (!connected) return 0;
+
+      final inventoryRes = await MyketIAP.queryInventory(querySkuDetails: false);
+      final inventory = inventoryRes[MyketIAP.INVENTORY] as Inventory?;
+      if (inventory == null || inventory.mPurchaseMap.isEmpty) {
+        return 0;
+      }
+
+      int restoredCount = 0;
+      for (final entry in inventory.mPurchaseMap.entries) {
+        final purchase = entry.value;
+        if (purchase.mToken.isNotEmpty && purchase.mSku.isNotEmpty) {
+          final ok = await verifyAndCompletePurchase(
+            courseId: purchase.mSku,
+            purchaseToken: purchase.mToken,
+          );
+          if (ok) restoredCount++;
+        }
+      }
+      return restoredCount;
+    } catch (_) {
+      return 0;
+    }
+  }
 }
 
 class DirectPaymentProvider implements PaymentProvider {
@@ -401,7 +492,7 @@ class DirectPaymentProvider implements PaymentProvider {
   }
 
   @override
-  Future<bool> purchaseCourse(String courseId) async {
+  Future<bool> purchaseCourse(String courseId, {String? sku}) async {
     try {
       final response = await dioClient.dio.post('/purchases/zarinpal/request', data: {
         'course_id': courseId,
@@ -437,7 +528,7 @@ class DirectPaymentProvider implements PaymentProvider {
   }
 
   @override
-  Future<bool> purchasePackage(String packageId) async {
+  Future<bool> purchasePackage(String packageId, {String? sku}) async {
     try {
       final response = await dioClient.dio.post('/purchases/zarinpal/package-request', data: {
         'package_id': packageId,
@@ -471,6 +562,9 @@ class DirectPaymentProvider implements PaymentProvider {
       return false;
     }
   }
+
+  @override
+  Future<int> restorePurchases() async => 0;
 }
 
 

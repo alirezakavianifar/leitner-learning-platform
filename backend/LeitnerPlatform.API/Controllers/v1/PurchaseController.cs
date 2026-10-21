@@ -105,7 +105,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 {
                     if (_storeVerificationService != null)
                     {
-                        var verifyResult = await _storeVerificationService.VerifyPurchaseAsync(providerClean, input.CourseId.ToString(), input.TransactionId);
+                        var verifyResult = await _storeVerificationService.VerifyPurchaseAsync(providerClean, input.CourseId.ToString(), input.TransactionId, course.BazaarSku);
                         if (!verifyResult.IsValid)
                         {
                             return BadRequest(new
@@ -127,7 +127,21 @@ namespace LeitnerPlatform.API.Controllers.v1
             {
                 if (existingPurchase.Status == "COMPLETED")
                 {
-                    return Ok(new { success = true, message = "Course already purchased.", purchase = existingPurchase });
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "Course already purchased.",
+                        purchase = new
+                        {
+                            id = existingPurchase.Id,
+                            user_id = existingPurchase.UserId,
+                            course_id = existingPurchase.CourseId,
+                            payment_provider = existingPurchase.PaymentProvider,
+                            transaction_id = existingPurchase.TransactionId,
+                            status = existingPurchase.Status,
+                            purchased_at = existingPurchase.PurchasedAt
+                        }
+                    });
                 }
                 
                 // If it was pending or refunded, update it to COMPLETED
@@ -142,7 +156,21 @@ namespace LeitnerPlatform.API.Controllers.v1
                 // Publish event to trigger off-server S3 backup replication
                 await _eventBus.PublishAsync(new PurchaseCompletedEvent(existingPurchase));
 
-                return Ok(new { success = true, message = "Purchase updated to completed.", purchase = existingPurchase });
+                return Ok(new
+                {
+                    success = true,
+                    message = "Purchase updated to completed.",
+                    purchase = new
+                    {
+                        id = existingPurchase.Id,
+                        user_id = existingPurchase.UserId,
+                        course_id = existingPurchase.CourseId,
+                        payment_provider = existingPurchase.PaymentProvider,
+                        transaction_id = existingPurchase.TransactionId,
+                        status = existingPurchase.Status,
+                        purchased_at = existingPurchase.PurchasedAt
+                    }
+                });
             }
 
             var purchase = new Purchase
@@ -162,7 +190,21 @@ namespace LeitnerPlatform.API.Controllers.v1
             // Publish event to trigger off-server S3 backup replication
             await _eventBus.PublishAsync(new PurchaseCompletedEvent(purchase));
 
-            return Ok(new { success = true, message = "Purchase recorded successfully.", purchase });
+            return Ok(new
+            {
+                success = true,
+                message = "Purchase recorded successfully.",
+                purchase = new
+                {
+                    id = purchase.Id,
+                    user_id = purchase.UserId,
+                    course_id = purchase.CourseId,
+                    payment_provider = purchase.PaymentProvider,
+                    transaction_id = purchase.TransactionId,
+                    status = purchase.Status,
+                    purchased_at = purchase.PurchasedAt
+                }
+            });
         }
 
         [HttpPost("zarinpal/request")]
@@ -312,7 +354,7 @@ namespace LeitnerPlatform.API.Controllers.v1
                 {
                     if (_storeVerificationService != null)
                     {
-                        var verifyResult = await _storeVerificationService.VerifyPurchaseAsync(pkgProviderClean, input.PackageId.ToString(), input.TransactionId);
+                        var verifyResult = await _storeVerificationService.VerifyPurchaseAsync(pkgProviderClean, input.PackageId.ToString(), input.TransactionId, pkg.BazaarSku);
                         if (!verifyResult.IsValid)
                         {
                             return BadRequest(new
@@ -396,7 +438,17 @@ namespace LeitnerPlatform.API.Controllers.v1
             {
                 success = true,
                 message = "Package purchased successfully and all courses unlocked.",
-                package_purchase = existingPkgPurchase
+                package_purchase = new
+                {
+                    id = existingPkgPurchase.Id,
+                    user_id = existingPkgPurchase.UserId,
+                    package_id = existingPkgPurchase.PackageId,
+                    amount_paid = existingPkgPurchase.AmountPaid,
+                    payment_provider = existingPkgPurchase.PaymentProvider,
+                    transaction_id = existingPkgPurchase.TransactionId,
+                    status = existingPkgPurchase.Status,
+                    purchased_at = existingPkgPurchase.PurchasedAt
+                }
             });
         }
 

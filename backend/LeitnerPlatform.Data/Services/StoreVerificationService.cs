@@ -27,7 +27,10 @@ namespace LeitnerPlatform.Data.Services
             _logger = logger;
         }
 
-        public async Task<StoreVerificationResult> VerifyPurchaseAsync(string provider, string productId, string purchaseToken)
+        public Task<StoreVerificationResult> VerifyPurchaseAsync(string provider, string productId, string purchaseToken)
+            => VerifyPurchaseAsync(provider, productId, purchaseToken, null);
+
+        public async Task<StoreVerificationResult> VerifyPurchaseAsync(string provider, string productId, string purchaseToken, string? alternateSku)
         {
             if (string.IsNullOrWhiteSpace(purchaseToken))
             {
@@ -44,10 +47,10 @@ namespace LeitnerPlatform.Data.Services
             {
                 case "BAZAAR":
                 case "CAFE_BAZAAR":
-                    return await VerifyCafeBazaarPurchaseAsync(productId, purchaseToken);
+                    return await VerifyCafeBazaarPurchaseAsync(productId, purchaseToken, alternateSku);
 
                 case "MYKET":
-                    return await VerifyMyketPurchaseAsync(productId, purchaseToken);
+                    return await VerifyMyketPurchaseAsync(productId, purchaseToken, alternateSku);
 
                 default:
                     _logger.LogWarning("Unknown store provider for verification: {Provider}", provider);
@@ -59,7 +62,7 @@ namespace LeitnerPlatform.Data.Services
             }
         }
 
-        private async Task<StoreVerificationResult> VerifyCafeBazaarPurchaseAsync(string productId, string purchaseToken)
+        private async Task<StoreVerificationResult> VerifyCafeBazaarPurchaseAsync(string productId, string purchaseToken, string? alternateSku = null)
         {
             var clientId = Environment.GetEnvironmentVariable("CAFEBAZAAR_CLIENT_ID")
                            ?? _configuration["CafeBazaar:ClientId"];
@@ -119,8 +122,10 @@ namespace LeitnerPlatform.Data.Services
                     return new StoreVerificationResult { IsValid = false, Message = "Empty access token from Cafe Bazaar API." };
                 }
 
-                // 2. Validate in-app purchase with candidate product IDs (raw, without hyphens, with underscores)
-                var candidateProductIds = new List<string> { productId };
+                // 2. Validate in-app purchase with candidate product IDs (alternateSku, raw, without hyphens, with underscores)
+                var candidateProductIds = new List<string>();
+                if (!string.IsNullOrWhiteSpace(alternateSku)) candidateProductIds.Add(alternateSku.Trim());
+                if (!candidateProductIds.Contains(productId)) candidateProductIds.Add(productId);
                 var noHyphen = productId.Replace("-", "");
                 if (!candidateProductIds.Contains(noHyphen)) candidateProductIds.Add(noHyphen);
                 var underscore = productId.Replace("-", "_");
@@ -167,7 +172,7 @@ namespace LeitnerPlatform.Data.Services
             }
         }
 
-        private async Task<StoreVerificationResult> VerifyMyketPurchaseAsync(string productId, string purchaseToken)
+        private async Task<StoreVerificationResult> VerifyMyketPurchaseAsync(string productId, string purchaseToken, string? alternateSku = null)
         {
             var accessToken = Environment.GetEnvironmentVariable("MYKET_ACCESS_TOKEN")
                               ?? _configuration["Myket:AccessToken"];
@@ -201,7 +206,9 @@ namespace LeitnerPlatform.Data.Services
 
             try
             {
-                var candidateProductIds = new List<string> { productId };
+                var candidateProductIds = new List<string>();
+                if (!string.IsNullOrWhiteSpace(alternateSku)) candidateProductIds.Add(alternateSku.Trim());
+                if (!candidateProductIds.Contains(productId)) candidateProductIds.Add(productId);
                 var noHyphen = productId.Replace("-", "");
                 if (!candidateProductIds.Contains(noHyphen)) candidateProductIds.Add(noHyphen);
                 var underscore = productId.Replace("-", "_");

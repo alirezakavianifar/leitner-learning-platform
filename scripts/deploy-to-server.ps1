@@ -107,6 +107,14 @@ Remove-Item -Path "$ProjectRoot\publish\runtimes\osx*" -Recurse -Force -ErrorAct
 Write-Host "Building React Admin Panel..." -ForegroundColor Yellow
 Push-Location "$ProjectRoot\admin-panel"
 $env:VITE_API_BASE_URL = '/api/v1'
+if (-not (Test-Path "node_modules")) {
+    Write-Host "Installing admin panel dependencies..." -ForegroundColor Yellow
+    if (Get-Command npm.cmd -ErrorAction SilentlyContinue) {
+        & npm.cmd install
+    } else {
+        & npm install
+    }
+}
 if (Get-Command npm.cmd -ErrorAction SilentlyContinue) {
     & npm.cmd run build
 } else {
