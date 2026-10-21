@@ -5,6 +5,7 @@ import { api } from '../../services/api';
 import type { Purchase, AdminModule } from '../../types';
 import { useToast } from '../../components/ToastContext';
 import { QuickGrantModal } from '../../components/QuickGrantModal';
+import { copyTextToClipboard } from '../../utils/clipboard';
 
 export const PurchasesView: React.FC = () => {
   const { t } = useTranslation();
@@ -18,6 +19,7 @@ export const PurchasesView: React.FC = () => {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [copiedTxId, setCopiedTxId] = useState<string | null>(null);
 
   // Filter States
   const [searchInput, setSearchInput] = useState('');
@@ -128,10 +130,16 @@ export const PurchasesView: React.FC = () => {
     }
   };
 
-  const handleCopyTransaction = (txId: string) => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(txId);
+  const handleCopyTransaction = async (txId: string) => {
+    const success = await copyTextToClipboard(txId);
+    if (success) {
+      setCopiedTxId(txId);
+      setTimeout(() => {
+        setCopiedTxId((curr) => (curr === txId ? null : curr));
+      }, 1800);
       toast.showSuccess('شناسه تراکنش در حافظه کپی شد.');
+    } else {
+      toast.showError('امکان کپی در حافظه وجود ندارد.');
     }
   };
 
@@ -413,19 +421,29 @@ export const PurchasesView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleCopyTransaction(purchase.transaction_id)}
-                          title="کپی شناسه تراکنش"
+                          title={copiedTxId === purchase.transaction_id ? 'کپی شد!' : 'کپی شناسه تراکنش'}
                           style={{
-                            background: 'transparent',
+                            background: copiedTxId === purchase.transaction_id ? 'rgba(34, 197, 94, 0.15)' : 'transparent',
                             border: 'none',
                             cursor: 'pointer',
-                            color: 'var(--text-muted)',
-                            padding: '2px'
+                            color: copiedTxId === purchase.transaction_id ? '#22c55e' : 'var(--text-muted)',
+                            padding: '2px 4px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            transition: 'all 0.2s ease'
                           }}
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                          </svg>
+                          {copiedTxId === purchase.transaction_id ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                          )}
                         </button>
                       </div>
                     </td>

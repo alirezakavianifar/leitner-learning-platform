@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { useToast } from './ToastContext';
 import { formatPrice, localizeNumber } from '../i18n';
 import type { User } from '../types';
+import { copyTextToClipboard } from '../utils/clipboard';
 
 interface QuickGrantModalProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
   const [availableCourses, setAvailableCourses] = useState<any[]>(coursesList || []);
   const [availablePackages, setAvailablePackages] = useState<any[]>(packagesList || []);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<any>(null);
@@ -94,14 +96,16 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    try {
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(text);
-        toast.showSuccess('شناسه در کلیپ‌بورد کپی شد.');
-      }
-    } catch {
-      // ignore
+  const copyToClipboard = async (text: string) => {
+    const success = await copyTextToClipboard(text);
+    if (success) {
+      setCopiedId(text);
+      setTimeout(() => {
+        setCopiedId((curr) => (curr === text ? null : curr));
+      }, 1800);
+      toast.showSuccess('شناسه در کلیپ‌بورد کپی شد.');
+    } else {
+      toast.showError('امکان کپی در حافظه وجود ندارد.');
     }
   };
 
@@ -506,10 +510,18 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
                         <button
                           type="button"
                           onClick={() => copyToClipboard(selectedCourse.id)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', padding: '0 2px' }}
-                          title="کپی شناسه"
+                          style={{
+                            background: copiedId === selectedCourse.id ? 'rgba(34, 197, 94, 0.15)' : 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            padding: '1px 4px',
+                            borderRadius: '4px',
+                            transition: 'all 0.2s ease'
+                          }}
+                          title={copiedId === selectedCourse.id ? 'کپی شد!' : 'کپی شناسه'}
                         >
-                          📋
+                          {copiedId === selectedCourse.id ? '✅' : '📋'}
                         </button>
                       </div>
                     </div>
@@ -576,10 +588,18 @@ export const QuickGrantModal: React.FC<QuickGrantModalProps> = ({
                         <button
                           type="button"
                           onClick={() => copyToClipboard(selectedPackage.id)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', padding: '0 2px' }}
-                          title="کپی شناسه"
+                          style={{
+                            background: copiedId === selectedPackage.id ? 'rgba(34, 197, 94, 0.15)' : 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            padding: '1px 4px',
+                            borderRadius: '4px',
+                            transition: 'all 0.2s ease'
+                          }}
+                          title={copiedId === selectedPackage.id ? 'کپی شد!' : 'کپی شناسه'}
                         >
-                          📋
+                          {copiedId === selectedPackage.id ? '✅' : '📋'}
                         </button>
                       </div>
                     </div>

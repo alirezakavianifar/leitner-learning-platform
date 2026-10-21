@@ -5,6 +5,7 @@ import { api } from '../../services/api';
 import type { Course, CoursePackage, AdminModule } from '../../types';
 import { useToast } from '../../components/ToastContext';
 import { QuickGrantModal } from '../../components/QuickGrantModal';
+import { copyTextToClipboard } from '../../utils/clipboard';
 
 export const CoursesView: React.FC = () => {
   const { t } = useTranslation();
@@ -29,6 +30,9 @@ export const CoursesView: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [includeArchived, setIncludeArchived] = useState(false);
+
+  // Clipboard visual state
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Edit Course Form Fields
   const [title, setTitle] = useState('');
@@ -67,10 +71,16 @@ export const CoursesView: React.FC = () => {
   const [pkgAllowedPlatforms, setPkgAllowedPlatforms] = useState<string[]>(['zarinpal', 'bazaar', 'myket', 'googleplay', 'ios']);
   const [pkgMinBuildNumber, setPkgMinBuildNumber] = useState<number>(0);
 
-  const copyToClipboard = (text: string, label: string) => {
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(text);
+  const copyToClipboard = async (text: string, label: string) => {
+    const success = await copyTextToClipboard(text);
+    if (success) {
+      setCopiedId(text);
+      setTimeout(() => {
+        setCopiedId((curr) => (curr === text ? null : curr));
+      }, 1800);
       toast.showSuccess(`${label} در حافظه کپی شد`);
+    } else {
+      toast.showError('امکان کپی در حافظه وجود ندارد.');
     }
   };
 
@@ -499,20 +509,22 @@ export const CoursesView: React.FC = () => {
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); copyToClipboard(course.id, 'شناسه دوره (SKU)'); }}
                                   style={{
-                                    background: 'rgba(59, 130, 246, 0.12)',
-                                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                                    background: copiedId === course.id ? 'rgba(34, 197, 94, 0.18)' : 'rgba(59, 130, 246, 0.12)',
+                                    border: copiedId === course.id ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(59, 130, 246, 0.3)',
                                     borderRadius: '4px',
                                     padding: '1px 6px',
                                     fontSize: '10px',
-                                    color: '#3b82f6',
+                                    color: copiedId === course.id ? '#22c55e' : '#3b82f6',
                                     cursor: 'pointer',
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: '3px'
+                                    gap: '3px',
+                                    transition: 'all 0.2s ease',
+                                    fontWeight: copiedId === course.id ? 600 : 400
                                   }}
                                   title="کپی شناسه کامل دوره جهت ثبت در پیشخان بازار یا مایکت"
                                 >
-                                  📋 کپی SKU
+                                  {copiedId === course.id ? '✅ کپی شد!' : '📋 کپی SKU'}
                                 </button>
                               </div>
                               {course.allowed_platforms && (
@@ -758,20 +770,22 @@ export const CoursesView: React.FC = () => {
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); copyToClipboard(pkg.id, 'شناسه پکیج (SKU)'); }}
                                   style={{
-                                    background: 'rgba(59, 130, 246, 0.12)',
-                                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                                    background: copiedId === pkg.id ? 'rgba(34, 197, 94, 0.18)' : 'rgba(59, 130, 246, 0.12)',
+                                    border: copiedId === pkg.id ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(59, 130, 246, 0.3)',
                                     borderRadius: '4px',
                                     padding: '1px 6px',
                                     fontSize: '10px',
-                                    color: '#3b82f6',
+                                    color: copiedId === pkg.id ? '#22c55e' : '#3b82f6',
                                     cursor: 'pointer',
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: '3px'
+                                    gap: '3px',
+                                    transition: 'all 0.2s ease',
+                                    fontWeight: copiedId === pkg.id ? 600 : 400
                                   }}
                                   title="کپی شناسه کامل پکیج جهت ثبت در پیشخان بازار یا مایکت"
                                 >
-                                  📋 کپی SKU
+                                  {copiedId === pkg.id ? '✅ کپی شد!' : '📋 کپی SKU'}
                                 </button>
                               </div>
                               {pkg.allowed_platforms && (
@@ -909,10 +923,20 @@ export const CoursesView: React.FC = () => {
                     <button
                       type="button"
                       className="btn btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        borderColor: copiedId === editingCourse.id ? '#22c55e' : undefined,
+                        color: copiedId === editingCourse.id ? '#22c55e' : undefined,
+                        background: copiedId === editingCourse.id ? 'rgba(34, 197, 94, 0.12)' : undefined,
+                        transition: 'all 0.2s ease'
+                      }}
                       onClick={() => copyToClipboard(editingCourse.id, 'شناسه دوره (SKU)')}
                     >
-                      📋 کپی شناسه SKU
+                      {copiedId === editingCourse.id ? '✅ کپی شد!' : '📋 کپی شناسه SKU'}
                     </button>
                   </div>
                 )}
@@ -1102,10 +1126,20 @@ export const CoursesView: React.FC = () => {
                     <button
                       type="button"
                       className="btn btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        borderColor: copiedId === editingPackage.id ? '#22c55e' : undefined,
+                        color: copiedId === editingPackage.id ? '#22c55e' : undefined,
+                        background: copiedId === editingPackage.id ? 'rgba(34, 197, 94, 0.12)' : undefined,
+                        transition: 'all 0.2s ease'
+                      }}
                       onClick={() => copyToClipboard(editingPackage.id, 'شناسه پکیج (SKU)')}
                     >
-                      📋 کپی شناسه SKU
+                      {copiedId === editingPackage.id ? '✅ کپی شد!' : '📋 کپی شناسه SKU'}
                     </button>
                   </div>
                 )}
