@@ -18,6 +18,7 @@ import 'package:mobile_app/features/courses/presentation/widgets/package_details
 import 'package:mobile_app/features/flashcards/presentation/screens/flashcard_study_screen.dart';
 import 'package:mobile_app/core/error/error_formatter.dart';
 import 'package:mobile_app/core/utils/image_url_resolver.dart';
+import 'package:mobile_app/core/utils/search_helper.dart';
 
 class CoursesScreen extends StatefulWidget {
   final ValueNotifier<int>? tabNotifier;
@@ -32,6 +33,8 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
   int _catalogFilterIndex = 0; // 0: All, 1: Single Courses, 2: Packages
   StreamSubscription<PaymentResult>? _paymentSub;
   DateTime? _lastResumeReload;
+  late TextEditingController _searchController;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -39,6 +42,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     WidgetsBinding.instance.addObserver(this);
     _selectedTab = widget.tabNotifier?.value ?? 0;
     widget.tabNotifier?.addListener(_handleTabNotifierChange);
+    _searchController = TextEditingController();
     
     // Subscribe to incoming deep link payment callbacks
     _paymentSub = sl<DeepLinkService>().paymentResults.listen(_handlePaymentResult);
@@ -208,6 +212,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _paymentSub?.cancel();
+    _searchController.dispose();
     widget.tabNotifier?.removeListener(_handleTabNotifierChange);
     super.dispose();
   }
@@ -397,6 +402,59 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     );
   }
 
+  Widget _buildSearchBar() {
+    final loc = AppLocalizations.of(context);
+    final hint = _selectedTab == 0
+        ? loc.translate('search_courses_catalog_hint')
+        : loc.translate('search_courses_hint');
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 4.0, bottom: 6.0),
+      child: Container(
+        height: 42,
+        decoration: BoxDecoration(
+          color: AppColors.surface.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: TextField(
+          controller: _searchController,
+          onChanged: (val) {
+            setState(() {
+              _searchQuery = val.trim();
+            });
+          },
+          style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.7), fontSize: 13),
+            prefixIcon: Icon(Icons.search, size: 20, color: AppColors.primary),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: Icon(Icons.clear, size: 18, color: AppColors.textSecondary),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                  )
+                : null,
+            contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            border: InputBorder.none,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFilterChips(int packagesCount) {
     final loc = AppLocalizations.of(context);
     final chips = [
@@ -463,6 +521,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
       body: Column(
         children: [
           _buildTabSelector(),
+          _buildSearchBar(),
           Expanded(
             child: BlocConsumer<CoursesBloc, CoursesState>(
               listener: (context, state) {
@@ -539,9 +598,33 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                       .toList();
                 }
 
+                // Filter courses by search query if user is searching
+                if (_searchQuery.isNotEmpty) {
+                  sortedCourses = sortedCourses.where((c) {
+                    final titleMatch = SearchHelper.fuzzyMatch(c.title, _searchQuery);
+                    final descMatch = c.description != null &&
+                        SearchHelper.fuzzyMatch(c.description!, _searchQuery);
+                    return titleMatch || descMatch;
+                  }).toList();
+                }
+
+                // Filter packages by search query if user is searching
+                var filteredPackages = packages;
+                if (_searchQuery.isNotEmpty) {
+                  filteredPackages = filteredPackages.where((pkg) {
+                    final titleMatch = SearchHelper.fuzzyMatch(pkg.title, _searchQuery);
+                    final descMatch = pkg.description != null &&
+                        SearchHelper.fuzzyMatch(pkg.description!, _searchQuery);
+                    final courseMatch = pkg.courses.any((c) =>
+                        SearchHelper.fuzzyMatch(c.title, _searchQuery) ||
+                        (c.description != null && SearchHelper.fuzzyMatch(c.description!, _searchQuery)));
+                    return titleMatch || descMatch || courseMatch;
+                  }).toList();
+                }
+
                 final shouldShowPackages = _selectedTab == 0 &&
                     (_catalogFilterIndex == 0 || _catalogFilterIndex == 2) &&
-                    packages.isNotEmpty;
+                    filteredPackages.isNotEmpty;
 
                 final shouldShowCourses = _selectedTab == 1 ||
                     _catalogFilterIndex == 0 ||
@@ -561,7 +644,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                     slivers: [
                       if (_selectedTab == 0)
                         SliverToBoxAdapter(
-                          child: _buildFilterChips(packages.length),
+                          child: _buildFilterChips(filteredPackages.length),
                         ),
                       if (isOffline)
                         SliverToBoxAdapter(
@@ -600,7 +683,7 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
-                                final pkg = packages[index];
+                                final pkg = filteredPackages[index];
                                 return PackageCard(
                                   package: pkg,
                                   onTap: () => PackageDetailsModal.show(
@@ -611,20 +694,22 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
                                   onPurchase: () => _purchasePackage(pkg),
                                 );
                               },
-                              childCount: packages.length,
+                              childCount: filteredPackages.length,
                             ),
                           ),
                         ),
                       ],
 
                       // Course List Section
-                      if (displayedCourses.isEmpty && (!shouldShowPackages || packages.isEmpty))
+                      if (displayedCourses.isEmpty && (!shouldShowPackages || filteredPackages.isEmpty))
                         SliverFillRemaining(
                           child: Center(
                             child: Text(
-                              _selectedTab == 1
-                                  ? loc.translate('no_downloaded_courses_avail')
-                                  : loc.translate('no_courses_avail'),
+                              _searchQuery.isNotEmpty
+                                  ? loc.translate('no_courses_found_for_query')
+                                  : (_selectedTab == 1
+                                      ? loc.translate('no_downloaded_courses_avail')
+                                      : loc.translate('no_courses_avail')),
                               style: TextStyle(color: AppColors.textSecondary),
                             ),
                           ),
