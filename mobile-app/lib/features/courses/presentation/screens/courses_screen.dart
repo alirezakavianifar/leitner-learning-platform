@@ -50,12 +50,28 @@ class _CoursesScreenState extends State<CoursesScreen> with WidgetsBindingObserv
     // Load courses on entry
     context.read<CoursesBloc>().add(LoadCoursesEvent());
     _lastResumeReload = DateTime.now();
+
+    // Silently restore any unverified store purchases in background
+    _silentAutoRestorePurchases();
+  }
+
+  void _silentAutoRestorePurchases() async {
+    try {
+      final provider = sl<PaymentProvider>();
+      final restored = await provider.restorePurchases();
+      if (restored > 0 && mounted) {
+        context.read<CoursesBloc>().add(LoadCoursesEvent());
+      }
+    } catch (_) {}
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       final now = DateTime.now();
+      // Silently restore any unverified purchases on return from store checkout
+      _silentAutoRestorePurchases();
+
       // Throttle resume refreshes to at most once every 3 minutes
       if (_lastResumeReload == null || now.difference(_lastResumeReload!).inSeconds > 180) {
         _lastResumeReload = now;

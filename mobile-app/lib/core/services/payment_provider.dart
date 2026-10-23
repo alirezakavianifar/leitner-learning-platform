@@ -149,7 +149,7 @@ class BazaarPaymentProvider implements PaymentProvider {
     try {
       final targetId = (sku != null && sku.trim().isNotEmpty) ? sku.trim() : courseId;
       final skuToUse = await _resolveSku(targetId);
-      final purchaseInfo = await FlutterPoolakey.purchase(skuToUse);
+      final purchaseInfo = await FlutterPoolakey.purchase(skuToUse, payload: "course:$courseId");
       if (purchaseInfo.purchaseToken.isNotEmpty) {
         return await verifyAndCompletePurchase(
           courseId: courseId,
@@ -182,7 +182,7 @@ class BazaarPaymentProvider implements PaymentProvider {
     try {
       final targetId = (sku != null && sku.trim().isNotEmpty) ? sku.trim() : packageId;
       final skuToUse = await _resolveSku(targetId);
-      final purchaseInfo = await FlutterPoolakey.purchase(skuToUse);
+      final purchaseInfo = await FlutterPoolakey.purchase(skuToUse, payload: "package:$packageId");
       if (purchaseInfo.purchaseToken.isNotEmpty) {
         return await verifyAndCompletePurchase(
           packageId: packageId,
@@ -211,10 +211,34 @@ class BazaarPaymentProvider implements PaymentProvider {
       int restored = 0;
       for (final p in purchases) {
         if (p.productId.isNotEmpty && p.purchaseToken.isNotEmpty) {
-          final ok = await verifyAndCompletePurchase(
-            courseId: p.productId,
-            purchaseToken: p.purchaseToken,
-          );
+          final payload = p.payload;
+          final isExplicitPackage = payload.startsWith('package:') || p.productId.contains('pkg') || p.productId.contains('package');
+
+          bool ok = false;
+          if (isExplicitPackage) {
+            ok = await verifyAndCompletePurchase(
+              packageId: p.productId,
+              purchaseToken: p.purchaseToken,
+            );
+            if (!ok) {
+              ok = await verifyAndCompletePurchase(
+                courseId: p.productId,
+                purchaseToken: p.purchaseToken,
+              );
+            }
+          } else {
+            ok = await verifyAndCompletePurchase(
+              courseId: p.productId,
+              purchaseToken: p.purchaseToken,
+            );
+            if (!ok) {
+              ok = await verifyAndCompletePurchase(
+                packageId: p.productId,
+                purchaseToken: p.purchaseToken,
+              );
+            }
+          }
+
           if (ok) restored++;
         }
       }
@@ -343,7 +367,10 @@ class MyketPaymentProvider implements PaymentProvider {
       }
 
       final skuToUse = await _resolveSku(courseId, customSku: sku);
-      final flowResult = await MyketIAP.launchPurchaseFlow(sku: skuToUse);
+      final flowResult = await MyketIAP.launchPurchaseFlow(
+        sku: skuToUse,
+        payload: "course:$courseId",
+      );
       final IabResult? iabResult = flowResult[MyketIAP.RESULT] as IabResult?;
       Purchase? purchase = flowResult[MyketIAP.PURCHASE] as Purchase?;
 
@@ -398,7 +425,10 @@ class MyketPaymentProvider implements PaymentProvider {
       }
 
       final skuToUse = await _resolveSku(packageId, customSku: sku);
-      final flowResult = await MyketIAP.launchPurchaseFlow(sku: skuToUse);
+      final flowResult = await MyketIAP.launchPurchaseFlow(
+        sku: skuToUse,
+        payload: "package:$packageId",
+      );
       final IabResult? iabResult = flowResult[MyketIAP.RESULT] as IabResult?;
       Purchase? purchase = flowResult[MyketIAP.PURCHASE] as Purchase?;
 
@@ -456,10 +486,34 @@ class MyketPaymentProvider implements PaymentProvider {
       for (final entry in inventory.mPurchaseMap.entries) {
         final purchase = entry.value;
         if (purchase.mToken.isNotEmpty && purchase.mSku.isNotEmpty) {
-          final ok = await verifyAndCompletePurchase(
-            courseId: purchase.mSku,
-            purchaseToken: purchase.mToken,
-          );
+          final payload = purchase.mDeveloperPayload ?? '';
+          final isExplicitPackage = payload.startsWith('package:') || purchase.mSku.contains('pkg') || purchase.mSku.contains('package');
+
+          bool ok = false;
+          if (isExplicitPackage) {
+            ok = await verifyAndCompletePurchase(
+              packageId: purchase.mSku,
+              purchaseToken: purchase.mToken,
+            );
+            if (!ok) {
+              ok = await verifyAndCompletePurchase(
+                courseId: purchase.mSku,
+                purchaseToken: purchase.mToken,
+              );
+            }
+          } else {
+            ok = await verifyAndCompletePurchase(
+              courseId: purchase.mSku,
+              purchaseToken: purchase.mToken,
+            );
+            if (!ok) {
+              ok = await verifyAndCompletePurchase(
+                packageId: purchase.mSku,
+                purchaseToken: purchase.mToken,
+              );
+            }
+          }
+
           if (ok) restoredCount++;
         }
       }
