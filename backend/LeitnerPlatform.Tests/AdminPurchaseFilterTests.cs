@@ -392,5 +392,92 @@ namespace LeitnerPlatform.Tests
             Assert.Equal("REFUNDED", p1After.Status);
             Assert.Equal("REFUNDED", p2After.Status);
         }
+
+        [Fact]
+        public async Task GetPurchases_WithPackageAndBundleCourses_ShouldAccuratelyCalculateRevenueAndIncludePackage()
+        {
+            var db = GetDatabaseContext();
+            var user = new User { Id = Guid.NewGuid(), Username = "BundleBuyer", MobileNumber = "09121234567", CreatedAt = DateTime.UtcNow };
+            await db.Users.AddAsync(user);
+
+            var c1 = new Course { Id = Guid.NewGuid(), Title = "Course A", Price = 50000, CreatedAt = DateTime.UtcNow };
+            var c2 = new Course { Id = Guid.NewGuid(), Title = "Course B", Price = 75000, CreatedAt = DateTime.UtcNow };
+            await db.Courses.AddRangeAsync(c1, c2);
+
+            var pkg = new CoursePackage { Id = Guid.NewGuid(), Title = "Combo Pack", Price = 100000, CreatedAt = DateTime.UtcNow };
+            pkg.Items.Add(new CoursePackageItem { PackageId = pkg.Id, CourseId = c1.Id, DisplayOrder = 0 });
+            pkg.Items.Add(new CoursePackageItem { PackageId = pkg.Id, CourseId = c2.Id, DisplayOrder = 1 });
+            await db.CoursePackages.AddAsync(pkg);
+
+            // Package purchased for 100,000 via MYKET
+            var pkgPurchase = new PackagePurchase
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                PackageId = pkg.Id,
+                AmountPaid = 100000,
+                PaymentProvider = "MYKET",
+                TransactionId = "MYKET_PKG_101",
+                Status = "COMPLETED",
+                PurchasedAt = DateTime.UtcNow
+            };
+
+            // Two constituent courses granted with MYKET_BUNDLE (retail list prices: 50,000 + 75,000 = 125,000)
+            var b1 = new Purchase
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                CourseId = c1.Id,
+                PaymentProvider = "MYKET_BUNDLE",
+                TransactionId = "MYKET_PKG_101_c1",
+                Status = "COMPLETED",
+                PurchasedAt = DateTime.UtcNow
+            };
+            var b2 = new Purchase
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                CourseId = c2.Id,
+                PaymentProvider = "MYKET_BUNDLE",
+                TransactionId = "MYKET_PKG_101_c2",
+                Status = "COMPLETED",
+                PurchasedAt = DateTime.UtcNow
+            };
+
+            // Plus one standalone course purchase for 50,000
+            var singleCourse = new Course { Id = Guid.NewGuid(), Title = "Standalone Course", Price = 50000, CreatedAt = DateTime.UtcNow };
+            await db.Courses.AddAsync(singleCourse);
+            var singlePurchase = new Purchase
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                CourseId = singleCourse.Id,
+                PaymentProvider = "ZARINPAL",
+                TransactionId = "ZP_SINGLE_1",
+                Status = "COMPLETED",
+                PurchasedAt = DateTime.UtcNow
+            };
+
+            await db.PackagePurchases.AddAsync(pkgPurchase);
+            await db.Purchases.AddRangeAsync(b1, b2, singlePurchase);
+            await db.SaveChangesAsync();
+
+            var controller = CreateController(db);
+
+            // Fetch purchases
+            var result = Assert.IsType<OkObjectResult>(await controller.GetPurchases(search: null, status: "COMPLETED", gateway: null, courseId: null, fromDate: null, toDate: null));
+            var totalCount = (int)result.Value!.GetType().GetProperty("total_count")!.GetValue(result.Value)!;
+            var totalRevenue = (long)result.Value!.GetType().GetProperty("total_revenue")!.GetValue(result.Value)!;
+
+            // Total revenue should be exactly 100,000 (package) + 50,000 (single course) = 150,000
+            // NOT inflated by the individual course prices (125,000) of the bundle!
+            Assert.Equal(150000, totalRevenue);
+
+            // Dashboard stats should count 1 package purchase + 1 single purchase = 2 completed purchases (not 4)
+            var statsResult = Assert.IsType<OkObjectResult>(await controller.GetDashboardStats());
+            var stats = statsResult.Value!.GetType().GetProperty("stats")!.GetValue(statsResult.Value)!;
+            var purchasesCount = (int)stats.GetType().GetProperty("purchases_count")!.GetValue(stats)!;
+            Assert.Equal(2, purchasesCount);
+        }
     }
 }

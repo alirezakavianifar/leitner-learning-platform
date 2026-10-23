@@ -105,14 +105,16 @@ namespace LeitnerPlatform.API.Controllers.v1
             var result = packages.Select(pkg =>
             {
                 var validItems = pkg.Items
-                    .Where(i => i.Course != null && (i.Course.IsPublished || completedCoursePurchases.Contains(i.CourseId)))
+                    .Where(i => i.Course != null && !i.Course.IsArchived)
+                    .Where(i => i.Course!.IsPublished || i.Course.IsBundleOnly || pkg.IsPublished || completedCoursePurchases.Contains(i.CourseId))
                     .Where(i => completedCoursePurchases.Contains(i.CourseId) || i.Course!.MinBuildNumber <= clientBuildNumber)
                     .Where(i =>
                         i.Course!.IsBundleOnly ||
                         completedCoursePurchases.Contains(i.CourseId) ||
                         string.IsNullOrEmpty(targetPlatform) ||
                         string.IsNullOrEmpty(i.Course?.AllowedPlatforms) ||
-                        i.Course.AllowedPlatforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        string.Equals(i.Course?.AllowedPlatforms, "none", StringComparison.OrdinalIgnoreCase) ||
+                        (i.Course!.AllowedPlatforms ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                             .Any(p => p.Equals(targetPlatform, StringComparison.OrdinalIgnoreCase) ||
                                      (targetPlatform == "premium" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)) ||
                                      (targetPlatform == "direct" && p.Equals("zarinpal", StringComparison.OrdinalIgnoreCase)))

@@ -383,32 +383,40 @@ export const PurchasesView: React.FC = () => {
                       </div>
                     </td>
                     <td>
-                      <span style={{ fontWeight: 600, color: 'var(--accent-green, #10b981)' }}>
-                        {formatPrice(purchase.course_price || 0)}
+                      <span style={{ fontWeight: 600, color: (purchase.course_price === 0 && (purchase.payment_provider || '').toUpperCase().includes('BUNDLE')) ? '#a855f7' : 'var(--accent-green, #10b981)' }}>
+                        {(purchase.course_price === 0 && (purchase.payment_provider || '').toUpperCase().includes('BUNDLE'))
+                          ? 'رایگان (شامل در پکیج)'
+                          : formatPrice(purchase.course_price || 0)}
                       </span>
                     </td>
                     <td>
                       <span
                         className="badge admin"
                         style={{
-                          background: purchase.payment_provider.toUpperCase().includes('ADMIN_GRANT') || purchase.payment_provider.toUpperCase().includes('DIRECT')
+                          background: (purchase.payment_provider || '').toUpperCase().includes('BUNDLE')
+                            ? 'rgba(168, 85, 247, 0.15)'
+                            : (purchase.payment_provider || '').toUpperCase().includes('ADMIN_GRANT') || (purchase.payment_provider || '').toUpperCase().includes('DIRECT')
                             ? 'rgba(52, 152, 219, 0.15)'
                             : 'rgba(255, 255, 255, 0.05)',
-                          color: purchase.payment_provider.toUpperCase().includes('ADMIN_GRANT') || purchase.payment_provider.toUpperCase().includes('DIRECT')
+                          color: (purchase.payment_provider || '').toUpperCase().includes('BUNDLE')
+                            ? '#a855f7'
+                            : (purchase.payment_provider || '').toUpperCase().includes('ADMIN_GRANT') || (purchase.payment_provider || '').toUpperCase().includes('DIRECT')
                             ? '#3498db'
                             : 'var(--text-main)',
                           border: '1px solid var(--border-color)'
                         }}
                       >
-                        {purchase.payment_provider.toUpperCase().includes('ADMIN_GRANT')
+                        {(purchase.payment_provider || '').toUpperCase().includes('BUNDLE')
+                          ? `📦 دسترسی پکیج (${purchase.payment_provider.replace('_BUNDLE', '')})`
+                          : (purchase.payment_provider || '').toUpperCase().includes('ADMIN_GRANT')
                           ? `🎁 ${t('quick_grant.provider_admin_grant', 'Admin Grant')}`
-                          : purchase.payment_provider.toUpperCase().includes('DIRECT')
+                          : (purchase.payment_provider || '').toUpperCase().includes('DIRECT')
                           ? t('purchases.direct')
-                          : purchase.payment_provider.toUpperCase().includes('BAZAAR') || purchase.payment_provider.toUpperCase().includes('CAF')
+                          : (purchase.payment_provider || '').toUpperCase().includes('BAZAAR') || (purchase.payment_provider || '').toUpperCase().includes('CAF')
                           ? t('purchases.bazaar')
-                          : purchase.payment_provider.toUpperCase().includes('MYKET')
+                          : (purchase.payment_provider || '').toUpperCase().includes('MYKET')
                           ? t('purchases.myket')
-                          : purchase.payment_provider.toUpperCase().includes('ZARINPAL')
+                          : (purchase.payment_provider || '').toUpperCase().includes('ZARINPAL')
                           ? t('purchases.gateway_zarinpal')
                           : purchase.payment_provider}
                       </span>

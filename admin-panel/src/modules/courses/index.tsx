@@ -196,6 +196,18 @@ export const CoursesView: React.FC = () => {
     }
   };
 
+  const toggleBundleOnly = async (course: any) => {
+    try {
+      await api.admin.updateCourse(course.id, {
+        is_bundle_only: !course.is_bundle_only
+      });
+      toast.showSuccess(!course.is_bundle_only ? 'دوره روی حالت «فقط پکیج» تنظیم شد (از کاتالوگ دوره‌های تکی مخفی گردید).' : 'دوره از حالت فقط پکیج خارج شد (در فروشگاه تکی نیز قابل مشاهده است).');
+      loadCourses();
+    } catch (err: any) {
+      toast.showError(err.message || 'خطا در تغییر وضعیت فقط پکیج.');
+    }
+  };
+
   const handleDelete = async (id: string) => {
     const confirmed = await toast.confirm({
       title: t('courses.confirm_archive_title', 'Archive Course'),
@@ -603,18 +615,40 @@ export const CoursesView: React.FC = () => {
                               {t('courses.status_archived', 'Archived')}
                             </span>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => togglePublishStatus(course)}
-                              className={`badge ${course.is_published ? 'badge-success' : 'badge-inactive'}`}
-                              style={{ border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                              title="برای تغییر وضعیت انتشار کلیک کنید"
-                            >
-                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: course.is_published ? '#22c55e' : '#eab308' }} />
-                              <span>
-                                {course.is_published ? t('courses.status_published') : t('courses.status_draft')}
-                              </span>
-                            </button>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                              <button
+                                type="button"
+                                onClick={() => togglePublishStatus(course)}
+                                className={`badge ${course.is_published ? 'badge-success' : 'badge-inactive'}`}
+                                style={{ border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                title="برای تغییر وضعیت انتشار کلیک کنید"
+                              >
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: course.is_published ? '#22c55e' : '#eab308' }} />
+                                <span>
+                                  {course.is_published ? t('courses.status_published') : t('courses.status_draft')}
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => toggleBundleOnly(course)}
+                                className="badge"
+                                style={{
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  fontSize: '10.5px',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  backgroundColor: course.is_bundle_only ? 'rgba(168, 85, 247, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                                  color: course.is_bundle_only ? '#a855f7' : 'var(--text-muted)'
+                                }}
+                                title="کلیک کنید تا دوره فقط در پکیج‌ها نمایش داده شود (مخفی از کاتالوگ دوره‌های تکی)"
+                              >
+                                <span>{course.is_bundle_only ? '📦 فقط پکیج' : '🛒 تکی + پکیج'}</span>
+                              </button>
+                            </div>
                           )}
                         </td>
                         <td>

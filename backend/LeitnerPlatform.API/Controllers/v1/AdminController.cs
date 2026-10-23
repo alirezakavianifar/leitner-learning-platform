@@ -48,7 +48,9 @@ namespace LeitnerPlatform.API.Controllers.v1
         {
             var usersCount = await _context.Users.CountAsync();
             var coursesCount = await _context.Courses.CountAsync();
-            var purchasesCount = await _context.Purchases.CountAsync(p => p.Status == "COMPLETED");
+            var singlePurchasesCount = await _context.Purchases.CountAsync(p => p.Status == "COMPLETED" && (p.PaymentProvider == null || !p.PaymentProvider.EndsWith("_BUNDLE")));
+            var packagePurchasesCount = await _context.PackagePurchases.CountAsync(p => p.Status == "COMPLETED");
+            var purchasesCount = singlePurchasesCount + packagePurchasesCount;
             var pendingReportsCount = await _context.FlashcardReports.CountAsync(r => r.Status == "PENDING");
             var activeProgressCardsCount = await _context.LeitnerProgresses.CountAsync();
 
@@ -173,42 +175,62 @@ namespace LeitnerPlatform.API.Controllers.v1
 
         #region Course Access & Purchases
 
-        [HttpGet("purchases")]
-        public async Task<IActionResult> GetPurchases(
-            [FromQuery] string? search,
-            [FromQuery] string? status,
-            [FromQuery] string? gateway,
-            [FromQuery] Guid? courseId,
-            [FromQuery] DateTime? fromDate,
-            [FromQuery] DateTime? toDate,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 15)
+        private IQueryable<AdminPurchaseDto> BuildUnifiedPurchasesQuery(
+            string? search,
+            string? status,
+            string? gateway,
+            Guid? courseId,
+            DateTime? fromDate,
+            DateTime? toDate)
         {
-            var query = _context.Purchases
+            var coursePurchases = _context.Purchases
                 .Join(_context.Users, p => p.UserId, u => u.Id, (p, u) => new { p, u })
-                .Join(_context.Courses, pu => pu.p.CourseId, c => c.Id, (pu, c) => new
+                .Join(_context.Courses, pu => pu.p.CourseId, c => c.Id, (pu, c) => new AdminPurchaseDto
                 {
                     purchase_id = pu.p.Id,
                     user_id = pu.u.Id,
                     username = pu.u.Username,
                     mobile_number = pu.u.MobileNumber,
                     course_id = c.Id,
-                    course_title = c.Title,
-                    course_price = c.Price,
+                    course_title = (pu.p.PaymentProvider != null && pu.p.PaymentProvider.EndsWith("_BUNDLE"))
+                        ? (c.Title + " (شامل در بسته)")
+                        : c.Title,
+                    course_price = (pu.p.PaymentProvider != null && pu.p.PaymentProvider.EndsWith("_BUNDLE"))
+                        ? 0m
+                        : c.Price,
                     payment_provider = pu.p.PaymentProvider,
                     transaction_id = pu.p.TransactionId,
                     status = pu.p.Status,
                     purchased_at = pu.p.PurchasedAt
                 });
 
+            var packagePurchases = _context.PackagePurchases
+                .Join(_context.Users, p => p.UserId, u => u.Id, (p, u) => new { p, u })
+                .Join(_context.CoursePackages, pu => pu.p.PackageId, pkg => pkg.Id, (pu, pkg) => new AdminPurchaseDto
+                {
+                    purchase_id = pu.p.Id,
+                    user_id = pu.u.Id,
+                    username = pu.u.Username,
+                    mobile_number = pu.u.MobileNumber,
+                    course_id = pkg.Id,
+                    course_title = "📦 [بسته] " + pkg.Title,
+                    course_price = pu.p.AmountPaid,
+                    payment_provider = pu.p.PaymentProvider,
+                    transaction_id = pu.p.TransactionId,
+                    status = pu.p.Status,
+                    purchased_at = pu.p.PurchasedAt
+                });
+
+            var query = coursePurchases.Concat(packagePurchases);
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var cleanSearch = search.Trim().ToLower();
                 query = query.Where(x =>
-                    x.mobile_number.Contains(cleanSearch) ||
-                    x.username.ToLower().Contains(cleanSearch) ||
-                    x.transaction_id.ToLower().Contains(cleanSearch) ||
-                    x.course_title.ToLower().Contains(cleanSearch));
+                    (x.mobile_number != null && x.mobile_number.Contains(cleanSearch)) ||
+                    (x.username != null && x.username.ToLower().Contains(cleanSearch)) ||
+                    (x.transaction_id != null && x.transaction_id.ToLower().Contains(cleanSearch)) ||
+                    (x.course_title != null && x.course_title.ToLower().Contains(cleanSearch)));
             }
 
             if (!string.IsNullOrWhiteSpace(status) && status.ToUpper() != "ALL")
@@ -220,7 +242,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             if (!string.IsNullOrWhiteSpace(gateway) && gateway.ToUpper() != "ALL")
             {
                 var gw = gateway.Trim().ToUpper();
-                query = query.Where(x => x.payment_provider.ToUpper().Contains(gw));
+                query = query.Where(x => x.payment_provider != null && x.payment_provider.ToUpper().Contains(gw));
             }
 
             if (courseId.HasValue && courseId.Value != Guid.Empty)
@@ -243,6 +265,22 @@ namespace LeitnerPlatform.API.Controllers.v1
                     : toDate.Value.ToUniversalTime();
                 query = query.Where(x => x.purchased_at <= toUtc);
             }
+
+            return query;
+        }
+
+        [HttpGet("purchases")]
+        public async Task<IActionResult> GetPurchases(
+            [FromQuery] string? search,
+            [FromQuery] string? status,
+            [FromQuery] string? gateway,
+            [FromQuery] Guid? courseId,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 15)
+        {
+            var query = BuildUnifiedPurchasesQuery(search, status, gateway, courseId, fromDate, toDate);
 
             var totalPurchases = await query.CountAsync();
             var totalRevenue = await query
@@ -275,65 +313,7 @@ namespace LeitnerPlatform.API.Controllers.v1
             [FromQuery] DateTime? fromDate,
             [FromQuery] DateTime? toDate)
         {
-            var query = _context.Purchases
-                .Join(_context.Users, p => p.UserId, u => u.Id, (p, u) => new { p, u })
-                .Join(_context.Courses, pu => pu.p.CourseId, c => c.Id, (pu, c) => new
-                {
-                    purchase_id = pu.p.Id,
-                    user_id = pu.u.Id,
-                    username = pu.u.Username,
-                    mobile_number = pu.u.MobileNumber,
-                    course_id = c.Id,
-                    course_title = c.Title,
-                    course_price = c.Price,
-                    payment_provider = pu.p.PaymentProvider,
-                    transaction_id = pu.p.TransactionId,
-                    status = pu.p.Status,
-                    purchased_at = pu.p.PurchasedAt
-                });
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var cleanSearch = search.Trim().ToLower();
-                query = query.Where(x =>
-                    x.mobile_number.Contains(cleanSearch) ||
-                    x.username.ToLower().Contains(cleanSearch) ||
-                    x.transaction_id.ToLower().Contains(cleanSearch) ||
-                    x.course_title.ToLower().Contains(cleanSearch));
-            }
-
-            if (!string.IsNullOrWhiteSpace(status) && status.ToUpper() != "ALL")
-            {
-                var st = status.Trim().ToUpper();
-                query = query.Where(x => x.status == st);
-            }
-
-            if (!string.IsNullOrWhiteSpace(gateway) && gateway.ToUpper() != "ALL")
-            {
-                var gw = gateway.Trim().ToUpper();
-                query = query.Where(x => x.payment_provider.ToUpper().Contains(gw));
-            }
-
-            if (courseId.HasValue && courseId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.course_id == courseId.Value);
-            }
-
-            if (fromDate.HasValue)
-            {
-                var fromUtc = fromDate.Value.Kind == DateTimeKind.Unspecified
-                    ? DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc)
-                    : fromDate.Value.ToUniversalTime();
-                query = query.Where(x => x.purchased_at >= fromUtc);
-            }
-
-            if (toDate.HasValue)
-            {
-                var toUtc = toDate.Value.Kind == DateTimeKind.Unspecified
-                    ? DateTime.SpecifyKind(toDate.Value, DateTimeKind.Utc)
-                    : toDate.Value.ToUniversalTime();
-                query = query.Where(x => x.purchased_at <= toUtc);
-            }
+            var query = BuildUnifiedPurchasesQuery(search, status, gateway, courseId, fromDate, toDate);
 
             var list = await query
                 .OrderByDescending(p => p.purchased_at)
@@ -347,9 +327,13 @@ namespace LeitnerPlatform.API.Controllers.v1
 
             foreach (var item in list)
             {
-                var cleanCourse = item.course_title.Replace("\"", "\"\"");
-                var cleanUser = item.username.Replace("\"", "\"\"");
-                csvBuilder.AppendLine($"\"{item.purchase_id}\",\"{cleanUser}\",\"{item.mobile_number}\",\"{cleanCourse}\",{item.course_price},\"{item.payment_provider}\",\"{item.transaction_id}\",\"{item.status}\",\"{item.purchased_at:yyyy-MM-dd HH:mm:ss}\"");
+                var cleanCourse = (item.course_title ?? "").Replace("\"", "\"\"");
+                var cleanUser = (item.username ?? "").Replace("\"", "\"\"");
+                var mobile = item.mobile_number ?? "";
+                var provider = item.payment_provider ?? "";
+                var txId = item.transaction_id ?? "";
+                var stat = item.status ?? "";
+                csvBuilder.AppendLine($"\"{item.purchase_id}\",\"{cleanUser}\",\"{mobile}\",\"{cleanCourse}\",{item.course_price},\"{provider}\",\"{txId}\",\"{stat}\",\"{item.purchased_at:yyyy-MM-dd HH:mm:ss}\"");
             }
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(csvBuilder.ToString());
@@ -2470,6 +2454,21 @@ namespace LeitnerPlatform.API.Controllers.v1
     {
         public string Key { get; set; } = string.Empty;
         public string Value { get; set; } = string.Empty;
+    }
+
+    public class AdminPurchaseDto
+    {
+        public Guid purchase_id { get; set; }
+        public Guid user_id { get; set; }
+        public string? username { get; set; }
+        public string? mobile_number { get; set; }
+        public Guid course_id { get; set; }
+        public string course_title { get; set; } = string.Empty;
+        public decimal course_price { get; set; }
+        public string? payment_provider { get; set; }
+        public string? transaction_id { get; set; }
+        public string? status { get; set; }
+        public DateTime purchased_at { get; set; }
     }
 
     #endregion
