@@ -134,57 +134,40 @@ jobs:
             fi
           fi
 
-      - name: Create Production Deployment Archive
-        run: |
-          ARCHIVE_NAME="leitner_deploy_$(date +%s).tar.gz"
-          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
-
-          tar -czf "$ARCHIVE_NAME" \
-            --exclude="admin-panel/node_modules" \
-            --exclude="admin-panel/src" \
-            --exclude="admin-panel/public" \
-            --exclude="mobile-app" --exclude="docs" --exclude="*.apk" \
-            publish admin-panel deployment .dockerignore .env*
-
-          echo "Archive created: $ARCHIVE_NAME ($(du -h "$ARCHIVE_NAME" | cut -f1))"
-
-      - name: Upload & Extract Source Archive on Server
+      - name: Sync Deployment Payload to Server (Rsync)
         env:
           SERVER_IP: ${{ inputs.server_ip || '45.94.215.188' }}
           SERVER_USER: ${{ inputs.server_user || 'root' }}
         run: |
-          echo ">> Uploading $ARCHIVE_NAME to $SERVER_USER@$SERVER_IP:/tmp/..."
-          uploaded=false
+          echo ">> Ensuring target directories exist on $SERVER_USER@$SERVER_IP..."
+          timeout 30 ssh -n -T "$SERVER_USER@$SERVER_IP" \
+            "mkdir -p /opt/leitner-platform/publish /opt/leitner-platform/admin-panel/dist /opt/leitner-platform/deployment"
+
+          echo ">> Syncing published binaries and application assets incrementally..."
+          synced=false
           for i in 1 2 3 4; do
-            if timeout 180 scp -O "$ARCHIVE_NAME" "$SERVER_USER@$SERVER_IP:/tmp/$ARCHIVE_NAME"; then
-              echo ">> Archive upload succeeded on attempt $i."
-              uploaded=true
+            if rsync -avz --partial --delete \
+                --exclude="*.pdb" \
+                --exclude="wwwroot/courses" \
+                --exclude="runtimes/win*" \
+                --exclude="runtimes/osx*" \
+                publish/ "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/publish/" && \
+               rsync -avz --partial --delete \
+                admin-panel/dist/ "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/admin-panel/dist/" && \
+               rsync -avz --partial \
+                deployment/ "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/deployment/" && \
+               rsync -avz --partial \
+                .dockerignore .env* "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/"; then
+              echo ">> Deployment payload synced successfully on attempt $i."
+              synced=true
               break
             fi
-            echo "::warning::SCP upload attempt $i/4 failed or timed out. Retrying in 5s..."
+            echo "::warning::Rsync sync attempt $i/4 failed. Retrying in 5s..."
             sleep 5
           done
 
-          if [ "$uploaded" != "true" ]; then
-            echo "::error::Failed to upload deployment archive after 4 attempts."
-            exit 1
-          fi
-
-          echo ">> Extracting on remote server into /opt/leitner-platform..."
-          extracted=false
-          for i in 1 2 3 4; do
-            if timeout 120 ssh -n -T "$SERVER_USER@$SERVER_IP" \
-              "mkdir -p /opt/leitner-platform && tar -xzf /tmp/$ARCHIVE_NAME -C /opt/leitner-platform && rm -f /tmp/$ARCHIVE_NAME && echo '>> Extraction completed successfully.'"; then
-              echo ">> Remote extraction succeeded on attempt $i."
-              extracted=true
-              break
-            fi
-            echo "::warning::Remote extraction attempt $i/4 failed or timed out. Retrying in 5s..."
-            sleep 5
-          done
-
-          if [ "$extracted" != "true" ]; then
-            echo "::error::Failed to extract deployment archive on remote server."
+          if [ "$synced" != "true" ]; then
+            echo "::error::Failed to sync deployment payload to remote server after 4 attempts."
             exit 1
           fi
 
@@ -195,26 +178,18 @@ jobs:
         run: |
           COURSES_DIR="backend/LeitnerPlatform.API/wwwroot/courses"
           if [ -d "$COURSES_DIR" ]; then
-            timeout 60 ssh -n -T "$SERVER_USER@$SERVER_IP" "mkdir -p /opt/leitner-platform/$COURSES_DIR"
-            REMOTE_LS=$(timeout 60 ssh -n -T "$SERVER_USER@$SERVER_IP" "ls -l /opt/leitner-platform/$COURSES_DIR 2>/dev/null || true")
+            echo ">> Ensuring courses directory exists on server..."
+            timeout 30 ssh -n -T "$SERVER_USER@$SERVER_IP" "mkdir -p /opt/leitner-platform/$COURSES_DIR"
 
-            for zip_file in "$COURSES_DIR"/*.zip; do
-              [ -e "$zip_file" ] || continue
-              file_name=$(basename "$zip_file")
-              file_size=$(stat -c%s "$zip_file" 2>/dev/null || stat -f%z "$zip_file" 2>/dev/null || echo 0)
-              if echo "$REMOTE_LS" | grep -q "$file_name" && echo "$REMOTE_LS" | grep -q "$file_size"; then
-                echo "  [OK] Course package up to date: $file_name ($file_size bytes)"
-              else
-                echo "  Syncing course package: $file_name ($file_size bytes)..."
-                for i in 1 2 3 4; do
-                  if timeout 180 scp -O "$zip_file" "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/$COURSES_DIR/$file_name"; then
-                    echo "  [OK] Course $file_name synced."
-                    break
-                  fi
-                  echo "::warning::SCP course upload attempt $i/4 failed or timed out. Retrying in 5s..."
-                  sleep 5
-                done
+            echo ">> Incremental sync for course packages..."
+            for i in 1 2 3 4; do
+              if rsync -avz --partial --size-only --include="*.zip" --exclude="*" \
+                "$COURSES_DIR/" "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/$COURSES_DIR/"; then
+                echo ">> Course packages synced successfully."
+                break
               fi
+              echo "::warning::Course package rsync attempt $i/4 failed. Retrying in 5s..."
+              sleep 5
             done
           fi
 
