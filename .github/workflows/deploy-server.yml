@@ -85,7 +85,7 @@ jobs:
           echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa_deploy
           chmod 600 ~/.ssh/id_rsa_deploy
 
-          # Global SSH configuration with ControlMaster multiplexing for resilient CI/CD connections
+          # Global SSH configuration for resilient non-blocking CI/CD connections
           cat << EOF > ~/.ssh/config
           Host *
             User $SERVER_USER
@@ -93,14 +93,11 @@ jobs:
             StrictHostKeyChecking no
             UserKnownHostsFile /dev/null
             IPQoS none
-            ServerAliveInterval 15
-            ServerAliveCountMax 10
+            ServerAliveInterval 10
+            ServerAliveCountMax 6
             TCPKeepAlive yes
-            ConnectTimeout 60
+            ConnectTimeout 30
             Compression yes
-            ControlMaster auto
-            ControlPath ~/.ssh/cm-%r@%h:%p
-            ControlPersist 15m
           EOF
           chmod 600 ~/.ssh/config
 
@@ -108,11 +105,11 @@ jobs:
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 644 ~/.ssh/known_hosts
 
-          # Establish and verify persistent SSH master connection with retry
+          # Establish and verify SSH connection with retry
           echo ">> Verifying SSH connection to $SERVER_USER@$SERVER_IP..."
           connected=false
           for i in 1 2 3 4; do
-            if ssh -n -T "$SERVER_USER@$SERVER_IP" "echo '>> Connection established.'" ; then
+            if timeout 30 ssh -n -T "$SERVER_USER@$SERVER_IP" "echo '>> Connection established.'" ; then
               connected=true
               break
             fi
@@ -157,19 +154,39 @@ jobs:
           SERVER_USER: ${{ inputs.server_user || 'root' }}
         run: |
           echo ">> Uploading $ARCHIVE_NAME to $SERVER_USER@$SERVER_IP:/tmp/..."
+          uploaded=false
           for i in 1 2 3 4; do
-            scp "$ARCHIVE_NAME" "$SERVER_USER@$SERVER_IP:/tmp/$ARCHIVE_NAME" && break
-            echo "::warning::SCP upload attempt $i/4 failed. Retrying in 5s..."
+            if timeout 180 scp -O "$ARCHIVE_NAME" "$SERVER_USER@$SERVER_IP:/tmp/$ARCHIVE_NAME"; then
+              echo ">> Archive upload succeeded on attempt $i."
+              uploaded=true
+              break
+            fi
+            echo "::warning::SCP upload attempt $i/4 failed or timed out. Retrying in 5s..."
             sleep 5
           done
 
+          if [ "$uploaded" != "true" ]; then
+            echo "::error::Failed to upload deployment archive after 4 attempts."
+            exit 1
+          fi
+
           echo ">> Extracting on remote server into /opt/leitner-platform..."
+          extracted=false
           for i in 1 2 3 4; do
-            ssh -n -T "$SERVER_USER@$SERVER_IP" \
-              "mkdir -p /opt/leitner-platform && tar -xzf /tmp/$ARCHIVE_NAME -C /opt/leitner-platform && rm -f /tmp/$ARCHIVE_NAME && echo '>> Extraction completed successfully.'" && break
-            echo "::warning::Remote extraction attempt $i/4 failed. Retrying in 5s..."
+            if timeout 120 ssh -n -T "$SERVER_USER@$SERVER_IP" \
+              "mkdir -p /opt/leitner-platform && tar -xzf /tmp/$ARCHIVE_NAME -C /opt/leitner-platform && rm -f /tmp/$ARCHIVE_NAME && echo '>> Extraction completed successfully.'"; then
+              echo ">> Remote extraction succeeded on attempt $i."
+              extracted=true
+              break
+            fi
+            echo "::warning::Remote extraction attempt $i/4 failed or timed out. Retrying in 5s..."
             sleep 5
           done
+
+          if [ "$extracted" != "true" ]; then
+            echo "::error::Failed to extract deployment archive on remote server."
+            exit 1
+          fi
 
       - name: Sync Course Package Assets (Incremental)
         env:
@@ -178,8 +195,8 @@ jobs:
         run: |
           COURSES_DIR="backend/LeitnerPlatform.API/wwwroot/courses"
           if [ -d "$COURSES_DIR" ]; then
-            ssh -n -T "$SERVER_USER@$SERVER_IP" "mkdir -p /opt/leitner-platform/$COURSES_DIR"
-            REMOTE_LS=$(ssh -n -T "$SERVER_USER@$SERVER_IP" "ls -l /opt/leitner-platform/$COURSES_DIR 2>/dev/null || true")
+            timeout 60 ssh -n -T "$SERVER_USER@$SERVER_IP" "mkdir -p /opt/leitner-platform/$COURSES_DIR"
+            REMOTE_LS=$(timeout 60 ssh -n -T "$SERVER_USER@$SERVER_IP" "ls -l /opt/leitner-platform/$COURSES_DIR 2>/dev/null || true")
 
             for zip_file in "$COURSES_DIR"/*.zip; do
               [ -e "$zip_file" ] || continue
@@ -190,8 +207,11 @@ jobs:
               else
                 echo "  Syncing course package: $file_name ($file_size bytes)..."
                 for i in 1 2 3 4; do
-                  scp "$zip_file" "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/$COURSES_DIR/$file_name" && break
-                  echo "::warning::SCP course upload attempt $i/4 failed. Retrying in 5s..."
+                  if timeout 180 scp -O "$zip_file" "$SERVER_USER@$SERVER_IP:/opt/leitner-platform/$COURSES_DIR/$file_name"; then
+                    echo "  [OK] Course $file_name synced."
+                    break
+                  fi
+                  echo "::warning::SCP course upload attempt $i/4 failed or timed out. Retrying in 5s..."
                   sleep 5
                 done
               fi
@@ -205,9 +225,12 @@ jobs:
         run: |
           echo ">> Building and launching Docker Compose stack..."
           for i in 1 2 3 4; do
-            ssh -n -T "$SERVER_USER@$SERVER_IP" \
-              "cd /opt/leitner-platform && docker compose -f deployment/docker-compose.yml --env-file .env up -d --build" && break
-            echo "::warning::Docker compose attempt $i/4 failed. Retrying in 5s..."
+            if timeout 300 ssh -n -T "$SERVER_USER@$SERVER_IP" \
+              "cd /opt/leitner-platform && docker compose -f deployment/docker-compose.yml --env-file .env up -d --build"; then
+              echo ">> Docker compose deployment succeeded on attempt $i."
+              break
+            fi
+            echo "::warning::Docker compose attempt $i/4 failed or timed out. Retrying in 5s..."
             sleep 5
           done
 
@@ -217,14 +240,11 @@ jobs:
           SERVER_USER: ${{ inputs.server_user || 'root' }}
         run: |
           echo ">> Running Containers:"
-          ssh -n -T "$SERVER_USER@$SERVER_IP" \
+          timeout 60 ssh -n -T "$SERVER_USER@$SERVER_IP" \
             "cd /opt/leitner-platform && docker compose -f deployment/docker-compose.yml ps"
 
           echo ">> Testing Courses Endpoint..."
           sleep 5
-          STATUS_CODE=$(ssh -n -T "$SERVER_USER@$SERVER_IP" "curl -k -s -o /dev/null -w '%{http_code}' https://api.rightlearn.ir/api/v1/courses || echo '000'")
+          STATUS_CODE=$(timeout 60 ssh -n -T "$SERVER_USER@$SERVER_IP" "curl -k -s -o /dev/null -w '%{http_code}' https://api.rightlearn.ir/api/v1/courses || echo '000'")
           echo "Courses endpoint HTTP status: $STATUS_CODE"
-
-          # Close SSH master connection socket
-          ssh -O exit "$SERVER_USER@$SERVER_IP" 2>/dev/null || true
           echo ">> Deployment completed successfully! 🎉"
